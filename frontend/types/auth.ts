@@ -2,6 +2,9 @@ export interface AuthRole {
   id: number;
   name?: string | null;
   code?: string | null;
+  description?: string | null;
+  isSystem?: boolean;
+  isActive?: boolean;
 }
 
 export interface AuthAllowedBranch {
@@ -10,14 +13,17 @@ export interface AuthAllowedBranch {
   code?: string | null;
   facilityId: number;
 }
-export interface LoginResponse {
-  accessToken: string;
-  user: AuthUser;
-}
+
 export interface AuthUser {
-  userId: number;
+  id: number;
+  userId?: number;
   username: string;
-  roleId: number;
+  email?: string | null;
+  fullName?: string | null;
+  isActive: boolean;
+
+  role?: AuthRole | null;
+  roleId?: number;
   roleCode?: string | null;
 
   homeFacilityId?: number | null;
@@ -32,4 +38,10 @@ export interface AuthUser {
   allowedBranches?: AuthAllowedBranch[];
 
   staffId?: number | null;
+}
+
+export interface LoginResponse {
+  message: string;
+  accessToken: string;
+  user: AuthUser;
 }
