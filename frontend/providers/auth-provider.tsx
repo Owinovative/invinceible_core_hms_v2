@@ -29,28 +29,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = React.useState(true);
 
   const refreshMe = React.useCallback(async () => {
-    const existingToken = getAccessToken();
+  const existingToken = getAccessToken();
 
-    if (!existingToken) {
-      setUser(null);
-      setTokenState(null);
-      setIsLoading(false);
-      return;
-    }
+  if (!existingToken) {
+    setUser(null);
+    setTokenState(null);
+    setIsLoading(false);
+    return;
+  }
 
-    try {
-      setTokenState(existingToken);
-      const me = await getMe();
-      setUser(me);
-    } catch {
-      clearAccessToken();
-      setUser(null);
-      setTokenState(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  try {
+    setTokenState(existingToken);
+    const me = await getMe();
+    setUser({
+      ...me,
+      id: me.id ?? me.userId,
+      userId: me.userId ?? me.id,
+      roleId: me.roleId ?? me.role?.id,
+      roleCode: me.roleCode ?? me.role?.code ?? null,
+    });
+  } catch {
+    clearAccessToken();
+    setUser(null);
+    setTokenState(null);
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
   React.useEffect(() => {
     refreshMe();
   }, [refreshMe]);
@@ -60,18 +65,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const result = await loginUser(payload);
+
         setAccessToken(result.accessToken);
         setTokenState(result.accessToken);
-        const me = await getMe();
-        setUser(me);
+
+        setUser({
+          ...result.user,
+          id: result.user.id ?? result.user.userId,
+          userId: result.user.userId ?? result.user.id,
+          roleId: result.user.roleId ?? result.user.role?.id,
+          roleCode: result.user.roleCode ?? result.user.role?.code ?? null,
+        });
+
         router.push("/dashboard");
+      } catch (error) {
+        console.error("Login failed:", error);
+        throw error;
       } finally {
         setIsLoading(false);
       }
     },
     [router],
   );
-
   const logout = React.useCallback(() => {
     clearAccessToken();
     setUser(null);
