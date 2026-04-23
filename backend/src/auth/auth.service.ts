@@ -1,0 +1,201 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { UserService } from '../user/user.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async login(loginDto: LoginDto) {
+    const user = await this.userService.findAuthUserByUsername(
+      loginDto.username,
+    );
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    const isSuperAdmin = user.role?.code === 'SUPER_ADMIN';
+
+    if (
+      !isSuperAdmin &&
+      user.homeFacilityId &&
+      user.homeFacility &&
+      user.homeFacility.isActive === false
+    ) {
+      throw new UnauthorizedException(
+        'Your facility is inactive. Access is suspended.',
+      );
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      loginDto.password,
+      user.passwordHash,
+    );
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    const payload = {
+      sub: user.id,
+      username: user.username,
+      roleId: user.roleId,
+      roleCode: user.role?.code,
+    };
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+      },
+    });
+
+    return {
+      message: 'Login successful',
+      accessToken: await this.jwtService.signAsync(payload),
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        isActive: user.isActive,
+        role: user.role,
+      },
+    };
+  }
+
+  async validateUser(userId: number) {
+    const user = await this.userService.findOne(userId);
+
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      isActive: user.isActive,
+      role: user.role,
+    };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.userService.findAuthUserByUsername(dto.username);
+
+    if (!user || !user.isActive) {
+      return {
+        message:
+          'If the account exists, a password reset link has been generated.',
+      };
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
+
+    await this.prisma.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    return {
+      message:
+        'If the account exists, a password reset link has been generated.',
+      devResetToken: rawToken,
+      devResetLink: `http://localhost:3000/reset-password?token=${rawToken}`,
+      expiresAt,
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(dto.token)
+      .digest('hex');
+
+    const resetRecord = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        usedAt: null,
+      },
+      include: {
+        user: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+
+    if (!resetRecord) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (resetRecord.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (!resetRecord.user.isActive) {
+      throw new BadRequestException('User account is inactive');
+    }
+
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: resetRecord.userId },
+      data: {
+        passwordHash: newPasswordHash,
+      },
+    });
+
+    await this.prisma.passwordResetToken.update({
+      where: { id: resetRecord.id },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    await this.prisma.passwordResetToken.updateMany({
+      where: {
+        userId: resetRecord.userId,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    return {
+      message: 'Password reset successful',
+    };
+  }
+}

@@ -1,0 +1,88 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { PharmacyStockService } from './pharmacy-stock.service';
+import { CreateBranchMedicineStockDto } from './dto/create-branch-medicine-stock.dto';
+import { UpdateBranchMedicineStockDto } from './dto/update-branch-medicine-stock.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
+
+
+
+@Controller('pharmacy-stock')
+@UseGuards(AuthGuard('jwt'))
+export class PharmacyStockController {
+  constructor(private readonly pharmacyStockService: PharmacyStockService) {}
+
+  @Post()
+  create(@Body() dto: CreateBranchMedicineStockDto) {
+    return this.pharmacyStockService.create(dto);
+  }
+
+  @Get()
+  findAll(@CurrentUser() user: RequestUser) {
+    return this.pharmacyStockService.findAllScoped(user);
+  }
+
+  @Get('low-stock')
+  getLowStock(@CurrentUser() user: RequestUser) {
+    return this.pharmacyStockService.getLowStockScoped(user);
+  }
+
+  @Get('branch/:branchId')
+  findByBranch(
+    @Param('branchId', ParseIntPipe) branchId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.findByBranchScoped(branchId, user);
+  }
+
+  @Get(':id')
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.findOneScoped(id, user);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateBranchMedicineStockDto,
+  ) {
+    return this.pharmacyStockService.update(id, dto);
+  }
+
+  @Patch(':id/add-stock/:quantity')
+  addStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('quantity', ParseIntPipe) quantity: number,
+  ) {
+    return this.pharmacyStockService.addStock(id, quantity);
+  }
+  @Patch(':stockId/restock')
+  restockBranchMedicine(
+    @Param('stockId', ParseIntPipe) stockId: number,
+    @Body() dto: RestockBranchMedicineDto,
+  ) {
+    return this.pharmacyStockService.restockBranchMedicine(stockId, dto);
+  }
+
+  @Patch(':id/deduct-stock/:quantity')
+  deductStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('quantity', ParseIntPipe) quantity: number,
+  ) {
+    return this.pharmacyStockService.deductStock(id, quantity);
+  }
+}

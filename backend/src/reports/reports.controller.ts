@@ -1,0 +1,92 @@
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ReportsService } from './reports.service';
+import { ReportFilterDto } from './dto/report-filter.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type{ RequestUser } from '../auth/interfaces/request-user.interface';
+
+@Controller('reports')
+@UseGuards(AuthGuard('jwt'))
+export class ReportsController {
+  constructor(private readonly reportsService: ReportsService ) {}
+
+  @Get('dashboard-summary')
+  getDashboardSummary(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getDashboardSummary(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('opd')
+  getOpdAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getOpdAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('billing')
+  getBillingAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getBillingAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('lab')
+  getLabAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getLabAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('pharmacy')
+  getPharmacyAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getPharmacyAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('ipd')
+  getIpdAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getIpdAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('doctor-workload')
+  getDoctorWorkload(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getDoctorWorkload(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('system-health')
+  getSystemHealth(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getSystemHealthSummary(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+}
