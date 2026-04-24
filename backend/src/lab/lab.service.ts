@@ -11,8 +11,8 @@ import { NotificationService } from '../notification/notification.service';
 import { CreateLabTestDto } from './dto/create-lab-test.dto';
 import { CreateLabOrderDto } from './dto/create-lab-order.dto';
 import { CreateLabResultDto } from './dto/create-lab-result.dto';
-import { ScopeService } from 'src/auth/scope.service';
-import { RequestUser } from 'src/auth/interfaces/request-user.interface';
+import { ScopeService } from '../auth/scope.service';
+import { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
 export class LabService {

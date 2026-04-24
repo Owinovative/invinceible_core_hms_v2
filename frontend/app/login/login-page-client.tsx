@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, LockKeyhole, User2 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +29,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPageClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isLoading } = useAuth();
   const [error, setError] = React.useState<string | null>(null);
@@ -49,8 +50,8 @@ export default function LoginPageClient() {
     try {
       await login(values);
 
-      if (nextPath && typeof window !== "undefined") {
-        window.location.href = nextPath;
+      if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) {
+        router.replace(nextPath);
       }
     } catch {
       setError("Invalid username or password.");
@@ -62,19 +63,15 @@ export default function LoginPageClient() {
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: "url('/auth/login-bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          background:
+            "linear-gradient(135deg, rgba(8, 47, 73, 0.92), rgba(15, 23, 42, 0.96) 48%, rgba(6, 78, 59, 0.78))",
         }}
       />
 
       <div className="absolute inset-0 bg-slate-950/55" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-950/50 via-slate-950/35 to-cyan-950/35" />
 
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-blue-500/15 blur-3xl" />
-        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/12 blur-3xl" />
-      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-400/10 to-transparent" />
 
       <div className="relative flex min-h-screen items-center justify-center px-6 py-10">
         <Card className="w-full max-w-md rounded-[2rem] border-white/15 bg-white/10 text-white shadow-2xl backdrop-blur-2xl">

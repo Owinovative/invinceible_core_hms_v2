@@ -14,8 +14,8 @@ import { CreateBedDto } from './dto/create-bed.dto';
 import { CreateAdmissionDto } from './dto/create-admission.dto';
 import { UpdateWardDto } from './dto/update-ward.dto';
 import { UpdateBedDto } from './dto/update-bed.dto';
-import { ScopeService } from 'src/auth/scope.service';
-import { RequestUser } from 'src/auth/interfaces/request-user.interface';
+import { ScopeService } from '../auth/scope.service';
+import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { TransferAdmissionBedDto } from './dto/transfer-admission-bed.dto';
 
 @Injectable()

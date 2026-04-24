@@ -15,6 +15,9 @@ export function useResolveNotification() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notification-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["unresolved-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["pharmacy-alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["system-health"] });
     },
   });
 }

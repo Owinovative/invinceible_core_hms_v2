@@ -1,11 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getNotifications } from "@/services/notification-service";
+import {
+  getNotifications,
+  type NotificationQueryParams,
+} from "@/services/notification-service";
 
-export function useNotifications() {
+export function useNotifications(params?: NotificationQueryParams) {
   return useQuery({
-    queryKey: ["notifications"],
-    queryFn: getNotifications,
+    queryKey: ["notifications", params],
+    queryFn: () => getNotifications(params),
   });
 }

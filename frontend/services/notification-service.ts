@@ -86,16 +86,62 @@ export interface ResolveNotificationPayload {
   resolutionNote?: string;
 }
 
-export async function getNotifications() {
-  return apiFetch<NotificationItem[]>("/notifications", {
-    method: "GET",
-  });
+export type NotificationQueryParams = {
+  facilityId?: number;
+  branchId?: number;
+  moduleName?: string;
+  notificationType?: string;
+  isRead?: boolean;
+  isResolved?: boolean;
+};
+
+function buildNotificationQuery(params?: NotificationQueryParams) {
+  const search = new URLSearchParams();
+
+  if (params?.facilityId) search.set("facilityId", String(params.facilityId));
+  if (params?.branchId) search.set("branchId", String(params.branchId));
+  if (params?.moduleName) search.set("moduleName", params.moduleName);
+  if (params?.notificationType) {
+    search.set("notificationType", params.notificationType);
+  }
+  if (typeof params?.isRead === "boolean") {
+    search.set("isRead", String(params.isRead));
+  }
+  if (typeof params?.isResolved === "boolean") {
+    search.set("isResolved", String(params.isResolved));
+  }
+
+  const query = search.toString();
+  return query ? `?${query}` : "";
 }
 
-export async function getNotificationStats() {
-  return apiFetch<NotificationStats>("/notifications/stats", {
-    method: "GET",
-  });
+export async function getNotifications(params?: NotificationQueryParams) {
+  return apiFetch<NotificationItem[]>(
+    `/notifications${buildNotificationQuery(params)}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function getNotificationStats(params?: NotificationQueryParams) {
+  return apiFetch<NotificationStats>(
+    `/notifications/stats${buildNotificationQuery(params)}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function markNotificationsAsRead(
+  params?: NotificationQueryParams,
+) {
+  return apiFetch<{ message: string; count: number }>(
+    `/notifications/read-all${buildNotificationQuery(params)}`,
+    {
+      method: "PATCH",
+    },
+  );
 }
 
 export async function createNotification(payload: CreateNotificationPayload) {

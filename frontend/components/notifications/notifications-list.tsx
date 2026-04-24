@@ -3,17 +3,23 @@
 import * as React from "react";
 import {
   Bell,
+  CheckCheck,
   CheckCircle2,
   Clock3,
+  Loader2,
   Search,
   ShieldAlert,
   TriangleAlert,
 } from "lucide-react";
 import type { NotificationItem } from "@/types/notification";
+import type { NotificationQueryParams } from "@/services/notification-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useMarkNotificationRead } from "@/hooks/use-mark-notification-read";
+import { useMarkNotificationsRead } from "@/hooks/use-mark-notifications-read";
+import { useResolveNotification } from "@/hooks/use-resolve-notification";
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
@@ -54,14 +60,19 @@ function getSeverityIcon(severity?: string | null) {
 export function NotificationsList({
   items,
   isLoading,
+  scope,
 }: {
   items: NotificationItem[];
   isLoading?: boolean;
+  scope?: NotificationQueryParams;
 }) {
   const [search, setSearch] = React.useState("");
   const [filter, setFilter] = React.useState<
     "all" | "unread" | "resolved" | "critical"
   >("all");
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkNotificationsRead();
+  const resolveMutation = useResolveNotification();
 
   const filteredItems = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -115,9 +126,6 @@ export function NotificationsList({
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Alerts Feed</h2>
-          <p className="text-sm text-muted-foreground">
-            Operational notifications in your current scope
-          </p>
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row">
@@ -159,6 +167,21 @@ export function NotificationsList({
               onClick={() => setFilter("resolved")}
             >
               Resolved {counts.resolved}
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              disabled={
+                counts.unread === 0 || markAllReadMutation.isPending || isLoading
+              }
+              onClick={() => markAllReadMutation.mutate(scope)}
+            >
+              {markAllReadMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCheck className="mr-2 h-4 w-4" />
+              )}
+              Mark read
             </Button>
           </div>
         </div>
@@ -241,26 +264,62 @@ export function NotificationsList({
                       {item.message || "No message"}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                      <span className="rounded-full bg-muted px-3 py-1 font-medium">
-                        {item.notificationType || "GENERAL"}
-                      </span>
-                      {item.moduleName ? (
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                         <span className="rounded-full bg-muted px-3 py-1 font-medium">
-                          {item.moduleName}
+                          {item.notificationType || "GENERAL"}
                         </span>
-                      ) : null}
-                      {item.entityType ? (
-                        <span className="rounded-full bg-muted px-3 py-1 font-medium">
-                          {item.entityType}
-                        </span>
-                      ) : null}
-                      {item.resolvedAt ? (
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Resolved {formatDateTime(item.resolvedAt)}
-                        </span>
-                      ) : null}
+                        {item.moduleName ? (
+                          <span className="rounded-full bg-muted px-3 py-1 font-medium">
+                            {item.moduleName}
+                          </span>
+                        ) : null}
+                        {item.entityType ? (
+                          <span className="rounded-full bg-muted px-3 py-1 font-medium">
+                            {item.entityType}
+                          </span>
+                        ) : null}
+                        {item.resolvedAt ? (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Resolved {formatDateTime(item.resolvedAt)}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {item.isRead === false ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl"
+                            disabled={markReadMutation.isPending}
+                            onClick={() => markReadMutation.mutate(item.id)}
+                          >
+                            <CheckCheck className="mr-2 h-4 w-4" />
+                            Read
+                          </Button>
+                        ) : null}
+
+                        {!item.isResolved ? (
+                          <Button
+                            size="sm"
+                            className="rounded-xl"
+                            disabled={resolveMutation.isPending}
+                            onClick={() =>
+                              resolveMutation.mutate({
+                                id: item.id,
+                                payload: {
+                                  resolutionNote:
+                                    "Resolved from notifications center",
+                                },
+                              })
+                            }
+                          >
+                            Resolve
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </div>

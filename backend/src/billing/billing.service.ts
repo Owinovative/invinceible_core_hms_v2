@@ -16,8 +16,8 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateCashPaymentDto } from './dto/create-cash-payment.dto';
 import { CreateMpesaPaymentRequestDto } from './dto/create-mpesa-payment-request.dto';
 import { ConfirmMpesaPaymentDto } from './dto/confirm-mpesa-payment.dto';
-import { ScopeService } from 'src/auth/scope.service';
-import { RequestUser } from 'src/auth/interfaces/request-user.interface';
+import { ScopeService } from '../auth/scope.service';
+import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
 

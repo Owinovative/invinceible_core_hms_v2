@@ -10,6 +10,15 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PriorityAlertsPanel } from "@/components/dashboard/priority-alerts-panel";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
@@ -154,6 +163,61 @@ function InsightStrip({
   );
 }
 
+function OperationalPulseChart({
+  isLoading,
+  data,
+}: {
+  isLoading?: boolean;
+  data: Array<{ label: string; value: number; color: string }>;
+}) {
+  return (
+    <div className="h-[320px] rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4">
+      {isLoading ? (
+        <div className="grid h-full grid-cols-5 items-end gap-3">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton
+              key={index}
+              className="rounded-t-xl"
+              style={{ height: `${38 + index * 11}%` }}
+            />
+          ))}
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ left: -24, right: 8, top: 12 }}>
+            <XAxis
+              dataKey="label"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            />
+            <YAxis
+              allowDecimals={false}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            />
+            <ChartTooltip
+              cursor={{ fill: "rgba(255,255,255,0.04)" }}
+              contentStyle={{
+                background: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: 12,
+                color: "hsl(var(--foreground))",
+              }}
+            />
+            <Bar dataKey="value" radius={[10, 10, 4, 4]}>
+              {data.map((entry) => (
+                <Cell key={entry.label} fill={entry.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const { facilityId, facilityName, selectedBranchId, selectedBranchName } =
@@ -213,6 +277,34 @@ export default function DashboardPage() {
     (health?.summary.pendingLabQueue ?? 0) === 0 &&
     (health?.summary.activeAdmissions ?? 0) === 0 &&
     (health?.summary.lowStock ?? 0) === 0;
+
+  const pulseData = [
+    {
+      label: "Alerts",
+      value: counts?.counts.total ?? 0,
+      color: "#22d3ee",
+    },
+    {
+      label: "Lab",
+      value: health?.summary.pendingLabQueue ?? 0,
+      color: "#38bdf8",
+    },
+    {
+      label: "IPD",
+      value: health?.summary.activeAdmissions ?? 0,
+      color: "#f59e0b",
+    },
+    {
+      label: "Stock",
+      value: health?.summary.lowStock ?? 0,
+      color: "#ef4444",
+    },
+    {
+      label: "Billing",
+      value: health?.summary.billingFailures ?? 0,
+      color: "#34d399",
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -492,25 +584,14 @@ export default function DashboardPage() {
 
         <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Charts Zone</CardTitle>
+            <CardTitle className="text-lg">Operational Pulse</CardTitle>
             <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-300">
-              Ready
+              Live
             </Badge>
           </CardHeader>
 
           <CardContent>
-            <div className="flex min-h-[320px] items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02]">
-              <div className="space-y-3 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-500/10">
-                  <TrendingUp className="h-6 w-6 text-cyan-400" />
-                </div>
-                <p className="text-lg font-semibold">Future charts area</p>
-                <p className="max-w-sm text-sm text-muted-foreground">
-                  Admissions trends, billing movement, pharmacy pressure, and
-                  patient flow charts can be mounted here next.
-                </p>
-              </div>
-            </div>
+            <OperationalPulseChart isLoading={isLoading} data={pulseData} />
           </CardContent>
         </Card>
       </section>

@@ -2,16 +2,16 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  createNotification,
-  type CreateNotificationPayload,
+  markNotificationsAsRead,
+  type NotificationQueryParams,
 } from "@/services/notification-service";
 
-export function useCreateNotification() {
+export function useMarkNotificationsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateNotificationPayload) =>
-      createNotification(payload),
+    mutationFn: (params?: NotificationQueryParams) =>
+      markNotificationsAsRead(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notification-stats"] });

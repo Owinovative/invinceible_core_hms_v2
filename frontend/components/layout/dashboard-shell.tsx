@@ -1,15 +1,21 @@
+"use client";
+
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useSidebar } from "@/providers/sidebar-provider";
 
 export function DashboardShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { mobileOpen, setMobileOpen } = useSidebar();
+
   return (
     <div className="relative h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.28] dark:opacity-[0.16]">
+        <div className="absolute inset-0 opacity-[0.22] dark:opacity-[0.14]">
           <div
             className="absolute inset-0"
             style={{
@@ -21,15 +27,23 @@ export function DashboardShell({
             }}
           />
         </div>
-
-        <div className="absolute -left-24 top-0 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-500/15" />
-        <div className="absolute right-[-40px] top-16 h-[28rem] w-[28rem] rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-400/10" />
-        <div className="absolute bottom-[-60px] left-1/3 h-80 w-80 rounded-full bg-sky-400/10 blur-3xl dark:bg-sky-400/10" />
-        <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/10" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cyan-500/[0.08] to-transparent" />
       </div>
 
       <div className="relative flex h-screen overflow-hidden">
         <DashboardSidebar />
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="w-[21rem] border-white/10 bg-background p-0 lg:hidden"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation</SheetTitle>
+            </SheetHeader>
+            <DashboardSidebar mobile />
+          </SheetContent>
+        </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <DashboardHeader />

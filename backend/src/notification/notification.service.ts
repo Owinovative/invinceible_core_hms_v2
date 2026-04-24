@@ -5,8 +5,8 @@ import { StaffService } from '../staff/staff.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { NotificationQueryDto } from './dto/notification-query.dto';
 import { ResolveNotificationDto } from './dto/resolve-notification.dto';
-import { ScopeService } from 'src/auth/scope.service';
-import type { RequestUser } from 'src/auth/interfaces/request-user.interface';  
+import { ScopeService } from '../auth/scope.service';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 
 @Injectable()
@@ -17,6 +17,50 @@ export class NotificationService {
     private readonly staffService: StaffService,
     private readonly scopeService: ScopeService,
   ) {}
+
+  private includeRelations() {
+    return {
+      facility: true,
+      branch: true,
+      targetUser: true,
+      targetStaff: true,
+      resolvedByUser: true,
+      resolvedByStaff: true,
+    };
+  }
+
+  private applyQueryFilters(where: any, query?: NotificationQueryDto) {
+    if (query?.moduleName) where.moduleName = query.moduleName;
+    if (query?.notificationType) where.notificationType = query.notificationType;
+    if (query?.isRead === 'true') where.isRead = true;
+    if (query?.isRead === 'false') where.isRead = false;
+    if (query?.isResolved === 'true') where.isResolved = true;
+    if (query?.isResolved === 'false') where.isResolved = false;
+
+    return where;
+  }
+
+  private buildScopedWhere(user: RequestUser, query?: NotificationQueryDto) {
+    const where = this.scopeService.buildReadScope(user);
+    this.applyQueryFilters(where, query);
+
+    if (query?.facilityId) {
+      this.scopeService.assertFacilityAccess(user, query.facilityId);
+      where.facilityId = query.facilityId;
+    }
+
+    if (query?.branchId) {
+      this.scopeService.assertBranchAccess(
+        user,
+        query.facilityId ?? user.homeFacilityId!,
+        query.branchId,
+      );
+      where.branchId = query.branchId;
+    }
+
+    return where;
+  }
+
   private buildAlertFeedResponse(items: any[]) {
     const unresolvedItems = items.filter((item) => item.isResolved === false);
     const unreadUnresolvedItems = unresolvedItems.filter(
@@ -58,7 +102,14 @@ export class NotificationService {
   }
 
 
-  async create(dto: CreateNotificationDto) {
+  async create(dto: CreateNotificationDto, user?: RequestUser) {
+    const facilityId = dto.facilityId ?? user?.homeFacilityId ?? undefined;
+    const branchId = dto.branchId;
+
+    if (user && facilityId) {
+      this.scopeService.assertBranchAccess(user, facilityId, branchId);
+    }
+
     if (dto.targetUserId) {
       await this.userService.findOne(dto.targetUserId);
     }
@@ -76,19 +127,12 @@ export class NotificationService {
         moduleName: dto.moduleName,
         entityType: dto.entityType,
         entityId: dto.entityId,
-        facilityId: dto.facilityId,
-        branchId: dto.branchId,
+        facilityId,
+        branchId,
         targetUserId: dto.targetUserId,
         targetStaffId: dto.targetStaffId,
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
     });
   }
 
@@ -395,14 +439,23 @@ async getPharmacistDashboardAlerts(staffId: number) {
   async findOne(id: number) {
     const notification = await this.prisma.notification.findUnique({
       where: { id },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
+      include: this.includeRelations(),
+    });
+
+    if (!notification) {
+      throw new NotFoundException(`Notification with id ${id} not found`);
+    }
+
+    return notification;
+  }
+
+  async findOneScoped(id: number, user: RequestUser) {
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        id,
+        ...this.buildScopedWhere(user),
       },
+      include: this.includeRelations(),
     });
 
     if (!notification) {
@@ -454,8 +507,12 @@ async getPharmacistDashboardAlerts(staffId: number) {
     });
   }
 
-  async markAsRead(id: number) {
-    await this.findOne(id);
+  async markAsRead(id: number, user?: RequestUser) {
+    if (user) {
+      await this.findOneScoped(id, user);
+    } else {
+      await this.findOne(id);
+    }
 
     return this.prisma.notification.update({
       where: { id },
@@ -463,45 +520,40 @@ async getPharmacistDashboardAlerts(staffId: number) {
         isRead: true,
         readAt: new Date(),
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
     });
   }
 
-  async resolve(id: number, dto: ResolveNotificationDto) {
-    await this.findOne(id);
-
-    if (dto.resolvedByUserId) {
-      await this.userService.findOne(dto.resolvedByUserId);
+  async resolve(id: number, dto: ResolveNotificationDto, user?: RequestUser) {
+    if (user) {
+      await this.findOneScoped(id, user);
+    } else {
+      await this.findOne(id);
     }
 
-    if (dto.resolvedByStaffId) {
-      await this.staffService.findOne(dto.resolvedByStaffId);
+    const resolvedByUserId = user?.userId ?? dto.resolvedByUserId;
+    const resolvedByStaffId = user?.staffId ?? dto.resolvedByStaffId;
+
+    if (resolvedByUserId) {
+      await this.userService.findOne(resolvedByUserId);
+    }
+
+    if (resolvedByStaffId) {
+      await this.staffService.findOne(resolvedByStaffId);
     }
 
     return this.prisma.notification.update({
       where: { id },
       data: {
+        isRead: true,
+        readAt: new Date(),
         isResolved: true,
         resolvedAt: new Date(),
-        resolvedByUserId: dto.resolvedByUserId,
-        resolvedByStaffId: dto.resolvedByStaffId,
+        resolvedByUserId,
+        resolvedByStaffId,
         resolutionNote: dto.resolutionNote,
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
     });
   }
 
@@ -586,55 +638,62 @@ async getPharmacistDashboardAlerts(staffId: number) {
     };
   }
   async findAllScoped(user: RequestUser, query?: NotificationQueryDto) {
-    const scope = this.scopeService.buildReadScope(user);
-    const where: any = { ...scope };
-
-    if (query?.moduleName) where.moduleName = query.moduleName;
-    if (query?.notificationType) where.notificationType = query.notificationType;
-    if (query?.isRead === 'true') where.isRead = true;
-    if (query?.isRead === 'false') where.isRead = false;
-    if (query?.isResolved === 'true') where.isResolved = true;
-    if (query?.isResolved === 'false') where.isResolved = false;
+    const where = this.buildScopedWhere(user, query);
 
     return this.prisma.notification.findMany({
       where,
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: { id: 'desc' },
     });
   }
 
-  async getNotificationStats() {
-    const total = await this.prisma.notification.count();
+  async markScopedAsRead(user: RequestUser, query?: NotificationQueryDto) {
+    const where = this.buildScopedWhere(user, query);
+
+    const result = await this.prisma.notification.updateMany({
+      where: {
+        ...where,
+        isRead: false,
+      },
+      data: {
+        isRead: true,
+        readAt: new Date(),
+      },
+    });
+
+    return {
+      message: 'Notifications marked as read',
+      count: result.count,
+    };
+  }
+
+  async getNotificationStats(user?: RequestUser, query?: NotificationQueryDto) {
+    const where = user ? this.buildScopedWhere(user, query) : {};
+
+    const total = await this.prisma.notification.count({ where });
     const unread = await this.prisma.notification.count({
-      where: { isRead: false },
+      where: { ...where, isRead: false },
     });
     const read = await this.prisma.notification.count({
-      where: { isRead: true },
+      where: { ...where, isRead: true },
     });
     const resolved = await this.prisma.notification.count({
-      where: { isResolved: true },
+      where: { ...where, isResolved: true },
     });
     const unresolved = await this.prisma.notification.count({
-      where: { isResolved: false },
+      where: { ...where, isResolved: false },
     });
 
     const info = await this.prisma.notification.count({
-      where: { severity: 'INFO' },
+      where: { ...where, severity: 'INFO' },
     });
 
     const warning = await this.prisma.notification.count({
-      where: { severity: 'WARNING' },
+      where: { ...where, severity: 'WARNING' },
     });
 
     const critical = await this.prisma.notification.count({
-      where: { severity: 'CRITICAL' },
+      where: { ...where, severity: 'CRITICAL' },
     });
 
     return {

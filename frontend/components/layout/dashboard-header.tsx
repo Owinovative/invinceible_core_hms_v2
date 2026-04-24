@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,7 +21,7 @@ import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
-  const { toggleSidebar } = useSidebar();
+  const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
   const {
     facilityId,
@@ -57,17 +57,21 @@ export function DashboardHeader() {
           variant="outline"
           size="icon"
           className="rounded-2xl border-white/10 bg-white/[0.03] lg:hidden"
-          onClick={toggleSidebar}
+          onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden max-w-xl flex-1 items-center gap-3 rounded-[1.35rem] border border-white/10 glass-panel px-4 panel-shadow md:flex">
+        <div className="hidden max-w-xl flex-1 items-center gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.03] px-4 py-3 panel-shadow md:flex">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search patients, appointments, invoices..."
-            className="border-0 bg-transparent shadow-none focus-visible:ring-0"
-          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">
+              {selectedBranchName || facilityName || "Active workspace"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Patients, billing, lab, pharmacy, and admissions
+            </p>
+          </div>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
@@ -127,18 +131,21 @@ export function DashboardHeader() {
           </Button>
 
           <Button
+            asChild
             variant="outline"
             size="icon"
             className="relative rounded-2xl border-white/10 bg-white/[0.03]"
           >
-            <Bell className="h-4 w-4" />
-            {isCountsLoading ? (
-              <Skeleton className="absolute -right-2 -top-2 h-5 w-5 rounded-full" />
-            ) : unreadCount > 0 ? (
-              <Badge className="absolute -right-2 -top-2 h-5 min-w-5 rounded-full border-0 bg-red-500 px-1 text-[10px] text-white shadow">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </Badge>
-            ) : null}
+            <Link href="/notifications" aria-label="Notifications">
+              <Bell className="h-4 w-4" />
+              {isCountsLoading ? (
+                <Skeleton className="absolute -right-2 -top-2 h-5 w-5 rounded-full" />
+              ) : unreadCount > 0 ? (
+                <Badge className="absolute -right-2 -top-2 h-5 min-w-5 rounded-full border-0 bg-red-500 px-1 text-[10px] text-white shadow">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Badge>
+              ) : null}
+            </Link>
           </Button>
 
           <div className="flex items-center gap-3 rounded-[1.4rem] border border-white/10 glass-panel px-3 py-2 panel-shadow">
