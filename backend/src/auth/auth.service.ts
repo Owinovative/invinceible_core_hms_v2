@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -128,13 +130,25 @@ export class AuthService {
       },
     });
 
-    return {
+    const response = {
       message:
         'If the account exists, a password reset link has been generated.',
-      devResetToken: rawToken,
-      devResetLink: `http://localhost:3000/reset-password?token=${rawToken}`,
-      expiresAt,
     };
+
+    if (this.shouldReturnDevResetToken()) {
+      const resetBaseUrl =
+        this.configService.get<string>('PASSWORD_RESET_BASE_URL') ??
+        'http://localhost:3001/reset-password';
+
+      return {
+        ...response,
+        devResetToken: rawToken,
+        devResetLink: `${resetBaseUrl}?token=${rawToken}`,
+        expiresAt,
+      };
+    }
+
+    return response;
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -169,33 +183,46 @@ export class AuthService {
     }
 
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+    const usedAt = new Date();
 
-    await this.prisma.user.update({
-      where: { id: resetRecord.userId },
-      data: {
-        passwordHash: newPasswordHash,
-      },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      const claimedToken = await tx.passwordResetToken.updateMany({
+        where: {
+          id: resetRecord.id,
+          usedAt: null,
+        },
+        data: { usedAt },
+      });
 
-    await this.prisma.passwordResetToken.update({
-      where: { id: resetRecord.id },
-      data: {
-        usedAt: new Date(),
-      },
-    });
+      if (claimedToken.count !== 1) {
+        throw new BadRequestException('Invalid or expired reset token');
+      }
 
-    await this.prisma.passwordResetToken.updateMany({
-      where: {
-        userId: resetRecord.userId,
-        usedAt: null,
-      },
-      data: {
-        usedAt: new Date(),
-      },
+      await tx.user.update({
+        where: { id: resetRecord.userId },
+        data: {
+          passwordHash: newPasswordHash,
+        },
+      });
+
+      await tx.passwordResetToken.updateMany({
+        where: {
+          userId: resetRecord.userId,
+          usedAt: null,
+        },
+        data: { usedAt },
+      });
     });
 
     return {
       message: 'Password reset successful',
     };
+  }
+
+  private shouldReturnDevResetToken() {
+    return (
+      this.configService.get<string>('NODE_ENV') !== 'production' &&
+      this.configService.get<string>('RETURN_DEV_RESET_TOKEN') === 'true'
+    );
   }
 }
