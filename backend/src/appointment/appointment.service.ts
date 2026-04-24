@@ -9,8 +9,8 @@ import { StaffService } from '../staff/staff.service';
 import { FacilityService } from '../facility/facility.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { ScopeService } from 'src/auth/scope.service';
-import type { RequestUser } from 'src/auth/interfaces/request-user.interface';
+import { ScopeService } from '../auth/scope.service';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
 export class AppointmentService {

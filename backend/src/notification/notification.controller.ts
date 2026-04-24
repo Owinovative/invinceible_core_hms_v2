@@ -23,8 +23,8 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Post()
-  create(@Body() dto: CreateNotificationDto) {
-    return this.notificationService.create(dto);
+  create(@Body() dto: CreateNotificationDto, @CurrentUser() user: RequestUser) {
+    return this.notificationService.create(dto, user);
   }
 
   @Get()
@@ -36,8 +36,11 @@ export class NotificationController {
   }
 
   @Get('stats')
-  getStats() {
-    return this.notificationService.getNotificationStats();
+  getStats(
+    @Query() query: NotificationQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.notificationService.getNotificationStats(user, query);
   }
 
   @Get('branch-alerts')
@@ -114,21 +117,36 @@ export class NotificationController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.notificationService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.notificationService.findOneScoped(id, user);
+  }
+
+  @Patch('read-all')
+  markScopedAsRead(
+    @Query() query: NotificationQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.notificationService.markScopedAsRead(user, query);
   }
 
   @Patch(':id/read')
-  markAsRead(@Param('id', ParseIntPipe) id: number) {
-    return this.notificationService.markAsRead(id);
+  markAsRead(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.notificationService.markAsRead(id, user);
   }
 
   @Patch(':id/resolve')
   resolve(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ResolveNotificationDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.notificationService.resolve(id, dto);
+    return this.notificationService.resolve(id, dto, user);
   }
 
   @Patch('staff/:staffId/read-all')

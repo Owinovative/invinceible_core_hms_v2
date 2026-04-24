@@ -11,6 +11,7 @@ export function useMarkNotificationRead() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notification-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["unresolved-counts"] });
     },
   });
 }

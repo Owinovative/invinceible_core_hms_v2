@@ -10,7 +10,7 @@ import { ConsultationService } from '../consultation/consultation.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
-import { ScopeService } from 'src/auth/scope.service';
+import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { BillingService } from '../billing/billing.service';
 
