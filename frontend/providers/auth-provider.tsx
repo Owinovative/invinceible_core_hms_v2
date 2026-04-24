@@ -77,7 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           roleCode: result.user.roleCode ?? result.user.role?.code ?? null,
         });
 
-        router.push("/dashboard");
       } catch (error) {
         console.error("Login failed:", error);
         throw error;
@@ -85,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     },
-    [router],
+    [],
   );
   const logout = React.useCallback(() => {
     clearAccessToken();

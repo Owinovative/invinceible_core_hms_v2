@@ -1,6 +1,16 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 type RequestOptions = RequestInit & {
   token?: string;
 };
@@ -33,12 +43,26 @@ export async function apiFetch<T>(
 
     try {
       const text = await response.text();
-      message = text || message;
+      if (text) {
+        try {
+          const payload = JSON.parse(text) as {
+            message?: string | string[];
+            error?: string;
+          };
+          if (Array.isArray(payload.message)) {
+            message = payload.message.join(" ");
+          } else {
+            message = payload.message || payload.error || text;
+          }
+        } catch {
+          message = text;
+        }
+      }
     } catch {
       // ignore
     }
 
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   return response.json() as Promise<T>;

@@ -9,7 +9,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 export function PlatformHeader() {
   const { theme, setTheme } = useTheme();
-  const { toggleSidebar } = useSidebar();
+  const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
 
   const initials = useMemo(() => {
@@ -29,7 +29,7 @@ export function PlatformHeader() {
           variant="outline"
           size="icon"
           className="rounded-xl lg:hidden"
-          onClick={toggleSidebar}
+          onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>

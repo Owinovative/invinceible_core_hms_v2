@@ -181,13 +181,13 @@ pre,
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: 0.18;
+  opacity: 0.26;
 }
 
 .code-column {
   position: absolute;
   top: -120%;
-  color: rgba(99, 102, 241, 0.55);
+  color: rgba(34, 211, 238, 0.5);
   font-family: var(--font-mono), monospace;
   font-size: 12px;
   line-height: 1.5;
@@ -198,7 +198,7 @@ pre,
 }
 
 .code-column.alt {
-  color: rgba(34, 211, 238, 0.42);
+  color: rgba(16, 185, 129, 0.4);
 }
 
 @keyframes code-fall {

@@ -9,6 +9,9 @@ const CODE_STRIPS = [
   `SELECT *\nFROM notifications\nWHERE isResolved = false\nORDER BY id DESC;`,
   `const dashboard = {\n  healthScore: 100,\n  pendingLabQueue: 0,\n  unresolvedWarnings: 0,\n}`,
   `if (user.roleCode === "SUPER_ADMIN") {\n  router.push("/platform")\n}`,
+  `await audit.write({\n  actor: user.id,\n  action: "SCOPE_CHANGE",\n  status: "locked"\n})`,
+  `health.checks = [\n  "auth.jwt",\n  "db.prisma",\n  "alerts.queue",\n  "cors.origin"\n]`,
+  `type Permission =\n  | "patients.read"\n  | "billing.write"\n  | "platform.root";`,
 ];
 
 export function CodeBackground() {
@@ -22,7 +25,7 @@ export function CodeBackground() {
             className={`code-column ${index % 2 === 0 ? "alt" : ""}`}
             style={{
               left: `${6 + index * 12}%`,
-              animationDuration: `${16 + index * 2}s`,
+              animationDuration: `${18 + index * 1.7}s`,
               animationDelay: `${index * -2.2}s`,
             }}
           >

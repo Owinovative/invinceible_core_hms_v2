@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,9 +23,9 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto) {
-    const user = await this.userService.findAuthUserByUsername(
-      loginDto.username,
-    );
+    const username = loginDto.username.trim();
+    const password = loginDto.password.trim();
+    const user = await this.userService.findAuthUserByUsername(username);
 
     if (!user) {
       throw new UnauthorizedException('Invalid username or password');
@@ -48,10 +48,7 @@ export class AuthService {
       );
     }
 
-    const passwordMatches = await bcrypt.compare(
-      loginDto.password,
-      user.passwordHash,
-    );
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid username or password');
@@ -109,7 +106,10 @@ export class AuthService {
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
     const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
 
     await this.prisma.passwordResetToken.updateMany({
