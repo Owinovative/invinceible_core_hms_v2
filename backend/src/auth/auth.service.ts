@@ -13,6 +13,8 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -32,6 +34,12 @@ export class AuthService {
     }
 
     if (!user.isActive) {
+      if (user.lockedAt) {
+        throw new UnauthorizedException(
+          'Account locked after too many failed login attempts. Contact the super admin to reactivate it.',
+        );
+      }
+
       throw new UnauthorizedException('User account is inactive');
     }
 
@@ -51,6 +59,29 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatches) {
+      const failedLoginAttempts = (user.failedLoginAttempts ?? 0) + 1;
+      const shouldLock = failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts,
+          ...(shouldLock
+            ? {
+                isActive: false,
+                lockedAt: new Date(),
+                lockReason: `Locked after ${MAX_FAILED_LOGIN_ATTEMPTS} failed login attempts`,
+              }
+            : {}),
+        },
+      });
+
+      if (shouldLock) {
+        throw new UnauthorizedException(
+          'Account locked after too many failed login attempts. Contact the super admin to reactivate it.',
+        );
+      }
+
       throw new UnauthorizedException('Invalid username or password');
     }
 
@@ -64,6 +95,9 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
+        failedLoginAttempts: 0,
+        lockedAt: null,
+        lockReason: null,
         lastLoginAt: new Date(),
       },
     });

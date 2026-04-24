@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   KeyRound,
+  LockKeyhole,
   Power,
   Search,
   Users,
@@ -45,6 +46,7 @@ export function UsersTable() {
         user.role?.code,
         user.homeFacility?.name,
         user.homeBranch?.name,
+        user.lockReason,
       ]
         .filter(Boolean)
         .join(" ")
@@ -192,16 +194,36 @@ export function UsersTable() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <span
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold",
-                            user.isActive === false
-                              ? "status-critical"
-                              : "status-success",
-                          )}
-                        >
-                          {user.isActive === false ? "Inactive" : "Active"}
-                        </span>
+                        <div className="space-y-2">
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold",
+                              user.lockedAt || user.isActive === false
+                                ? "status-critical"
+                                : "status-success",
+                            )}
+                          >
+                            {user.lockedAt ? (
+                              <LockKeyhole className="h-3 w-3" />
+                            ) : null}
+                            {user.lockedAt
+                              ? "Locked"
+                              : user.isActive === false
+                                ? "Inactive"
+                                : "Active"}
+                          </span>
+                          {user.failedLoginAttempts ? (
+                            <p className="text-xs text-muted-foreground">
+                              {user.failedLoginAttempts} failed attempt
+                              {user.failedLoginAttempts === 1 ? "" : "s"}
+                            </p>
+                          ) : null}
+                          {user.lockReason ? (
+                            <p className="max-w-[220px] text-xs text-red-300">
+                              {user.lockReason}
+                            </p>
+                          ) : null}
+                        </div>
                       </td>
 
                       <td className="px-5 py-4">
@@ -230,7 +252,9 @@ export function UsersTable() {
                             }
                           >
                             <Power className="mr-2 h-4 w-4" />
-                            {user.isActive === false ? "Reactivate" : "Deactivate"}
+                            {user.isActive === false
+                              ? "Reactivate"
+                              : "Deactivate"}
                           </Button>
                         </div>
                       </td>

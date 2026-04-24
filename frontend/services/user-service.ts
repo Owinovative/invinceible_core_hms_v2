@@ -24,6 +24,9 @@ export interface UserItem {
   email?: string | null;
   fullName?: string | null;
   isActive?: boolean;
+  failedLoginAttempts?: number;
+  lockedAt?: string | null;
+  lockReason?: string | null;
   canAccessAllBranchesInFacility?: boolean;
   roleId: number;
   homeFacilityId?: number | null;

@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleService } from '../role/role.service';
@@ -275,7 +276,7 @@ export class UserService {
       }
     }
 
-    const data: any = {
+    const data: Prisma.UserUncheckedUpdateInput = {
       username: updateUserDto.username,
       email: updateUserDto.email,
       fullName: updateUserDto.fullName,
@@ -286,6 +287,12 @@ export class UserService {
         updateUserDto.canAccessAllBranchesInFacility,
       isActive: updateUserDto.isActive,
     };
+
+    if (updateUserDto.isActive === true) {
+      data.failedLoginAttempts = 0;
+      data.lockedAt = null;
+      data.lockReason = null;
+    }
 
     if (updateUserDto.password) {
       data.passwordHash = await bcrypt.hash(updateUserDto.password, 10);
@@ -328,6 +335,9 @@ export class UserService {
       where: { id },
       data: {
         passwordHash,
+        failedLoginAttempts: 0,
+        lockedAt: null,
+        lockReason: null,
       },
       include: {
         role: true,

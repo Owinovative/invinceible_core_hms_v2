@@ -148,6 +148,9 @@ model User {
   passwordHash                   String               @db.VarChar(255)
   fullName                       String?              @db.VarChar(150)
   isActive                       Boolean              @default(true)
+  failedLoginAttempts            Int                  @default(0)
+  lockedAt                       DateTime?
+  lockReason                     String?              @db.VarChar(255)
   canAccessAllBranchesInFacility Boolean              @default(false)
   lastLoginAt                    DateTime?
   createdAt                      DateTime             @default(now())
@@ -168,6 +171,7 @@ model User {
   @@index([roleId])
   @@index([homeFacilityId])
   @@index([homeBranchId])
+  @@index([lockedAt])
   @@map("users")
 }
 
@@ -1121,4 +1125,3 @@ model PasswordResetToken {
   @@index([expiresAt])
   @@map("password_reset_tokens")
 }
-
