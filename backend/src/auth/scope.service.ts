@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestUser } from './interfaces/request-user.interface';
 
@@ -37,6 +41,20 @@ export class ScopeService {
       throw new ForbiddenException('Authenticated user not found');
     }
 
+    if (!dbUser.isActive) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    if (
+      user.sessionVersion !== undefined &&
+      user.sessionVersion !== null &&
+      dbUser.sessionVersion !== user.sessionVersion
+    ) {
+      throw new UnauthorizedException(
+        'This account has signed in on another device. Please sign in again.',
+      );
+    }
+
     const isSuperAdmin = dbUser.role?.code === 'SUPER_ADMIN';
     const effectiveFacilityId =
       dbUser.homeFacilityId ?? dbUser.staff?.facilityId ?? null;
@@ -57,6 +75,7 @@ export class ScopeService {
       username: dbUser.username,
       roleId: dbUser.roleId,
       roleCode: dbUser.role?.code ?? null,
+      sessionVersion: dbUser.sessionVersion,
       homeFacilityId: effectiveFacilityId,
       homeFacilityName: effectiveFacility?.name ?? null,
       homeBranchId: effectiveBranchId,
@@ -74,6 +93,10 @@ export class ScopeService {
   }
 
   buildReadScope(user: RequestUser): FacilityBranchScope {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return {} as FacilityBranchScope;
+    }
+
     if (!user.homeFacilityId) {
       throw new ForbiddenException('User has no home facility assigned');
     }
@@ -109,6 +132,10 @@ export class ScopeService {
   }
 
   assertFacilityAccess(user: RequestUser, facilityId: number) {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return;
+    }
+
     if (!user.homeFacilityId || user.homeFacilityId !== facilityId) {
       throw new ForbiddenException('You cannot access this facility');
     }

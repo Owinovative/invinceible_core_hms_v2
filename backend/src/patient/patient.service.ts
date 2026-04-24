@@ -97,6 +97,21 @@ export class PatientService {
     });
   }
 
+  async createScoped(createPatientDto: CreatePatientDto, user: RequestUser) {
+    const facilityId = createPatientDto.facilityId ?? user.homeFacilityId;
+
+    if (!facilityId) {
+      throw new BadRequestException('Patient facility is required');
+    }
+
+    this.scopeService.assertFacilityAccess(user, facilityId);
+
+    return this.create({
+      ...createPatientDto,
+      facilityId,
+    });
+  }
+
   findAll() {
     return this.prisma.patient.findMany({
       include: {
@@ -213,11 +228,31 @@ export class PatientService {
     });
   }
 
+  async updateScoped(
+    id: number,
+    updatePatientDto: UpdatePatientDto,
+    user: RequestUser,
+  ) {
+    await this.findOneScoped(id, user);
+
+    if (updatePatientDto.facilityId) {
+      this.scopeService.assertFacilityAccess(user, updatePatientDto.facilityId);
+    }
+
+    return this.update(id, updatePatientDto);
+  }
+
   async remove(id: number) {
     await this.findOne(id);
 
     return this.prisma.patient.delete({
       where: { id },
     });
+  }
+
+  async removeScoped(id: number, user: RequestUser) {
+    await this.findOneScoped(id, user);
+
+    return this.remove(id);
   }
 }

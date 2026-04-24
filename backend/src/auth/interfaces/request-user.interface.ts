@@ -3,6 +3,7 @@ export interface RequestUser {
   username: string;
   roleId: number;
   roleCode?: string | null;
+  sessionVersion?: number | null;
 
   homeFacilityId?: number | null;
   homeFacilityName?: string | null;

@@ -7,16 +7,23 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { FacilityService } from './facility.service';
 import { CreateFacilityDto } from './dto/create-facility.dto';
 import { UpdateFacilityDto } from './dto/update-facility.dto';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('facilities')
+@UseGuards(AuthGuard('jwt'))
 export class FacilityController {
   constructor(private readonly facilityService: FacilityService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   create(@Body() dto: CreateFacilityDto) {
     return this.facilityService.create(dto);
   }
@@ -42,6 +49,8 @@ export class FacilityController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateFacilityDto,
@@ -50,6 +59,8 @@ export class FacilityController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.facilityService.remove(id);
   }

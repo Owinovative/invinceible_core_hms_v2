@@ -77,7 +77,9 @@ export class LabService {
 
   async createOrder(createLabOrderDto: CreateLabOrderDto) {
     const generatedOrderNumber = await this.generateLabOrderNumber();
-    const patient = await this.patientService.findOne(createLabOrderDto.patientId);
+    const patient = await this.patientService.findOne(
+      createLabOrderDto.patientId,
+    );
 
     let appointment: any = null;
     if (createLabOrderDto.appointmentId) {
@@ -123,14 +125,14 @@ export class LabService {
       });
 
       if (!test) {
-        throw new NotFoundException(`Lab test with id ${item.testId} not found`);
+        throw new NotFoundException(
+          `Lab test with id ${item.testId} not found`,
+        );
       }
     }
 
     const facilityId =
-      admission?.facilityId ??
-      appointment?.facilityId ??
-      patient.facilityId;
+      admission?.facilityId ?? appointment?.facilityId ?? patient.facilityId;
 
     const branchId =
       admission?.branchId ??
@@ -188,6 +190,67 @@ export class LabService {
     });
 
     return order;
+  }
+
+  async createOrderScoped(
+    createLabOrderDto: CreateLabOrderDto,
+    user: RequestUser,
+  ) {
+    const patient = await this.patientService.findOneScoped(
+      createLabOrderDto.patientId,
+      user,
+    );
+
+    if (createLabOrderDto.appointmentId) {
+      const appointment = await this.appointmentService.findOneScoped(
+        createLabOrderDto.appointmentId,
+        user,
+      );
+
+      if (appointment.patientId !== patient.id) {
+        throw new BadRequestException(
+          'Appointment does not belong to the selected patient',
+        );
+      }
+    }
+
+    if (createLabOrderDto.admissionId) {
+      const admission = await this.prisma.admission.findUnique({
+        where: { id: createLabOrderDto.admissionId },
+      });
+
+      if (!admission) {
+        throw new NotFoundException(
+          `Admission with id ${createLabOrderDto.admissionId} not found`,
+        );
+      }
+
+      this.scopeService.assertBranchAccess(
+        user,
+        admission.facilityId,
+        admission.branchId,
+      );
+
+      if (admission.patientId !== patient.id) {
+        throw new BadRequestException(
+          'Admission does not belong to the selected patient',
+        );
+      }
+    }
+
+    if (createLabOrderDto.requestedByStaffId) {
+      const requestedBy = await this.staffService.findOne(
+        createLabOrderDto.requestedByStaffId,
+      );
+
+      this.scopeService.assertBranchAccess(
+        user,
+        requestedBy.facilityId,
+        requestedBy.branchId,
+      );
+    }
+
+    return this.createOrder(createLabOrderDto);
   }
 
   getAllOrders() {
@@ -373,7 +436,45 @@ export class LabService {
       throw error;
     }
   }
-  
+
+  async createResultScoped(
+    createLabResultDto: CreateLabResultDto,
+    user: RequestUser,
+  ) {
+    const orderItem = await this.prisma.labOrderItem.findUnique({
+      where: { id: createLabResultDto.orderItemId },
+      include: {
+        order: true,
+      },
+    });
+
+    if (!orderItem) {
+      throw new NotFoundException(
+        `Lab order item with id ${createLabResultDto.orderItemId} not found`,
+      );
+    }
+
+    this.scopeService.assertBranchAccess(
+      user,
+      orderItem.order.facilityId,
+      orderItem.order.branchId,
+    );
+
+    if (createLabResultDto.recordedBy) {
+      const recorder = await this.staffService.findOne(
+        createLabResultDto.recordedBy,
+      );
+
+      this.scopeService.assertBranchAccess(
+        user,
+        recorder.facilityId,
+        recorder.branchId,
+      );
+    }
+
+    return this.createResult(createLabResultDto);
+  }
+
   async getResultsByOrder(orderId: number) {
     await this.getOrderById(orderId);
 
@@ -395,87 +496,85 @@ export class LabService {
     });
   }
   getAllOrdersScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+    const scope = this.scopeService.buildReadScope(user);
 
-  return this.prisma.labOrder.findMany({
-    where: scope,
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      appointment: true,
-      admission: true,
-      requestedBy: true,
-      items: {
-        include: {
-          test: true,
-          results: true,
+    return this.prisma.labOrder.findMany({
+      where: scope,
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        appointment: true,
+        admission: true,
+        requestedBy: true,
+        items: {
+          include: {
+            test: true,
+            results: true,
+          },
         },
       },
-    },
-    orderBy: { id: 'desc' },
-  });
-}
+      orderBy: { id: 'desc' },
+    });
+  }
 
-async getOrderByIdScoped(id: number, user: RequestUser) {
-  const order = await this.getOrderById(id);
+  async getOrderByIdScoped(id: number, user: RequestUser) {
+    const order = await this.getOrderById(id);
 
-  this.scopeService.assertBranchAccess(
-    user,
-    order.facilityId,
-    order.branchId,
-  );
+    this.scopeService.assertBranchAccess(
+      user,
+      order.facilityId,
+      order.branchId,
+    );
 
-  return order;
-}
-async getResultsByOrderScoped(orderId: number, user: RequestUser) {
-  const order = await this.getOrderByIdScoped(orderId, user);
+    return order;
+  }
+  async getResultsByOrderScoped(orderId: number, user: RequestUser) {
+    const order = await this.getOrderByIdScoped(orderId, user);
 
-
-  return this.prisma.labResult.findMany({
-    where: {
-      orderItem: {
-        orderId: order.id,
-      },
-    },
-    include: {
-      orderItem: {
-        include: {
-          test: true,
-          order: true,
+    return this.prisma.labResult.findMany({
+      where: {
+        orderItem: {
+          orderId: order.id,
         },
       },
-    },
-    orderBy: { id: 'desc' },
-  });
-}
-
-async getLabQueueScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
-
-  return this.prisma.labOrder.findMany({
-    where: {
-      ...scope,
-      status: {
-        in: ['REQUESTED', 'IN_PROGRESS'],
-      },
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      appointment: true,
-      admission: true,
-      requestedBy: true,
-      items: {
-        include: {
-          test: true,
-          results: true,
+      include: {
+        orderItem: {
+          include: {
+            test: true,
+            order: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: 'asc' },
-  });
-}
+      orderBy: { id: 'desc' },
+    });
+  }
 
+  async getLabQueueScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
+
+    return this.prisma.labOrder.findMany({
+      where: {
+        ...scope,
+        status: {
+          in: ['REQUESTED', 'IN_PROGRESS'],
+        },
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        appointment: true,
+        admission: true,
+        requestedBy: true,
+        items: {
+          include: {
+            test: true,
+            results: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
 }

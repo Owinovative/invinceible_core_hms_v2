@@ -11,6 +11,7 @@ import { RoleService } from '../role/role.service';
 import { UserService } from '../user/user.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
 export class StaffService {
@@ -22,6 +23,41 @@ export class StaffService {
     private readonly roleService: RoleService,
     private readonly userService: UserService,
   ) {}
+
+  private buildScopedWhere(user: RequestUser) {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return {};
+    }
+
+    if (!user.homeFacilityId) {
+      return { id: -1 };
+    }
+
+    const where: any = {
+      facilityId: user.homeFacilityId,
+    };
+
+    if (!user.canAccessAllBranchesInFacility) {
+      const branchIds = new Set<number>();
+
+      if (user.homeBranchId) {
+        branchIds.add(user.homeBranchId);
+      }
+
+      for (const branchId of user.allowedBranchIds ?? []) {
+        branchIds.add(branchId);
+      }
+
+      if (branchIds.size > 0) {
+        where.OR = [
+          { branchId: null },
+          { branchId: { in: Array.from(branchIds) } },
+        ];
+      }
+    }
+
+    return where;
+  }
 
   async create(createStaffDto: CreateStaffDto) {
     const existingByCode = await this.prisma.staff.findFirst({
@@ -142,6 +178,20 @@ export class StaffService {
     });
   }
 
+  findAllScoped(user: RequestUser) {
+    return this.prisma.staff.findMany({
+      where: this.buildScopedWhere(user),
+      include: {
+        facility: true,
+        branch: true,
+        department: true,
+        role: true,
+        user: true,
+      },
+      orderBy: { id: 'desc' },
+    });
+  }
+
   async findOne(id: number) {
     const staff = await this.prisma.staff.findUnique({
       where: { id },
@@ -155,6 +205,22 @@ export class StaffService {
     });
 
     if (!staff) {
+      throw new NotFoundException(`Staff with id ${id} not found`);
+    }
+
+    return staff;
+  }
+
+  async findOneScoped(id: number, user: RequestUser) {
+    const staff = await this.findOne(id);
+    const scopedRows = await this.prisma.staff.count({
+      where: {
+        id,
+        ...this.buildScopedWhere(user),
+      },
+    });
+
+    if (scopedRows === 0) {
       throw new NotFoundException(`Staff with id ${id} not found`);
     }
 

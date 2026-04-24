@@ -9,6 +9,7 @@ import { BranchService } from '../branch/branch.service';
 import { DepartmentService } from '../department/department.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
 export class ClinicService {
@@ -18,6 +19,41 @@ export class ClinicService {
     private readonly branchService: BranchService,
     private readonly departmentService: DepartmentService,
   ) {}
+
+  private buildScopedWhere(user: RequestUser) {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return {};
+    }
+
+    if (!user.homeFacilityId) {
+      return { id: -1 };
+    }
+
+    const where: any = {
+      facilityId: user.homeFacilityId,
+    };
+
+    if (!user.canAccessAllBranchesInFacility) {
+      const branchIds = new Set<number>();
+
+      if (user.homeBranchId) {
+        branchIds.add(user.homeBranchId);
+      }
+
+      for (const branchId of user.allowedBranchIds ?? []) {
+        branchIds.add(branchId);
+      }
+
+      if (branchIds.size > 0) {
+        where.OR = [
+          { branchId: null },
+          { branchId: { in: Array.from(branchIds) } },
+        ];
+      }
+    }
+
+    return where;
+  }
 
   private async generateClinicCode(facilityId: number) {
     const year = new Date().getFullYear();
@@ -45,7 +81,8 @@ export class ClinicService {
   async create(dto: CreateClinicDto) {
     await this.facilityService.findOne(dto.facilityId);
 
-    const code = dto.code?.trim() || (await this.generateClinicCode(dto.facilityId));
+    const code =
+      dto.code?.trim() || (await this.generateClinicCode(dto.facilityId));
 
     const existing = await this.prisma.clinic.findFirst({
       where: { code },
@@ -73,7 +110,11 @@ export class ClinicService {
       );
     }
 
-    if (dto.branchId && department.branchId && department.branchId !== dto.branchId) {
+    if (
+      dto.branchId &&
+      department.branchId &&
+      department.branchId !== dto.branchId
+    ) {
       throw new BadRequestException(
         'Selected department does not belong to the selected branch',
       );
@@ -108,6 +149,19 @@ export class ClinicService {
 
   findAll() {
     return this.prisma.clinic.findMany({
+      include: {
+        facility: true,
+        branch: true,
+        department: true,
+        appointments: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+  }
+
+  findAllScoped(user: RequestUser) {
+    return this.prisma.clinic.findMany({
+      where: this.buildScopedWhere(user),
       include: {
         facility: true,
         branch: true,
@@ -154,6 +208,22 @@ export class ClinicService {
     });
 
     if (!clinic) {
+      throw new NotFoundException(`Clinic with id ${id} not found`);
+    }
+
+    return clinic;
+  }
+
+  async findOneScoped(id: number, user: RequestUser) {
+    const clinic = await this.findOne(id);
+    const scopedRows = await this.prisma.clinic.count({
+      where: {
+        id,
+        ...this.buildScopedWhere(user),
+      },
+    });
+
+    if (scopedRows === 0) {
       throw new NotFoundException(`Clinic with id ${id} not found`);
     }
 
@@ -219,7 +289,11 @@ export class ClinicService {
         );
       }
 
-      if (targetBranchId && department.branchId && department.branchId !== targetBranchId) {
+      if (
+        targetBranchId &&
+        department.branchId &&
+        department.branchId !== targetBranchId
+      ) {
         throw new BadRequestException(
           'Selected department does not belong to the selected branch',
         );

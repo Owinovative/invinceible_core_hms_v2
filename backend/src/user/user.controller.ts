@@ -7,13 +7,19 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('users')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

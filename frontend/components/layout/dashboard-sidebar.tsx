@@ -14,6 +14,7 @@ import {
   FlaskConical,
   HeartPulse,
   LayoutDashboard,
+  Layers3,
   Pill,
   Plus,
   Receipt,
@@ -29,15 +30,17 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useScope } from "@/providers/scope-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
+import { useAuth } from "@/providers/auth-provider";
 
 const navSections = [
   {
     label: "Command",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Modules", href: "/modules", icon: Layers3 },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Reports", href: "/reports", icon: Activity },
-      { title: "Settings", href: "/settings", icon: Settings },
+      { title: "Settings", href: "/settings", icon: Settings, adminOnly: true },
     ],
   },
   {
@@ -83,7 +86,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
   const { collapsed, toggleSidebar, closeMobileSidebar } = useSidebar();
   const { facilityName, selectedBranchName } = useScope();
+  const { user } = useAuth();
   const compact = collapsed && !mobile;
+  const canManageSettings = ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
+    user?.roleCode ?? "",
+  );
 
   return (
     <aside
@@ -152,7 +159,9 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 pb-4">
-        <div className={cn("grid gap-2", compact ? "grid-cols-1" : "grid-cols-3")}>
+        <div
+          className={cn("grid gap-2", compact ? "grid-cols-1" : "grid-cols-3")}
+        >
           {quickActions.map((item) => {
             const Icon = item.icon;
 
@@ -186,36 +195,38 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
               ) : null}
 
               <div className="space-y-1">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive =
-                    pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
+                {section.items
+                  .filter((item) => !item.adminOnly || canManageSettings)
+                  .map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`);
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-label={item.title}
-                      onClick={mobile ? closeMobileSidebar : undefined}
-                      className={cn(
-                        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                        compact && "justify-center px-2",
-                        isActive
-                          ? "bg-cyan-500/10 text-cyan-100 ring-1 ring-cyan-400/20"
-                          : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
-                      )}
-                    >
-                      <Icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-label={item.title}
+                        onClick={mobile ? closeMobileSidebar : undefined}
                         className={cn(
-                          "h-4 w-4 shrink-0 transition-transform duration-200",
-                          !isActive && "group-hover:scale-110",
+                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                          compact && "justify-center px-2",
+                          isActive
+                            ? "bg-cyan-500/10 text-cyan-100 ring-1 ring-cyan-400/20"
+                            : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
                         )}
-                      />
-                      {!compact ? <span>{item.title}</span> : null}
-                    </Link>
-                  );
-                })}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-4 w-4 shrink-0 transition-transform duration-200",
+                            !isActive && "group-hover:scale-110",
+                          )}
+                        />
+                        {!compact ? <span>{item.title}</span> : null}
+                      </Link>
+                    );
+                  })}
               </div>
             </div>
           ))}

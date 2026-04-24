@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,11 +27,11 @@ import { BranchModule } from './branch/branch.module';
 import { DepartmentModule } from './department/department.module';
 import { ClinicModule } from './clinic/clinic.module';
 import { PharmacyStockModule } from './pharmacy-stock/pharmacy-stock.module';
-import { TriageModule } from './triage/triage.module'; 
+import { TriageModule } from './triage/triage.module';
 import { PrescriptionModule } from './prescription/prescription.module';
 import { PrescriptionItemModule } from './prescription-item/prescription-item.module';
 import { validateEnvironment } from './config/env.validation';
-
+import { AuditInterceptor } from './audit-log/audit.interceptor';
 
 @Module({
   imports: [
@@ -67,6 +68,12 @@ import { validateEnvironment } from './config/env.validation';
     PrescriptionItemModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+  ],
 })
 export class AppModule {}

@@ -7,12 +7,18 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { SettingsService } from './settings.service';
 import { CreateSettingDto } from './dto/create-setting.dto';
 import { UpdateSettingDto } from './dto/update-setting.dto';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('settings')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
@@ -52,10 +58,7 @@ export class SettingsController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateSettingDto,
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSettingDto) {
     return this.settingsService.update(id, dto);
   }
 

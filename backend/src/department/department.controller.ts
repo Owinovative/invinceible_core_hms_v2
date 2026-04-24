@@ -7,16 +7,23 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('departments')
+@UseGuards(AuthGuard('jwt'))
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   create(@Body() dto: CreateDepartmentDto) {
     return this.departmentService.create(dto);
   }
@@ -47,6 +54,8 @@ export class DepartmentController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDepartmentDto,
@@ -55,6 +64,8 @@ export class DepartmentController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.departmentService.remove(id);
   }

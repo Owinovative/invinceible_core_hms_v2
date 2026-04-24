@@ -296,6 +296,9 @@ export class UserService {
 
     if (updateUserDto.password) {
       data.passwordHash = await bcrypt.hash(updateUserDto.password, 10);
+      data.sessionVersion = {
+        increment: 1,
+      };
     }
 
     return this.prisma.user.update({
@@ -338,6 +341,9 @@ export class UserService {
         failedLoginAttempts: 0,
         lockedAt: null,
         lockReason: null,
+        sessionVersion: {
+          increment: 1,
+        },
       },
       include: {
         role: true,
