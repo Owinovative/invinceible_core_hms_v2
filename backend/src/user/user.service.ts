@@ -47,7 +47,9 @@ export class UserService {
     }
 
     if (createUserDto.homeBranchId) {
-      const branch = await this.branchService.findOne(createUserDto.homeBranchId);
+      const branch = await this.branchService.findOne(
+        createUserDto.homeBranchId,
+      );
 
       if (
         createUserDto.homeFacilityId &&
@@ -179,8 +181,12 @@ export class UserService {
   }
 
   async findAuthUserByUsername(username: string) {
+    const identifier = username.trim();
+
     return this.prisma.user.findFirst({
-      where: { username, isActive: true },
+      where: {
+        OR: [{ username: identifier }, { email: identifier.toLowerCase() }],
+      },
       include: {
         role: true,
         homeFacility: true,
@@ -229,7 +235,9 @@ export class UserService {
     }
 
     if (updateUserDto.homeBranchId) {
-      const branch = await this.branchService.findOne(updateUserDto.homeBranchId);
+      const branch = await this.branchService.findOne(
+        updateUserDto.homeBranchId,
+      );
 
       if (
         updateUserDto.homeFacilityId &&

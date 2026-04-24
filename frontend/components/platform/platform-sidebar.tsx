@@ -33,44 +33,48 @@ const navItems = [
   { title: "Settings", href: "/platform/settings", icon: Settings },
 ];
 
-export function PlatformSidebar() {
+export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
-  const { collapsed, toggleSidebar } = useSidebar();
+  const { collapsed, toggleSidebar, closeMobileSidebar } = useSidebar();
   const { user } = useAuth();
+  const compact = collapsed && !mobile;
 
   return (
     <aside
       className={cn(
-        "hidden lg:flex h-screen shrink-0 flex-col border-r glass-panel transition-all duration-300",
-        collapsed ? "w-24" : "w-72",
+        "flex h-full shrink-0 flex-col border-r border-white/10 bg-[#050816]/90 backdrop-blur-2xl transition-all duration-300",
+        mobile ? "w-full" : "hidden h-screen lg:flex",
+        !mobile && (compact ? "w-24" : "w-72"),
       )}
     >
       <div className="border-b px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="overflow-hidden">
-            {collapsed ? <AppLogo iconOnly /> : <AppLogo />}
+            {compact ? <AppLogo iconOnly /> : <AppLogo />}
           </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0 rounded-xl"
-            onClick={toggleSidebar}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
+          {!mobile ? (
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 rounded-xl border-white/10 bg-white/[0.03]"
+              onClick={toggleSidebar}
+            >
+              {compact ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
+          ) : null}
         </div>
       </div>
 
       <div className="px-3 py-4">
-        <div className="gradient-border panel-shadow rounded-[1.4rem] p-4">
-          {collapsed ? (
+        <div className="rounded-lg border border-cyan-400/15 bg-cyan-400/[0.035] p-4">
+          {compact ? (
             <div className="space-y-3 text-center">
-              <div className="rounded-2xl bg-violet-500/10 p-2 text-xs font-semibold text-violet-300">
+              <div className="rounded-lg bg-cyan-500/10 p-2 text-xs font-semibold text-cyan-300">
                 PA
               </div>
             </div>
@@ -81,8 +85,8 @@ export function PlatformSidebar() {
               </p>
 
               <div className="flex items-center gap-2 rounded-2xl bg-violet-500/10 px-3 py-2">
-                <Shield className="h-4 w-4 text-violet-400" />
-                <span className="text-sm font-semibold text-violet-300">
+                <Shield className="h-4 w-4 text-cyan-300" />
+                <span className="text-sm font-semibold text-cyan-200">
                   {user?.roleCode || "SUPER_ADMIN"}
                 </span>
               </div>
@@ -109,15 +113,16 @@ export function PlatformSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
-                collapsed && "justify-center px-2",
+                "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
+                compact && "justify-center px-2",
                 isActive
-                  ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-lg"
+                  ? "bg-cyan-400/10 text-cyan-100 ring-1 ring-cyan-300/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
               )}
+              onClick={mobile ? closeMobileSidebar : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
+              {!compact && <span>{item.title}</span>}
             </Link>
           );
         })}

@@ -11,6 +11,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ApiError } from "@/lib/api";
 import {
   Form,
   FormControl,
@@ -22,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  username: z.string().trim().min(1, "Username or email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -48,28 +49,38 @@ export default function LoginPageClient() {
     setError(null);
 
     try {
-      await login(values);
+      await login({
+        username: values.username.trim(),
+        password: values.password.trim(),
+      });
 
       if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) {
         router.replace(nextPath);
+      } else {
+        router.replace("/dashboard");
       }
-    } catch {
-      setError("Invalid username or password.");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setError(error.message);
+        return;
+      }
+
+      setError("Unable to reach the hospital server. Check the API connection.");
     }
   };
 
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 bg-cover bg-center"
         style={{
-          background:
-            "linear-gradient(135deg, rgba(8, 47, 73, 0.92), rgba(15, 23, 42, 0.96) 48%, rgba(6, 78, 59, 0.78))",
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=2200&q=85')",
         }}
       />
 
-      <div className="absolute inset-0 bg-slate-950/55" />
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-950/50 via-slate-950/35 to-cyan-950/35" />
+      <div className="absolute inset-0 bg-slate-950/70" />
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(8,47,73,0.82),rgba(15,23,42,0.92)_48%,rgba(6,78,59,0.62))]" />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-400/10 to-transparent" />
 
@@ -88,13 +99,15 @@ export default function LoginPageClient() {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white/90">Username</FormLabel>
+                      <FormLabel className="text-white/90">
+                        Username or email
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <User2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
                           <Input
                             className="h-12 rounded-xl border-white/20 bg-white/10 pl-10 text-white placeholder:text-white/45"
-                            placeholder="Enter username"
+                            placeholder="Enter username or email"
                             {...field}
                           />
                         </div>
