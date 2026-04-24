@@ -87,6 +87,15 @@ export async function apiFetch<T>(
       // ignore
     }
 
+    if (
+      response.status === 401 &&
+      typeof window !== "undefined" &&
+      !path.startsWith("/auth/login")
+    ) {
+      localStorage.removeItem("hms_access_token");
+      window.location.assign("/login");
+    }
+
     throw new ApiError(message, response.status);
   }
 

@@ -151,6 +151,7 @@ model User {
   failedLoginAttempts            Int                  @default(0)
   lockedAt                       DateTime?
   lockReason                     String?              @db.VarChar(255)
+  sessionVersion                 Int                  @default(0)
   canAccessAllBranchesInFacility Boolean              @default(false)
   lastLoginAt                    DateTime?
   createdAt                      DateTime             @default(now())

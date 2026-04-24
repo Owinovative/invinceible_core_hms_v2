@@ -7,6 +7,7 @@ import {
   GitBranch,
   KeyRound,
   LockKeyhole,
+  ScrollText,
   ServerCog,
   Shield,
   Stethoscope,
@@ -62,6 +63,12 @@ const items = [
     signal: "alert.bus",
   },
   {
+    title: "Audit Trail",
+    href: "/platform/audit",
+    icon: ScrollText,
+    signal: "audit.trace",
+  },
+  {
     title: "Settings",
     href: "/platform/settings",
     icon: ServerCog,
@@ -113,7 +120,9 @@ export default function PlatformHomePage() {
                   className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-4 py-3"
                 >
                   <LockKeyhole className="h-4 w-4 text-emerald-300" />
-                  <span className="font-mono text-sm text-white/80">{item}</span>
+                  <span className="font-mono text-sm text-white/80">
+                    {item}
+                  </span>
                 </div>
               ))}
             </div>
@@ -124,12 +133,10 @@ export default function PlatformHomePage() {
               <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-              <span className="ml-2 text-muted-foreground">
-                ops-kernel.ts
-              </span>
+              <span className="ml-2 text-muted-foreground">ops-kernel.ts</span>
             </div>
             <pre className="overflow-hidden leading-6 text-cyan-100/80">
-{`const console = await boot({
+              {`const console = await boot({
   owner: "SUPER_ADMIN",
   surface: "platform",
   guard: ["jwt", "rbac", "scope"],
@@ -185,7 +192,9 @@ emit("system.level", 6);`}
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>Only platform owners should enter this console.</p>
             <p>Use it to define structure before clinical teams operate.</p>
-            <p>Every facility, branch, staff, and user decision flows from here.</p>
+            <p>
+              Every facility, branch, staff, and user decision flows from here.
+            </p>
           </div>
         </div>
 
@@ -211,7 +220,10 @@ emit("system.level", 6);`}
       </section>
 
       <div className="flex justify-end">
-        <Button asChild className="rounded-lg bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+        <Button
+          asChild
+          className="rounded-lg bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+        >
           <Link href="/dashboard">Return to hospital dashboard</Link>
         </Button>
       </div>

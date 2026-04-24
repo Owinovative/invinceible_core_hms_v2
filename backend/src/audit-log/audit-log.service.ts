@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { StaffService } from '../staff/staff.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
 export class AuditLogService {
@@ -55,6 +60,75 @@ export class AuditLogService {
       action.includes('DISABLE') ||
       action.includes('LOCK')
     );
+  }
+
+  private buildScopedWhere(
+    query: AuditLogQueryDto | undefined,
+    user: RequestUser,
+  ) {
+    const where: any = {
+      moduleName: query?.moduleName,
+      actionName: query?.actionName,
+      entityType: query?.entityType,
+      entityId: query?.entityId,
+    };
+
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return where;
+    }
+
+    if (!user.homeFacilityId) {
+      throw new ForbiddenException('User has no home facility assigned');
+    }
+
+    where.facilityId = user.homeFacilityId;
+
+    if (!user.canAccessAllBranchesInFacility) {
+      const branchIds = new Set<number>();
+
+      if (user.homeBranchId) {
+        branchIds.add(user.homeBranchId);
+      }
+
+      for (const branchId of user.allowedBranchIds ?? []) {
+        branchIds.add(branchId);
+      }
+
+      if (branchIds.size > 0) {
+        where.OR = [
+          { branchId: null },
+          { branchId: { in: Array.from(branchIds) } },
+        ];
+      }
+    }
+
+    return where;
+  }
+
+  private assertAuditAccess(
+    user: RequestUser,
+    log: { facilityId?: number | null; branchId?: number | null },
+  ) {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return;
+    }
+
+    if (!log.facilityId || log.facilityId !== user.homeFacilityId) {
+      throw new ForbiddenException('You cannot view this audit log');
+    }
+
+    if (!log.branchId || user.canAccessAllBranchesInFacility) {
+      return;
+    }
+
+    const branchIds = new Set<number>([
+      ...(user.allowedBranchIds ?? []),
+      ...(user.homeBranchId ? [user.homeBranchId] : []),
+    ]);
+
+    if (!branchIds.has(log.branchId)) {
+      throw new ForbiddenException('You cannot view this branch audit log');
+    }
   }
 
   async create(dto: CreateAuditLogDto) {
@@ -131,6 +205,22 @@ export class AuditLogService {
     });
   }
 
+  async findAllScoped(query: AuditLogQueryDto | undefined, user: RequestUser) {
+    return this.prisma.auditLog.findMany({
+      where: this.buildScopedWhere(query, user),
+      include: {
+        facility: true,
+        branch: true,
+        actorUser: true,
+        actorStaff: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      take: 300,
+    });
+  }
+
   async findOne(id: number) {
     const log = await this.prisma.auditLog.findUnique({
       where: { id },
@@ -146,6 +236,12 @@ export class AuditLogService {
       throw new NotFoundException(`Audit log with id ${id} not found`);
     }
 
+    return log;
+  }
+
+  async findOneScoped(id: number, user: RequestUser) {
+    const log = await this.findOne(id);
+    this.assertAuditAccess(user, log);
     return log;
   }
 
@@ -167,11 +263,45 @@ export class AuditLogService {
     });
   }
 
+  async findByEntityScoped(
+    entityType: string,
+    entityId: string,
+    user: RequestUser,
+  ) {
+    return this.prisma.auditLog.findMany({
+      where: this.buildScopedWhere({ entityType, entityId }, user),
+      include: {
+        facility: true,
+        branch: true,
+        actorUser: true,
+        actorStaff: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+  }
+
   async findByModule(moduleName: string) {
     return this.prisma.auditLog.findMany({
       where: {
         moduleName,
       },
+      include: {
+        facility: true,
+        branch: true,
+        actorUser: true,
+        actorStaff: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+  }
+
+  async findByModuleScoped(moduleName: string, user: RequestUser) {
+    return this.prisma.auditLog.findMany({
+      where: this.buildScopedWhere({ moduleName }, user),
       include: {
         facility: true,
         branch: true,

@@ -9,6 +9,7 @@ import {
   Pill,
   Save,
   Settings,
+  ShieldAlert,
   SlidersHorizontal,
 } from "lucide-react";
 import { useSeedSettings } from "@/hooks/use-seed-settings";
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/providers/auth-provider";
 
 type SettingField = {
   key: string;
@@ -176,12 +178,16 @@ export function SettingsManager({
   title?: string;
   badge?: string;
 }) {
+  const { user } = useAuth();
   const { data, isLoading } = useSettings();
   const updateSettingMutation = useUpdateSettingValue();
   const seedSettingsMutation = useSeedSettings();
   const [values, setValues] =
     React.useState<Record<string, string>>(DEFAULT_VALUES);
   const [message, setMessage] = React.useState<string | null>(null);
+  const canManageSettings = ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
+    user?.roleCode ?? "",
+  );
 
   React.useEffect(() => {
     if (!Array.isArray(data)) return;
@@ -222,6 +228,26 @@ export function SettingsManager({
     const result = await seedSettingsMutation.mutateAsync();
     setMessage(`Defaults checked. Created ${result.createdCount} setting(s).`);
   };
+
+  if (!canManageSettings) {
+    return (
+      <div className="flex min-h-[55vh] items-center justify-center">
+        <Card className="w-full max-w-xl rounded-[1.8rem] gradient-border panel-shadow">
+          <CardContent className="px-6 py-10 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-500">
+              <ShieldAlert className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-bold">
+              Administrator access required
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Facility settings are restricted to authorized administrators.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

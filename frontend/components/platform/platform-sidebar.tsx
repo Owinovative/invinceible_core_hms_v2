@@ -9,6 +9,7 @@ import {
   ChevronRight,
   GitBranch,
   LayoutDashboard,
+  ScrollText,
   Settings,
   Shield,
   Stethoscope,
@@ -30,6 +31,7 @@ const navItems = [
   { title: "Staff", href: "/platform/staff", icon: UserCog },
   { title: "Clinics", href: "/platform/clinics", icon: Stethoscope },
   { title: "Notifications", href: "/platform/notifications", icon: BellRing },
+  { title: "Audit Trail", href: "/platform/audit", icon: ScrollText },
   { title: "Settings", href: "/platform/settings", icon: Settings },
 ];
 

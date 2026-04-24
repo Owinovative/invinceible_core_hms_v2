@@ -14,7 +14,7 @@ import { PatientService } from './patient.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type{ RequestUser } from '../auth/interfaces/request-user.interface';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Controller('patients')
 @UseGuards(AuthGuard('jwt'))
@@ -22,8 +22,11 @@ export class PatientController {
   constructor(private readonly patientService: PatientService) {}
 
   @Post()
-  create(@Body() createPatientDto: CreatePatientDto) {
-    return this.patientService.create(createPatientDto);
+  create(
+    @Body() createPatientDto: CreatePatientDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.patientService.createScoped(createPatientDto, user);
   }
 
   @Get()
@@ -51,12 +54,16 @@ export class PatientController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePatientDto: UpdatePatientDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.patientService.update(id, updatePatientDto);
+    return this.patientService.updateScoped(id, updatePatientDto, user);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.patientService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.patientService.removeScoped(id, user);
   }
 }

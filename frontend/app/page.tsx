@@ -71,8 +71,19 @@ export default function HomePage() {
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
 
         <div className="relative mx-auto flex min-h-[92svh] max-w-7xl flex-col px-5 py-6 md:px-8">
-          <header className="flex items-center justify-between gap-4">
+          <header className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-2xl">
             <AppLogo light />
+            <nav className="hidden items-center gap-6 text-sm font-medium text-white/75 md:flex">
+              <Link href="#workflow" className="transition hover:text-white">
+                Workflow
+              </Link>
+              <Link href="#operations" className="transition hover:text-white">
+                Operations
+              </Link>
+              <Link href="#trust" className="transition hover:text-white">
+                Trust
+              </Link>
+            </nav>
             <Button
               asChild
               className="rounded-lg bg-white text-slate-950 hover:bg-white/90"
@@ -178,7 +189,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-5 pb-16 md:grid-cols-3 md:px-8">
+      <section
+        id="operations"
+        className="mx-auto grid max-w-7xl gap-4 px-5 pb-16 md:grid-cols-3 md:px-8"
+      >
         {photoPanels.map((panel) => (
           <div
             key={panel.label}
@@ -193,7 +207,7 @@ export default function HomePage() {
         ))}
       </section>
 
-      <section className="border-t border-white/10 bg-white/[0.025]">
+      <section id="trust" className="border-t border-white/10 bg-white/[0.025]">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-8 md:flex-row md:items-center md:justify-between md:px-8">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-emerald-300" />

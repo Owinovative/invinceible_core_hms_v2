@@ -87,28 +87,36 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
-    const payload = {
-      sub: user.id,
-      username: user.username,
-      roleId: user.roleId,
-      roleCode: user.role?.code,
-    };
-
-    await this.prisma.user.update({
+    const updatedSession = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         failedLoginAttempts: 0,
         lockedAt: null,
         lockReason: null,
         lastLoginAt: new Date(),
+        sessionVersion: {
+          increment: 1,
+        },
+      },
+      select: {
+        sessionVersion: true,
       },
     });
+
+    const payload = {
+      sub: user.id,
+      username: user.username,
+      roleId: user.roleId,
+      roleCode: user.role?.code,
+      sessionVersion: updatedSession.sessionVersion,
+    };
 
     const scopedUser = await this.scopeService.enrichRequestUser({
       userId: user.id,
       username: user.username,
       roleId: user.roleId,
       roleCode: user.role?.code ?? null,
+      sessionVersion: updatedSession.sessionVersion,
     });
 
     return {
@@ -246,6 +254,9 @@ export class AuthService {
         where: { id: resetRecord.userId },
         data: {
           passwordHash: newPasswordHash,
+          sessionVersion: {
+            increment: 1,
+          },
         },
       });
 
