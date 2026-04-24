@@ -9,15 +9,22 @@ import {
   Search,
 } from "lucide-react";
 import { useFacilities } from "@/hooks/use-facilities";
+import { useUpdateFacility } from "@/hooks/use-update-facility";
 import { useUpdateFacilityStatus } from "@/hooks/use-update-facility-status";
 import type { Facility } from "@/services/facility-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditRecordDialog } from "@/components/platform/shared/edit-record-dialog";
+
+function optionalValue(value: string) {
+  return value.trim() || undefined;
+}
 
 export function FacilitiesTable() {
   const { data, isLoading } = useFacilities();
+  const updateFacilityMutation = useUpdateFacility();
   const updateFacilityStatusMutation = useUpdateFacilityStatus();
 
   const items = React.useMemo<Facility[]>(() => {
@@ -204,7 +211,9 @@ export function FacilitiesTable() {
                                 : "status-success",
                             )}
                           >
-                            {facility.isActive === false ? "Inactive" : "Active"}
+                            {facility.isActive === false
+                              ? "Inactive"
+                              : "Active"}
                           </span>
 
                           {facility.isDefault ? (
@@ -222,21 +231,132 @@ export function FacilitiesTable() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <Button
-                          size="sm"
-                          variant={facility.isActive === false ? "default" : "outline"}
-                          className="rounded-xl"
-                          disabled={updateFacilityStatusMutation.isPending}
-                          onClick={() =>
-                            updateFacilityStatusMutation.mutate({
-                              id: facility.id,
-                              isActive: facility.isActive === false,
-                            })
-                          }
-                        >
-                          <Power className="mr-2 h-4 w-4" />
-                          {facility.isActive === false ? "Reactivate" : "Deactivate"}
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <EditRecordDialog
+                            title={`Edit ${facility.name}`}
+                            description="Update facility identity, location, contacts, and payment defaults."
+                            isPending={updateFacilityMutation.isPending}
+                            fields={[
+                              { name: "name", label: "Facility Name" },
+                              { name: "facilityType", label: "Facility Type" },
+                              { name: "county", label: "County" },
+                              { name: "town", label: "Town" },
+                              { name: "country", label: "Country" },
+                              { name: "phone", label: "Phone" },
+                              {
+                                name: "email",
+                                label: "Email",
+                                type: "email",
+                              },
+                              { name: "website", label: "Website" },
+                              {
+                                name: "address",
+                                label: "Physical Address",
+                                className: "md:col-span-2",
+                              },
+                              { name: "timezone", label: "Timezone" },
+                              { name: "currency", label: "Currency" },
+                              {
+                                name: "registrationNo",
+                                label: "Registration No.",
+                              },
+                              { name: "taxPin", label: "Tax PIN" },
+                              {
+                                name: "licenseNumber",
+                                label: "License Number",
+                              },
+                              {
+                                name: "mpesaShortcode",
+                                label: "M-PESA Shortcode",
+                              },
+                              {
+                                name: "mpesaPaybill",
+                                label: "M-PESA Paybill",
+                              },
+                              {
+                                name: "mpesaTillNumber",
+                                label: "M-PESA Till Number",
+                              },
+                            ]}
+                            initialValues={{
+                              name: facility.name ?? "",
+                              facilityType: facility.facilityType ?? "",
+                              county: facility.county ?? "",
+                              town: facility.town ?? "",
+                              country: facility.country ?? "",
+                              phone: facility.phone ?? "",
+                              email: facility.email ?? "",
+                              website: facility.website ?? "",
+                              address: facility.address ?? "",
+                              timezone: facility.timezone ?? "",
+                              currency: facility.currency ?? "",
+                              registrationNo: facility.registrationNo ?? "",
+                              taxPin: facility.taxPin ?? "",
+                              licenseNumber: facility.licenseNumber ?? "",
+                              mpesaShortcode: facility.mpesaShortcode ?? "",
+                              mpesaPaybill: facility.mpesaPaybill ?? "",
+                              mpesaTillNumber: facility.mpesaTillNumber ?? "",
+                            }}
+                            onSubmit={(values) =>
+                              updateFacilityMutation.mutateAsync({
+                                id: facility.id,
+                                payload: {
+                                  name: values.name.trim(),
+                                  facilityType: optionalValue(
+                                    values.facilityType,
+                                  ),
+                                  county: optionalValue(values.county),
+                                  town: optionalValue(values.town),
+                                  country: optionalValue(values.country),
+                                  phone: optionalValue(values.phone),
+                                  email: optionalValue(values.email),
+                                  website: optionalValue(values.website),
+                                  address: optionalValue(values.address),
+                                  timezone: optionalValue(values.timezone),
+                                  currency: optionalValue(values.currency),
+                                  registrationNo: optionalValue(
+                                    values.registrationNo,
+                                  ),
+                                  taxPin: optionalValue(values.taxPin),
+                                  licenseNumber: optionalValue(
+                                    values.licenseNumber,
+                                  ),
+                                  mpesaShortcode: optionalValue(
+                                    values.mpesaShortcode,
+                                  ),
+                                  mpesaPaybill: optionalValue(
+                                    values.mpesaPaybill,
+                                  ),
+                                  mpesaTillNumber: optionalValue(
+                                    values.mpesaTillNumber,
+                                  ),
+                                },
+                              })
+                            }
+                          />
+
+                          <Button
+                            size="sm"
+                            variant={
+                              facility.isActive === false
+                                ? "default"
+                                : "outline"
+                            }
+                            className="rounded-xl"
+                            disabled={updateFacilityStatusMutation.isPending}
+                            onClick={() =>
+                              updateFacilityStatusMutation.mutate({
+                                id: facility.id,
+                                isActive: facility.isActive === false,
+                              })
+                            }
+                          >
+                            <Power className="mr-2 h-4 w-4" />
+                            {facility.isActive === false
+                              ? "Reactivate"
+                              : "Deactivate"}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -287,9 +407,7 @@ export function FacilitiesTable() {
               variant="outline"
               className="rounded-xl"
               disabled={safePage >= totalPages}
-              onClick={() =>
-                setPage((prev) => Math.min(totalPages, prev + 1))
-              }
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             >
               Next
               <ChevronRight className="ml-2 h-4 w-4" />

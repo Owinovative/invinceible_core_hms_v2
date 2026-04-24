@@ -9,9 +9,12 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ScopeService } from './scope.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 
 @Injectable()
 export class AuthService {
@@ -20,6 +23,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly scopeService: ScopeService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -32,6 +36,12 @@ export class AuthService {
     }
 
     if (!user.isActive) {
+      if (user.lockedAt) {
+        throw new UnauthorizedException(
+          'Account locked after too many failed login attempts. Contact the super admin to reactivate it.',
+        );
+      }
+
       throw new UnauthorizedException('User account is inactive');
     }
 
@@ -51,6 +61,29 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatches) {
+      const failedLoginAttempts = (user.failedLoginAttempts ?? 0) + 1;
+      const shouldLock = failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts,
+          ...(shouldLock
+            ? {
+                isActive: false,
+                lockedAt: new Date(),
+                lockReason: `Locked after ${MAX_FAILED_LOGIN_ATTEMPTS} failed login attempts`,
+              }
+            : {}),
+        },
+      });
+
+      if (shouldLock) {
+        throw new UnauthorizedException(
+          'Account locked after too many failed login attempts. Contact the super admin to reactivate it.',
+        );
+      }
+
       throw new UnauthorizedException('Invalid username or password');
     }
 
@@ -64,14 +97,25 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
+        failedLoginAttempts: 0,
+        lockedAt: null,
+        lockReason: null,
         lastLoginAt: new Date(),
       },
+    });
+
+    const scopedUser = await this.scopeService.enrichRequestUser({
+      userId: user.id,
+      username: user.username,
+      roleId: user.roleId,
+      roleCode: user.role?.code ?? null,
     });
 
     return {
       message: 'Login successful',
       accessToken: await this.jwtService.signAsync(payload),
       user: {
+        ...scopedUser,
         id: user.id,
         username: user.username,
         email: user.email,

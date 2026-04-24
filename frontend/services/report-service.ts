@@ -66,8 +66,8 @@ export interface ReportsDashboardRecord {
 export async function getReportsDashboard(dateFrom?: string, dateTo?: string) {
   const params = new URLSearchParams();
 
-  if (dateFrom) params.set("dateFrom", dateFrom);
-  if (dateTo) params.set("dateTo", dateTo);
+  if (dateFrom) params.set("startDate", dateFrom);
+  if (dateTo) params.set("endDate", dateTo);
 
   const query = params.toString();
   const path = query ? `/reports/dashboard?${query}` : "/reports/dashboard";

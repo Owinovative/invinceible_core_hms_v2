@@ -97,27 +97,30 @@ export class BillingService {
   }
 
   private async recalculateInvoiceTotalsFromItems(invoiceId: number) {
-  const invoice = await this.prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: {
-      items: {
-        where: {
-          isRemoved: false,
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        items: {
+          where: {
+            isRemoved: false,
+          },
+        },
+        payments: {
+          where: {
+            statusCode: 'COMPLETED',
+          },
         },
       },
-      payments: {
-        where: {
-          statusCode: 'COMPLETED',
-        },
-      },
-    },
-  });
+    });
 
     if (!invoice) {
       throw new NotFoundException(`Invoice with id ${invoiceId} not found`);
     }
 
-    const subtotal = invoice.items.reduce((sum, item) => sum + item.lineTotal, 0);
+    const subtotal = invoice.items.reduce(
+      (sum, item) => sum + item.lineTotal,
+      0,
+    );
     const totalAmount = subtotal - invoice.discountAmount + invoice.taxAmount;
     const paidAmount = invoice.payments.reduce(
       (sum, payment) => sum + payment.amount,
@@ -233,11 +236,10 @@ export class BillingService {
   }
 
   async updateInvoiceItem(
-  id: number,
-  dto: UpdateInvoiceItemDto,
-  user: RequestUser,
-)
- {
+    id: number,
+    dto: UpdateInvoiceItemDto,
+    user: RequestUser,
+  ) {
     const item = await this.prisma.invoiceItem.findUnique({
       where: { id },
       include: {
@@ -667,9 +669,7 @@ export class BillingService {
     }
 
     if (dto.amount <= 0) {
-      throw new BadRequestException(
-        'Payment amount must be greater than zero',
-      );
+      throw new BadRequestException('Payment amount must be greater than zero');
     }
 
     if (dto.amount > invoice.balanceAmount) {
@@ -746,9 +746,7 @@ export class BillingService {
     }
 
     if (dto.amount <= 0) {
-      throw new BadRequestException(
-        'Payment amount must be greater than zero',
-      );
+      throw new BadRequestException('Payment amount must be greater than zero');
     }
 
     if (dto.amount > invoice.balanceAmount) {
@@ -937,19 +935,21 @@ export class BillingService {
     return failedPayment;
   }
 
-  async getBillingDashboard() {
-    const totalInvoices = await this.prisma.invoice.count();
+  async getBillingDashboard(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
+    const totalInvoices = await this.prisma.invoice.count({ where: scope });
     const pendingInvoices = await this.prisma.invoice.count({
-      where: { statusCode: 'PENDING' },
+      where: { ...scope, statusCode: 'PENDING' },
     });
     const partiallyPaidInvoices = await this.prisma.invoice.count({
-      where: { statusCode: 'PARTIALLY_PAID' },
+      where: { ...scope, statusCode: 'PARTIALLY_PAID' },
     });
     const paidInvoices = await this.prisma.invoice.count({
-      where: { statusCode: 'PAID' },
+      where: { ...scope, statusCode: 'PAID' },
     });
 
     const invoiceAggregates = await this.prisma.invoice.aggregate({
+      where: scope,
       _sum: {
         totalAmount: true,
         paidAmount: true,

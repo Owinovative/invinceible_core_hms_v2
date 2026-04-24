@@ -3,12 +3,22 @@ import { AuthGuard } from '@nestjs/passport';
 import { ReportsService } from './reports.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type{ RequestUser } from '../auth/interfaces/request-user.interface';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Controller('reports')
 @UseGuards(AuthGuard('jwt'))
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService ) {}
+  constructor(private readonly reportsService: ReportsService) {}
+
+  @Get('dashboard')
+  getReportsDashboard(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getReportsDashboard(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
 
   @Get('dashboard-summary')
   getDashboardSummary(

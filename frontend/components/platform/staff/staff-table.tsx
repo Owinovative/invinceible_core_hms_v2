@@ -9,19 +9,34 @@ import {
   UserCog,
 } from "lucide-react";
 import { useStaff } from "@/hooks/use-staff";
+import { useBranches } from "@/hooks/use-branches";
+import { useFacilities } from "@/hooks/use-facilities";
+import { useRoles } from "@/hooks/use-roles";
+import { useUsers } from "@/hooks/use-users";
+import { useUpdateStaff } from "@/hooks/use-update-staff";
 import { useUpdateStaffStatus } from "@/hooks/use-update-staff-status";
 import type { StaffItem } from "@/services/staff-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditRecordDialog } from "@/components/platform/shared/edit-record-dialog";
 
 function fullName(item: StaffItem) {
   return [item.firstName, item.lastName].filter(Boolean).join(" ");
 }
 
+function optionalValue(value: string) {
+  return value.trim() || undefined;
+}
+
 export function StaffTable() {
   const { data, isLoading } = useStaff();
+  const { data: facilitiesData } = useFacilities();
+  const { data: branchesData } = useBranches();
+  const { data: rolesData } = useRoles();
+  const { data: usersData } = useUsers();
+  const updateStaffMutation = useUpdateStaff();
   const updateStaffStatusMutation = useUpdateStaffStatus();
 
   const items = React.useMemo<StaffItem[]>(() => {
@@ -32,6 +47,10 @@ export function StaffTable() {
   const [page, setPage] = React.useState(1);
 
   const pageSize = 8;
+  const facilities = Array.isArray(facilitiesData) ? facilitiesData : [];
+  const branches = Array.isArray(branchesData) ? branchesData : [];
+  const roles = Array.isArray(rolesData) ? rolesData : [];
+  const users = Array.isArray(usersData) ? usersData : [];
 
   const filteredItems = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -136,13 +155,27 @@ export function StaffTable() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4"><Skeleton className="h-4 w-24 rounded-lg" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-4 w-24 rounded-lg" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-4 w-32 rounded-lg" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-4 w-24 rounded-lg" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-9 w-28 rounded-xl" /></td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-4 w-24 rounded-lg" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-4 w-24 rounded-lg" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-4 w-32 rounded-lg" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-4 w-24 rounded-lg" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-9 w-28 rounded-xl" />
+                      </td>
                     </tr>
                   ))
                 : pagedItems.map((staff) => (
@@ -221,21 +254,162 @@ export function StaffTable() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <Button
-                          size="sm"
-                          variant={staff.isActive === false ? "default" : "outline"}
-                          className="rounded-xl"
-                          disabled={updateStaffStatusMutation.isPending}
-                          onClick={() =>
-                            updateStaffStatusMutation.mutate({
-                              id: staff.id,
-                              isActive: staff.isActive === false,
-                            })
-                          }
-                        >
-                          <Power className="mr-2 h-4 w-4" />
-                          {staff.isActive === false ? "Reactivate" : "Deactivate"}
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <EditRecordDialog
+                            title={`Edit ${fullName(staff)}`}
+                            description="Update staff identity, assignment, clinical flags, and linked user."
+                            isPending={updateStaffMutation.isPending}
+                            fields={[
+                              { name: "staffCode", label: "Staff Code" },
+                              { name: "firstName", label: "First Name" },
+                              { name: "lastName", label: "Last Name" },
+                              { name: "email", label: "Email", type: "email" },
+                              { name: "phone", label: "Phone" },
+                              {
+                                name: "gender",
+                                label: "Gender",
+                                type: "select",
+                                options: [
+                                  { label: "Male", value: "MALE" },
+                                  { label: "Female", value: "FEMALE" },
+                                  { label: "Other", value: "OTHER" },
+                                ],
+                              },
+                              { name: "designation", label: "Designation" },
+                              {
+                                name: "facilityId",
+                                label: "Facility",
+                                type: "select",
+                                options: facilities.map((facility) => ({
+                                  label: facility.name,
+                                  value: String(facility.id),
+                                })),
+                              },
+                              {
+                                name: "branchId",
+                                label: "Branch",
+                                type: "select",
+                                options: branches.map((branch) => ({
+                                  label: branch.name,
+                                  value: String(branch.id),
+                                })),
+                              },
+                              {
+                                name: "roleId",
+                                label: "Role",
+                                type: "select",
+                                options: roles.map((role) => ({
+                                  label:
+                                    role.name ?? role.code ?? `Role ${role.id}`,
+                                  value: String(role.id),
+                                })),
+                              },
+                              {
+                                name: "userId",
+                                label: "Linked User",
+                                type: "select",
+                                options: users.map((user) => ({
+                                  label: user.fullName
+                                    ? `${user.fullName} (${user.username})`
+                                    : user.username,
+                                  value: String(user.id),
+                                })),
+                              },
+                              {
+                                name: "isClinician",
+                                label: "Clinician",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              {
+                                name: "isPrescriber",
+                                label: "Prescriber",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              {
+                                name: "canLogin",
+                                label: "Can Login",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                            ]}
+                            initialValues={{
+                              staffCode: staff.staffCode ?? "",
+                              firstName: staff.firstName ?? "",
+                              lastName: staff.lastName ?? "",
+                              email: staff.email ?? "",
+                              phone: staff.phone ?? "",
+                              gender: staff.gender ?? "OTHER",
+                              designation: staff.designation ?? "",
+                              facilityId: String(staff.facilityId),
+                              branchId: staff.branchId
+                                ? String(staff.branchId)
+                                : "",
+                              roleId: String(staff.roleId),
+                              userId: staff.userId ? String(staff.userId) : "",
+                              isClinician: String(staff.isClinician === true),
+                              isPrescriber: String(staff.isPrescriber === true),
+                              canLogin: String(staff.canLogin !== false),
+                            }}
+                            onSubmit={(values) =>
+                              updateStaffMutation.mutateAsync({
+                                id: staff.id,
+                                payload: {
+                                  staffCode: values.staffCode.trim(),
+                                  firstName: values.firstName.trim(),
+                                  lastName: values.lastName.trim(),
+                                  email: optionalValue(values.email),
+                                  phone: optionalValue(values.phone),
+                                  gender: optionalValue(values.gender),
+                                  designation: optionalValue(
+                                    values.designation,
+                                  ),
+                                  facilityId: Number(values.facilityId),
+                                  branchId: values.branchId
+                                    ? Number(values.branchId)
+                                    : undefined,
+                                  roleId: Number(values.roleId),
+                                  userId: values.userId
+                                    ? Number(values.userId)
+                                    : undefined,
+                                  isClinician: values.isClinician === "true",
+                                  isPrescriber: values.isPrescriber === "true",
+                                  canLogin: values.canLogin !== "false",
+                                },
+                              })
+                            }
+                          />
+
+                          <Button
+                            size="sm"
+                            variant={
+                              staff.isActive === false ? "default" : "outline"
+                            }
+                            className="rounded-xl"
+                            disabled={updateStaffStatusMutation.isPending}
+                            onClick={() =>
+                              updateStaffStatusMutation.mutate({
+                                id: staff.id,
+                                isActive: staff.isActive === false,
+                              })
+                            }
+                          >
+                            <Power className="mr-2 h-4 w-4" />
+                            {staff.isActive === false
+                              ? "Reactivate"
+                              : "Deactivate"}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -257,9 +431,13 @@ export function StaffTable() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
             Showing{" "}
-            <span className="font-semibold text-foreground">{pagedItems.length}</span>{" "}
+            <span className="font-semibold text-foreground">
+              {pagedItems.length}
+            </span>{" "}
             of{" "}
-            <span className="font-semibold text-foreground">{filteredItems.length}</span>{" "}
+            <span className="font-semibold text-foreground">
+              {filteredItems.length}
+            </span>{" "}
             staff members
           </p>
 

@@ -20,6 +20,15 @@ function getStoredToken() {
   return localStorage.getItem("hms_access_token");
 }
 
+function isLocalApiUrl(url: string) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+}
+
+function isLocalBrowser() {
+  if (typeof window === "undefined") return true;
+  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestOptions = {},
@@ -28,15 +37,31 @@ export async function apiFetch<T>(
 
   const resolvedToken = token ?? getStoredToken();
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    headers: {
-      ...(rest.body ? { "Content-Type": "application/json" } : {}),
-      ...(resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : {}),
-      ...(headers || {}),
-    },
-    cache: "no-store",
-  });
+  if (isLocalApiUrl(API_BASE_URL) && !isLocalBrowser()) {
+    throw new ApiError(
+      "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL in Vercel to the Railway backend URL.",
+      0,
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...rest,
+      headers: {
+        ...(rest.body ? { "Content-Type": "application/json" } : {}),
+        ...(resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : {}),
+        ...(headers || {}),
+      },
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(
+      "Unable to reach the hospital server. Verify the Railway backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
+      0,
+    );
+  }
 
   if (!response.ok) {
     let message = `Request failed with status ${response.status}`;

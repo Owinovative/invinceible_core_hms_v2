@@ -53,23 +53,22 @@ export class BillingController {
     return this.billingService.getInvoiceByIdScoped(id, user);
   }
 
-@Patch('invoice-items/:id')
-updateInvoiceItem(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() dto: UpdateInvoiceItemDto,
-  @CurrentUser() user: RequestUser,
-) {
-  return this.billingService.updateInvoiceItem(id, dto, user);
-}
+  @Patch('invoice-items/:id')
+  updateInvoiceItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateInvoiceItemDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.updateInvoiceItem(id, dto, user);
+  }
 
-@Patch('invoice-items/:id/remove')
-removeInvoiceItem(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() dto: RemoveInvoiceItemDto,
-  @CurrentUser() user: RequestUser,
-) {
-  return this.billingService.removeInvoiceItem(id, dto);
-}
+  @Patch('invoice-items/:id/remove')
+  removeInvoiceItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RemoveInvoiceItemDto,
+  ) {
+    return this.billingService.removeInvoiceItem(id, dto);
+  }
 
   @Get('patient/:patientNumber')
   getPatientBillingByPatientNumber(
@@ -105,7 +104,7 @@ removeInvoiceItem(
   }
 
   @Get('dashboard')
-  getBillingDashboard() {
-    return this.billingService.getBillingDashboard();
+  getBillingDashboard(@CurrentUser() user: RequestUser) {
+    return this.billingService.getBillingDashboard(user);
   }
 }

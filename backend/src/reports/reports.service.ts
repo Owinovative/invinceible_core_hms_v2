@@ -42,37 +42,37 @@ export class ReportsService {
     return next;
   }
 
-    private getTodayRange() {
-      const today = new Date();
+  private getTodayRange() {
+    const today = new Date();
 
-      const start = new Date(today);
+    const start = new Date(today);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(today);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  }
+
+  private buildDateRange(filter?: ReportFilterDto) {
+    if (!filter?.startDate && !filter?.endDate) return undefined;
+
+    const range: { gte?: Date; lte?: Date } = {};
+
+    if (filter.startDate) {
+      const start = new Date(filter.startDate);
       start.setHours(0, 0, 0, 0);
+      range.gte = start;
+    }
 
-      const end = new Date(today);
+    if (filter.endDate) {
+      const end = new Date(filter.endDate);
       end.setHours(23, 59, 59, 999);
-
-      return { start, end };
+      range.lte = end;
     }
 
-    private buildDateRange(filter?: ReportFilterDto) {
-      if (!filter?.startDate && !filter?.endDate) return undefined;
-
-      const range: { gte?: Date; lte?: Date } = {};
-
-      if (filter.startDate) {
-        const start = new Date(filter.startDate);
-        start.setHours(0, 0, 0, 0);
-        range.gte = start;
-      }
-
-      if (filter.endDate) {
-        const end = new Date(filter.endDate);
-        end.setHours(23, 59, 59, 999);
-        range.lte = end;
-      }
-
-      return range;
-    }
+    return range;
+  }
 
   private facilityBranchWhere(filter?: ReportFilterDto) {
     const where: any = {};
@@ -110,13 +110,17 @@ export class ReportsService {
   async getDashboardSummary(filter?: ReportFilterDto) {
     const patientWhere = {
       ...(filter?.facilityId ? { facilityId: filter.facilityId } : {}),
-      ...(this.buildDateRange(filter) ? { createdAt: this.buildDateRange(filter) } : {}),
+      ...(this.buildDateRange(filter)
+        ? { createdAt: this.buildDateRange(filter) }
+        : {}),
     };
 
     const staffWhere = {
       ...(filter?.facilityId ? { facilityId: filter.facilityId } : {}),
       ...(filter?.branchId ? { branchId: filter.branchId } : {}),
-      ...(this.buildDateRange(filter) ? { createdAt: this.buildDateRange(filter) } : {}),
+      ...(this.buildDateRange(filter)
+        ? { createdAt: this.buildDateRange(filter) }
+        : {}),
     };
 
     const appointmentWhere = this.withAppointmentDateScope(filter);
@@ -212,6 +216,204 @@ export class ReportsService {
         totalPaid: billingAggregates._sum.paidAmount ?? 0,
         totalOutstanding: billingAggregates._sum.balanceAmount ?? 0,
       },
+    };
+  }
+
+  private displayPatientName(
+    patient?: {
+      firstName?: string | null;
+      middleName?: string | null;
+      lastName?: string | null;
+    } | null,
+  ) {
+    if (!patient) return 'Unknown patient';
+
+    return [patient.firstName, patient.middleName, patient.lastName]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  async getReportsDashboard(filter?: ReportFilterDto) {
+    const patientWhere = {
+      ...(filter?.facilityId ? { facilityId: filter.facilityId } : {}),
+      ...(this.buildDateRange(filter)
+        ? { createdAt: this.buildDateRange(filter) }
+        : {}),
+    };
+    const appointmentWhere = this.withAppointmentDateScope(filter);
+    const admissionWhere = this.withCreatedAtScope(filter);
+    const labWhere = this.withCreatedAtScope(filter);
+    const prescriptionWhere = this.withCreatedAtScope(filter);
+    const invoiceWhere = this.withCreatedAtScope(filter);
+    const paymentWhere = this.withCreatedAtScope(filter);
+    const scope = this.facilityBranchWhere(filter);
+
+    const [
+      patients,
+      appointments,
+      admissions,
+      activeAdmissions,
+      labOrders,
+      pendingLabOrders,
+      prescriptions,
+      dispensedPrescriptions,
+      invoices,
+      paidInvoices,
+      pendingInvoices,
+      invoiceMoney,
+      paymentMoney,
+      totalBeds,
+      occupiedBeds,
+      availableBeds,
+      appointmentsByStatus,
+      invoicesByStatus,
+      paymentsByMethod,
+      stockRecords,
+      recentInvoices,
+    ] = await Promise.all([
+      this.prisma.patient.count({ where: patientWhere }),
+      this.prisma.appointment.count({ where: appointmentWhere }),
+      this.prisma.admission.count({ where: admissionWhere }),
+      this.prisma.admission.count({
+        where: { ...scope, statusCode: 'ADMITTED' },
+      }),
+      this.prisma.labOrder.count({ where: labWhere }),
+      this.prisma.labOrder.count({
+        where: {
+          ...labWhere,
+          status: { in: ['REQUESTED', 'IN_PROGRESS'] },
+        },
+      }),
+      this.prisma.prescription.count({ where: prescriptionWhere }),
+      this.prisma.prescription.count({
+        where: {
+          ...prescriptionWhere,
+          statusCode: { in: ['DISPENSED', 'FULLY_DISPENSED'] },
+        },
+      }),
+      this.prisma.invoice.count({ where: invoiceWhere }),
+      this.prisma.invoice.count({
+        where: { ...invoiceWhere, statusCode: 'PAID' },
+      }),
+      this.prisma.invoice.count({
+        where: { ...invoiceWhere, statusCode: 'PENDING' },
+      }),
+      this.prisma.invoice.aggregate({
+        where: invoiceWhere,
+        _sum: {
+          totalAmount: true,
+          balanceAmount: true,
+        },
+      }),
+      this.prisma.payment.aggregate({
+        where: paymentWhere,
+        _sum: { amount: true },
+      }),
+      this.prisma.bed.count({ where: { ...scope, isActive: true } }),
+      this.prisma.bed.count({
+        where: { ...scope, isActive: true, statusCode: 'OCCUPIED' },
+      }),
+      this.prisma.bed.count({
+        where: { ...scope, isActive: true, statusCode: 'AVAILABLE' },
+      }),
+      this.prisma.appointment.groupBy({
+        by: ['statusCode'],
+        where: appointmentWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.invoice.groupBy({
+        by: ['statusCode'],
+        where: invoiceWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.payment.groupBy({
+        by: ['paymentMethod'],
+        where: paymentWhere,
+        _sum: { amount: true },
+      }),
+      this.prisma.branchMedicineStock.findMany({
+        where: { ...scope, isActive: true },
+        include: {
+          branch: true,
+          medicine: true,
+        },
+        orderBy: { stockQuantity: 'asc' },
+      }),
+      this.prisma.invoice.findMany({
+        where: invoiceWhere,
+        include: { patient: true },
+        orderBy: { issuedAt: 'desc' },
+        take: 8,
+      }),
+    ]);
+
+    const lowStockList = stockRecords
+      .filter((item) => item.stockQuantity <= item.reorderLevel)
+      .slice(0, 12)
+      .map((item) => ({
+        id: item.id,
+        medicineName: item.medicine?.name ?? `Medicine ${item.medicineId}`,
+        branchName: item.branch?.name ?? 'No branch',
+        stockQuantity: item.stockQuantity,
+        reorderLevel: item.reorderLevel,
+        isOutOfStock: item.stockQuantity <= 0,
+      }));
+
+    return {
+      filters: {
+        dateFrom: filter?.startDate ?? null,
+        dateTo: filter?.endDate ?? null,
+      },
+      counts: {
+        patients,
+        appointments,
+        admissions,
+        activeAdmissions,
+        labOrders,
+        pendingLabOrders,
+        prescriptions,
+        dispensedPrescriptions,
+        invoices,
+        paidInvoices,
+        pendingInvoices,
+        lowStockItems: lowStockList.length,
+        outOfStockItems: lowStockList.filter((item) => item.isOutOfStock)
+          .length,
+      },
+      money: {
+        totalInvoiced: invoiceMoney._sum.totalAmount ?? 0,
+        totalCollected: paymentMoney._sum.amount ?? 0,
+        outstandingBalance: invoiceMoney._sum.balanceAmount ?? 0,
+      },
+      beds: {
+        totalBeds,
+        occupiedBeds,
+        availableBeds,
+      },
+      charts: {
+        appointmentsByStatus: appointmentsByStatus.map((item) => ({
+          label: item.statusCode,
+          value: item._count._all,
+        })),
+        invoicesByStatus: invoicesByStatus.map((item) => ({
+          label: item.statusCode,
+          value: item._count._all,
+        })),
+        paymentsByMethod: paymentsByMethod.map((item) => ({
+          label: item.paymentMethod,
+          value: item._sum.amount ?? 0,
+        })),
+      },
+      lowStockList,
+      recentInvoices: recentInvoices.map((invoice) => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        statusCode: invoice.statusCode,
+        totalAmount: invoice.totalAmount,
+        balanceAmount: invoice.balanceAmount,
+        issuedAt: invoice.issuedAt,
+        patientName: this.displayPatientName(invoice.patient),
+      })),
     };
   }
 
@@ -354,7 +556,8 @@ export class ReportsService {
     });
 
     const resultWhere: any = {};
-    if (filter?.facilityId) resultWhere.orderItem = { order: { facilityId: filter.facilityId } };
+    if (filter?.facilityId)
+      resultWhere.orderItem = { order: { facilityId: filter.facilityId } };
     if (filter?.branchId) {
       resultWhere.orderItem = {
         ...(resultWhere.orderItem ?? {}),
@@ -396,106 +599,107 @@ export class ReportsService {
     };
   }
 
-async getPharmacyAnalytics(filter?: ReportFilterDto) {
-  const where = this.withCreatedAtScope(filter);
+  async getPharmacyAnalytics(filter?: ReportFilterDto) {
+    const where = this.withCreatedAtScope(filter);
 
-  const stockWhere: any = {
-    isActive: true,
-  };
+    const stockWhere: any = {
+      isActive: true,
+    };
 
-  if (filter?.facilityId) {
-    stockWhere.facilityId = filter.facilityId;
+    if (filter?.facilityId) {
+      stockWhere.facilityId = filter.facilityId;
+    }
+
+    if (filter?.branchId) {
+      stockWhere.branchId = filter.branchId;
+    }
+
+    const totalBranchStockRecords = await this.prisma.branchMedicineStock.count(
+      {
+        where: stockWhere,
+      },
+    );
+
+    const branchStockItems = await this.prisma.branchMedicineStock.findMany({
+      where: stockWhere,
+      include: {
+        facility: true,
+        branch: true,
+        medicine: true,
+      },
+      orderBy: {
+        id: 'asc',
+      },
+    });
+
+    const lowStockItems = branchStockItems.filter(
+      (item) => item.stockQuantity <= item.reorderLevel,
+    );
+
+    const outOfStockItems = branchStockItems.filter(
+      (item) => item.stockQuantity <= 0,
+    );
+
+    const totalPrescriptions = await this.prisma.prescription.count({ where });
+
+    const prescribed = await this.prisma.prescription.count({
+      where: { ...where, statusCode: 'PRESCRIBED' },
+    });
+
+    const partiallyDispensed = await this.prisma.prescription.count({
+      where: { ...where, statusCode: 'PARTIALLY_DISPENSED' },
+    });
+
+    const dispensed = await this.prisma.prescription.count({
+      where: { ...where, statusCode: 'DISPENSED' },
+    });
+
+    return {
+      filters: {
+        startDate: filter?.startDate ?? null,
+        endDate: filter?.endDate ?? null,
+        facilityId: filter?.facilityId ?? null,
+        branchId: filter?.branchId ?? null,
+      },
+      stock: {
+        totalBranchStockRecords,
+        lowStockCount: lowStockItems.length,
+        outOfStockCount: outOfStockItems.length,
+        lowStockItems: lowStockItems.map((item) => ({
+          id: item.id,
+          facilityId: item.facilityId,
+          facilityName: item.facility?.name ?? null,
+          branchId: item.branchId,
+          branchName: item.branch?.name ?? null,
+          medicineId: item.medicineId,
+          medicineCode: item.medicine?.code ?? null,
+          medicineName: item.medicine?.name ?? null,
+          stockQuantity: item.stockQuantity,
+          reorderLevel: item.reorderLevel,
+          unitPrice: item.unitPrice,
+        })),
+        outOfStockItems: outOfStockItems.map((item) => ({
+          id: item.id,
+          facilityId: item.facilityId,
+          facilityName: item.facility?.name ?? null,
+          branchId: item.branchId,
+          branchName: item.branch?.name ?? null,
+          medicineId: item.medicineId,
+          medicineCode: item.medicine?.code ?? null,
+          medicineName: item.medicine?.name ?? null,
+          stockQuantity: item.stockQuantity,
+          reorderLevel: item.reorderLevel,
+          unitPrice: item.unitPrice,
+        })),
+      },
+      prescriptions: {
+        totalPrescriptions,
+        prescribed,
+        partiallyDispensed,
+        dispensed,
+      },
+    };
   }
-
-  if (filter?.branchId) {
-    stockWhere.branchId = filter.branchId;
-  }
-
-  const totalBranchStockRecords = await this.prisma.branchMedicineStock.count({
-    where: stockWhere,
-  });
-
-  const branchStockItems = await this.prisma.branchMedicineStock.findMany({
-    where: stockWhere,
-    include: {
-      facility: true,
-      branch: true,
-      medicine: true,
-    },
-    orderBy: {
-      id: 'asc',
-    },
-  });
-
-  const lowStockItems = branchStockItems.filter(
-    (item) => item.stockQuantity <= item.reorderLevel,
-  );
-
-  const outOfStockItems = branchStockItems.filter(
-    (item) => item.stockQuantity <= 0,
-  );
-
-  const totalPrescriptions = await this.prisma.prescription.count({ where });
-
-  const prescribed = await this.prisma.prescription.count({
-    where: { ...where, statusCode: 'PRESCRIBED' },
-  });
-
-  const partiallyDispensed = await this.prisma.prescription.count({
-    where: { ...where, statusCode: 'PARTIALLY_DISPENSED' },
-  });
-
-  const dispensed = await this.prisma.prescription.count({
-    where: { ...where, statusCode: 'DISPENSED' },
-  });
-
-  return {
-    filters: {
-      startDate: filter?.startDate ?? null,
-      endDate: filter?.endDate ?? null,
-      facilityId: filter?.facilityId ?? null,
-      branchId: filter?.branchId ?? null,
-    },
-    stock: {
-      totalBranchStockRecords,
-      lowStockCount: lowStockItems.length,
-      outOfStockCount: outOfStockItems.length,
-      lowStockItems: lowStockItems.map((item) => ({
-        id: item.id,
-        facilityId: item.facilityId,
-        facilityName: item.facility?.name ?? null,
-        branchId: item.branchId,
-        branchName: item.branch?.name ?? null,
-        medicineId: item.medicineId,
-        medicineCode: item.medicine?.code ?? null,
-        medicineName: item.medicine?.name ?? null,
-        stockQuantity: item.stockQuantity,
-        reorderLevel: item.reorderLevel,
-        unitPrice: item.unitPrice,
-      })),
-      outOfStockItems: outOfStockItems.map((item) => ({
-        id: item.id,
-        facilityId: item.facilityId,
-        facilityName: item.facility?.name ?? null,
-        branchId: item.branchId,
-        branchName: item.branch?.name ?? null,
-        medicineId: item.medicineId,
-        medicineCode: item.medicine?.code ?? null,
-        medicineName: item.medicine?.name ?? null,
-        stockQuantity: item.stockQuantity,
-        reorderLevel: item.reorderLevel,
-        unitPrice: item.unitPrice,
-      })),
-    },
-    prescriptions: {
-      totalPrescriptions,
-      prescribed,
-      partiallyDispensed,
-      dispensed,
-    },
-  };
-}
-
 
   async getIpdAnalytics(filter?: ReportFilterDto) {
     const where = this.withCreatedAtScope(filter);
@@ -799,5 +1003,4 @@ async getPharmacyAnalytics(filter?: ReportFilterDto) {
       },
     };
   }
-
 }

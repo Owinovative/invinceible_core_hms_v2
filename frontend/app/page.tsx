@@ -96,7 +96,7 @@ export default function HomePage() {
                 </h1>
                 <p className="max-w-2xl text-lg leading-8 text-white/75 md:text-xl">
                   A fast command center for patients, clinicians, billing,
-                  pharmacy, admissions, alerts, and platform control.
+                  pharmacy, admissions, alerts, and hospital operations.
                 </p>
               </div>
 
@@ -198,7 +198,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-emerald-300" />
             <p className="text-sm text-muted-foreground">
-              Platform controls are reserved for system administration.
+              Access is reserved for authorized hospital staff.
             </p>
           </div>
           <Button asChild variant="outline" className="rounded-lg">
