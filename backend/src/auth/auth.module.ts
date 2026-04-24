@@ -6,7 +6,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { UserModule } from '../user/user.module';
-import { AuthTestController } from './auth-test.controller';
 import { ScopeService } from './scope.service';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -20,7 +19,7 @@ import { PrismaModule } from '../prisma/prisma.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'supersecret',
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
           expiresIn:
             (configService.get<string>('JWT_EXPIRES_IN') || '1d') as any,
@@ -28,7 +27,7 @@ import { PrismaModule } from '../prisma/prisma.module';
       }),
     }),
   ],
-  controllers: [AuthController, AuthTestController],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy, ScopeService],
   exports: [AuthService, ScopeService],
 })

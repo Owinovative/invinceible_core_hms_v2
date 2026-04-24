@@ -29,12 +29,14 @@ import { PharmacyStockModule } from './pharmacy-stock/pharmacy-stock.module';
 import { TriageModule } from './triage/triage.module'; 
 import { PrescriptionModule } from './prescription/prescription.module';
 import { PrescriptionItemModule } from './prescription-item/prescription-item.module';
+import { validateEnvironment } from './config/env.validation';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnvironment,
     }),
     PrismaModule,
     FacilityModule,
