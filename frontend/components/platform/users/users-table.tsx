@@ -11,6 +11,10 @@ import {
   Users,
 } from "lucide-react";
 import { useUsers } from "@/hooks/use-users";
+import { useBranches } from "@/hooks/use-branches";
+import { useFacilities } from "@/hooks/use-facilities";
+import { useRoles } from "@/hooks/use-roles";
+import { useUpdateUser } from "@/hooks/use-update-user";
 import { useUpdateUserStatus } from "@/hooks/use-update-user-status";
 import { useAdminResetUserPassword } from "@/hooks/use-admin-reset-user-password";
 import type { UserItem } from "@/services/user-service";
@@ -18,9 +22,18 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditRecordDialog } from "@/components/platform/shared/edit-record-dialog";
+
+function optionalValue(value: string) {
+  return value.trim() || undefined;
+}
 
 export function UsersTable() {
   const { data, isLoading } = useUsers();
+  const { data: rolesData } = useRoles();
+  const { data: facilitiesData } = useFacilities();
+  const { data: branchesData } = useBranches();
+  const updateUserMutation = useUpdateUser();
   const updateUserStatusMutation = useUpdateUserStatus();
   const resetPasswordMutation = useAdminResetUserPassword();
 
@@ -32,6 +45,9 @@ export function UsersTable() {
   const [page, setPage] = React.useState(1);
 
   const pageSize = 8;
+  const roles = Array.isArray(rolesData) ? rolesData : [];
+  const facilities = Array.isArray(facilitiesData) ? facilitiesData : [];
+  const branches = Array.isArray(branchesData) ? branchesData : [];
 
   const filteredItems = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -144,11 +160,21 @@ export function UsersTable() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4"><Skeleton className="h-4 w-24 rounded-lg" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-4 w-28 rounded-lg" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-6 w-24 rounded-full" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                      <td className="px-5 py-4"><Skeleton className="h-9 w-52 rounded-xl" /></td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-4 w-24 rounded-lg" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-4 w-28 rounded-lg" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-9 w-52 rounded-xl" />
+                      </td>
                     </tr>
                   ))
                 : pagedItems.map((user) => (
@@ -228,6 +254,96 @@ export function UsersTable() {
 
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
+                          <EditRecordDialog
+                            title={`Edit ${user.username}`}
+                            description="Update account identity, role, facility scope, and branch access mode."
+                            isPending={updateUserMutation.isPending}
+                            fields={[
+                              { name: "username", label: "Username" },
+                              { name: "fullName", label: "Full Name" },
+                              { name: "email", label: "Email", type: "email" },
+                              {
+                                name: "roleId",
+                                label: "Role",
+                                type: "select",
+                                options: roles.map((role) => ({
+                                  label: role.name
+                                    ? `${role.name}${role.code ? ` (${role.code})` : ""}`
+                                    : (role.code ?? `Role ${role.id}`),
+                                  value: String(role.id),
+                                })),
+                              },
+                              {
+                                name: "homeFacilityId",
+                                label: "Home Facility",
+                                type: "select",
+                                options: facilities.map((facility) => ({
+                                  label: facility.name,
+                                  value: String(facility.id),
+                                })),
+                              },
+                              {
+                                name: "homeBranchId",
+                                label: "Home Branch",
+                                type: "select",
+                                options: branches.map((branch) => ({
+                                  label: branch.name,
+                                  value: String(branch.id),
+                                })),
+                              },
+                              {
+                                name: "canAccessAllBranchesInFacility",
+                                label: "Access Mode",
+                                type: "select",
+                                options: [
+                                  {
+                                    label: "Scoped Branch Access",
+                                    value: "false",
+                                  },
+                                  {
+                                    label: "All Branches In Facility",
+                                    value: "true",
+                                  },
+                                ],
+                              },
+                            ]}
+                            initialValues={{
+                              username: user.username ?? "",
+                              fullName: user.fullName ?? "",
+                              email: user.email ?? "",
+                              roleId: String(user.roleId),
+                              homeFacilityId: user.homeFacilityId
+                                ? String(user.homeFacilityId)
+                                : "",
+                              homeBranchId: user.homeBranchId
+                                ? String(user.homeBranchId)
+                                : "",
+                              canAccessAllBranchesInFacility: String(
+                                user.canAccessAllBranchesInFacility === true,
+                              ),
+                            }}
+                            onSubmit={(values) =>
+                              updateUserMutation.mutateAsync({
+                                id: user.id,
+                                payload: {
+                                  username: values.username.trim(),
+                                  fullName: optionalValue(values.fullName),
+                                  email: optionalValue(values.email),
+                                  roleId: Number(values.roleId),
+                                  homeFacilityId: values.homeFacilityId
+                                    ? Number(values.homeFacilityId)
+                                    : undefined,
+                                  homeBranchId: values.homeBranchId
+                                    ? Number(values.homeBranchId)
+                                    : undefined,
+                                  canAccessAllBranchesInFacility:
+                                    values.canAccessAllBranchesInFacility ===
+                                    "true",
+                                },
+                              })
+                            }
+                          />
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -241,7 +357,9 @@ export function UsersTable() {
 
                           <Button
                             size="sm"
-                            variant={user.isActive === false ? "default" : "outline"}
+                            variant={
+                              user.isActive === false ? "default" : "outline"
+                            }
                             className="rounded-xl"
                             disabled={updateUserStatusMutation.isPending}
                             onClick={() =>
@@ -278,9 +396,13 @@ export function UsersTable() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
             Showing{" "}
-            <span className="font-semibold text-foreground">{pagedItems.length}</span>{" "}
+            <span className="font-semibold text-foreground">
+              {pagedItems.length}
+            </span>{" "}
             of{" "}
-            <span className="font-semibold text-foreground">{filteredItems.length}</span>{" "}
+            <span className="font-semibold text-foreground">
+              {filteredItems.length}
+            </span>{" "}
             users
           </p>
 

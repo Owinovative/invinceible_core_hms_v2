@@ -2,6 +2,11 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestUser } from './interfaces/request-user.interface';
 
+type FacilityBranchScope = {
+  facilityId: number;
+  branchId?: number | { in: number[] };
+};
+
 @Injectable()
 export class ScopeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -11,7 +16,12 @@ export class ScopeService {
       where: { id: user.userId },
       include: {
         role: true,
-        staff: true,
+        staff: {
+          include: {
+            facility: true,
+            branch: true,
+          },
+        },
         homeFacility: true,
         homeBranch: true,
         branchAccesses: {
@@ -28,8 +38,15 @@ export class ScopeService {
     }
 
     const isSuperAdmin = dbUser.role?.code === 'SUPER_ADMIN';
+    const effectiveFacilityId =
+      dbUser.homeFacilityId ?? dbUser.staff?.facilityId ?? null;
+    const effectiveFacility =
+      dbUser.homeFacility ?? dbUser.staff?.facility ?? null;
+    const effectiveBranchId =
+      dbUser.homeBranchId ?? dbUser.staff?.branchId ?? null;
+    const effectiveBranch = dbUser.homeBranch ?? dbUser.staff?.branch ?? null;
 
-    if (!isSuperAdmin && dbUser.homeFacilityId && dbUser.homeFacility?.isActive === false) {
+    if (!isSuperAdmin && effectiveFacility?.isActive === false) {
       throw new ForbiddenException(
         'Your facility is inactive. Operational access is suspended.',
       );
@@ -40,10 +57,10 @@ export class ScopeService {
       username: dbUser.username,
       roleId: dbUser.roleId,
       roleCode: dbUser.role?.code ?? null,
-      homeFacilityId: dbUser.homeFacilityId,
-      homeFacilityName: dbUser.homeFacility?.name ?? null,
-      homeBranchId: dbUser.homeBranchId,
-      homeBranchName: dbUser.homeBranch?.name ?? null,
+      homeFacilityId: effectiveFacilityId,
+      homeFacilityName: effectiveFacility?.name ?? null,
+      homeBranchId: effectiveBranchId,
+      homeBranchName: effectiveBranch?.name ?? null,
       canAccessAllBranchesInFacility: dbUser.canAccessAllBranchesInFacility,
       allowedBranchIds: dbUser.branchAccesses.map((x) => x.branchId),
       allowedBranches: dbUser.branchAccesses.map((x) => ({
@@ -56,12 +73,12 @@ export class ScopeService {
     };
   }
 
-  buildReadScope(user: RequestUser) {
+  buildReadScope(user: RequestUser): FacilityBranchScope {
     if (!user.homeFacilityId) {
       throw new ForbiddenException('User has no home facility assigned');
     }
 
-    const scope: any = {
+    const scope: FacilityBranchScope = {
       facilityId: user.homeFacilityId,
     };
 

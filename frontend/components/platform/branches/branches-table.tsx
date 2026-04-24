@@ -9,15 +9,24 @@ import {
   Search,
 } from "lucide-react";
 import { useBranches } from "@/hooks/use-branches";
+import { useFacilities } from "@/hooks/use-facilities";
+import { useUpdateBranch } from "@/hooks/use-update-branch";
 import { useUpdateBranchStatus } from "@/hooks/use-update-branch-status";
 import type { Branch } from "@/services/branch-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditRecordDialog } from "@/components/platform/shared/edit-record-dialog";
+
+function optionalValue(value: string) {
+  return value.trim() || undefined;
+}
 
 export function BranchesTable() {
   const { data, isLoading } = useBranches();
+  const { data: facilitiesData } = useFacilities();
+  const updateBranchMutation = useUpdateBranch();
   const updateBranchStatusMutation = useUpdateBranchStatus();
 
   const items = React.useMemo<Branch[]>(() => {
@@ -28,6 +37,7 @@ export function BranchesTable() {
   const [page, setPage] = React.useState(1);
 
   const pageSize = 8;
+  const facilities = Array.isArray(facilitiesData) ? facilitiesData : [];
 
   const filteredItems = React.useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -208,21 +218,114 @@ export function BranchesTable() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <Button
-                          size="sm"
-                          variant={branch.isActive === false ? "default" : "outline"}
-                          className="rounded-xl"
-                          disabled={updateBranchStatusMutation.isPending}
-                          onClick={() =>
-                            updateBranchStatusMutation.mutate({
-                              id: branch.id,
-                              isActive: branch.isActive === false,
-                            })
-                          }
-                        >
-                          <Power className="mr-2 h-4 w-4" />
-                          {branch.isActive === false ? "Reactivate" : "Deactivate"}
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <EditRecordDialog
+                            title={`Edit ${branch.name}`}
+                            description="Update branch contact, location, payment defaults, and facility ownership."
+                            isPending={updateBranchMutation.isPending}
+                            fields={[
+                              {
+                                name: "facilityId",
+                                label: "Facility",
+                                type: "select",
+                                options: facilities.map((facility) => ({
+                                  label: facility.name,
+                                  value: String(facility.id),
+                                })),
+                              },
+                              { name: "name", label: "Branch Name" },
+                              { name: "county", label: "County" },
+                              { name: "town", label: "Town" },
+                              { name: "country", label: "Country" },
+                              { name: "phone", label: "Phone" },
+                              {
+                                name: "email",
+                                label: "Email",
+                                type: "email",
+                              },
+                              {
+                                name: "address",
+                                label: "Physical Address",
+                                className: "md:col-span-2",
+                              },
+                              { name: "timezone", label: "Timezone" },
+                              { name: "currency", label: "Currency" },
+                              {
+                                name: "mpesaShortcode",
+                                label: "M-PESA Shortcode",
+                              },
+                              {
+                                name: "mpesaPaybill",
+                                label: "M-PESA Paybill",
+                              },
+                              {
+                                name: "mpesaTillNumber",
+                                label: "M-PESA Till Number",
+                              },
+                            ]}
+                            initialValues={{
+                              facilityId: String(branch.facilityId),
+                              name: branch.name ?? "",
+                              county: branch.county ?? "",
+                              town: branch.town ?? "",
+                              country: branch.country ?? "",
+                              phone: branch.phone ?? "",
+                              email: branch.email ?? "",
+                              address: branch.address ?? "",
+                              timezone: branch.timezone ?? "",
+                              currency: branch.currency ?? "",
+                              mpesaShortcode: branch.mpesaShortcode ?? "",
+                              mpesaPaybill: branch.mpesaPaybill ?? "",
+                              mpesaTillNumber: branch.mpesaTillNumber ?? "",
+                            }}
+                            onSubmit={(values) =>
+                              updateBranchMutation.mutateAsync({
+                                id: branch.id,
+                                payload: {
+                                  facilityId: Number(values.facilityId),
+                                  name: values.name.trim(),
+                                  county: optionalValue(values.county),
+                                  town: optionalValue(values.town),
+                                  country: optionalValue(values.country),
+                                  phone: optionalValue(values.phone),
+                                  email: optionalValue(values.email),
+                                  address: optionalValue(values.address),
+                                  timezone: optionalValue(values.timezone),
+                                  currency: optionalValue(values.currency),
+                                  mpesaShortcode: optionalValue(
+                                    values.mpesaShortcode,
+                                  ),
+                                  mpesaPaybill: optionalValue(
+                                    values.mpesaPaybill,
+                                  ),
+                                  mpesaTillNumber: optionalValue(
+                                    values.mpesaTillNumber,
+                                  ),
+                                },
+                              })
+                            }
+                          />
+
+                          <Button
+                            size="sm"
+                            variant={
+                              branch.isActive === false ? "default" : "outline"
+                            }
+                            className="rounded-xl"
+                            disabled={updateBranchStatusMutation.isPending}
+                            onClick={() =>
+                              updateBranchStatusMutation.mutate({
+                                id: branch.id,
+                                isActive: branch.isActive === false,
+                              })
+                            }
+                          >
+                            <Power className="mr-2 h-4 w-4" />
+                            {branch.isActive === false
+                              ? "Reactivate"
+                              : "Deactivate"}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -273,9 +376,7 @@ export function BranchesTable() {
               variant="outline"
               className="rounded-xl"
               disabled={safePage >= totalPages}
-              onClick={() =>
-                setPage((prev) => Math.min(totalPages, prev + 1))
-              }
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
             >
               Next
               <ChevronRight className="ml-2 h-4 w-4" />

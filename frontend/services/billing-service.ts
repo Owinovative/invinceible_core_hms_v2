@@ -1,4 +1,4 @@
-import { apiFetch , API_BASE_URL} from "@/lib/api";
+import { apiFetch, API_BASE_URL } from "@/lib/api";
 
 export interface BillingServiceItem {
   id: number;
@@ -201,12 +201,14 @@ export interface MpesaPaymentRequestResponse {
 export async function createMpesaPaymentRequest(
   payload: CreateMpesaPaymentRequestPayload,
 ) {
-  return apiFetch<MpesaPaymentRequestResponse>("/billing/payments/mpesa/request", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return apiFetch<MpesaPaymentRequestResponse>(
+    "/billing/payments/mpesa/request",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 export function getInvoicePdfUrl(id: number) {
   return `${API_BASE_URL}/billing/invoices/${id}/pdf`;
 }
-

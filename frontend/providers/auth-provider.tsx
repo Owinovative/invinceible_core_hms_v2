@@ -100,7 +100,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setAccessToken(result.accessToken);
         setTokenState(result.accessToken);
-        setUser(normalizeUser(result.user));
+
+        const scopedUser = await getMe();
+        setUser(
+          normalizeUser({
+            ...result.user,
+            ...scopedUser,
+            role: scopedUser.role ?? result.user.role,
+          }),
+        );
       } catch (error) {
         console.error("Login failed:", error);
         throw error;

@@ -99,7 +99,9 @@ export function ScopeProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (availableBranches.length > 0) {
-        const isAllowed = availableBranches.some((branch) => branch.id === branchId);
+        const isAllowed = availableBranches.some(
+          (branch) => branch.id === branchId,
+        );
         if (!isAllowed) return;
       }
 
@@ -115,7 +117,9 @@ export function ScopeProvider({ children }: { children: React.ReactNode }) {
     if (!user) return null;
 
     if (!user.canAccessAllBranchesInFacility) {
-      return user.homeBranchName || null;
+      return (
+        user.homeBranchName || (user.homeFacilityId ? "Facility wide" : null)
+      );
     }
 
     if (!selectedBranchId) {
@@ -123,8 +127,8 @@ export function ScopeProvider({ children }: { children: React.ReactNode }) {
     }
 
     return (
-      availableBranches.find((branch) => branch.id === selectedBranchId)?.name ||
-      `Branch ${selectedBranchId}`
+      availableBranches.find((branch) => branch.id === selectedBranchId)
+        ?.name || `Branch ${selectedBranchId}`
     );
   }, [user, availableBranches, selectedBranchId]);
 
@@ -150,7 +154,9 @@ export function ScopeProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  return <ScopeContext.Provider value={value}>{children}</ScopeContext.Provider>;
+  return (
+    <ScopeContext.Provider value={value}>{children}</ScopeContext.Provider>
+  );
 }
 
 export function useScope() {

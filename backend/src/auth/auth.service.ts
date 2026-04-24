@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ScopeService } from './scope.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly scopeService: ScopeService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -102,10 +104,18 @@ export class AuthService {
       },
     });
 
+    const scopedUser = await this.scopeService.enrichRequestUser({
+      userId: user.id,
+      username: user.username,
+      roleId: user.roleId,
+      roleCode: user.role?.code ?? null,
+    });
+
     return {
       message: 'Login successful',
       accessToken: await this.jwtService.signAsync(payload),
       user: {
+        ...scopedUser,
         id: user.id,
         username: user.username,
         email: user.email,

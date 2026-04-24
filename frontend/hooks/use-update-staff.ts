@@ -1,14 +1,19 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateStaff } from "@/services/staff-service";
+import { updateStaff, type UpdateStaffPayload } from "@/services/staff-service";
 
-export function useUpdateStaffStatus() {
+export function useUpdateStaff() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
-      updateStaff(id, { isActive }),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: UpdateStaffPayload;
+    }) => updateStaff(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
     },
