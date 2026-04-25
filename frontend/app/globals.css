@@ -289,6 +289,22 @@ pre,
     color: black !important;
   }
 
+  body:has(#invoice-print-area) * {
+    visibility: hidden;
+  }
+
+  body:has(#invoice-print-area) #invoice-print-area,
+  body:has(#invoice-print-area) #invoice-print-area * {
+    visibility: visible;
+  }
+
+  body:has(#invoice-print-area) #invoice-print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+  }
+
   .print\:hidden {
     display: none !important;
   }

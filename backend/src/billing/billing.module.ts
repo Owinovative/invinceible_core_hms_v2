@@ -4,7 +4,6 @@ import { BillingController } from './billing.controller';
 import { PatientModule } from '../patient/patient.module';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { ConsultationModule } from '../consultation/consultation.module';
-import { IpdModule } from '../ipd/ipd.module';
 import { StaffModule } from '../staff/staff.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -15,7 +14,6 @@ import { AuthModule } from '../auth/auth.module';
     PatientModule,
     AppointmentModule,
     ConsultationModule,
-    IpdModule,
     StaffModule,
     AuditLogModule,
     NotificationModule,

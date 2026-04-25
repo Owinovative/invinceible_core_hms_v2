@@ -17,8 +17,13 @@ import { CreateMpesaPaymentRequestDto } from './dto/create-mpesa-payment-request
 import { ConfirmMpesaPaymentDto } from './dto/confirm-mpesa-payment.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
+import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
+import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
+import { PostBedChargeDto } from './dto/post-bed-charge.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('billing')
 @UseGuards(AuthGuard('jwt'))
@@ -26,6 +31,8 @@ export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
   @Post('services')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
   createBillingService(@Body() dto: CreateBillingServiceDto) {
     return this.billingService.createBillingService(dto);
   }
@@ -35,9 +42,50 @@ export class BillingController {
     return this.billingService.getAllBillingServices();
   }
 
+  @Post('tariffs')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  createServiceTariff(
+    @Body() dto: CreateServiceTariffDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.createServiceTariff(dto, user);
+  }
+
+  @Get('tariffs')
+  getServiceTariffs(@CurrentUser() user: RequestUser) {
+    return this.billingService.getServiceTariffs(user);
+  }
+
+  @Patch('tariffs/:id')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  updateServiceTariff(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateServiceTariffDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.updateServiceTariff(id, dto, user);
+  }
+
   @Post('invoices')
   createInvoice(@Body() dto: CreateInvoiceDto) {
     return this.billingService.createInvoice(dto);
+  }
+
+  @Post('admissions/:id/bed-charge')
+  postAdmissionBedCharge(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: PostBedChargeDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.billAdmissionBedDay(id, {
+      chargedDate: dto.chargedDate ? new Date(dto.chargedDate) : undefined,
+      quantity: dto.quantity,
+      unitPrice: dto.unitPrice,
+      notes: dto.notes,
+      createdByStaffId: user.staffId ?? undefined,
+    });
   }
 
   @Get('invoices')
@@ -66,8 +114,9 @@ export class BillingController {
   removeInvoiceItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RemoveInvoiceItemDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.billingService.removeInvoiceItem(id, dto);
+    return this.billingService.removeInvoiceItem(id, dto, user);
   }
 
   @Get('patient/:patientNumber')

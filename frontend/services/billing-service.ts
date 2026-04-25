@@ -112,6 +112,63 @@ export interface BillingDashboardRecord {
   };
 }
 
+export interface ServiceTariffRecord {
+  id: number;
+  code: string;
+  name: string;
+  category: string;
+  facilityId: number;
+  branchId?: number | null;
+  billingServiceId?: number | null;
+  labTestId?: number | null;
+  wardId?: number | null;
+  bedId?: number | null;
+  unitPrice: number;
+  isActive: boolean;
+  notes?: string | null;
+  facility?: {
+    id: number;
+    name?: string;
+  } | null;
+  branch?: {
+    id: number;
+    name?: string;
+  } | null;
+  billingService?: {
+    id: number;
+    name?: string;
+    code?: string;
+  } | null;
+  labTest?: {
+    id: number;
+    testName?: string;
+  } | null;
+  ward?: {
+    id: number;
+    name?: string;
+  } | null;
+  bed?: {
+    id: number;
+    bedNumber?: string;
+    bedLabel?: string | null;
+  } | null;
+}
+
+export interface CreateServiceTariffPayload {
+  code: string;
+  name: string;
+  category: string;
+  facilityId: number;
+  branchId?: number | null;
+  billingServiceId?: number | null;
+  labTestId?: number | null;
+  wardId?: number | null;
+  bedId?: number | null;
+  unitPrice: number;
+  isActive?: boolean;
+  notes?: string;
+}
+
 export interface UpdateInvoiceItemPayload {
   description?: string;
   quantity?: number;
@@ -157,6 +214,19 @@ export async function getInvoices() {
 export async function getInvoiceById(id: number) {
   return apiFetch<InvoiceRecord>(`/billing/invoices/${id}`, {
     method: "GET",
+  });
+}
+
+export async function getServiceTariffs() {
+  return apiFetch<ServiceTariffRecord[]>("/billing/tariffs", {
+    method: "GET",
+  });
+}
+
+export async function createServiceTariff(payload: CreateServiceTariffPayload) {
+  return apiFetch<ServiceTariffRecord>("/billing/tariffs", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 

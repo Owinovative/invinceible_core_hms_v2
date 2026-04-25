@@ -6,7 +6,9 @@ import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   CreditCard,
+  Download,
   Loader2,
+  Printer,
   Trash2,
   Save,
 } from "lucide-react";
@@ -172,6 +174,10 @@ export default function InvoiceDetailPage() {
     setMessage("M-PESA request created successfully.");
   };
 
+  const handlePrintInvoice = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
@@ -198,12 +204,33 @@ export default function InvoiceDetailPage() {
             </div>
           </div>
 
-          <Link href="/billing">
-            <Button type="button" variant="outline" className="rounded-2xl">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Billing
+          <div className="flex flex-wrap gap-3 print:hidden">
+            <Button
+              type="button"
+              className="rounded-2xl"
+              onClick={handlePrintInvoice}
+              disabled={!invoice}
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print
             </Button>
-          </Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-2xl"
+              onClick={handlePrintInvoice}
+              disabled={!invoice}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              PDF
+            </Button>
+            <Link href="/billing">
+              <Button type="button" variant="outline" className="rounded-2xl">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Billing
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -221,6 +248,7 @@ export default function InvoiceDetailPage() {
         </Card>
       ) : (
         <>
+          <div id="invoice-print-area" className="space-y-6 print:max-w-none">
           <section>
             <Card className="rounded-[1.8rem] gradient-border panel-shadow">
               <CardHeader>
@@ -304,7 +332,7 @@ export default function InvoiceDetailPage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="rounded-2xl"
+                            className="rounded-2xl print:hidden"
                             onClick={() => handleStartEdit(item)}
                           >
                             Edit Line
@@ -326,6 +354,7 @@ export default function InvoiceDetailPage() {
               </CardContent>
             </Card>
           </section>
+          </div>
 
           {editItemId ? (
             <section>

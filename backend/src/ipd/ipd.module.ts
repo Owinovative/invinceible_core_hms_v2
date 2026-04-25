@@ -7,6 +7,7 @@ import { ConsultationModule } from '../consultation/consultation.module';
 import { StaffModule } from '../staff/staff.module';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthModule } from '../auth/auth.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from '../auth/auth.module';
     StaffModule,
     NotificationModule,
     AuthModule,
+    BillingModule,
   ],
   controllers: [IpdController],
   providers: [IpdService],

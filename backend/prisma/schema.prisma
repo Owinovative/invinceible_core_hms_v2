@@ -57,6 +57,7 @@ model Facility {
   wards                Ward[]
   branchMedicineStocks BranchMedicineStock[]
   dispenses            Dispense[]
+  serviceTariffs       ServiceTariff[]
 
   @@map("facilities")
 }
@@ -102,6 +103,7 @@ model Branch {
   wards                Ward[]
   branchMedicineStocks BranchMedicineStock[]
   dispenses            Dispense[]
+  serviceTariffs       ServiceTariff[]
 
   @@index([facilityId])
   @@map("branches")
@@ -241,9 +243,9 @@ model Staff {
   notifications          Notification[]        @relation("NotificationTargetStaff")
   performedTriages       Triage[]              @relation("TriagePerformedBy")
   triageDoctorRoutes     Triage[]              @relation("TriageRoutedDoctor")
-  
+
   // Added relation for invoice item updates
-  updatedInvoiceItems   InvoiceItem[]         @relation("InvoiceItemUpdatedBy")
+  updatedInvoiceItems InvoiceItem[] @relation("InvoiceItemUpdatedBy")
 
   @@index([facilityId])
   @@index([branchId])
@@ -448,13 +450,14 @@ model Consultation {
 }
 
 model LabTestCatalog {
-  id           Int            @id @default(autoincrement())
-  testName     String         @db.VarChar(150)
-  category     String?        @db.VarChar(100)
-  specimenType String?        @db.VarChar(100)
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  orderItems   LabOrderItem[]
+  id             Int             @id @default(autoincrement())
+  testName       String          @db.VarChar(150)
+  category       String?         @db.VarChar(100)
+  specimenType   String?         @db.VarChar(100)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  orderItems     LabOrderItem[]
+  serviceTariffs ServiceTariff[]
 
   @@map("lab_test_catalog")
 }
@@ -550,7 +553,7 @@ model Prescription {
   prescribedAt        DateTime           @default(now())
   dispensedAt         DateTime?
   createdAt           DateTime           @default(now())
-  updatedAt           DateTime       @updatedAt
+  updatedAt           DateTime           @updatedAt
   facilityId          Int
   branchId            Int?
   consultationId      Int
@@ -611,9 +614,9 @@ model Dispense {
 
   prescription Prescription   @relation(fields: [prescriptionId], references: [id])
   patient      Patient        @relation(fields: [patientId], references: [id])
-  facility     Facility     @relation(fields: [facilityId], references: [id])
-  branch       Branch?      @relation(fields: [branchId], references: [id])
-  dispensedBy  Staff?       @relation("DispensedByStaff", fields: [dispensedByStaffId], references: [id])
+  facility     Facility       @relation(fields: [facilityId], references: [id])
+  branch       Branch?        @relation(fields: [branchId], references: [id])
+  dispensedBy  Staff?         @relation("DispensedByStaff", fields: [dispensedByStaffId], references: [id])
   items        DispenseItem[]
 
   @@index([prescriptionId])
@@ -649,20 +652,21 @@ model DispenseItem {
 }
 
 model Ward {
-  id         Int         @id @default(autoincrement())
-  code       String      @unique @db.VarChar(50)
-  name       String      @db.VarChar(150)
-  wardType   String?     @db.VarChar(100)
-  capacity   Int         @default(0)
-  facilityId Int?
-  branchId   Int?
-  isActive   Boolean     @default(true)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  admissions Admission[]
-  beds       Bed[]
-  branch     Branch?     @relation(fields: [branchId], references: [id])
-  facility   Facility?   @relation(fields: [facilityId], references: [id])
+  id             Int             @id @default(autoincrement())
+  code           String          @unique @db.VarChar(50)
+  name           String          @db.VarChar(150)
+  wardType       String?         @db.VarChar(100)
+  capacity       Int             @default(0)
+  facilityId     Int?
+  branchId       Int?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  admissions     Admission[]
+  beds           Bed[]
+  serviceTariffs ServiceTariff[]
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  facility       Facility?       @relation(fields: [facilityId], references: [id])
 
   @@index([facilityId])
   @@index([branchId])
@@ -670,20 +674,21 @@ model Ward {
 }
 
 model Bed {
-  id         Int         @id @default(autoincrement())
-  bedNumber  String      @unique @db.VarChar(50)
-  bedLabel   String?     @db.VarChar(100)
-  statusCode String      @default("AVAILABLE") @db.VarChar(50)
-  facilityId Int?
-  branchId   Int?
-  isActive   Boolean     @default(true)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  wardId     Int
-  admissions Admission[]
-  branch     Branch?     @relation(fields: [branchId], references: [id])
-  facility   Facility?   @relation(fields: [facilityId], references: [id])
-  ward       Ward        @relation(fields: [wardId], references: [id])
+  id             Int             @id @default(autoincrement())
+  bedNumber      String          @unique @db.VarChar(50)
+  bedLabel       String?         @db.VarChar(100)
+  statusCode     String          @default("AVAILABLE") @db.VarChar(50)
+  facilityId     Int?
+  branchId       Int?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  wardId         Int
+  admissions     Admission[]
+  serviceTariffs ServiceTariff[]
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  facility       Facility?       @relation(fields: [facilityId], references: [id])
+  ward           Ward            @relation(fields: [wardId], references: [id])
 
   @@index([wardId])
   @@index([facilityId])
@@ -864,17 +869,52 @@ model IpdDischargeSummary {
 }
 
 model BillingService {
-  id           Int           @id @default(autoincrement())
-  code         String        @unique @db.VarChar(50)
-  name         String        @db.VarChar(150)
-  category     String?       @db.VarChar(100)
-  defaultPrice Float         @default(0)
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  invoiceItems InvoiceItem[]
+  id             Int             @id @default(autoincrement())
+  code           String          @unique @db.VarChar(50)
+  name           String          @db.VarChar(150)
+  category       String?         @db.VarChar(100)
+  defaultPrice   Float           @default(0)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  invoiceItems   InvoiceItem[]
+  serviceTariffs ServiceTariff[]
 
   @@map("billing_services")
+}
+
+model ServiceTariff {
+  id               Int      @id @default(autoincrement())
+  code             String   @db.VarChar(80)
+  name             String   @db.VarChar(150)
+  category         String   @db.VarChar(80)
+  unitPrice        Float    @default(0)
+  isActive         Boolean  @default(true)
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  facilityId       Int
+  branchId         Int?
+  billingServiceId Int?
+  labTestId        Int?
+  wardId           Int?
+  bedId            Int?
+
+  facility       Facility        @relation(fields: [facilityId], references: [id])
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  billingService BillingService? @relation(fields: [billingServiceId], references: [id])
+  labTest        LabTestCatalog? @relation(fields: [labTestId], references: [id])
+  ward           Ward?           @relation(fields: [wardId], references: [id])
+  bed            Bed?            @relation(fields: [bedId], references: [id])
+
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([category])
+  @@index([billingServiceId])
+  @@index([labTestId])
+  @@index([wardId])
+  @@index([bedId])
+  @@map("service_tariffs")
 }
 
 model Invoice {
@@ -921,33 +961,33 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id               Int             @id @default(autoincrement())
-  description      String          @db.VarChar(255)
-  quantity         Int             @default(1)
-  unitPrice        Float           @default(0)
-  lineTotal        Float           @default(0)
-  statusCode       String          @default("BILLED") @db.VarChar(50)
-  
+  id          Int    @id @default(autoincrement())
+  description String @db.VarChar(255)
+  quantity    Int    @default(1)
+  unitPrice   Float  @default(0)
+  lineTotal   Float  @default(0)
+  statusCode  String @default("BILLED") @db.VarChar(50)
+
   // Logical tracking fields for Billing Service
-  isAutoGenerated  Boolean         @default(false)
-  isRemoved        Boolean         @default(false)
+  isAutoGenerated  Boolean   @default(false)
+  isRemoved        Boolean   @default(false)
   removedAt        DateTime?
-  removedReason    String?         @db.Text
-  sourceModule     String?         @db.VarChar(100)
-  sourceEntityType String?         @db.VarChar(100)
-  sourceEntityId   String?         @db.VarChar(100)
+  removedReason    String?   @db.Text
+  sourceModule     String?   @db.VarChar(100)
+  sourceEntityType String?   @db.VarChar(100)
+  sourceEntityId   String?   @db.VarChar(100)
   updatedByStaffId Int?
-  
-  notes            String?         @db.Text
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   invoiceId        Int
   billingServiceId Int?
 
   // Relations
-  billingService   BillingService? @relation(fields: [billingServiceId], references: [id])
-  invoice          Invoice         @relation(fields: [invoiceId], references: [id])
-  updatedBy        Staff?          @relation("InvoiceItemUpdatedBy", fields: [updatedByStaffId], references: [id])
+  billingService BillingService? @relation(fields: [billingServiceId], references: [id])
+  invoice        Invoice         @relation(fields: [invoiceId], references: [id])
+  updatedBy      Staff?          @relation("InvoiceItemUpdatedBy", fields: [updatedByStaffId], references: [id])
 
   @@index([invoiceId])
   @@index([billingServiceId])

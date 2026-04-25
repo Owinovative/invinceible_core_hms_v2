@@ -13,6 +13,7 @@ import { CreateLabOrderDto } from './dto/create-lab-order.dto';
 import { CreateLabResultDto } from './dto/create-lab-result.dto';
 import { ScopeService } from '../auth/scope.service';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
+import { BillingService } from '../billing/billing.service';
 
 @Injectable()
 export class LabService {
@@ -23,6 +24,7 @@ export class LabService {
     private readonly staffService: StaffService,
     private readonly notificationService: NotificationService,
     private readonly scopeService: ScopeService,
+    private readonly billingService: BillingService,
   ) {}
   private async generateLabOrderNumber() {
     const today = new Date();
@@ -388,6 +390,36 @@ export class LabService {
           patient: true,
           requestedBy: true,
         },
+      });
+
+      const unitPrice = await this.billingService.resolveChargePrice({
+        facilityId: updatedOrder.facilityId,
+        branchId: updatedOrder.branchId,
+        category: 'LAB',
+        code: `LAB_TEST_${orderItem.testId}`,
+        labTestId: orderItem.testId,
+        fallbackPrice: 0,
+      });
+
+      await this.billingService.addAutoInvoiceItem({
+        patientId: updatedOrder.patientId,
+        facilityId: updatedOrder.facilityId,
+        branchId: updatedOrder.branchId,
+        appointmentId: updatedOrder.appointmentId,
+        admissionId: updatedOrder.admissionId,
+        createdByStaffId:
+          recorder?.id ?? updatedOrder.requestedByStaffId ?? null,
+        description: `Lab Test Resulted: ${
+          orderItem.test?.testName ?? `Lab test #${orderItem.testId}`
+        }`,
+        quantity: 1,
+        unitPrice,
+        notes:
+          createLabResultDto.remarks ??
+          'Automatically posted when the lab result was recorded.',
+        sourceModule: 'LAB',
+        sourceEntityType: 'LAB_RESULT',
+        sourceEntityId: String(result.id),
       });
 
       await this.notificationService.create({
