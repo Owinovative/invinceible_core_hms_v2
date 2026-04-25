@@ -30,6 +30,7 @@ import { PharmacyStockModule } from './pharmacy-stock/pharmacy-stock.module';
 import { TriageModule } from './triage/triage.module';
 import { PrescriptionModule } from './prescription/prescription.module';
 import { PrescriptionItemModule } from './prescription-item/prescription-item.module';
+import { OperationalModuleModule } from './operational-module/operational-module.module';
 import { validateEnvironment } from './config/env.validation';
 import { AuditInterceptor } from './audit-log/audit.interceptor';
 
@@ -66,6 +67,7 @@ import { AuditInterceptor } from './audit-log/audit.interceptor';
     TriageModule,
     PrescriptionModule,
     PrescriptionItemModule,
+    OperationalModuleModule,
   ],
   controllers: [AppController],
   providers: [
