@@ -220,7 +220,7 @@ export default function DoctorQueuePage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-violet-600/10 px-3 py-1 text-violet-700 dark:text-violet-300">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700 dark:text-cyan-300">
               Doctor Queue
             </Badge>
 
@@ -295,7 +295,7 @@ export default function DoctorQueuePage() {
 
 
                 {myPatientsOnly ? (
-                  <Badge className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-violet-300">
+                  <Badge className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-cyan-300">
                     My Patients Only
                   </Badge>
                 ) : (
@@ -367,7 +367,7 @@ export default function DoctorQueuePage() {
                 className={cn(
                   "flex h-12 w-full items-center justify-between rounded-2xl border px-4 text-sm transition-all",
                   myPatientsOnly
-                    ? "border-violet-500/30 bg-violet-500/10 text-violet-200"
+                    ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200"
                     : "border-white/10 bg-background text-foreground",
                 )}
               >
@@ -376,7 +376,7 @@ export default function DoctorQueuePage() {
                   className={cn(
                     "rounded-full px-2 py-1 text-[10px] font-semibold",
                     myPatientsOnly
-                      ? "bg-violet-500/20 text-violet-200"
+                      ? "bg-cyan-500/20 text-cyan-200"
                       : "bg-white/10 text-muted-foreground",
                   )}
                 >
@@ -425,7 +425,7 @@ export default function DoctorQueuePage() {
                     className={cn(
                       "w-full rounded-[1.3rem] border p-4 text-left transition-all",
                       active
-                        ? "border-violet-400/40 bg-violet-500/10"
+                        ? "border-cyan-400/40 bg-cyan-500/10"
                         : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
                     )}
                   >
@@ -465,7 +465,7 @@ export default function DoctorQueuePage() {
 
 
                       {active ? (
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-violet-400" />
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-400" />
                       ) : null}
                     </div>
                   </button>

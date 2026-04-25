@@ -35,8 +35,8 @@ const accentClasses = {
   emerald:
     "from-emerald-500/18 via-teal-500/8 to-transparent text-emerald-700 dark:text-emerald-300",
   rose: "from-rose-500/18 via-red-500/8 to-transparent text-rose-700 dark:text-rose-300",
-  violet:
-    "from-violet-500/18 via-indigo-500/8 to-transparent text-violet-700 dark:text-violet-300",
+  blue:
+    "from-cyan-500/18 via-blue-500/8 to-transparent text-cyan-700 dark:text-cyan-300",
 };
 
 function formatDate(value?: string | null) {

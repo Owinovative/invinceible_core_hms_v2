@@ -35,8 +35,8 @@ export function PlatformHeader() {
         </Button>
 
         <div className="premium-card hidden items-center gap-3 rounded-[1.2rem] px-4 py-2 md:flex">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/10">
-            <Shield className="h-5 w-5 text-violet-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/10">
+            <Shield className="h-5 w-5 text-cyan-400" />
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Secure Area</p>

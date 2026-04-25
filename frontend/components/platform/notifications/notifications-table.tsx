@@ -152,8 +152,8 @@ export function NotificationsTable() {
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-start gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10">
-                            <Bell className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
+                            <Bell className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold">{item.title}</p>

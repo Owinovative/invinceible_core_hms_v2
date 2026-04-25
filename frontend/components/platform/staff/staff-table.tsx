@@ -185,8 +185,8 @@ export function StaffTable() {
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10">
-                            <UserCog className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
+                            <UserCog className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                           </div>
                           <div>
                             <p className="font-semibold">{fullName(staff)}</p>
@@ -228,7 +228,7 @@ export function StaffTable() {
                             </span>
                           ) : null}
                           {staff.isPrescriber ? (
-                            <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-600 dark:text-violet-400">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
                               Prescriber
                             </span>
                           ) : null}

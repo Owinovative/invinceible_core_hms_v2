@@ -86,7 +86,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
                 Platform Access
               </p>
 
-              <div className="flex items-center gap-2 rounded-2xl bg-violet-500/10 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-3 py-2">
                 <Shield className="h-4 w-4 text-cyan-300" />
                 <span className="text-sm font-semibold text-cyan-200">
                   {user?.roleCode || "SUPER_ADMIN"}

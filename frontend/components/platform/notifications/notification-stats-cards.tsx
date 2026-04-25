@@ -15,7 +15,7 @@ export function NotificationStatsCards() {
         subtitle="All notifications in the system"
         icon={Bell}
         chip="All"
-        glowClassName="from-violet-500/10 to-fuchsia-500/10"
+        glowClassName="from-cyan-500/10 to-emerald-500/10"
       />
 
       <MetricCard

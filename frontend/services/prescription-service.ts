@@ -142,33 +142,13 @@ export async function getPharmacyQueue() {
   });
 }
 export async function getPrescriptionsByConsultationId(consultationId: number) {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/prescriptions?consultationId=${consultationId}`,
-    {
-      credentials: "include",
-    }
+  return apiFetch<PrescriptionRecord[]>(
+    `/prescriptions?consultationId=${consultationId}`,
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch prescriptions by consultation");
-  }
-
-  return response.json();
 }
 
 export async function getPrescriptionsByPatientId(patientId: number) {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/prescriptions?patientId=${patientId}`,
-    {
-      credentials: "include",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch prescriptions by patient");
-  }
-
-  return response.json();
+  return apiFetch<PrescriptionRecord[]>(`/prescriptions?patientId=${patientId}`);
 }
 
 export async function dispensePrescription(id: number) {
