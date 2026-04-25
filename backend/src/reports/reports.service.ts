@@ -3,6 +3,20 @@ import { ReportFilterDto } from './dto/report-filter.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
+function escapeCsvCell(value: unknown) {
+  const text = value === null || value === undefined ? '' : String(value);
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function toCsv(rows: unknown[][]) {
+  return rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
+}
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -270,6 +284,12 @@ export class ReportsService {
       paymentsByMethod,
       stockRecords,
       recentInvoices,
+      moduleRecords,
+      activeModuleRecords,
+      completedModuleRecords,
+      moduleRecordsByStatus,
+      moduleRecordsByModule,
+      recentModuleRecords,
     ] = await Promise.all([
       this.prisma.patient.count({ where: patientWhere }),
       this.prisma.appointment.count({ where: appointmentWhere }),
@@ -345,6 +365,33 @@ export class ReportsService {
         orderBy: { issuedAt: 'desc' },
         take: 8,
       }),
+      this.prisma.operationalModuleRecord.count({ where: invoiceWhere }),
+      this.prisma.operationalModuleRecord.count({
+        where: {
+          ...invoiceWhere,
+          statusCode: { in: ['OPEN', 'IN_PROGRESS', 'WAITING', 'ESCALATED'] },
+        },
+      }),
+      this.prisma.operationalModuleRecord.count({
+        where: { ...invoiceWhere, statusCode: { in: ['COMPLETED', 'CLOSED'] } },
+      }),
+      this.prisma.operationalModuleRecord.groupBy({
+        by: ['statusCode'],
+        where: invoiceWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.operationalModuleRecord.groupBy({
+        by: ['moduleSlug', 'moduleTitle'],
+        where: invoiceWhere,
+        _count: { _all: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 8,
+      }),
+      this.prisma.operationalModuleRecord.findMany({
+        where: invoiceWhere,
+        orderBy: { updatedAt: 'desc' },
+        take: 8,
+      }),
     ]);
 
     const lowStockList = stockRecords
@@ -379,6 +426,9 @@ export class ReportsService {
         lowStockItems: lowStockList.length,
         outOfStockItems: lowStockList.filter((item) => item.isOutOfStock)
           .length,
+        moduleRecords,
+        activeModuleRecords,
+        completedModuleRecords,
       },
       money: {
         totalInvoiced: invoiceMoney._sum.totalAmount ?? 0,
@@ -403,6 +453,15 @@ export class ReportsService {
           label: item.paymentMethod,
           value: item._sum.amount ?? 0,
         })),
+        moduleRecordsByStatus: moduleRecordsByStatus.map((item) => ({
+          label: item.statusCode,
+          value: item._count._all,
+        })),
+        moduleRecordsByModule: moduleRecordsByModule.map((item) => ({
+          label: item.moduleTitle,
+          moduleSlug: item.moduleSlug,
+          value: item._count._all,
+        })),
       },
       lowStockList,
       recentInvoices: recentInvoices.map((invoice) => ({
@@ -414,6 +473,157 @@ export class ReportsService {
         issuedAt: invoice.issuedAt,
         patientName: this.displayPatientName(invoice.patient),
       })),
+      recentModuleRecords: recentModuleRecords.map((record) => ({
+        id: record.id,
+        moduleSlug: record.moduleSlug,
+        moduleTitle: record.moduleTitle,
+        recordNumber: record.recordNumber,
+        title: record.title,
+        workflowStage: record.workflowStage,
+        statusCode: record.statusCode,
+        priorityCode: record.priorityCode,
+        dueAt: record.dueAt,
+        updatedAt: record.updatedAt,
+      })),
+    };
+  }
+
+  async getReportsDashboardExport(filter?: ReportFilterDto) {
+    const dashboard = await this.getReportsDashboard(filter);
+    const rows: unknown[][] = [
+      ['section', 'label', 'value'],
+      ...Object.entries(dashboard.counts).map(([label, value]) => [
+        'counts',
+        label,
+        value,
+      ]),
+      ...Object.entries(dashboard.money).map(([label, value]) => [
+        'money',
+        label,
+        value,
+      ]),
+      ...Object.entries(dashboard.beds).map(([label, value]) => [
+        'beds',
+        label,
+        value,
+      ]),
+      ...dashboard.charts.appointmentsByStatus.map((item) => [
+        'appointmentsByStatus',
+        item.label,
+        item.value,
+      ]),
+      ...dashboard.charts.invoicesByStatus.map((item) => [
+        'invoicesByStatus',
+        item.label,
+        item.value,
+      ]),
+      ...dashboard.charts.paymentsByMethod.map((item) => [
+        'paymentsByMethod',
+        item.label,
+        item.value,
+      ]),
+      ...dashboard.charts.moduleRecordsByStatus.map((item) => [
+        'moduleRecordsByStatus',
+        item.label,
+        item.value,
+      ]),
+      ...dashboard.charts.moduleRecordsByModule.map((item) => [
+        'moduleRecordsByModule',
+        item.label,
+        item.value,
+      ]),
+    ];
+
+    return {
+      fileName: `reports-dashboard-${new Date().toISOString().slice(0, 10)}.csv`,
+      rowCount: rows.length - 1,
+      csvText: toCsv(rows),
+    };
+  }
+
+  async getModuleOperationsReport(filter?: ReportFilterDto) {
+    const where = this.withCreatedAtScope(filter);
+    const [byModule, byStatus, recentRecords] = await Promise.all([
+      this.prisma.operationalModuleRecord.groupBy({
+        by: ['moduleSlug', 'moduleTitle'],
+        where,
+        _count: { _all: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+      this.prisma.operationalModuleRecord.groupBy({
+        by: ['statusCode'],
+        where,
+        _count: { _all: true },
+      }),
+      this.prisma.operationalModuleRecord.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+      }),
+    ]);
+
+    return {
+      filters: {
+        startDate: filter?.startDate ?? null,
+        endDate: filter?.endDate ?? null,
+        facilityId: filter?.facilityId ?? null,
+        branchId: filter?.branchId ?? null,
+      },
+      byModule: byModule.map((item) => ({
+        moduleSlug: item.moduleSlug,
+        moduleTitle: item.moduleTitle,
+        count: item._count._all,
+      })),
+      byStatus: byStatus.map((item) => ({
+        label: item.statusCode,
+        value: item._count._all,
+      })),
+      recentRecords,
+    };
+  }
+
+  async getModuleOperationsExport(filter?: ReportFilterDto) {
+    const where = this.withCreatedAtScope(filter);
+    const records = await this.prisma.operationalModuleRecord.findMany({
+      where,
+      orderBy: [{ moduleTitle: 'asc' }, { updatedAt: 'desc' }],
+      take: 5000,
+    });
+    const rows: unknown[][] = [
+      [
+        'module',
+        'recordNumber',
+        'title',
+        'workflowStage',
+        'status',
+        'priority',
+        'facilityId',
+        'branchId',
+        'patientId',
+        'assignedStaffId',
+        'dueAt',
+        'updatedAt',
+      ],
+      ...records.map((record) => [
+        record.moduleTitle,
+        record.recordNumber,
+        record.title,
+        record.workflowStage,
+        record.statusCode,
+        record.priorityCode,
+        record.facilityId,
+        record.branchId,
+        record.patientId,
+        record.assignedStaffId,
+        record.dueAt?.toISOString() ?? '',
+        record.updatedAt.toISOString(),
+      ]),
+    ];
+
+    return {
+      fileName: `module-operations-${new Date().toISOString().slice(0, 10)}.csv`,
+      rowCount: records.length,
+      csvText: toCsv(rows),
     };
   }
 

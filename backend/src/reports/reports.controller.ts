@@ -20,6 +20,36 @@ export class ReportsController {
     );
   }
 
+  @Get('dashboard/export')
+  getReportsDashboardExport(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getReportsDashboardExport(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('modules')
+  getModuleOperationsReport(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getModuleOperationsReport(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('modules/export')
+  getModuleOperationsExport(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getModuleOperationsExport(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
   @Get('dashboard-summary')
   getDashboardSummary(
     @Query() filter: ReportFilterDto,

@@ -1167,3 +1167,35 @@ model PasswordResetToken {
   @@index([expiresAt])
   @@map("password_reset_tokens")
 }
+
+model OperationalModuleRecord {
+  id              Int       @id @default(autoincrement())
+  moduleSlug      String    @db.VarChar(80)
+  moduleTitle     String    @db.VarChar(150)
+  recordNumber    String    @unique @db.VarChar(80)
+  title           String    @db.VarChar(200)
+  description     String?   @db.Text
+  workflowStage   String    @db.VarChar(100)
+  statusCode      String    @default("OPEN") @db.VarChar(50)
+  priorityCode    String    @default("ROUTINE") @db.VarChar(50)
+  facilityId      Int
+  branchId        Int?
+  patientId       Int?
+  assignedStaffId Int?
+  createdByUserId Int?
+  dueAt           DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  closedAt        DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([moduleSlug])
+  @@index([statusCode])
+  @@index([priorityCode])
+  @@index([createdAt])
+  @@map("operational_module_records")
+}

@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   BedDouble,
   CreditCard,
+  Download,
   FileText,
   FlaskConical,
   Loader2,
@@ -15,7 +16,13 @@ import {
 } from "lucide-react";
 
 import { useReportsDashboard } from "@/hooks/use-reports-dashboard";
+import { useModuleOperationsReport } from "@/hooks/use-module-operations-report";
 import { useScope } from "@/providers/scope-provider";
+import {
+  getModuleOperationsExport,
+  getReportsDashboardExport,
+  type CsvExportResponse,
+} from "@/services/report-service";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +49,18 @@ function barWidth(value: number, max: number) {
   return `${Math.max((value / max) * 100, 6)}%`;
 }
 
+function downloadCsvExport(file: CsvExportResponse) {
+  const blob = new Blob([`\uFEFF${file.csvText}`], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.fileName;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
+
 export default function ReportsPage() {
   const { facilityName, selectedBranchName } = useScope();
 
@@ -59,6 +78,13 @@ export default function ReportsPage() {
     appliedDateFrom,
     appliedDateTo,
   );
+  const { data: moduleReport } = useModuleOperationsReport(
+    appliedDateFrom,
+    appliedDateTo,
+  );
+  const [downloadState, setDownloadState] = React.useState<
+    "dashboard" | "modules" | null
+  >(null);
 
   const counts = data?.counts;
   const money = data?.money;
@@ -67,12 +93,51 @@ export default function ReportsPage() {
   const appointmentChart = data?.charts.appointmentsByStatus ?? [];
   const invoiceChart = data?.charts.invoicesByStatus ?? [];
   const paymentChart = data?.charts.paymentsByMethod ?? [];
+  const moduleStatusChart =
+    data?.charts.moduleRecordsByStatus ?? moduleReport?.byStatus ?? [];
+  const moduleChart =
+    data?.charts.moduleRecordsByModule ??
+    moduleReport?.byModule.map((item) => ({
+      label: item.moduleTitle,
+      moduleSlug: item.moduleSlug,
+      value: item.count,
+    })) ??
+    [];
   const lowStockList = data?.lowStockList ?? [];
   const recentInvoices = data?.recentInvoices ?? [];
+  const recentModuleRecords =
+    data?.recentModuleRecords ?? moduleReport?.recentRecords ?? [];
 
   const maxAppointmentValue = Math.max(...appointmentChart.map((x) => x.value), 0);
   const maxInvoiceValue = Math.max(...invoiceChart.map((x) => x.value), 0);
   const maxPaymentValue = Math.max(...paymentChart.map((x) => x.value), 0);
+  const maxModuleValue = Math.max(...moduleChart.map((x) => x.value), 0);
+  const maxModuleStatusValue = Math.max(
+    ...moduleStatusChart.map((x) => x.value),
+    0,
+  );
+
+  const handleDownloadDashboard = async () => {
+    setDownloadState("dashboard");
+    try {
+      downloadCsvExport(
+        await getReportsDashboardExport(appliedDateFrom, appliedDateTo),
+      );
+    } finally {
+      setDownloadState(null);
+    }
+  };
+
+  const handleDownloadModules = async () => {
+    setDownloadState("modules");
+    try {
+      downloadCsvExport(
+        await getModuleOperationsExport(appliedDateFrom, appliedDateTo),
+      );
+    } finally {
+      setDownloadState(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -128,7 +193,7 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Report Filters</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-4">
+          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             <div>
               <label className="mb-2 block text-sm font-medium">Date From</label>
               <Input
@@ -184,6 +249,40 @@ export default function ReportsPage() {
                 }}
               >
                 Reset
+              </Button>
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 w-full rounded-2xl"
+                onClick={handleDownloadDashboard}
+                disabled={downloadState === "dashboard"}
+              >
+                {downloadState === "dashboard" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Dashboard CSV
+              </Button>
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 w-full rounded-2xl"
+                onClick={handleDownloadModules}
+                disabled={downloadState === "modules"}
+              >
+                {downloadState === "modules" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Modules CSV
               </Button>
             </div>
           </CardContent>
@@ -463,6 +562,132 @@ export default function ReportsPage() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         Stock: {item.stockQuantity} • Reorder: {item.reorderLevel}
                       </p>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </section>
+
+          <section className="grid gap-6 xl:grid-cols-3">
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle>Module Work by Area</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {moduleChart.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No module data.</p>
+                ) : (
+                  moduleChart.map((item) => (
+                    <div key={item.moduleSlug} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{item.label}</span>
+                        <span className="font-medium">{item.value}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/10">
+                        <div
+                          className="h-2 rounded-full bg-cyan-400"
+                          style={{ width: barWidth(item.value, maxModuleValue) }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle>Module Work by Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {moduleStatusChart.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No status data.</p>
+                ) : (
+                  moduleStatusChart.map((item) => (
+                    <div key={item.label} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{item.label}</span>
+                        <span className="font-medium">{item.value}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/10">
+                        <div
+                          className="h-2 rounded-full bg-emerald-400"
+                          style={{
+                            width: barWidth(item.value, maxModuleStatusValue),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle>Module Totals</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-muted-foreground">All Records</p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {counts?.moduleRecords ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-muted-foreground">Active</p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {counts?.activeModuleRecords ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {counts?.completedModuleRecords ?? 0}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
+          <section>
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle>Recent Module Work</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {recentModuleRecords.length === 0 ? (
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                    No module records found in this date range.
+                  </div>
+                ) : (
+                  recentModuleRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <p className="font-semibold">{record.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {record.moduleTitle} / {record.recordNumber}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Stage: {record.workflowStage} / Updated:{" "}
+                            {formatDate(record.updatedAt)}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <Badge className="rounded-full border px-3 py-1 border-white/10 bg-white/[0.04] text-muted-foreground">
+                            {record.statusCode}
+                          </Badge>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {record.priorityCode}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ))
                 )}
