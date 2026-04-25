@@ -8,6 +8,21 @@ export interface PharmacyMedicine {
   strength?: string | null;
   manufacturer?: string | null;
   unitPrice?: number | null;
+  stockQuantity?: number | null;
+  reorderLevel?: number | null;
+  isActive?: boolean;
+}
+
+export interface CreatePharmacyMedicinePayload {
+  code: string;
+  name: string;
+  dosageForm?: string;
+  strength?: string;
+  manufacturer?: string;
+  unitPrice?: number;
+  stockQuantity?: number;
+  reorderLevel?: number;
+  isActive?: boolean;
 }
 export interface DispenseItemRecord {
   id: number;
@@ -146,6 +161,21 @@ export interface PharmacyPrescriptionRecord {
 export async function getPharmacyQueue() {
   return apiFetch<PharmacyPrescriptionRecord[]>("/pharmacy/queue", {
     method: "GET",
+  });
+}
+
+export async function getPharmacyMedicines() {
+  return apiFetch<PharmacyMedicine[]>("/pharmacy/medicines", {
+    method: "GET",
+  });
+}
+
+export async function createPharmacyMedicine(
+  payload: CreatePharmacyMedicinePayload,
+) {
+  return apiFetch<PharmacyMedicine>("/pharmacy/medicines", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 

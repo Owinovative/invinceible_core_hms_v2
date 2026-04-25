@@ -4,13 +4,18 @@ import * as React from "react";
 import { Banknote, Loader2, Save, ShieldCheck } from "lucide-react";
 
 import { useScope } from "@/providers/scope-provider";
+import { useBeds } from "@/hooks/use-beds";
+import { useBillingServices } from "@/hooks/use-billing-services";
 import { useServiceTariffs } from "@/hooks/use-service-tariffs";
 import { useCreateServiceTariff } from "@/hooks/use-create-service-tariff";
+import { useLabTests } from "@/hooks/use-lab-tests";
+import { useWards } from "@/hooks/use-wards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { appSelectClass } from "@/lib/select-class";
 
 function formatMoney(value?: number | null) {
   return new Intl.NumberFormat(undefined, {
@@ -29,6 +34,10 @@ export default function BillingTariffsPage() {
   const { facilityId, selectedBranchId, facilityName, selectedBranchName } =
     useScope();
   const { data: tariffs = [], isLoading } = useServiceTariffs();
+  const { data: labTestsData = [] } = useLabTests();
+  const { data: wardsData = [] } = useWards();
+  const { data: bedsData = [] } = useBeds();
+  const { data: billingServicesData = [] } = useBillingServices();
   const createTariffMutation = useCreateServiceTariff();
 
   const [message, setMessage] = React.useState<string | null>(null);
@@ -41,6 +50,61 @@ export default function BillingTariffsPage() {
   const [wardId, setWardId] = React.useState("");
   const [bedId, setBedId] = React.useState("");
   const [notes, setNotes] = React.useState("");
+
+  const labTests = Array.isArray(labTestsData) ? labTestsData : [];
+  const wards = Array.isArray(wardsData) ? wardsData : [];
+  const beds = Array.isArray(bedsData) ? bedsData : [];
+  const billingServices = Array.isArray(billingServicesData)
+    ? billingServicesData
+    : [];
+
+  const handleSelectLabTest = (value: string) => {
+    setLabTestId(value);
+    const selected = labTests.find((item) => String(item.id) === value);
+    if (!selected) return;
+    setCategory("LAB");
+    setCode(`LAB_TEST_${selected.id}`);
+    setName(selected.testName);
+    setBillingServiceId("");
+    setWardId("");
+    setBedId("");
+  };
+
+  const handleSelectWard = (value: string) => {
+    setWardId(value);
+    const selected = wards.find((item) => String(item.id) === value);
+    if (!selected) return;
+    setCategory("IPD_BED");
+    setCode(`WARD_${selected.id}`);
+    setName(`${selected.name} bed-day`);
+    setLabTestId("");
+    setBillingServiceId("");
+    setBedId("");
+  };
+
+  const handleSelectBed = (value: string) => {
+    setBedId(value);
+    const selected = beds.find((item) => String(item.id) === value);
+    if (!selected) return;
+    setCategory("IPD_BED");
+    setCode(`BED_${selected.id}`);
+    setName(`Bed ${selected.bedLabel || selected.bedNumber}`);
+    setLabTestId("");
+    setBillingServiceId("");
+    setWardId(selected.wardId ? String(selected.wardId) : "");
+  };
+
+  const handleSelectBillingService = (value: string) => {
+    setBillingServiceId(value);
+    const selected = billingServices.find((item) => String(item.id) === value);
+    if (!selected) return;
+    setCategory(selected.category || "SERVICE");
+    setCode(selected.code);
+    setName(selected.name);
+    setLabTestId("");
+    setWardId("");
+    setBedId("");
+  };
 
   const handleCreateTariff = async () => {
     setMessage(null);
@@ -182,43 +246,72 @@ export default function BillingTariffsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium">
-                  Lab Test ID
+                  Lab Test
                 </label>
-                <Input
-                  type="number"
+                <select
                   value={labTestId}
-                  onChange={(event) => setLabTestId(event.target.value)}
-                  className="h-12 rounded-xl"
-                />
+                  onChange={(event) => handleSelectLabTest(event.target.value)}
+                  className={appSelectClass}
+                >
+                  <option value="">Select lab test</option>
+                  {labTests.map((test) => (
+                    <option key={test.id} value={String(test.id)}>
+                      {test.testName}
+                      {test.category ? ` / ${test.category}` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium">
-                  Billing Service ID
+                  Billing Service
                 </label>
-                <Input
-                  type="number"
+                <select
                   value={billingServiceId}
-                  onChange={(event) => setBillingServiceId(event.target.value)}
-                  className="h-12 rounded-xl"
-                />
+                  onChange={(event) =>
+                    handleSelectBillingService(event.target.value)
+                  }
+                  className={appSelectClass}
+                >
+                  <option value="">Select billing service</option>
+                  {billingServices.map((service) => (
+                    <option key={service.id} value={String(service.id)}>
+                      {service.name} / {formatMoney(service.defaultPrice)}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">Ward ID</label>
-                <Input
-                  type="number"
+                <label className="mb-2 block text-sm font-medium">Ward</label>
+                <select
                   value={wardId}
-                  onChange={(event) => setWardId(event.target.value)}
-                  className="h-12 rounded-xl"
-                />
+                  onChange={(event) => handleSelectWard(event.target.value)}
+                  className={appSelectClass}
+                >
+                  <option value="">Select ward</option>
+                  {wards.map((ward) => (
+                    <option key={ward.id} value={String(ward.id)}>
+                      {ward.name}
+                      {ward.wardType ? ` / ${ward.wardType}` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">Bed ID</label>
-                <Input
-                  type="number"
+                <label className="mb-2 block text-sm font-medium">Bed</label>
+                <select
                   value={bedId}
-                  onChange={(event) => setBedId(event.target.value)}
-                  className="h-12 rounded-xl"
-                />
+                  onChange={(event) => handleSelectBed(event.target.value)}
+                  className={appSelectClass}
+                >
+                  <option value="">Select bed</option>
+                  {beds.map((bed) => (
+                    <option key={bed.id} value={String(bed.id)}>
+                      {bed.bedNumber}
+                      {bed.bedLabel ? ` / ${bed.bedLabel}` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

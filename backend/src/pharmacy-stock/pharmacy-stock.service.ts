@@ -55,7 +55,7 @@ export class PharmacyStockService {
       });
     }
   }
-    async restockBranchMedicine(
+  async restockBranchMedicine(
       stockId: number,
       dto: RestockBranchMedicineDto,
     ) {
@@ -94,6 +94,16 @@ export class PharmacyStockService {
 
       return updated;
     }
+
+  async restockBranchMedicineScoped(
+    stockId: number,
+    dto: RestockBranchMedicineDto,
+    user: RequestUser,
+  ) {
+    await this.findOneScoped(stockId, user);
+
+    return this.restockBranchMedicine(stockId, dto);
+  }
 
 
   async create(dto: CreateBranchMedicineStockDto) {
@@ -147,6 +157,12 @@ export class PharmacyStockService {
     await this.resolveRecoveredStockNotifications(created.id);
 
     return created;
+  }
+
+  async createScoped(dto: CreateBranchMedicineStockDto, user: RequestUser) {
+    this.scopeService.assertBranchAccess(user, dto.facilityId, dto.branchId);
+
+    return this.create(dto);
   }
 
   findAll() {
@@ -255,6 +271,16 @@ export class PharmacyStockService {
     await this.resolveRecoveredStockNotifications(updated.id);
 
     return updated;
+  }
+
+  async updateScoped(
+    id: number,
+    dto: UpdateBranchMedicineStockDto,
+    user: RequestUser,
+  ) {
+    await this.findOneScoped(id, user);
+
+    return this.update(id, dto);
   }
 
   async addStock(id: number, quantity: number) {
