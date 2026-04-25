@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE_URL } from "@/lib/api";
+import { apiDownload, apiFetch, API_BASE_URL } from "@/lib/api";
 
 export interface BillingServiceItem {
   id: number;
@@ -376,10 +376,13 @@ export async function postAdmissionBedCharge(
   admissionId: number,
   payload: PostAdmissionBedChargePayload,
 ) {
-  return apiFetch<InvoiceRecord>(`/billing/admissions/${admissionId}/bed-charge`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return apiFetch<InvoiceRecord>(
+    `/billing/admissions/${admissionId}/bed-charge`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function createCashPayment(payload: CreateCashPaymentPayload) {
@@ -413,4 +416,11 @@ export async function createMpesaPaymentRequest(
 }
 export function getInvoicePdfUrl(id: number) {
   return `${API_BASE_URL}/billing/invoices/${id}/pdf`;
+}
+
+export function downloadInvoicePdf(id: number, invoiceNumber?: string) {
+  return apiDownload(
+    `/billing/invoices/${id}/pdf`,
+    `${invoiceNumber || `invoice-${id}`}.pdf`,
+  );
 }

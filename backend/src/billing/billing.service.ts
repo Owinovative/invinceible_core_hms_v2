@@ -22,6 +22,17 @@ import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
 import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
 import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
+import {
+  addKeyValueGrid,
+  addParagraph,
+  addSectionTitle,
+  addTable,
+  createHospitalPdfBuffer,
+  formatPdfDate,
+  formatPdfMoney,
+  patientName,
+  staffName,
+} from '../common/pdf/hospital-pdf';
 
 type TariffCsvRow = Record<string, string>;
 
@@ -37,20 +48,114 @@ const SERVICE_TARIFF_COLUMNS = [
 ];
 
 const CORE_CLINICAL_TARIFFS = [
-  ['MANUAL', 'CONSULTATION', 'Consultation', 'SERVICE', '', 0, true, 'Core outpatient consultation charge'],
-  ['MANUAL', 'DOCTOR_REVIEW', 'Doctor review', 'SERVICE', '', 0, true, 'Clinical review after consultation or ward round'],
-  ['MANUAL', 'NURSING_CHARGE', 'Nursing charge', 'SERVICE', '', 0, true, 'Nursing procedure or daily nursing care'],
-  ['MANUAL', 'TRIAGE_CHARGE', 'Triage charge', 'SERVICE', '', 0, true, 'Front-door clinical triage charge'],
-  ['MANUAL', 'EMERGENCY_REVIEW', 'Emergency review', 'SERVICE', '', 0, true, 'Emergency unit clinical review'],
-  ['MANUAL', 'DRESSING', 'Dressing', 'PROCEDURE', '', 0, true, 'Wound dressing or minor procedure'],
-  ['MANUAL', 'INJECTION', 'Injection administration', 'PROCEDURE', '', 0, true, 'Drug administration service charge'],
-  ['MANUAL', 'OXYGEN_HOUR', 'Oxygen per hour', 'SERVICE', '', 0, true, 'Oxygen therapy hourly charge'],
-  ['MANUAL', 'PROCEDURE_ROOM', 'Procedure room', 'PROCEDURE', '', 0, true, 'Procedure room usage charge'],
-  ['MANUAL', 'NURSING_OBSERVATION', 'Nursing observation', 'SERVICE', '', 0, true, 'Observation and monitoring charge'],
+  [
+    'MANUAL',
+    'CONSULTATION',
+    'Consultation',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Core outpatient consultation charge',
+  ],
+  [
+    'MANUAL',
+    'DOCTOR_REVIEW',
+    'Doctor review',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Clinical review after consultation or ward round',
+  ],
+  [
+    'MANUAL',
+    'NURSING_CHARGE',
+    'Nursing charge',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Nursing procedure or daily nursing care',
+  ],
+  [
+    'MANUAL',
+    'TRIAGE_CHARGE',
+    'Triage charge',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Front-door clinical triage charge',
+  ],
+  [
+    'MANUAL',
+    'EMERGENCY_REVIEW',
+    'Emergency review',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Emergency unit clinical review',
+  ],
+  [
+    'MANUAL',
+    'DRESSING',
+    'Dressing',
+    'PROCEDURE',
+    '',
+    0,
+    true,
+    'Wound dressing or minor procedure',
+  ],
+  [
+    'MANUAL',
+    'INJECTION',
+    'Injection administration',
+    'PROCEDURE',
+    '',
+    0,
+    true,
+    'Drug administration service charge',
+  ],
+  [
+    'MANUAL',
+    'OXYGEN_HOUR',
+    'Oxygen per hour',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Oxygen therapy hourly charge',
+  ],
+  [
+    'MANUAL',
+    'PROCEDURE_ROOM',
+    'Procedure room',
+    'PROCEDURE',
+    '',
+    0,
+    true,
+    'Procedure room usage charge',
+  ],
+  [
+    'MANUAL',
+    'NURSING_OBSERVATION',
+    'Nursing observation',
+    'SERVICE',
+    '',
+    0,
+    true,
+    'Observation and monitoring charge',
+  ],
 ];
 
 function normalizeTariffHeader(value: string) {
-  return value.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+  return value
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
 }
 
 function escapeTariffCsvCell(value: unknown) {
@@ -64,9 +169,7 @@ function escapeTariffCsvCell(value: unknown) {
 }
 
 function toTariffCsv(rows: unknown[][]) {
-  return rows
-    .map((row) => row.map(escapeTariffCsvCell).join(','))
-    .join('\r\n');
+  return rows.map((row) => row.map(escapeTariffCsvCell).join(',')).join('\r\n');
 }
 
 function parseTariffCsvRecords(csvText: string) {
@@ -238,10 +341,7 @@ export class BillingService {
       ]);
 
     const tariffByKey = new Map(
-      tariffs.map((tariff) => [
-        `${tariff.category}:${tariff.code}`,
-        tariff,
-      ]),
+      tariffs.map((tariff) => [`${tariff.category}:${tariff.code}`, tariff]),
     );
     const findTariff = (category: string, code: string) =>
       tariffByKey.get(
@@ -527,7 +627,11 @@ export class BillingService {
         throw new NotFoundException(`Ward with id ${dto.wardId} not found`);
       }
 
-      if (dto.facilityId && ward.facilityId && ward.facilityId !== dto.facilityId) {
+      if (
+        dto.facilityId &&
+        ward.facilityId &&
+        ward.facilityId !== dto.facilityId
+      ) {
         throw new BadRequestException(
           'Tariff ward must belong to the selected facility',
         );
@@ -549,7 +653,11 @@ export class BillingService {
         );
       }
 
-      if (dto.facilityId && bed.facilityId && bed.facilityId !== dto.facilityId) {
+      if (
+        dto.facilityId &&
+        bed.facilityId &&
+        bed.facilityId !== dto.facilityId
+      ) {
         throw new BadRequestException(
           'Tariff bed must belong to the selected facility',
         );
@@ -1111,10 +1219,7 @@ export class BillingService {
         ) {
           value += 45;
         }
-        if (
-          params.code &&
-          tariff.code === params.code.trim().toUpperCase()
-        ) {
+        if (params.code && tariff.code === params.code.trim().toUpperCase()) {
           value += 35;
         }
 
@@ -1516,6 +1621,150 @@ export class BillingService {
     );
 
     return invoice;
+  }
+
+  async getInvoicePdf(id: number, user: RequestUser) {
+    const invoice = await this.getInvoiceByIdScoped(id, user);
+    const currency =
+      invoice.facility?.currency || invoice.branch?.currency || 'KES';
+    const printableItems = (invoice.items ?? []).filter(
+      (item) => item.isRemoved !== true,
+    );
+    const payments = invoice.payments ?? [];
+
+    return createHospitalPdfBuffer(
+      {
+        title: 'Patient Invoice',
+        subtitle: invoice.invoiceNumber,
+        reference: invoice.statusCode,
+        facility: invoice.facility,
+        branch: invoice.branch,
+      },
+      (doc) => {
+        addSectionTitle(doc, 'Patient and invoice details');
+        addKeyValueGrid(doc, [
+          { label: 'Patient', value: patientName(invoice.patient) },
+          { label: 'Patient number', value: invoice.patient?.patientNumber },
+          { label: 'Phone', value: invoice.patient?.phonePrimary },
+          { label: 'Gender', value: invoice.patient?.gender },
+          { label: 'Invoice number', value: invoice.invoiceNumber },
+          { label: 'Issued at', value: formatPdfDate(invoice.issuedAt) },
+          { label: 'Branch', value: invoice.branch?.name },
+          { label: 'Created by', value: staffName(invoice.createdBy) },
+          { label: 'Appointment ID', value: invoice.appointmentId },
+          { label: 'Consultation ID', value: invoice.consultationId },
+          { label: 'Admission ID', value: invoice.admissionId },
+          { label: 'Status', value: invoice.statusCode },
+        ]);
+
+        addSectionTitle(doc, 'Invoice lines');
+        addTable(
+          doc,
+          [
+            {
+              header: 'Description',
+              width: 210,
+              render: (item) => item.description,
+            },
+            { header: 'Qty', width: 40, render: (item) => item.quantity },
+            {
+              header: 'Unit',
+              width: 80,
+              render: (item) => formatPdfMoney(item.unitPrice, currency),
+            },
+            {
+              header: 'Total',
+              width: 85,
+              render: (item) => formatPdfMoney(item.lineTotal, currency),
+            },
+            {
+              header: 'Source',
+              width: 80,
+              render: (item) =>
+                item.isAutoGenerated
+                  ? item.sourceModule || item.sourceEntityType || 'Auto'
+                  : 'Manual',
+            },
+          ],
+          printableItems,
+          'No active invoice lines found.',
+        );
+
+        addSectionTitle(doc, 'Totals');
+        addKeyValueGrid(doc, [
+          {
+            label: 'Subtotal',
+            value: formatPdfMoney(invoice.subtotal, currency),
+          },
+          {
+            label: 'Discount',
+            value: formatPdfMoney(invoice.discountAmount, currency),
+          },
+          { label: 'Tax', value: formatPdfMoney(invoice.taxAmount, currency) },
+          {
+            label: 'Total',
+            value: formatPdfMoney(invoice.totalAmount, currency),
+          },
+          {
+            label: 'Paid',
+            value: formatPdfMoney(invoice.paidAmount, currency),
+          },
+          {
+            label: 'Balance',
+            value: formatPdfMoney(invoice.balanceAmount, currency),
+          },
+        ]);
+
+        addSectionTitle(doc, 'Payment history');
+        addTable(
+          doc,
+          [
+            {
+              header: 'Receipt',
+              width: 125,
+              render: (item) => item.receiptNumber,
+            },
+            {
+              header: 'Method',
+              width: 82,
+              render: (item) => item.paymentMethod,
+            },
+            {
+              header: 'Amount',
+              width: 88,
+              render: (item) => formatPdfMoney(item.amount, currency),
+            },
+            { header: 'Status', width: 80, render: (item) => item.statusCode },
+            {
+              header: 'Paid at',
+              width: 122,
+              render: (item) => formatPdfDate(item.paidAt),
+            },
+          ],
+          payments,
+          'No payments recorded yet.',
+        );
+
+        addSectionTitle(doc, 'Notes and payment details');
+        addParagraph(
+          doc,
+          'Invoice notes',
+          invoice.notes || 'No extra invoice notes.',
+        );
+        addKeyValueGrid(doc, [
+          { label: 'M-PESA Paybill', value: invoice.facility?.mpesaPaybill },
+          { label: 'M-PESA Till', value: invoice.facility?.mpesaTillNumber },
+          {
+            label: 'M-PESA Shortcode',
+            value: invoice.facility?.mpesaShortcode,
+          },
+          {
+            label: 'Balance due',
+            value: formatPdfMoney(invoice.balanceAmount, currency),
+          },
+        ]);
+      },
+    );
   }
 
   async createCashPayment(dto: CreateCashPaymentDto) {

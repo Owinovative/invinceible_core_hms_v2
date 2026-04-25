@@ -82,7 +82,9 @@ export default function LoginPageClient() {
         return;
       }
 
-      setError("Unable to reach the hospital server. Check the API connection.");
+      setError(
+        "Unable to reach the hospital server. Check the API connection.",
+      );
     }
   };
 
@@ -99,7 +101,7 @@ export default function LoginPageClient() {
       <div className="premium-aurora" />
       <div className="clinical-mesh" />
 
-      <div className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-8 px-5 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+      <div className="relative mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.16fr_0.84fr] lg:px-8">
         <section className="hidden text-white lg:block">
           <div className="max-w-2xl space-y-7">
             <AppLogo light />
@@ -131,7 +133,7 @@ export default function LoginPageClient() {
           </div>
         </section>
 
-        <Card className="premium-card mx-auto w-full max-w-md rounded-[2rem] py-0 text-foreground">
+        <Card className="premium-card mx-auto w-full max-w-[500px] rounded-[2rem] py-0 text-foreground">
           <CardContent className="relative p-7 md:p-9">
             <div className="mb-7 flex flex-col items-center text-center lg:hidden">
               <AppLogo light />
@@ -153,7 +155,10 @@ export default function LoginPageClient() {
             </div>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-5"
+              >
                 <FormField
                   control={form.control}
                   name="username"

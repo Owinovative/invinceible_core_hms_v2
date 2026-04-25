@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  Download,
+  FileText,
   Loader2,
   LogOut,
   Plus,
@@ -37,6 +39,11 @@ import { useAuth } from "@/providers/auth-provider";
 import { useCreateAdmissionLabOrder } from "@/hooks/use-create-admission-lab-order";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { usePostAdmissionBedCharge } from "@/hooks/use-post-admission-bed-charge";
+import {
+  downloadAdmissionDischargeSummaryPdf,
+  downloadAdmissionMedicalSummaryPdf,
+  downloadAdmissionTreatmentChartPdf,
+} from "@/services/ipd-clinical-service";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,13 +60,11 @@ function formatDate(value?: string | null) {
 }
 
 function patientName(
-  patient?:
-    | {
-        firstName?: string;
-        middleName?: string | null;
-        lastName?: string;
-      }
-    | null,
+  patient?: {
+    firstName?: string;
+    middleName?: string | null;
+    lastName?: string;
+  } | null,
 ) {
   if (!patient) return "Unknown patient";
   return [patient.firstName, patient.middleName, patient.lastName]
@@ -68,13 +73,11 @@ function patientName(
 }
 
 function staffName(
-  staff?:
-    | {
-        firstName?: string;
-        lastName?: string;
-        staffCode?: string;
-      }
-    | null,
+  staff?: {
+    firstName?: string;
+    lastName?: string;
+    staffCode?: string;
+  } | null,
 ) {
   if (!staff) return "—";
   const name = [staff.firstName, staff.lastName].filter(Boolean).join(" ");
@@ -125,8 +128,10 @@ export default function IpdDetailPage() {
   const createAdmissionLabOrderMutation = useCreateAdmissionLabOrder();
   const postAdmissionBedChargeMutation = usePostAdmissionBedCharge(id);
 
-
   const [message, setMessage] = React.useState<string | null>(null);
+  const [downloadingDocument, setDownloadingDocument] = React.useState<
+    string | null
+  >(null);
 
   const doctorReviews = Array.isArray(clinicalData?.doctorReviews)
     ? clinicalData.doctorReviews
@@ -145,18 +150,23 @@ export default function IpdDetailPage() {
     : [];
   const dischargeSummary = clinicalData?.dischargeSummary ?? null;
 
-  const wards = Array.isArray(wardsData) ? wardsData : [];
-  const beds = Array.isArray(bedsData) ? bedsData : [];
-  const labTests = Array.isArray(labTestsData) ? labTestsData : [];
+  const wards = React.useMemo(
+    () => (Array.isArray(wardsData) ? wardsData : []),
+    [wardsData],
+  );
+  const beds = React.useMemo(
+    () => (Array.isArray(bedsData) ? bedsData : []),
+    [bedsData],
+  );
+  const labTests = React.useMemo(
+    () => (Array.isArray(labTestsData) ? labTestsData : []),
+    [labTestsData],
+  );
 
   const totalProgressNotes = progressNotes.length;
   const totalTreatments = treatmentChart.length;
   const totalVitals = vitalRecords.length;
   const totalDoctorReviews = doctorReviews.length;
-
-  const administeredTreatments = treatmentChart.filter(
-    (item) => (item.statusCode || "").toUpperCase() === "ADMINISTERED",
-  ).length;
 
   const pendingTreatments = treatmentChart.filter(
     (item) => (item.statusCode || "PLANNED").toUpperCase() !== "ADMINISTERED",
@@ -217,7 +227,8 @@ export default function IpdDetailPage() {
   const [labUrgency, setLabUrgency] = React.useState("ROUTINE");
   const [labClinicalNotes, setLabClinicalNotes] = React.useState("");
   const [selectedTestId, setSelectedTestId] = React.useState("");
-  const [selectedTestInstructions, setSelectedTestInstructions] = React.useState("");
+  const [selectedTestInstructions, setSelectedTestInstructions] =
+    React.useState("");
   const [labOrderItems, setLabOrderItems] = React.useState<
     { testId: number; testName: string; instructions?: string }[]
   >([]);
@@ -227,8 +238,6 @@ export default function IpdDetailPage() {
   const [bedChargeQuantity, setBedChargeQuantity] = React.useState("1");
   const [bedChargeUnitPrice, setBedChargeUnitPrice] = React.useState("");
   const [bedChargeNotes, setBedChargeNotes] = React.useState("");
-
-
 
   React.useEffect(() => {
     if (!dischargeSummary) return;
@@ -472,7 +481,11 @@ export default function IpdDetailPage() {
     const weightValue = Number(weightKg || 0);
     const bmiValue =
       heightValue > 0 && weightValue > 0
-        ? Number((weightValue / ((heightValue / 100) * (heightValue / 100))).toFixed(2))
+        ? Number(
+            (weightValue / ((heightValue / 100) * (heightValue / 100))).toFixed(
+              2,
+            ),
+          )
         : undefined;
 
     await createIpdVitalMutation.mutateAsync({
@@ -623,9 +636,7 @@ export default function IpdDetailPage() {
     await postAdmissionBedChargeMutation.mutateAsync({
       chargedDate: bedChargeDate || undefined,
       quantity: bedChargeQuantity ? Number(bedChargeQuantity) : 1,
-      unitPrice: bedChargeUnitPrice
-        ? Number(bedChargeUnitPrice)
-        : undefined,
+      unitPrice: bedChargeUnitPrice ? Number(bedChargeUnitPrice) : undefined,
       notes: bedChargeNotes.trim() || undefined,
     });
 
@@ -634,7 +645,35 @@ export default function IpdDetailPage() {
     setMessage("Bed charge posted to the patient invoice.");
   };
 
+  const handleDownloadDocument = async (
+    documentType: "medical" | "discharge" | "chart",
+  ) => {
+    if (!data) return;
 
+    setMessage(null);
+    setDownloadingDocument(documentType);
+
+    try {
+      if (documentType === "medical") {
+        await downloadAdmissionMedicalSummaryPdf(data.id, data.admissionNumber);
+      } else if (documentType === "discharge") {
+        await downloadAdmissionDischargeSummaryPdf(
+          data.id,
+          data.admissionNumber,
+        );
+      } else {
+        await downloadAdmissionTreatmentChartPdf(data.id, data.admissionNumber);
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to download the clinical document.",
+      );
+    } finally {
+      setDownloadingDocument(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -659,7 +698,8 @@ export default function IpdDetailPage() {
                   Admission Details
                 </h1>
                 <p className="text-muted-foreground">
-                  Inpatient notes, vitals, doctor reviews, lab results, treatment chart, transfer workflow, and discharge workflow
+                  Inpatient notes, vitals, doctor reviews, lab results,
+                  treatment chart, transfer workflow, and discharge workflow
                 </p>
               </div>
             </div>
@@ -692,8 +732,12 @@ export default function IpdDetailPage() {
             <Card className="rounded-[1.6rem] gradient-border panel-shadow">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <p className="text-sm text-muted-foreground">Doctor Reviews</p>
-                  <p className="mt-2 text-2xl font-bold">{totalDoctorReviews}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Doctor Reviews
+                  </p>
+                  <p className="mt-2 text-2xl font-bold">
+                    {totalDoctorReviews}
+                  </p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                   <Stethoscope className="h-6 w-6 text-primary" />
@@ -716,8 +760,12 @@ export default function IpdDetailPage() {
             <Card className="rounded-[1.6rem] gradient-border panel-shadow">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <p className="text-sm text-muted-foreground">Progress Notes</p>
-                  <p className="mt-2 text-2xl font-bold">{totalProgressNotes}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Progress Notes
+                  </p>
+                  <p className="mt-2 text-2xl font-bold">
+                    {totalProgressNotes}
+                  </p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                   <ClipboardList className="h-6 w-6 text-primary" />
@@ -767,7 +815,9 @@ export default function IpdDetailPage() {
                     </div>
 
                     <div className="min-w-0">
-                      <p className="text-lg font-bold">{patientName(data.patient)}</p>
+                      <p className="text-lg font-bold">
+                        {patientName(data.patient)}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {data.patient?.patientNumber || "No patient number"}
                       </p>
@@ -779,7 +829,9 @@ export default function IpdDetailPage() {
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Status</p>
                     <div className="mt-2">
-                      <Badge className={`rounded-full border px-3 py-1 ${statusTone(data.statusCode)}`}>
+                      <Badge
+                        className={`rounded-full border px-3 py-1 ${statusTone(data.statusCode)}`}
+                      >
                         {data.statusCode}
                       </Badge>
                     </div>
@@ -787,37 +839,53 @@ export default function IpdDetailPage() {
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Gender</p>
-                    <p className="mt-1 text-sm font-medium">{data.patient?.gender || "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.patient?.gender || "—"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Phone</p>
-                    <p className="mt-1 text-sm font-medium">{data.patient?.phonePrimary || "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.patient?.phonePrimary || "—"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Appointment</p>
-                    <p className="mt-1 text-sm font-medium">{data.appointment?.appointmentNumber || "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.appointment?.appointmentNumber || "—"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Consultation</p>
-                    <p className="mt-1 text-sm font-medium">{data.consultation?.consultationNumber || "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Consultation
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.consultation?.consultationNumber || "—"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Ward</p>
-                    <p className="mt-1 text-sm font-medium">{data.ward?.name || "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.ward?.name || "—"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Bed</p>
-                    <p className="mt-1 text-sm font-medium">{data.bed?.bedNumber || "Not assigned"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.bed?.bedNumber || "Not assigned"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Admitted At</p>
-                    <p className="mt-1 text-sm font-medium">{formatDate(data.admittedAt)}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {formatDate(data.admittedAt)}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -833,23 +901,37 @@ export default function IpdDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Admission Number</p>
-                    <p className="mt-1 text-sm font-medium">{data.admissionNumber}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Admission Number
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.admissionNumber}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Admission Source</p>
-                    <p className="mt-1 text-sm font-medium">{data.admissionSource || "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Admission Source
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.admissionSource || "—"}
+                    </p>
                   </div>
 
                   <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Expected Discharge</p>
-                    <p className="mt-1 text-sm font-medium">{formatDate(data.expectedDischargeAt)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Expected Discharge
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {formatDate(data.expectedDischargeAt)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs text-muted-foreground">Admission Reason</p>
+                  <p className="text-xs text-muted-foreground">
+                    Admission Reason
+                  </p>
                   <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                     {data.admissionReason || "—"}
                   </p>
@@ -877,7 +959,9 @@ export default function IpdDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Review Date</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Review Date
+                    </label>
                     <Input
                       type="datetime-local"
                       value={reviewDate}
@@ -887,7 +971,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Chief Complaint</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Chief Complaint
+                    </label>
                     <Input
                       value={reviewChiefComplaint}
                       onChange={(e) => setReviewChiefComplaint(e.target.value)}
@@ -898,7 +984,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Subjective</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Subjective
+                  </label>
                   <Textarea
                     value={reviewSubjective}
                     onChange={(e) => setReviewSubjective(e.target.value)}
@@ -908,7 +996,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Objective</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Objective
+                  </label>
                   <Textarea
                     value={reviewObjective}
                     onChange={(e) => setReviewObjective(e.target.value)}
@@ -918,7 +1008,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Assessment</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Assessment
+                  </label>
                   <Textarea
                     value={reviewAssessment}
                     onChange={(e) => setReviewAssessment(e.target.value)}
@@ -938,7 +1030,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Additional Review Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Additional Review Notes
+                  </label>
                   <Textarea
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
@@ -963,7 +1057,9 @@ export default function IpdDetailPage() {
 
                 <div className="space-y-4 pt-2">
                   {clinicalLoading ? (
-                    <div className="text-sm text-muted-foreground">Loading doctor reviews...</div>
+                    <div className="text-sm text-muted-foreground">
+                      Loading doctor reviews...
+                    </div>
                   ) : doctorReviews.length === 0 ? (
                     <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
                       No doctor reviews recorded yet.
@@ -976,33 +1072,58 @@ export default function IpdDetailPage() {
                       >
                         <p className="font-semibold">Doctor Review</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          By: {staffName(review.reviewedBy)} • {formatDate(review.reviewDate || review.createdAt)}
+                          By: {staffName(review.reviewedBy)} •{" "}
+                          {formatDate(review.reviewDate || review.createdAt)}
                         </p>
 
                         <div className="mt-4 grid gap-3">
                           <div>
-                            <p className="text-xs text-muted-foreground">Chief Complaint</p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">{review.chiefComplaint || "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Chief Complaint
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                              {review.chiefComplaint || "—"}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Subjective</p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">{review.subjective || "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Subjective
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                              {review.subjective || "—"}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Objective</p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">{review.objective || "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Objective
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                              {review.objective || "—"}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Assessment</p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">{review.assessment || "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Assessment
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                              {review.assessment || "—"}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Plan</p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">{review.plan || "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Plan
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                              {review.plan || "—"}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Notes</p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">{review.reviewNotes || "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Notes
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">
+                              {review.reviewNotes || "—"}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1025,7 +1146,9 @@ export default function IpdDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Recorded At</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Recorded At
+                    </label>
                     <Input
                       type="datetime-local"
                       value={recordedAt}
@@ -1035,7 +1158,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Temperature °C</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Temperature °C
+                    </label>
                     <Input
                       type="number"
                       value={temperatureC}
@@ -1046,7 +1171,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Systolic BP</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Systolic BP
+                    </label>
                     <Input
                       type="number"
                       value={systolicBp}
@@ -1057,7 +1184,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Diastolic BP</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Diastolic BP
+                    </label>
                     <Input
                       type="number"
                       value={diastolicBp}
@@ -1068,7 +1197,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Pulse Rate</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Pulse Rate
+                    </label>
                     <Input
                       type="number"
                       value={pulseRate}
@@ -1079,7 +1210,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Respiratory Rate</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Respiratory Rate
+                    </label>
                     <Input
                       type="number"
                       value={respiratoryRate}
@@ -1090,7 +1223,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Oxygen Saturation</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Oxygen Saturation
+                    </label>
                     <Input
                       type="number"
                       value={oxygenSaturation}
@@ -1101,7 +1236,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Pain Score</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Pain Score
+                    </label>
                     <Input
                       type="number"
                       value={painScore}
@@ -1112,7 +1249,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Weight (kg)</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Weight (kg)
+                    </label>
                     <Input
                       type="number"
                       value={weightKg}
@@ -1123,7 +1262,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Height (cm)</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Height (cm)
+                    </label>
                     <Input
                       type="number"
                       value={heightCm}
@@ -1135,7 +1276,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Vital Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Vital Notes
+                  </label>
                   <Textarea
                     value={vitalNotes}
                     onChange={(e) => setVitalNotes(e.target.value)}
@@ -1160,7 +1303,9 @@ export default function IpdDetailPage() {
 
                 <div className="space-y-4 pt-2">
                   {clinicalLoading ? (
-                    <div className="text-sm text-muted-foreground">Loading vitals...</div>
+                    <div className="text-sm text-muted-foreground">
+                      Loading vitals...
+                    </div>
                   ) : vitalRecords.length === 0 ? (
                     <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
                       No vitals recorded yet.
@@ -1173,16 +1318,23 @@ export default function IpdDetailPage() {
                       >
                         <p className="font-semibold">Vital Record</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          By: {staffName(vital.recordedBy)} • {formatDate(vital.recordedAt || vital.createdAt)}
+                          By: {staffName(vital.recordedBy)} •{" "}
+                          {formatDate(vital.recordedAt || vital.createdAt)}
                         </p>
 
                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                           <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Temperature °C</p>
-                            <p className="mt-1 text-sm font-medium">{vital.temperatureC ?? "—"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Temperature °C
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {vital.temperatureC ?? "—"}
+                            </p>
                           </div>
                           <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Blood Pressure</p>
+                            <p className="text-xs text-muted-foreground">
+                              Blood Pressure
+                            </p>
                             <p className="mt-1 text-sm font-medium">
                               {vital.systolicBp || vital.diastolicBp
                                 ? `${vital.systolicBp ?? "—"}/${vital.diastolicBp ?? "—"}`
@@ -1190,29 +1342,52 @@ export default function IpdDetailPage() {
                             </p>
                           </div>
                           <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Pulse Rate</p>
-                            <p className="mt-1 text-sm font-medium">{vital.pulseRate ?? "—"}</p>
-                          </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Respiratory Rate</p>
-                            <p className="mt-1 text-sm font-medium">{vital.respiratoryRate ?? "—"}</p>
-                          </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Oxygen Saturation</p>
-                            <p className="mt-1 text-sm font-medium">{vital.oxygenSaturation ?? "—"}</p>
-                          </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Weight (kg)</p>
-                            <p className="mt-1 text-sm font-medium">{vital.weightKg ?? "—"}</p>
-                          </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">Height (cm)</p>
-                            <p className="mt-1 text-sm font-medium">{vital.heightCm ?? "—"}</p>
-                          </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                            <p className="text-xs text-muted-foreground">BMI / Pain</p>
+                            <p className="text-xs text-muted-foreground">
+                              Pulse Rate
+                            </p>
                             <p className="mt-1 text-sm font-medium">
-                              BMI: {vital.bmi ?? "—"} • Pain: {vital.painScore ?? "—"}
+                              {vital.pulseRate ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">
+                              Respiratory Rate
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {vital.respiratoryRate ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">
+                              Oxygen Saturation
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {vital.oxygenSaturation ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">
+                              Weight (kg)
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {vital.weightKg ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">
+                              Height (cm)
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {vital.heightCm ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">
+                              BMI / Pain
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              BMI: {vital.bmi ?? "—"} • Pain:{" "}
+                              {vital.painScore ?? "—"}
                             </p>
                           </div>
                         </div>
@@ -1242,7 +1417,9 @@ export default function IpdDetailPage() {
 
               <CardContent className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Note Type</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Note Type
+                  </label>
                   <Input
                     value={noteType}
                     onChange={(e) => setNoteType(e.target.value)}
@@ -1252,7 +1429,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Note Text</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Note Text
+                  </label>
                   <Textarea
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
@@ -1300,9 +1479,12 @@ export default function IpdDetailPage() {
                       className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
                     >
                       <div>
-                        <p className="font-semibold">{note.noteType || "Progress Note"}</p>
+                        <p className="font-semibold">
+                          {note.noteType || "Progress Note"}
+                        </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          By: {staffName(note.recordedBy)} • {formatDate(note.createdAt)}
+                          By: {staffName(note.recordedBy)} •{" "}
+                          {formatDate(note.createdAt)}
                         </p>
                       </div>
                       <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
@@ -1327,7 +1509,9 @@ export default function IpdDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Treatment Type</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Treatment Type
+                    </label>
                     <Input
                       value={treatmentType}
                       onChange={(e) => setTreatmentType(e.target.value)}
@@ -1337,7 +1521,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Treatment Name</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Treatment Name
+                    </label>
                     <Input
                       value={treatmentName}
                       onChange={(e) => setTreatmentName(e.target.value)}
@@ -1347,7 +1533,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Dosage</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Dosage
+                    </label>
                     <Input
                       value={dosage}
                       onChange={(e) => setDosage(e.target.value)}
@@ -1357,7 +1545,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Route</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Route
+                    </label>
                     <Input
                       value={route}
                       onChange={(e) => setRoute(e.target.value)}
@@ -1367,7 +1557,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Frequency</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Frequency
+                    </label>
                     <Input
                       value={frequency}
                       onChange={(e) => setFrequency(e.target.value)}
@@ -1377,7 +1569,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Scheduled At</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Scheduled At
+                    </label>
                     <Input
                       type="datetime-local"
                       value={scheduledAt}
@@ -1388,7 +1582,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Notes
+                  </label>
                   <Textarea
                     value={treatmentNotes}
                     onChange={(e) => setTreatmentNotes(e.target.value)}
@@ -1439,7 +1635,12 @@ export default function IpdDetailPage() {
                         <div className="space-y-2">
                           <p className="font-semibold">{entry.treatmentName}</p>
                           <p className="text-sm text-muted-foreground">
-                            {[entry.treatmentType, entry.dosage, entry.route, entry.frequency]
+                            {[
+                              entry.treatmentType,
+                              entry.dosage,
+                              entry.route,
+                              entry.frequency,
+                            ]
                               .filter(Boolean)
                               .join(" / ") || "-"}
                           </p>
@@ -1464,12 +1665,15 @@ export default function IpdDetailPage() {
                             {entry.statusCode || "PLANNED"}
                           </Badge>
 
-                          {(entry.statusCode || "").toUpperCase() !== "ADMINISTERED" ? (
+                          {(entry.statusCode || "").toUpperCase() !==
+                          "ADMINISTERED" ? (
                             <Button
                               type="button"
                               variant="outline"
                               className="rounded-2xl"
-                              onClick={() => handleAdministerTreatment(entry.id)}
+                              onClick={() =>
+                                handleAdministerTreatment(entry.id)
+                              }
                               disabled={administerTreatmentMutation.isPending}
                             >
                               {administerTreatmentMutation.isPending ? (
@@ -1507,7 +1711,9 @@ export default function IpdDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Urgency</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Urgency
+                    </label>
                     <select
                       value={labUrgency}
                       onChange={(e) => setLabUrgency(e.target.value)}
@@ -1520,7 +1726,9 @@ export default function IpdDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Lab Test</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Lab Test
+                    </label>
                     <select
                       value={selectedTestId}
                       onChange={(e) => setSelectedTestId(e.target.value)}
@@ -1545,7 +1753,9 @@ export default function IpdDetailPage() {
                   </label>
                   <Input
                     value={selectedTestInstructions}
-                    onChange={(e) => setSelectedTestInstructions(e.target.value)}
+                    onChange={(e) =>
+                      setSelectedTestInstructions(e.target.value)
+                    }
                     className="h-12 rounded-2xl"
                     placeholder="Fasting sample / morning sample / etc"
                   />
@@ -1593,7 +1803,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Clinical Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Clinical Notes
+                  </label>
                   <Textarea
                     value={labClinicalNotes}
                     onChange={(e) => setLabClinicalNotes(e.target.value)}
@@ -1630,7 +1842,9 @@ export default function IpdDetailPage() {
 
               <CardContent className="space-y-4">
                 {clinicalLoading ? (
-                  <div className="text-sm text-muted-foreground">Loading lab orders...</div>
+                  <div className="text-sm text-muted-foreground">
+                    Loading lab orders...
+                  </div>
                 ) : labOrders.length === 0 ? (
                   <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
                     No IPD lab orders found for this admission yet.
@@ -1655,13 +1869,17 @@ export default function IpdDetailPage() {
                           </p>
                         </div>
 
-                        <Badge className={`rounded-full border px-3 py-1 ${statusTone(order.status)}`}>
+                        <Badge
+                          className={`rounded-full border px-3 py-1 ${statusTone(order.status)}`}
+                        >
                           {order.status || "REQUESTED"}
                         </Badge>
                       </div>
 
                       <div className="mt-4 rounded-[1rem] border border-white/10 bg-black/10 p-3">
-                        <p className="text-xs text-muted-foreground">Clinical Notes</p>
+                        <p className="text-xs text-muted-foreground">
+                          Clinical Notes
+                        </p>
                         <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                           {order.clinicalNotes || "—"}
                         </p>
@@ -1681,17 +1899,21 @@ export default function IpdDetailPage() {
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="space-y-2">
                                   <p className="font-medium">
-                                    {item.test?.testName || `Test #${item.testId}`}
+                                    {item.test?.testName ||
+                                      `Test #${item.testId}`}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    Category: {item.test?.category || "—"} • Specimen: {item.test?.specimenType || "—"}
+                                    Category: {item.test?.category || "—"} •
+                                    Specimen: {item.test?.specimenType || "—"}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
                                     Instructions: {item.instructions || "—"}
                                   </p>
                                 </div>
 
-                                <Badge className={`rounded-full border px-3 py-1 ${statusTone(item.status)}`}>
+                                <Badge
+                                  className={`rounded-full border px-3 py-1 ${statusTone(item.status)}`}
+                                >
                                   {item.status || "PENDING"}
                                 </Badge>
                               </div>
@@ -1707,17 +1929,23 @@ export default function IpdDetailPage() {
                                       key={result.id}
                                       className="rounded-[1rem] border border-white/10 bg-black/10 p-3"
                                     >
-                                      <p className="text-xs text-muted-foreground">Result Value</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Result Value
+                                      </p>
                                       <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                                         {result.resultValue}
                                       </p>
 
-                                      <p className="mt-3 text-xs text-muted-foreground">Remarks</p>
+                                      <p className="mt-3 text-xs text-muted-foreground">
+                                        Remarks
+                                      </p>
                                       <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                                         {result.remarks || "—"}
                                       </p>
 
-                                      <p className="mt-3 text-xs text-muted-foreground">Recorded At</p>
+                                      <p className="mt-3 text-xs text-muted-foreground">
+                                        Recorded At
+                                      </p>
                                       <p className="mt-1 text-sm font-medium">
                                         {formatDate(result.recordedAt)}
                                       </p>
@@ -1732,6 +1960,64 @@ export default function IpdDetailPage() {
                     </div>
                   ))
                 )}
+              </CardContent>
+            </Card>
+          </section>
+
+          <section>
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Clinical Documents
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="grid gap-3 md:grid-cols-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 rounded-2xl justify-start"
+                  onClick={() => handleDownloadDocument("medical")}
+                  disabled={Boolean(downloadingDocument)}
+                >
+                  {downloadingDocument === "medical" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Medical Summary PDF
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 rounded-2xl justify-start"
+                  onClick={() => handleDownloadDocument("discharge")}
+                  disabled={Boolean(downloadingDocument)}
+                >
+                  {downloadingDocument === "discharge" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Discharge Summary PDF
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 rounded-2xl justify-start"
+                  onClick={() => handleDownloadDocument("chart")}
+                  disabled={Boolean(downloadingDocument)}
+                >
+                  {downloadingDocument === "chart" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Inpatient Chart PDF
+                </Button>
               </CardContent>
             </Card>
           </section>
@@ -1802,7 +2088,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Notes
+                  </label>
                   <Textarea
                     value={bedChargeNotes}
                     onChange={(event) => setBedChargeNotes(event.target.value)}
@@ -1843,7 +2131,8 @@ export default function IpdDetailPage() {
                     <div>
                       <p className="text-sm font-medium">Transfer patient</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Move this patient to another ward or another available bed.
+                        Move this patient to another ward or another available
+                        bed.
                       </p>
                     </div>
 
@@ -1853,7 +2142,9 @@ export default function IpdDetailPage() {
                       className="rounded-2xl"
                       onClick={() => {
                         setShowTransferForm((prev) => !prev);
-                        setTransferWardId(data.wardId ? String(data.wardId) : "");
+                        setTransferWardId(
+                          data.wardId ? String(data.wardId) : "",
+                        );
                         setTransferBedId("");
                       }}
                     >
@@ -1866,7 +2157,9 @@ export default function IpdDetailPage() {
                     <div className="grid gap-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <label className="mb-2 block text-sm font-medium">Transfer Ward</label>
+                          <label className="mb-2 block text-sm font-medium">
+                            Transfer Ward
+                          </label>
                           <select
                             value={transferWardId}
                             onChange={(e) => {
@@ -1888,7 +2181,9 @@ export default function IpdDetailPage() {
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-sm font-medium">Transfer Bed</label>
+                          <label className="mb-2 block text-sm font-medium">
+                            Transfer Bed
+                          </label>
                           <select
                             value={transferBedId}
                             onChange={(e) => setTransferBedId(e.target.value)}
@@ -1911,7 +2206,9 @@ export default function IpdDetailPage() {
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Transfer Note</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Transfer Note
+                        </label>
                         <Textarea
                           value={transferNotes}
                           onChange={(e) => setTransferNotes(e.target.value)}
@@ -1964,13 +2261,16 @@ export default function IpdDetailPage() {
                       Existing discharge summary found
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      By: {staffName(dischargeSummary.dischargedBy)} • {formatDate(dischargeSummary.dischargeDate)}
+                      By: {staffName(dischargeSummary.dischargedBy)} •{" "}
+                      {formatDate(dischargeSummary.dischargeDate)}
                     </p>
                   </div>
                 ) : null}
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Discharge Diagnosis</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Discharge Diagnosis
+                  </label>
                   <Textarea
                     value={dischargeDiagnosis}
                     onChange={(e) => setDischargeDiagnosis(e.target.value)}
@@ -1980,7 +2280,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Hospital Course</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Hospital Course
+                  </label>
                   <Textarea
                     value={hospitalCourse}
                     onChange={(e) => setHospitalCourse(e.target.value)}
@@ -1990,7 +2292,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Condition on Discharge</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Condition on Discharge
+                  </label>
                   <Textarea
                     value={conditionOnDischarge}
                     onChange={(e) => setConditionOnDischarge(e.target.value)}
@@ -2000,7 +2304,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Discharge Medications</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Discharge Medications
+                  </label>
                   <Textarea
                     value={dischargeMedications}
                     onChange={(e) => setDischargeMedications(e.target.value)}
@@ -2010,7 +2316,9 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Follow-up Instructions</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Follow-up Instructions
+                  </label>
                   <Textarea
                     value={followUpInstructions}
                     onChange={(e) => setFollowUpInstructions(e.target.value)}
@@ -2040,7 +2348,8 @@ export default function IpdDetailPage() {
                     className="h-12 rounded-2xl"
                     onClick={handleDischarge}
                     disabled={
-                      dischargeMutation.isPending || data.statusCode === "DISCHARGED"
+                      dischargeMutation.isPending ||
+                      data.statusCode === "DISCHARGED"
                     }
                   >
                     {dischargeMutation.isPending ? (

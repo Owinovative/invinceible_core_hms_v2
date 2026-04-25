@@ -180,8 +180,8 @@ export function ClinicalAiAssistant({
 
           {!isConfigured && !status.isLoading ? (
             <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-700 dark:text-amber-200">
-              Set `OPENAI_API_KEY` on the Railway backend to enable real AI
-              drafting. The browser never receives the key.
+              Set `GEMINI_API_KEY` on the Railway backend to enable Google
+              Gemini drafting. The browser never receives the key.
             </div>
           ) : null}
 
