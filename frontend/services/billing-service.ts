@@ -243,6 +243,16 @@ export interface UpdateInvoiceItemPayload {
   updatedByStaffId?: number;
 }
 
+export interface AddInvoiceItemPayload {
+  billingServiceId?: number;
+  description: string;
+  quantity?: number;
+  unitPrice?: number;
+  notes?: string;
+  statusCode?: string;
+  updatedByStaffId?: number;
+}
+
 export interface RemoveInvoiceItemPayload {
   reason: string;
 }
@@ -358,6 +368,16 @@ export async function updateInvoiceItem(
 ) {
   return apiFetch<InvoiceRecord>(`/billing/invoice-items/${id}`, {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function addInvoiceItem(
+  invoiceId: number,
+  payload: AddInvoiceItemPayload,
+) {
+  return apiFetch<InvoiceRecord>(`/billing/invoices/${invoiceId}/items`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

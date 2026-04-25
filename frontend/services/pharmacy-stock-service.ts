@@ -111,6 +111,8 @@ export interface BranchMedicinePricingImportResult {
   processed: number;
   created: number;
   updated: number;
+  masterCreated?: number;
+  masterUpdated?: number;
   skipped: number;
   errors: Array<{
     row: number;
@@ -156,15 +158,17 @@ export async function getLowPharmacyStock() {
   });
 }
 
-
 export async function restockBranchMedicine(
   stockId: number,
   payload: RestockBranchMedicinePayload,
 ) {
-  return apiFetch<BranchMedicineStockItem>(`/pharmacy-stock/${stockId}/restock`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  return apiFetch<BranchMedicineStockItem>(
+    `/pharmacy-stock/${stockId}/restock`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function getBranchMedicinePricingTemplate(branchId: number) {

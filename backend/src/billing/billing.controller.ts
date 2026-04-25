@@ -18,6 +18,7 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateCashPaymentDto } from './dto/create-cash-payment.dto';
 import { CreateMpesaPaymentRequestDto } from './dto/create-mpesa-payment-request.dto';
 import { ConfirmMpesaPaymentDto } from './dto/confirm-mpesa-payment.dto';
+import { AddInvoiceItemDto } from './dto/add-invoice-item.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
 import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
@@ -144,6 +145,15 @@ export class BillingController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.billingService.getInvoiceByIdScoped(id, user);
+  }
+
+  @Post('invoices/:id/items')
+  addInvoiceItem(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AddInvoiceItemDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.addInvoiceItem(id, dto, user);
   }
 
   @Patch('invoice-items/:id')

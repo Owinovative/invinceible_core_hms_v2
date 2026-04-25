@@ -32,6 +32,7 @@ import { PrescriptionModule } from './prescription/prescription.module';
 import { PrescriptionItemModule } from './prescription-item/prescription-item.module';
 import { OperationalModuleModule } from './operational-module/operational-module.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
+import { MasterCatalogModule } from './master-catalog/master-catalog.module';
 import { validateEnvironment } from './config/env.validation';
 import { AuditInterceptor } from './audit-log/audit.interceptor';
 
@@ -70,6 +71,7 @@ import { AuditInterceptor } from './audit-log/audit.interceptor';
     PrescriptionItemModule,
     OperationalModuleModule,
     AiAssistantModule,
+    MasterCatalogModule,
   ],
   controllers: [AppController],
   providers: [

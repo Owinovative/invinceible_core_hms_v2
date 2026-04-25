@@ -8,6 +8,7 @@ import {
   CreditCard,
   Download,
   Loader2,
+  Plus,
   Printer,
   Trash2,
   Save,
@@ -17,6 +18,8 @@ import { useAuth } from "@/providers/auth-provider";
 import { useInvoiceById } from "@/hooks/use-invoice-by-id";
 import { useCreateCashPayment } from "@/hooks/use-create-cash-payment";
 import { useCreateMpesaPaymentRequest } from "@/hooks/use-create-mpesa-payment-request";
+import { useAddInvoiceItem } from "@/hooks/use-add-invoice-item";
+import { useBillingServices } from "@/hooks/use-billing-services";
 import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { downloadInvoicePdf } from "@/services/billing-service";
@@ -26,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { appSelectClass } from "@/lib/select-class";
 
 function formatMoney(value?: number | null) {
   return new Intl.NumberFormat(undefined, {
@@ -36,9 +40,9 @@ function formatMoney(value?: number | null) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString();
 }
 
@@ -74,8 +78,10 @@ export default function InvoiceDetailPage() {
   const currentStaffId = user?.staffId ? Number(user.staffId) : undefined;
 
   const { data: invoice, isLoading } = useInvoiceById(id);
+  const { data: billingServicesData = [] } = useBillingServices();
   const createCashPaymentMutation = useCreateCashPayment();
   const createMpesaPaymentMutation = useCreateMpesaPaymentRequest();
+  const addInvoiceItemMutation = useAddInvoiceItem();
   const updateInvoiceItemMutation = useUpdateInvoiceItem();
   const removeInvoiceItemMutation = useRemoveInvoiceItem();
 
@@ -96,8 +102,17 @@ export default function InvoiceDetailPage() {
   const [editNotes, setEditNotes] = React.useState("");
   const [removeReason, setRemoveReason] = React.useState("");
 
+  const [newBillingServiceId, setNewBillingServiceId] = React.useState("");
+  const [newLineDescription, setNewLineDescription] = React.useState("");
+  const [newLineQuantity, setNewLineQuantity] = React.useState("1");
+  const [newLineUnitPrice, setNewLineUnitPrice] = React.useState("");
+  const [newLineNotes, setNewLineNotes] = React.useState("");
+
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
+  const billingServices = Array.isArray(billingServicesData)
+    ? billingServicesData
+    : [];
 
   const handleStartEdit = (item: (typeof items)[number]) => {
     setEditItemId(item.id);
@@ -125,6 +140,47 @@ export default function InvoiceDetailPage() {
 
     setMessage("Invoice item updated successfully.");
     setEditItemId(null);
+  };
+
+  const handleSelectNewBillingService = (value: string) => {
+    setNewBillingServiceId(value);
+    const selected = billingServices.find((item) => String(item.id) === value);
+
+    if (!selected) return;
+    setNewLineDescription(selected.name);
+    setNewLineUnitPrice("");
+  };
+
+  const handleAddInvoiceItem = async () => {
+    if (!invoice) return;
+
+    if (!newLineDescription.trim()) {
+      setMessage("Enter the invoice line description before adding it.");
+      return;
+    }
+
+    await addInvoiceItemMutation.mutateAsync({
+      invoiceId: invoice.id,
+      payload: {
+        billingServiceId: newBillingServiceId
+          ? Number(newBillingServiceId)
+          : undefined,
+        description: newLineDescription.trim(),
+        quantity: Number(newLineQuantity || 1),
+        unitPrice: newLineUnitPrice.trim()
+          ? Number(newLineUnitPrice || 0)
+          : undefined,
+        notes: newLineNotes.trim() || undefined,
+        updatedByStaffId: currentStaffId,
+      },
+    });
+
+    setNewBillingServiceId("");
+    setNewLineDescription("");
+    setNewLineQuantity("1");
+    setNewLineUnitPrice("");
+    setNewLineNotes("");
+    setMessage("Invoice line added successfully.");
   };
 
   const handleRemoveItem = async () => {
@@ -287,7 +343,7 @@ export default function InvoiceDetailPage() {
                       {invoice.facility?.address || "Hospital address"}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {invoice.facility?.phone || "Phone"} •{" "}
+                      {invoice.facility?.phone || "Phone"} /{" "}
                       {invoice.facility?.email || "Email"}
                     </p>
                   </div>
@@ -352,16 +408,16 @@ export default function InvoiceDetailPage() {
                           <div>
                             <p className="font-semibold">{item.description}</p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              Qty: {item.quantity} • Unit:{" "}
-                              {formatMoney(item.unitPrice)} • Total:{" "}
+                              Qty: {item.quantity} / Unit:{" "}
+                              {formatMoney(item.unitPrice)} / Total:{" "}
                               {formatMoney(item.lineTotal)}
                             </p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              Auto: {item.isAutoGenerated ? "Yes" : "No"} •
+                              Auto: {item.isAutoGenerated ? "Yes" : "No"} /
                               Removed: {item.isRemoved ? "Yes" : "No"}
                             </p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              Notes: {item.notes || "—"}
+                              Notes: {item.notes || "-"}
                             </p>
                           </div>
 
@@ -508,6 +564,108 @@ export default function InvoiceDetailPage() {
             </section>
           ) : null}
 
+          <section>
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle>Add Invoice Line</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Billing Service
+                    </label>
+                    <select
+                      value={newBillingServiceId}
+                      onChange={(event) =>
+                        handleSelectNewBillingService(event.target.value)
+                      }
+                      className={appSelectClass}
+                    >
+                      <option value="">Manual line</option>
+                      {billingServices.map((service) => (
+                        <option key={service.id} value={String(service.id)}>
+                          {service.name} / {formatMoney(service.defaultPrice)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Description
+                    </label>
+                    <Input
+                      value={newLineDescription}
+                      onChange={(event) =>
+                        setNewLineDescription(event.target.value)
+                      }
+                      className="h-12 rounded-2xl"
+                      placeholder="Consultation, nursing charge, dressing..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Quantity
+                    </label>
+                    <Input
+                      type="number"
+                      value={newLineQuantity}
+                      onChange={(event) =>
+                        setNewLineQuantity(event.target.value)
+                      }
+                      className="h-12 rounded-2xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Unit Price
+                    </label>
+                    <Input
+                      type="number"
+                      value={newLineUnitPrice}
+                      onChange={(event) =>
+                        setNewLineUnitPrice(event.target.value)
+                      }
+                      className="h-12 rounded-2xl"
+                      placeholder="Leave empty to resolve facility tariff"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Notes
+                  </label>
+                  <Textarea
+                    value={newLineNotes}
+                    onChange={(event) => setNewLineNotes(event.target.value)}
+                    className="min-h-[92px] rounded-2xl"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  className="h-12 rounded-2xl"
+                  onClick={handleAddInvoiceItem}
+                  disabled={addInvoiceItemMutation.isPending}
+                >
+                  {addInvoiceItemMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  Add Line
+                </Button>
+              </CardContent>
+            </Card>
+          </section>
+
           <section className="grid gap-6 xl:grid-cols-2">
             <Card className="rounded-[1.8rem] gradient-border panel-shadow">
               <CardHeader>
@@ -600,7 +758,7 @@ export default function InvoiceDetailPage() {
                       className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
                     >
                       <p className="font-semibold">
-                        {payment.receiptNumber} • {payment.paymentMethod}
+                        {payment.receiptNumber} / {payment.paymentMethod}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         Amount: {formatMoney(payment.amount)}

@@ -11,6 +11,7 @@ import {
   LockKeyhole,
   MessageCircle,
   PhoneCall,
+  Pill,
   ScrollText,
   ServerCog,
   Shield,
@@ -43,6 +44,12 @@ const items = [
     href: "/platform/departments",
     icon: DatabaseZap,
     signal: "dept.map",
+  },
+  {
+    title: "Master Catalogs",
+    href: "/platform/catalogs",
+    icon: Pill,
+    signal: "drug.service.lab.catalog",
   },
   {
     title: "Users",
@@ -91,11 +98,31 @@ const checks = [
   "Facility topology controlled",
 ];
 
-const upgrades = [
-  { title: "Audit review", icon: ScrollText },
-  { title: "Permission matrix", icon: KeyRound },
-  { title: "Deployment health", icon: Activity },
-  { title: "AI clinical assistant", icon: Bot },
+const controlNodes = [
+  {
+    title: "Master catalog kernel",
+    href: "/platform/catalogs",
+    icon: DatabaseZap,
+    caption: "CSV drug, service, and lab control",
+  },
+  {
+    title: "Audit review",
+    href: "/platform/audit",
+    icon: ScrollText,
+    caption: "Who did what, where, and when",
+  },
+  {
+    title: "Permission matrix",
+    href: "/platform/settings",
+    icon: KeyRound,
+    caption: "RBAC and runtime discipline",
+  },
+  {
+    title: "AI clinical assistant",
+    href: "/ai-assistant",
+    icon: Bot,
+    caption: "Clinical writing support online",
+  },
 ];
 
 export default function PlatformHomePage() {
@@ -229,19 +256,23 @@ emit("system.level", 6);`}
           <div className="relative">
             <div className="mb-5 flex items-center gap-3">
               <Activity className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-xl font-semibold">Next Control Upgrades</h2>
+              <h2 className="text-xl font-semibold">Control Nodes Online</h2>
             </div>
             <div className="grid gap-3 md:grid-cols-4">
-              {upgrades.map((item) => {
+              {controlNodes.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div
+                  <Link
                     key={item.title}
-                    className="rounded-[1.1rem] border border-cyan-300/10 bg-black/[0.08] px-4 py-3 font-mono text-sm dark:bg-black/25"
+                    href={item.href}
+                    className="rounded-lg border border-cyan-300/10 bg-black/[0.08] px-4 py-3 font-mono text-sm transition hover:border-cyan-300/35 hover:bg-cyan-400/10 dark:bg-black/25"
                   >
                     <Icon className="mb-3 h-4 w-4 text-cyan-400" />
-                    {item.title}
-                  </div>
+                    <p>{item.title}</p>
+                    <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                      {item.caption}
+                    </p>
+                  </Link>
                 );
               })}
             </div>
