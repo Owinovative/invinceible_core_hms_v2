@@ -7,7 +7,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PatientService } from '../patient/patient.service';
 import { AppointmentService } from '../appointment/appointment.service';
 import { ConsultationService } from '../consultation/consultation.service';
-import { IpdService } from '../ipd/ipd.service';
 import { StaffService } from '../staff/staff.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { NotificationService } from '../notification/notification.service';
@@ -20,6 +19,8 @@ import { ScopeService } from '../auth/scope.service';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
+import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
+import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 
 @Injectable()
 export class BillingService {
@@ -28,7 +29,6 @@ export class BillingService {
     private readonly patientService: PatientService,
     private readonly appointmentService: AppointmentService,
     private readonly consultationService: ConsultationService,
-    private readonly ipdService: IpdService,
     private readonly staffService: StaffService,
     private readonly auditLogService: AuditLogService,
     private readonly notificationService: NotificationService,
@@ -43,6 +43,113 @@ export class BillingService {
 
     const nextNumber = (latestInvoice?.id ?? 0) + 1;
     return `INV-${String(nextNumber).padStart(6, '0')}`;
+  }
+
+  private normalizeTariffCategory(category: string) {
+    return category.trim().toUpperCase();
+  }
+
+  private formatChargeDate(date: Date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private async assertTariffReferences(dto: {
+    facilityId?: number;
+    branchId?: number | null;
+    billingServiceId?: number | null;
+    labTestId?: number | null;
+    wardId?: number | null;
+    bedId?: number | null;
+  }) {
+    if (dto.facilityId) {
+      const facility = await this.prisma.facility.findUnique({
+        where: { id: dto.facilityId },
+      });
+
+      if (!facility) {
+        throw new NotFoundException(
+          `Facility with id ${dto.facilityId} not found`,
+        );
+      }
+    }
+
+    if (dto.branchId) {
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: dto.branchId },
+      });
+
+      if (!branch) {
+        throw new NotFoundException(`Branch with id ${dto.branchId} not found`);
+      }
+
+      if (dto.facilityId && branch.facilityId !== dto.facilityId) {
+        throw new BadRequestException(
+          'Tariff branch must belong to the selected facility',
+        );
+      }
+    }
+
+    if (dto.billingServiceId) {
+      const service = await this.prisma.billingService.findUnique({
+        where: { id: dto.billingServiceId },
+      });
+
+      if (!service) {
+        throw new NotFoundException(
+          `Billing service with id ${dto.billingServiceId} not found`,
+        );
+      }
+    }
+
+    if (dto.labTestId) {
+      const labTest = await this.prisma.labTestCatalog.findUnique({
+        where: { id: dto.labTestId },
+      });
+
+      if (!labTest) {
+        throw new NotFoundException(
+          `Lab test with id ${dto.labTestId} not found`,
+        );
+      }
+    }
+
+    if (dto.wardId) {
+      const ward = await this.prisma.ward.findUnique({
+        where: { id: dto.wardId },
+      });
+
+      if (!ward) {
+        throw new NotFoundException(`Ward with id ${dto.wardId} not found`);
+      }
+
+      if (dto.facilityId && ward.facilityId && ward.facilityId !== dto.facilityId) {
+        throw new BadRequestException(
+          'Tariff ward must belong to the selected facility',
+        );
+      }
+    }
+
+    if (dto.bedId) {
+      const bed = await this.prisma.bed.findUnique({
+        where: { id: dto.bedId },
+      });
+
+      if (!bed) {
+        throw new NotFoundException(`Bed with id ${dto.bedId} not found`);
+      }
+
+      if (dto.wardId && bed.wardId !== dto.wardId) {
+        throw new BadRequestException(
+          'Tariff bed must belong to the selected ward',
+        );
+      }
+
+      if (dto.facilityId && bed.facilityId && bed.facilityId !== dto.facilityId) {
+        throw new BadRequestException(
+          'Tariff bed must belong to the selected facility',
+        );
+      }
+    }
   }
 
   private async getOrCreateOpenInvoice(params: {
@@ -274,7 +381,11 @@ export class BillingService {
     return this.recalculateInvoiceTotalsFromItems(item.invoiceId);
   }
 
-  async removeInvoiceItem(id: number, dto: RemoveInvoiceItemDto) {
+  async removeInvoiceItem(
+    id: number,
+    dto: RemoveInvoiceItemDto,
+    user?: RequestUser,
+  ) {
     const item = await this.prisma.invoiceItem.findUnique({
       where: { id },
     });
@@ -293,7 +404,7 @@ export class BillingService {
         isRemoved: true,
         removedAt: new Date(),
         removedReason: dto.reason,
-        updatedByStaffId: dto.updatedByStaffId,
+        updatedByStaffId: user?.staffId ?? dto.updatedByStaffId,
         statusCode: 'REMOVED',
       },
     });
@@ -342,6 +453,340 @@ export class BillingService {
     });
   }
 
+  async createServiceTariff(dto: CreateServiceTariffDto, user?: RequestUser) {
+    await this.assertTariffReferences(dto);
+
+    const duplicate = await this.prisma.serviceTariff.findFirst({
+      where: {
+        facilityId: dto.facilityId,
+        branchId: dto.branchId ?? null,
+        category: this.normalizeTariffCategory(dto.category),
+        code: dto.code.trim().toUpperCase(),
+        isActive: true,
+      },
+    });
+
+    if (duplicate) {
+      throw new BadRequestException(
+        'An active tariff with this code already exists for this facility and branch',
+      );
+    }
+
+    const tariff = await this.prisma.serviceTariff.create({
+      data: {
+        code: dto.code.trim().toUpperCase(),
+        name: dto.name.trim(),
+        category: this.normalizeTariffCategory(dto.category),
+        facilityId: dto.facilityId,
+        branchId: dto.branchId ?? null,
+        billingServiceId: dto.billingServiceId ?? null,
+        labTestId: dto.labTestId ?? null,
+        wardId: dto.wardId ?? null,
+        bedId: dto.bedId ?? null,
+        unitPrice: dto.unitPrice,
+        isActive: dto.isActive ?? true,
+        notes: dto.notes,
+      },
+      include: {
+        facility: true,
+        branch: true,
+        billingService: true,
+        labTest: true,
+        ward: true,
+        bed: true,
+      },
+    });
+
+    await this.auditLogService.create({
+      moduleName: 'BILLING',
+      actionName: 'CREATE_SERVICE_TARIFF',
+      entityType: 'SERVICE_TARIFF',
+      entityId: String(tariff.id),
+      description: `Created tariff ${tariff.name}`,
+      facilityId: tariff.facilityId,
+      branchId: tariff.branchId ?? undefined,
+      actorUserId: user?.userId,
+      actorStaffId: user?.staffId ?? undefined,
+      afterData: JSON.stringify(tariff),
+    });
+
+    return tariff;
+  }
+
+  getServiceTariffs(user?: RequestUser) {
+    const where: any = {};
+
+    if (user?.roleCode && user.roleCode !== 'SUPER_ADMIN') {
+      if (!user.homeFacilityId) {
+        throw new BadRequestException('User has no home facility assigned');
+      }
+
+      where.facilityId = user.homeFacilityId;
+
+      if (!user.canAccessAllBranchesInFacility) {
+        const branchIds = new Set<number>();
+
+        if (user.homeBranchId) {
+          branchIds.add(user.homeBranchId);
+        }
+
+        for (const branchId of user.allowedBranchIds ?? []) {
+          branchIds.add(branchId);
+        }
+
+        where.OR = [
+          { branchId: null },
+          { branchId: { in: Array.from(branchIds) } },
+        ];
+      }
+    }
+
+    return this.prisma.serviceTariff.findMany({
+      where,
+      include: {
+        facility: true,
+        branch: true,
+        billingService: true,
+        labTest: true,
+        ward: true,
+        bed: true,
+      },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  async updateServiceTariff(
+    id: number,
+    dto: UpdateServiceTariffDto,
+    user?: RequestUser,
+  ) {
+    const existing = await this.prisma.serviceTariff.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`Service tariff with id ${id} not found`);
+    }
+
+    await this.assertTariffReferences({
+      facilityId: dto.facilityId ?? existing.facilityId,
+      branchId: dto.branchId === undefined ? existing.branchId : dto.branchId,
+      billingServiceId:
+        dto.billingServiceId === undefined
+          ? existing.billingServiceId
+          : dto.billingServiceId,
+      labTestId:
+        dto.labTestId === undefined ? existing.labTestId : dto.labTestId,
+      wardId: dto.wardId === undefined ? existing.wardId : dto.wardId,
+      bedId: dto.bedId === undefined ? existing.bedId : dto.bedId,
+    });
+
+    const updated = await this.prisma.serviceTariff.update({
+      where: { id },
+      data: {
+        code: dto.code ? dto.code.trim().toUpperCase() : undefined,
+        name: dto.name ? dto.name.trim() : undefined,
+        category: dto.category
+          ? this.normalizeTariffCategory(dto.category)
+          : undefined,
+        facilityId: dto.facilityId,
+        branchId: dto.branchId,
+        billingServiceId: dto.billingServiceId,
+        labTestId: dto.labTestId,
+        wardId: dto.wardId,
+        bedId: dto.bedId,
+        unitPrice: dto.unitPrice,
+        isActive: dto.isActive,
+        notes: dto.notes,
+      },
+      include: {
+        facility: true,
+        branch: true,
+        billingService: true,
+        labTest: true,
+        ward: true,
+        bed: true,
+      },
+    });
+
+    await this.auditLogService.create({
+      moduleName: 'BILLING',
+      actionName: 'UPDATE_SERVICE_TARIFF',
+      entityType: 'SERVICE_TARIFF',
+      entityId: String(updated.id),
+      description: `Updated tariff ${updated.name}`,
+      facilityId: updated.facilityId,
+      branchId: updated.branchId ?? undefined,
+      actorUserId: user?.userId,
+      actorStaffId: user?.staffId ?? undefined,
+      beforeData: JSON.stringify(existing),
+      afterData: JSON.stringify(updated),
+    });
+
+    return updated;
+  }
+
+  async resolveChargePrice(params: {
+    facilityId: number;
+    branchId?: number | null;
+    category: string;
+    code?: string | null;
+    billingServiceId?: number | null;
+    labTestId?: number | null;
+    wardId?: number | null;
+    bedId?: number | null;
+    fallbackPrice?: number | null;
+  }) {
+    const normalizedCategory = this.normalizeTariffCategory(params.category);
+    let fallbackPrice = params.fallbackPrice ?? 0;
+
+    if (params.billingServiceId && params.fallbackPrice == null) {
+      const billingService = await this.prisma.billingService.findUnique({
+        where: { id: params.billingServiceId },
+        select: { defaultPrice: true },
+      });
+
+      fallbackPrice = billingService?.defaultPrice ?? 0;
+    }
+
+    const identityFilters: any[] = [];
+
+    if (params.bedId) {
+      identityFilters.push({ bedId: params.bedId });
+    }
+
+    if (params.wardId) {
+      identityFilters.push({ wardId: params.wardId });
+    }
+
+    if (params.labTestId) {
+      identityFilters.push({ labTestId: params.labTestId });
+    }
+
+    if (params.billingServiceId) {
+      identityFilters.push({ billingServiceId: params.billingServiceId });
+    }
+
+    if (params.code) {
+      identityFilters.push({ code: params.code.trim().toUpperCase() });
+    }
+
+    if (identityFilters.length === 0) {
+      return fallbackPrice;
+    }
+
+    const branchFilters = params.branchId
+      ? [{ branchId: params.branchId }, { branchId: null }]
+      : [{ branchId: null }];
+
+    const candidates = await this.prisma.serviceTariff.findMany({
+      where: {
+        facilityId: params.facilityId,
+        category: normalizedCategory,
+        isActive: true,
+        AND: [{ OR: branchFilters }, { OR: identityFilters }],
+      },
+    });
+
+    if (candidates.length === 0) {
+      return fallbackPrice;
+    }
+
+    const ranked = candidates.sort((a, b) => {
+      const score = (tariff: (typeof candidates)[number]) => {
+        let value = tariff.branchId === params.branchId ? 100 : 0;
+        if (params.bedId && tariff.bedId === params.bedId) value += 70;
+        if (params.wardId && tariff.wardId === params.wardId) value += 55;
+        if (params.labTestId && tariff.labTestId === params.labTestId) {
+          value += 60;
+        }
+        if (
+          params.billingServiceId &&
+          tariff.billingServiceId === params.billingServiceId
+        ) {
+          value += 45;
+        }
+        if (
+          params.code &&
+          tariff.code === params.code.trim().toUpperCase()
+        ) {
+          value += 35;
+        }
+
+        return value;
+      };
+
+      return score(b) - score(a);
+    });
+
+    return ranked[0]?.unitPrice ?? fallbackPrice;
+  }
+
+  async billAdmissionBedDay(
+    admissionId: number,
+    params?: {
+      chargedDate?: Date;
+      quantity?: number;
+      unitPrice?: number;
+      notes?: string;
+      createdByStaffId?: number | null;
+    },
+  ) {
+    const admission = await this.prisma.admission.findUnique({
+      where: { id: admissionId },
+      include: {
+        patient: true,
+        ward: true,
+        bed: true,
+      },
+    });
+
+    if (!admission) {
+      throw new NotFoundException(`Admission with id ${admissionId} not found`);
+    }
+
+    const chargedDate = params?.chargedDate ?? new Date();
+    const dayKey = this.formatChargeDate(chargedDate);
+    const unitPrice =
+      params?.unitPrice ??
+      (await this.resolveChargePrice({
+        facilityId: admission.facilityId,
+        branchId: admission.branchId,
+        category: 'IPD_BED',
+        code: admission.bedId
+          ? `BED_${admission.bedId}`
+          : `WARD_${admission.wardId}`,
+        wardId: admission.wardId,
+        bedId: admission.bedId,
+        fallbackPrice: 0,
+      }));
+
+    const wardName = admission.ward?.name ?? `Ward #${admission.wardId}`;
+    const bedLabel = admission.bed
+      ? `, bed ${admission.bed.bedLabel || admission.bed.bedNumber}`
+      : '';
+
+    return this.addAutoInvoiceItem({
+      patientId: admission.patientId,
+      facilityId: admission.facilityId,
+      branchId: admission.branchId,
+      appointmentId: admission.appointmentId,
+      consultationId: admission.consultationId,
+      admissionId: admission.id,
+      createdByStaffId:
+        params?.createdByStaffId ?? admission.admittedByStaffId ?? null,
+      description: `IPD Bed Charge: ${wardName}${bedLabel} (${dayKey})`,
+      quantity: params?.quantity ?? 1,
+      unitPrice,
+      notes:
+        params?.notes ??
+        'Automatically posted from the active admission bed-day charge.',
+      sourceModule: 'IPD',
+      sourceEntityType: 'BED_DAY',
+      sourceEntityId: `${admission.id}:${dayKey}`,
+    });
+  }
+
   async createInvoice(dto: CreateInvoiceDto) {
     let invoiceNumber = dto.invoiceNumber;
 
@@ -371,7 +816,22 @@ export class BillingService {
 
     let admission: any = null;
     if (dto.admissionId) {
-      admission = await this.ipdService.getAdmissionById(dto.admissionId);
+      admission = await this.prisma.admission.findUnique({
+        where: { id: dto.admissionId },
+        include: {
+          facility: true,
+          branch: true,
+          patient: true,
+          ward: true,
+          bed: true,
+        },
+      });
+
+      if (!admission) {
+        throw new NotFoundException(
+          `Admission with id ${dto.admissionId} not found`,
+        );
+      }
     }
 
     let createdByStaff: any = null;

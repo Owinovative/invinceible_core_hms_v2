@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, LockKeyhole, User2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, User2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,6 +34,7 @@ export default function LoginPageClient() {
   const searchParams = useSearchParams();
   const { login, isLoading } = useAuth();
   const [error, setError] = React.useState<string | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const nextPath = searchParams.get("next");
 
@@ -85,10 +86,14 @@ export default function LoginPageClient() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-400/10 to-transparent" />
 
       <div className="relative flex min-h-screen items-center justify-center px-6 py-10">
-        <Card className="w-full max-w-md rounded-[2rem] border-white/15 bg-white/10 text-white shadow-2xl backdrop-blur-2xl">
+        <Card className="w-full max-w-md rounded-[2rem] border-white/20 bg-white/[0.12] text-white shadow-2xl backdrop-blur-2xl">
           <CardContent className="p-8 md:p-10">
             <div className="mb-8 flex flex-col items-center text-center">
               <AppLogo className="mb-4" light />
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Secure clinical access
+              </div>
               <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
             </div>
 
@@ -127,11 +132,25 @@ export default function LoginPageClient() {
                         <div className="relative">
                           <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
                           <Input
-                            type="password"
-                            className="h-12 rounded-xl border-white/20 bg-white/10 pl-10 text-white placeholder:text-white/45"
+                            type={showPassword ? "text" : "password"}
+                            className="h-12 rounded-xl border-white/20 bg-white/10 pl-10 pr-12 text-white placeholder:text-white/45"
                             placeholder="Enter password"
                             {...field}
                           />
+                          <button
+                            type="button"
+                            aria-label={
+                              showPassword ? "Hide password" : "Show password"
+                            }
+                            onClick={() => setShowPassword((value) => !value)}
+                            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage className="text-red-300" />

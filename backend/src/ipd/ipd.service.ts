@@ -17,6 +17,7 @@ import { UpdateBedDto } from './dto/update-bed.dto';
 import { ScopeService } from '../auth/scope.service';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { TransferAdmissionBedDto } from './dto/transfer-admission-bed.dto';
+import { BillingService } from '../billing/billing.service';
 
 @Injectable()
 export class IpdService {
@@ -28,6 +29,7 @@ export class IpdService {
     private readonly staffService: StaffService,
     private readonly notificationService: NotificationService,
     private readonly scopeService: ScopeService,
+    private readonly billingService: BillingService,
   ) {}
 
   async createWard(createWardDto: CreateWardDto) {
@@ -440,6 +442,11 @@ export class IpdService {
       targetStaffId: admission.admittedByStaffId ?? undefined,
     });
 
+    await this.billingService.billAdmissionBedDay(admission.id, {
+      createdByStaffId: admission.admittedByStaffId ?? null,
+      notes: 'Automatically posted on admission.',
+    });
+
     return admission;
   }
 
@@ -669,6 +676,12 @@ async getActiveAdmissionsScoped(user: RequestUser) {
       facilityId: updatedAdmission.facilityId,
       branchId: updatedAdmission.branchId ?? undefined,
       targetStaffId: updatedAdmission.admittedByStaffId ?? undefined,
+    });
+
+    await this.billingService.billAdmissionBedDay(updatedAdmission.id, {
+      createdByStaffId: updatedAdmission.admittedByStaffId ?? null,
+      notes:
+        'Automatically checked after ward or bed transfer. Duplicate same-day charges are ignored.',
     });
 
     return updatedAdmission;

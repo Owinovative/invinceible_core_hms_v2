@@ -4,6 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  Ambulance,
+  Baby,
+  Banknote,
   BedDouble,
   Bell,
   CalendarPlus,
@@ -11,18 +14,31 @@ import {
   ChevronRight,
   Clock3,
   CreditCard,
+  Dumbbell,
+  FileCheck2,
   FlaskConical,
   HeartPulse,
   LayoutDashboard,
-  Layers3,
+  Monitor,
+  PackageCheck,
+  PackageSearch,
   Pill,
   Plus,
+  RadioTower,
   Receipt,
+  ScanLine,
   Settings,
+  ShieldCheck,
   Stethoscope,
   UserPlus,
   Users,
   Warehouse,
+  BriefcaseBusiness,
+  Building2,
+  Microscope,
+  Syringe,
+  TabletSmartphone,
+  Truck,
 } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
@@ -37,7 +53,6 @@ const navSections = [
     label: "Command",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { title: "Modules", href: "/modules", icon: Layers3 },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Reports", href: "/reports", icon: Activity },
       { title: "Settings", href: "/settings", icon: Settings, adminOnly: true },
@@ -58,6 +73,21 @@ const navSections = [
       { title: "Doctor Queue", href: "/doctor-queue", icon: Stethoscope },
       { title: "Lab", href: "/lab", icon: FlaskConical },
       { title: "Admissions", href: "/ipd", icon: BedDouble },
+      { title: "Emergency", href: "/emergency", icon: Ambulance },
+      { title: "Radiology", href: "/radiology", icon: Monitor },
+      { title: "Theatre", href: "/theatre", icon: Syringe },
+      { title: "Maternity", href: "/maternity", icon: Baby },
+      { title: "ICU/HDU", href: "/icu", icon: BedDouble },
+      { title: "Dental", href: "/dental", icon: Microscope },
+      { title: "Physiotherapy", href: "/physiotherapy", icon: Dumbbell },
+      { title: "Nutrition", href: "/nutrition", icon: HeartPulse },
+    ],
+  },
+  {
+    label: "Diagnostics",
+    items: [
+      { title: "Blood Bank", href: "/blood-bank", icon: ScanLine },
+      { title: "Telemedicine", href: "/telemedicine", icon: Stethoscope },
     ],
   },
   {
@@ -65,6 +95,13 @@ const navSections = [
     items: [
       { title: "Billing", href: "/billing", icon: CreditCard },
       { title: "Invoices", href: "/invoices", icon: Receipt },
+      { title: "Tariffs", href: "/billing/tariffs", icon: Banknote },
+      {
+        title: "Revenue Integrity",
+        href: "/revenue-integrity",
+        icon: CreditCard,
+      },
+      { title: "Insurance", href: "/insurance", icon: Banknote },
     ],
   },
   {
@@ -72,6 +109,32 @@ const navSections = [
     items: [
       { title: "Dispensing", href: "/pharmacy", icon: Pill },
       { title: "Stock", href: "/pharmacy-stock", icon: Warehouse },
+      { title: "Pricing", href: "/pharmacy-pricing", icon: Pill },
+      { title: "Central Store", href: "/central-store", icon: Warehouse },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { title: "Procurement", href: "/procurement", icon: Truck },
+      { title: "Assets", href: "/assets", icon: PackageSearch },
+      { title: "Biomedical", href: "/biomedical", icon: Building2 },
+      { title: "CSSD", href: "/cssd", icon: PackageCheck },
+      { title: "Ambulance", href: "/ambulance", icon: RadioTower },
+      { title: "Mortuary", href: "/mortuary", icon: FileCheck2 },
+      { title: "HR/Rostering", href: "/hr", icon: BriefcaseBusiness },
+    ],
+  },
+  {
+    label: "Digital & Quality",
+    items: [
+      { title: "Patient Portal", href: "/patient-portal", icon: TabletSmartphone },
+      {
+        title: "Infection Control",
+        href: "/infection-control",
+        icon: ShieldCheck,
+      },
+      { title: "Compliance", href: "/compliance", icon: ShieldCheck },
     ],
   },
 ];
