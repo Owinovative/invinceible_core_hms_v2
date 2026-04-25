@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateOperationalModuleRecordDto } from './dto/create-operational-module-record.dto';
 import { UpdateOperationalModuleRecordDto } from './dto/update-operational-module-record.dto';
 import { OperationalModuleFilterDto } from './dto/operational-module-filter.dto';
@@ -48,6 +49,7 @@ export class OperationalModuleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scopeService: ScopeService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private async generateRecordNumber(moduleSlug: string, facilityId: number) {
@@ -142,6 +144,19 @@ export class OperationalModuleService {
       },
     });
 
+    await this.auditLogService.create({
+      moduleName: 'OPERATIONS',
+      actionName: 'MODULE_RECORD_CREATED',
+      entityType: 'OPERATIONAL_MODULE_RECORD',
+      entityId: String(record.id),
+      description: `Created ${record.moduleTitle} record ${record.recordNumber}`,
+      facilityId: record.facilityId,
+      branchId: record.branchId ?? undefined,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? undefined,
+      afterData: JSON.stringify(record),
+    });
+
     return record;
   }
 
@@ -230,7 +245,7 @@ export class OperationalModuleService {
       : existing.statusCode;
     const now = new Date();
 
-    return this.prisma.operationalModuleRecord.update({
+    const updated = await this.prisma.operationalModuleRecord.update({
       where: { id },
       data: {
         moduleTitle: dto.moduleTitle?.trim(),
@@ -259,6 +274,26 @@ export class OperationalModuleService {
             : undefined,
       },
     });
+
+    await this.auditLogService.create({
+      moduleName: 'OPERATIONS',
+      actionName:
+        existing.statusCode !== updated.statusCode ||
+        existing.workflowStage !== updated.workflowStage
+          ? 'MODULE_RECORD_TRANSITIONED'
+          : 'MODULE_RECORD_CHANGED',
+      entityType: 'OPERATIONAL_MODULE_RECORD',
+      entityId: String(updated.id),
+      description: `Updated ${updated.moduleTitle} record ${updated.recordNumber}`,
+      facilityId: updated.facilityId,
+      branchId: updated.branchId ?? undefined,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? undefined,
+      beforeData: JSON.stringify(existing),
+      afterData: JSON.stringify(updated),
+    });
+
+    return updated;
   }
 
   async getGlobalSummary(filter: OperationalModuleFilterDto, user: RequestUser) {

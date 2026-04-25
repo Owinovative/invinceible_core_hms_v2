@@ -26,6 +26,10 @@ export class ReportsService {
   ): ReportFilterDto {
     const next: ReportFilterDto = { ...(filter ?? {}) };
 
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return next;
+    }
+
     if (!user.homeFacilityId) {
       throw new ForbiddenException('User has no home facility');
     }
@@ -561,6 +565,23 @@ export class ReportsService {
         take: 50,
       }),
     ]);
+    const now = new Date();
+    const activeStatuses = ['OPEN', 'IN_PROGRESS', 'WAITING', 'ESCALATED'];
+    const completedStatuses = ['COMPLETED', 'CLOSED'];
+    const total = byStatus.reduce((sum, item) => sum + item._count._all, 0);
+    const active = byStatus
+      .filter((item) => activeStatuses.includes(item.statusCode))
+      .reduce((sum, item) => sum + item._count._all, 0);
+    const completed = byStatus
+      .filter((item) => completedStatuses.includes(item.statusCode))
+      .reduce((sum, item) => sum + item._count._all, 0);
+    const overdue = await this.prisma.operationalModuleRecord.count({
+      where: {
+        ...where,
+        dueAt: { lt: now },
+        statusCode: { notIn: ['COMPLETED', 'CLOSED', 'CANCELLED'] },
+      },
+    });
 
     return {
       filters: {
@@ -568,6 +589,12 @@ export class ReportsService {
         endDate: filter?.endDate ?? null,
         facilityId: filter?.facilityId ?? null,
         branchId: filter?.branchId ?? null,
+      },
+      summary: {
+        total,
+        active,
+        completed,
+        overdue,
       },
       byModule: byModule.map((item) => ({
         moduleSlug: item.moduleSlug,
