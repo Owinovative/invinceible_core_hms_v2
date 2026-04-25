@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { InvoiceItemRecord } from "@/services/billing-service";
 
 function formatMoney(value?: number | null) {
   return new Intl.NumberFormat(undefined, {
@@ -114,7 +115,7 @@ export default function BillingPage() {
   const [mpesaAmount, setMpesaAmount] = React.useState("");
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
 
-  const startEdit = (item: any) => {
+  const startEdit = (item: InvoiceItemRecord) => {
     setEditingItemId(item.id);
     setEditDescription(item.description || "");
     setEditQuantity(String(item.quantity ?? 1));

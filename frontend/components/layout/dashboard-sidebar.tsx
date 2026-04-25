@@ -168,7 +168,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-white/10 bg-background/80 backdrop-blur-2xl",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-border/70 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-72"),
       )}
@@ -197,7 +197,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 py-4">
-        <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-3">
+        <div className="premium-card rounded-[1.2rem] p-3">
           {compact ? (
             <div className="space-y-2 text-center text-xs font-semibold text-muted-foreground">
               <div className="rounded-xl bg-cyan-500/10 px-2 py-2 text-cyan-300">
@@ -245,7 +245,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white/[0.08]",
+                  "flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-cyan-500/10",
                   compact && "px-2",
                 )}
               >
@@ -286,8 +286,8 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-cyan-500/10 text-cyan-100 ring-1 ring-cyan-400/20"
-                            : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
+                            ? "bg-cyan-500/10 text-cyan-700 ring-1 ring-cyan-400/25 dark:text-cyan-100"
+                            : "text-muted-foreground hover:bg-cyan-500/10 hover:text-foreground",
                         )}
                       >
                         <Icon

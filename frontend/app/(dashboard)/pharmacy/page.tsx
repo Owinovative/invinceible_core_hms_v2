@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import {
-  CheckCircle2,
   ClipboardList,
   Loader2,
   PackageCheck,
@@ -19,6 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import type {
+  PharmacyDispenseItem,
+  PharmacyDispenseRecord,
+  PharmacyPrescriptionItem,
+} from "@/services/pharmacy-service";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -95,8 +99,12 @@ export default function PharmacyPage() {
     usePrescriptionById(selectedPrescriptionId);
 
   const prescription = prescriptionDetail ?? selectedQueueItem;
-  const items = Array.isArray(prescription?.items) ? prescription.items : [];
-  const dispenses = Array.isArray(prescription?.dispenses)
+  const items: PharmacyPrescriptionItem[] = Array.isArray(prescription?.items)
+    ? prescription.items
+    : [];
+  const dispenses: PharmacyDispenseRecord[] = Array.isArray(
+    prescription?.dispenses,
+  )
     ? prescription.dispenses
     : [];
 
@@ -298,7 +306,7 @@ export default function PharmacyPage() {
                     <div>
                       <p className="text-lg font-bold">{prescription.prescriptionNumber}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {patientName((prescription as any).patient)}
+                        {patientName(prescription.patient)}
                       </p>
                     </div>
 
@@ -315,14 +323,14 @@ export default function PharmacyPage() {
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Patient Number</p>
                       <p className="mt-1 text-sm font-medium">
-                        {(prescription as any).patient?.patientNumber || "—"}
+                        {prescription.patient?.patientNumber || "-"}
                       </p>
                     </div>
 
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Prescriber</p>
                       <p className="mt-1 text-sm font-medium">
-                        {staffName((prescription as any).prescribedBy)}
+                        {staffName(prescription.prescribedBy)}
                       </p>
                     </div>
 
@@ -357,7 +365,7 @@ export default function PharmacyPage() {
                       No prescription items found.
                     </div>
                   ) : (
-                    items.map((item: any) => (
+                    items.map((item: PharmacyPrescriptionItem) => (
                       <div
                         key={item.id}
                         className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
@@ -422,7 +430,7 @@ export default function PharmacyPage() {
                       No dispense history yet.
                     </div>
                   ) : (
-                    dispenses.map((dispense: any) => (
+                    dispenses.map((dispense: PharmacyDispenseRecord) => (
                       <div
                         key={dispense.id}
                         className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
@@ -448,7 +456,8 @@ export default function PharmacyPage() {
                         </div>
 
                         <div className="mt-3 space-y-3">
-                          {(dispense.items ?? []).map((dispenseItem: any) => (
+                          {(dispense.items ?? []).map(
+                            (dispenseItem: PharmacyDispenseItem) => (
                             <div
                               key={dispenseItem.id}
                               className="rounded-[1rem] border border-white/10 bg-black/10 p-3"
@@ -465,7 +474,8 @@ export default function PharmacyPage() {
                                 {dispenseItem.lineTotal}
                               </p>
                             </div>
-                          ))}
+                            ),
+                          )}
                         </div>
                       </div>
                     ))

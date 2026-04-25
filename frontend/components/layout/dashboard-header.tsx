@@ -51,7 +51,7 @@ export function DashboardHeader() {
   const unreadCount = counts?.counts.unread ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[rgba(7,11,20,0.72)] backdrop-blur-2xl">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-border/70 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70">
       <div className="flex h-20 items-center gap-4 px-4 md:px-6">
         <Button
           variant="outline"
@@ -62,7 +62,7 @@ export function DashboardHeader() {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden max-w-xl flex-1 items-center gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.03] px-4 py-3 panel-shadow md:flex">
+        <div className="premium-card hidden max-w-xl flex-1 items-center gap-3 rounded-[1.35rem] px-4 py-3 md:flex">
           <Search className="h-4 w-4 text-muted-foreground" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">
@@ -120,7 +120,7 @@ export function DashboardHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-2xl border-white/10 bg-white/[0.03]"
+            className="rounded-2xl border-white/10 bg-white/[0.05]"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -134,7 +134,7 @@ export function DashboardHeader() {
             asChild
             variant="outline"
             size="icon"
-            className="relative rounded-2xl border-white/10 bg-white/[0.03]"
+            className="relative rounded-2xl border-white/10 bg-white/[0.05]"
           >
             <Link href="/notifications" aria-label="Notifications">
               <Bell className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function DashboardHeader() {
               </p>
             </div>
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-400 text-sm font-bold text-white shadow-[0_12px_24px_rgba(14,165,233,0.35)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-emerald-500 to-amber-300 text-sm font-bold text-slate-950 shadow-[0_12px_24px_rgba(14,165,233,0.28)]">
               {initials}
             </div>
 

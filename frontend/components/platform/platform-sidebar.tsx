@@ -44,7 +44,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-white/10 bg-[#050816]/90 backdrop-blur-2xl transition-all duration-300",
+        "flex h-full shrink-0 flex-col border-r border-white/10 bg-background/80 backdrop-blur-2xl transition-all duration-300",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-72"),
       )}
@@ -73,7 +73,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="px-3 py-4">
-        <div className="rounded-lg border border-cyan-400/15 bg-cyan-400/[0.035] p-4">
+        <div className="premium-card rounded-[1.2rem] p-4">
           {compact ? (
             <div className="space-y-3 text-center">
               <div className="rounded-lg bg-cyan-500/10 p-2 text-xs font-semibold text-cyan-300">
@@ -118,8 +118,8 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
                 "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
                 compact && "justify-center px-2",
                 isActive
-                  ? "bg-cyan-400/10 text-cyan-100 ring-1 ring-cyan-300/20"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                  ? "bg-cyan-400/10 text-cyan-700 ring-1 ring-cyan-300/25 dark:text-cyan-100"
+                  : "text-muted-foreground hover:bg-cyan-500/10 hover:text-foreground",
               )}
               onClick={mobile ? closeMobileSidebar : undefined}
             >

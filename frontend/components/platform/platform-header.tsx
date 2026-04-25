@@ -23,7 +23,7 @@ export function PlatformHeader() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-30 border-b bg-[rgba(7,11,20,0.72)] backdrop-blur-2xl">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-background/75 backdrop-blur-2xl">
       <div className="flex h-20 items-center gap-4 px-4 md:px-6">
         <Button
           variant="outline"
@@ -34,7 +34,7 @@ export function PlatformHeader() {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden items-center gap-3 rounded-[1.2rem] border glass-panel px-4 py-2 panel-shadow md:flex">
+        <div className="premium-card hidden items-center gap-3 rounded-[1.2rem] px-4 py-2 md:flex">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/10">
             <Shield className="h-5 w-5 text-violet-400" />
           </div>
@@ -48,7 +48,7 @@ export function PlatformHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-xl"
+            className="rounded-xl border-white/10 bg-white/[0.05]"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -68,7 +68,7 @@ export function PlatformHeader() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 font-semibold text-white shadow-lg">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-emerald-500 to-amber-300 font-semibold text-slate-950 shadow-lg">
               {initials}
             </div>
 

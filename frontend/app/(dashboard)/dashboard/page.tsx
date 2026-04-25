@@ -5,9 +5,12 @@ import {
   Activity,
   ArrowRight,
   BedDouble,
+  Bot,
   ClipboardCheck,
   Clock3,
   FlaskConical,
+  MessageCircle,
+  PhoneCall,
   RefreshCw,
   ShieldAlert,
   Sparkles,
@@ -39,6 +42,7 @@ import { useModuleOperationsReport } from "@/hooks/use-module-operations-report"
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
 import { cn } from "@/lib/utils";
+import { creatorContacts, getWhatsappLink } from "@/lib/creator-contacts";
 
 function SummaryCard({
   title,
@@ -176,6 +180,89 @@ function InsightStrip({
   );
 }
 
+function AiAndSupportStrip() {
+  return (
+    <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <Card className="premium-card motion-sheen rounded-[1.8rem] py-0">
+        <CardContent className="relative p-5 md:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                Next clinical intelligence layer
+              </Badge>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight">
+                AI doctor note assistant is staged for the next phase.
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                The dashboard now reserves a polished lane for a ChatGPT-backed
+                assistant that can later help doctors draft notes, autofill
+                clinical text, and prepare structured summaries from patient
+                context.
+              </p>
+            </div>
+
+            <div className="grid min-w-[280px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              {["Notes", "Autofill", "Summaries"].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <p className="text-sm font-semibold">{item}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="premium-card rounded-[1.8rem] py-0">
+        <CardContent className="relative p-5 md:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Builder support
+              </p>
+              <h2 className="mt-1 text-xl font-bold">Engineering assistance</h2>
+            </div>
+            <Sparkles className="h-5 w-5 text-amber-400" />
+          </div>
+
+          <div className="grid gap-3">
+            {creatorContacts.map((creator) => (
+              <a
+                key={creator.name}
+                href={getWhatsappLink(creator.whatsappNumber, creator.message)}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-4 transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{creator.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {creator.role}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-sm text-emerald-500">
+                      <PhoneCall className="h-4 w-4" />
+                      {creator.phone}
+                    </div>
+                  </div>
+                  <MessageCircle className="h-5 w-5 text-emerald-400" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 function OperationalPulseChart({
   isLoading,
   data,
@@ -284,7 +371,7 @@ export default function DashboardPage() {
   const branchLabel = selectedBranchName || "No branch";
 
   const scopeText = facilityName
-    ? `${facilityName} • ${branchLabel}`
+    ? `${facilityName} - ${branchLabel}`
     : "No facility";
 
   const showHealthyEmptyState =
@@ -331,12 +418,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/12 via-cyan-500/5 to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-white/10 to-transparent dark:from-white/[0.03]" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -left-16 bottom-0 h-60 w-60 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute right-1/3 top-10 h-28 w-28 rounded-full bg-violet-500/10 blur-3xl" />
+      <section className="premium-card motion-sheen relative overflow-hidden rounded-[2rem] p-6 md:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-emerald-500/5 to-amber-400/10" />
+        <div className="clinical-mesh opacity-40" />
 
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-4xl space-y-4">
@@ -415,6 +499,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      <AiAndSupportStrip />
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
