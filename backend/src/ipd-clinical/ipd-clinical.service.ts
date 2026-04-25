@@ -7,6 +7,18 @@ import { CreateTreatmentChartEntryDto } from './dto/create-treatment-chart-entry
 import { CreateIpdVitalRecordDto } from './dto/create-ipd-vital-record.dto';
 import { CreateIpdDoctorReviewDto } from './dto/create-ipd-doctor-review.dto';
 import { CreateIpdDischargeSummaryDto } from './dto/create-ipd-discharge-summary.dto';
+import { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  addKeyValueGrid,
+  addParagraph,
+  addSectionTitle,
+  addTable,
+  createHospitalPdfBuffer,
+  formatPdfDate,
+  patientName,
+  staffName,
+  textOrDash,
+} from '../common/pdf/hospital-pdf';
 
 @Injectable()
 export class IpdClinicalService {
@@ -350,5 +362,326 @@ export class IpdClinicalService {
       dischargeSummary,
       labOrders,
     };
+  }
+
+  async getMedicalSummaryPdf(admissionId: number, user: RequestUser) {
+    const bundle = await this.getAdmissionDocumentBundle(admissionId, user);
+    const latestReview = bundle.doctorReviews[0];
+    const latestVital = bundle.vitalRecords[0];
+    const labRows = bundle.labOrders.flatMap((order) =>
+      (order.items ?? []).map((item) => ({
+        orderNumber: order.orderNumber,
+        testName: item.test?.testName,
+        status: item.status,
+        result:
+          item.results?.[0]?.resultValue || item.results?.[0]?.remarks || null,
+        recordedAt: item.results?.[0]?.recordedAt ?? null,
+      })),
+    );
+
+    return createHospitalPdfBuffer(
+      {
+        title: 'Medical Summary',
+        subtitle: bundle.admission.admissionNumber,
+        reference: bundle.admission.statusCode,
+        facility: bundle.admission.facility,
+        branch: bundle.admission.branch,
+      },
+      (doc) => {
+        this.addAdmissionIdentity(doc, bundle.admission);
+
+        addSectionTitle(doc, 'Clinical overview');
+        addParagraph(doc, 'Admission reason', bundle.admission.admissionReason);
+        addParagraph(
+          doc,
+          'Consultation summary',
+          [
+            `Chief complaint: ${textOrDash(bundle.admission.consultation?.chiefComplaint)}`,
+            `History: ${textOrDash(bundle.admission.consultation?.historyOfPresenting)}`,
+            `Examination: ${textOrDash(bundle.admission.consultation?.examinationFindings)}`,
+            `Diagnosis: ${textOrDash(bundle.admission.consultation?.diagnosis)}`,
+            `Treatment plan: ${textOrDash(bundle.admission.consultation?.treatmentPlan)}`,
+          ].join('\n'),
+        );
+
+        addKeyValueGrid(doc, [
+          {
+            label: 'Latest review date',
+            value: formatPdfDate(latestReview?.reviewDate),
+          },
+          { label: 'Reviewed by', value: staffName(latestReview?.reviewedBy) },
+          { label: 'Latest temperature', value: latestVital?.temperatureC },
+          {
+            label: 'Latest BP',
+            value:
+              latestVital?.systolicBp || latestVital?.diastolicBp
+                ? `${textOrDash(latestVital?.systolicBp)}/${textOrDash(
+                    latestVital?.diastolicBp,
+                  )}`
+                : null,
+          },
+        ]);
+        addParagraph(doc, 'Latest assessment', latestReview?.assessment);
+        addParagraph(doc, 'Latest plan', latestReview?.plan);
+
+        addSectionTitle(doc, 'Recent progress notes');
+        addTable(
+          doc,
+          [
+            {
+              header: 'Recorded',
+              width: 110,
+              render: (item) => formatPdfDate(item.createdAt),
+            },
+            { header: 'Type', width: 85, render: (item) => item.noteType },
+            { header: 'Note', width: 210, render: (item) => item.noteText },
+            {
+              header: 'Staff',
+              width: 90,
+              render: (item) => staffName(item.recordedBy),
+            },
+          ],
+          bundle.progressNotes.slice(0, 8),
+          'No progress notes recorded.',
+        );
+
+        addSectionTitle(doc, 'Laboratory summary');
+        addTable(
+          doc,
+          [
+            { header: 'Order', width: 88, render: (item) => item.orderNumber },
+            { header: 'Test', width: 132, render: (item) => item.testName },
+            { header: 'Status', width: 64, render: (item) => item.status },
+            { header: 'Result', width: 146, render: (item) => item.result },
+            {
+              header: 'Recorded',
+              width: 65,
+              render: (item) => formatPdfDate(item.recordedAt),
+            },
+          ],
+          labRows,
+          'No lab results recorded.',
+        );
+      },
+    );
+  }
+
+  async getDischargeSummaryPdf(admissionId: number, user: RequestUser) {
+    const bundle = await this.getAdmissionDocumentBundle(admissionId, user);
+    const summary = bundle.dischargeSummary;
+
+    return createHospitalPdfBuffer(
+      {
+        title: 'Discharge Summary',
+        subtitle: bundle.admission.admissionNumber,
+        reference: bundle.admission.statusCode,
+        facility: bundle.admission.facility,
+        branch: bundle.admission.branch,
+      },
+      (doc) => {
+        this.addAdmissionIdentity(doc, bundle.admission);
+
+        addSectionTitle(doc, 'Discharge details');
+        addKeyValueGrid(doc, [
+          {
+            label: 'Discharge date',
+            value: formatPdfDate(
+              summary?.dischargeDate ?? bundle.admission.dischargedAt,
+            ),
+          },
+          { label: 'Discharged by', value: staffName(summary?.dischargedBy) },
+          {
+            label: 'Condition on discharge',
+            value: summary?.conditionOnDischarge,
+          },
+          { label: 'Status', value: bundle.admission.statusCode },
+        ]);
+        addParagraph(doc, 'Discharge diagnosis', summary?.dischargeDiagnosis);
+        addParagraph(doc, 'Hospital course', summary?.hospitalCourse);
+        addParagraph(
+          doc,
+          'Discharge medications',
+          summary?.dischargeMedications,
+        );
+        addParagraph(
+          doc,
+          'Follow-up instructions',
+          summary?.followUpInstructions,
+        );
+      },
+    );
+  }
+
+  async getTreatmentChartPdf(admissionId: number, user: RequestUser) {
+    const bundle = await this.getAdmissionDocumentBundle(admissionId, user);
+
+    return createHospitalPdfBuffer(
+      {
+        title: 'Inpatient Treatment Chart',
+        subtitle: bundle.admission.admissionNumber,
+        reference: bundle.admission.statusCode,
+        facility: bundle.admission.facility,
+        branch: bundle.admission.branch,
+      },
+      (doc) => {
+        this.addAdmissionIdentity(doc, bundle.admission);
+
+        addSectionTitle(doc, 'Treatment chart');
+        addTable(
+          doc,
+          [
+            {
+              header: 'Treatment',
+              width: 135,
+              render: (item) => item.treatmentName,
+            },
+            { header: 'Dosage', width: 60, render: (item) => item.dosage },
+            { header: 'Route', width: 55, render: (item) => item.route },
+            {
+              header: 'Frequency',
+              width: 65,
+              render: (item) => item.frequency,
+            },
+            { header: 'Status', width: 75, render: (item) => item.statusCode },
+            {
+              header: 'Scheduled/Admin',
+              width: 105,
+              render: (item) =>
+                `${formatPdfDate(item.scheduledAt)}\n${formatPdfDate(
+                  item.administeredAt,
+                )}`,
+            },
+          ],
+          bundle.treatmentChart,
+          'No treatment chart entries recorded.',
+        );
+
+        addSectionTitle(doc, 'Vital chart');
+        addTable(
+          doc,
+          [
+            {
+              header: 'Recorded',
+              width: 115,
+              render: (item) => formatPdfDate(item.recordedAt),
+            },
+            { header: 'Temp', width: 55, render: (item) => item.temperatureC },
+            {
+              header: 'BP',
+              width: 65,
+              render: (item) =>
+                item.systolicBp || item.diastolicBp
+                  ? `${textOrDash(item.systolicBp)}/${textOrDash(
+                      item.diastolicBp,
+                    )}`
+                  : null,
+            },
+            { header: 'Pulse', width: 55, render: (item) => item.pulseRate },
+            { header: 'RR', width: 45, render: (item) => item.respiratoryRate },
+            {
+              header: 'SpO2',
+              width: 55,
+              render: (item) => item.oxygenSaturation,
+            },
+            { header: 'Notes', width: 105, render: (item) => item.notes },
+          ],
+          bundle.vitalRecords,
+          'No vital records recorded.',
+        );
+      },
+    );
+  }
+
+  private async getAdmissionDocumentBundle(
+    admissionId: number,
+    user: RequestUser,
+  ) {
+    const admission = await this.ipdService.getAdmissionByIdScoped(
+      admissionId,
+      user,
+    );
+
+    const [
+      progressNotes,
+      vitalRecords,
+      doctorReviews,
+      treatmentChart,
+      dischargeSummary,
+      labOrders,
+    ] = await Promise.all([
+      this.prisma.ipdProgressNote.findMany({
+        where: { admissionId },
+        include: { recordedBy: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.ipdVitalRecord.findMany({
+        where: { admissionId },
+        include: { recordedBy: true },
+        orderBy: { recordedAt: 'desc' },
+      }),
+      this.prisma.ipdDoctorReview.findMany({
+        where: { admissionId },
+        include: { reviewedBy: true },
+        orderBy: { reviewDate: 'desc' },
+      }),
+      this.prisma.treatmentChartEntry.findMany({
+        where: { admissionId },
+        include: {
+          orderedBy: true,
+          administeredBy: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.ipdDischargeSummary.findUnique({
+        where: { admissionId },
+        include: { dischargedBy: true },
+      }),
+      this.prisma.labOrder.findMany({
+        where: { admissionId },
+        include: {
+          requestedBy: true,
+          items: {
+            include: {
+              test: true,
+              results: {
+                orderBy: { recordedAt: 'desc' },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      admission,
+      progressNotes,
+      vitalRecords,
+      doctorReviews,
+      treatmentChart,
+      dischargeSummary,
+      labOrders,
+    };
+  }
+
+  private addAdmissionIdentity(
+    doc: PDFKit.PDFDocument,
+    admission: Awaited<ReturnType<IpdService['getAdmissionById']>>,
+  ) {
+    addSectionTitle(doc, 'Patient and admission details');
+    addKeyValueGrid(doc, [
+      { label: 'Patient', value: patientName(admission.patient) },
+      { label: 'Patient number', value: admission.patient?.patientNumber },
+      { label: 'Phone', value: admission.patient?.phonePrimary },
+      { label: 'Gender', value: admission.patient?.gender },
+      { label: 'Admission number', value: admission.admissionNumber },
+      { label: 'Status', value: admission.statusCode },
+      { label: 'Admitted at', value: formatPdfDate(admission.admittedAt) },
+      { label: 'Discharged at', value: formatPdfDate(admission.dischargedAt) },
+      { label: 'Ward', value: admission.ward?.name },
+      { label: 'Bed', value: admission.bed?.bedNumber },
+      { label: 'Admitted by', value: staffName(admission.admittedBy) },
+      { label: 'Branch', value: admission.branch?.name },
+    ]);
   }
 }

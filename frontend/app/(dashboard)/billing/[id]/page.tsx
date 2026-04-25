@@ -19,6 +19,7 @@ import { useCreateCashPayment } from "@/hooks/use-create-cash-payment";
 import { useCreateMpesaPaymentRequest } from "@/hooks/use-create-mpesa-payment-request";
 import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
+import { downloadInvoicePdf } from "@/services/billing-service";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,13 +43,11 @@ function formatDate(value?: string | null) {
 }
 
 function patientName(
-  patient?:
-    | {
-        firstName?: string;
-        middleName?: string | null;
-        lastName?: string;
-      }
-    | null,
+  patient?: {
+    firstName?: string;
+    middleName?: string | null;
+    lastName?: string;
+  } | null,
 ) {
   if (!patient) return "Unknown patient";
   return [patient.firstName, patient.middleName, patient.lastName]
@@ -81,6 +80,7 @@ export default function InvoiceDetailPage() {
   const removeInvoiceItemMutation = useRemoveInvoiceItem();
 
   const [message, setMessage] = React.useState<string | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = React.useState(false);
 
   const [cashAmount, setCashAmount] = React.useState("");
   const [cashReceiptNumber, setCashReceiptNumber] = React.useState("");
@@ -178,6 +178,25 @@ export default function InvoiceDetailPage() {
     window.print();
   };
 
+  const handleDownloadInvoicePdf = async () => {
+    if (!invoice) return;
+
+    setMessage(null);
+    setIsDownloadingPdf(true);
+
+    try {
+      await downloadInvoicePdf(invoice.id, invoice.invoiceNumber);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to download the invoice PDF.",
+      );
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
@@ -218,10 +237,14 @@ export default function InvoiceDetailPage() {
               type="button"
               variant="outline"
               className="rounded-2xl"
-              onClick={handlePrintInvoice}
-              disabled={!invoice}
+              onClick={handleDownloadInvoicePdf}
+              disabled={!invoice || isDownloadingPdf}
             >
-              <Download className="mr-2 h-4 w-4" />
+              {isDownloadingPdf ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
               PDF
             </Button>
             <Link href="/billing">
@@ -249,111 +272,137 @@ export default function InvoiceDetailPage() {
       ) : (
         <>
           <div id="invoice-print-area" className="space-y-6 print:max-w-none">
-          <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
-              <CardHeader>
-                <CardTitle>Invoice Header</CardTitle>
-              </CardHeader>
+            <section>
+              <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+                <CardHeader>
+                  <CardTitle>Invoice Header</CardTitle>
+                </CardHeader>
 
-              <CardContent className="space-y-4">
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-lg font-bold">{invoice.facility?.name || "Hospital Name"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {invoice.facility?.address || "Hospital address"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {invoice.facility?.phone || "Phone"} • {invoice.facility?.email || "Email"}
-                  </p>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Invoice Number</p>
-                    <p className="mt-1 text-sm font-medium">{invoice.invoiceNumber}</p>
+                <CardContent className="space-y-4">
+                  <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-lg font-bold">
+                      {invoice.facility?.name || "Hospital Name"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {invoice.facility?.address || "Hospital address"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {invoice.facility?.phone || "Phone"} •{" "}
+                      {invoice.facility?.email || "Email"}
+                    </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <div className="mt-2">
-                      <Badge className={`rounded-full border px-3 py-1 ${statusTone(invoice.statusCode)}`}>
-                        {invoice.statusCode}
-                      </Badge>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Invoice Number
+                      </p>
+                      <p className="mt-1 text-sm font-medium">
+                        {invoice.invoiceNumber}
+                      </p>
                     </div>
-                  </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Issued At</p>
-                    <p className="mt-1 text-sm font-medium">{formatDate(invoice.issuedAt)}</p>
-                  </div>
-
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Patient</p>
-                    <p className="mt-1 text-sm font-medium">{patientName(invoice.patient)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
-              <CardHeader>
-                <CardTitle>Invoice Lines</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {items.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
-                    No invoice items found.
-                  </div>
-                ) : (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
-                    >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
-                          <p className="font-semibold">{item.description}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Qty: {item.quantity} • Unit: {formatMoney(item.unitPrice)} • Total:{" "}
-                            {formatMoney(item.lineTotal)}
-                          </p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Auto: {item.isAutoGenerated ? "Yes" : "No"} • Removed:{" "}
-                            {item.isRemoved ? "Yes" : "No"}
-                          </p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Notes: {item.notes || "—"}
-                          </p>
-                        </div>
-
-                        {!item.isRemoved ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="rounded-2xl print:hidden"
-                            onClick={() => handleStartEdit(item)}
-                          >
-                            Edit Line
-                          </Button>
-                        ) : null}
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <div className="mt-2">
+                        <Badge
+                          className={`rounded-full border px-3 py-1 ${statusTone(invoice.statusCode)}`}
+                        >
+                          {invoice.statusCode}
+                        </Badge>
                       </div>
                     </div>
-                  ))
-                )}
 
-                <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 p-4">
-                  <p className="text-sm">Subtotal: {formatMoney(invoice.subtotal)}</p>
-                  <p className="text-sm">Discount: {formatMoney(invoice.discountAmount)}</p>
-                  <p className="text-sm">Tax: {formatMoney(invoice.taxAmount)}</p>
-                  <p className="mt-2 text-lg font-bold">Total: {formatMoney(invoice.totalAmount)}</p>
-                  <p className="text-sm">Paid: {formatMoney(invoice.paidAmount)}</p>
-                  <p className="text-sm">Balance: {formatMoney(invoice.balanceAmount)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">Issued At</p>
+                      <p className="mt-1 text-sm font-medium">
+                        {formatDate(invoice.issuedAt)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">Patient</p>
+                      <p className="mt-1 text-sm font-medium">
+                        {patientName(invoice.patient)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+
+            <section>
+              <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+                <CardHeader>
+                  <CardTitle>Invoice Lines</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {items.length === 0 ? (
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                      No invoice items found.
+                    </div>
+                  ) : (
+                    items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                      >
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <p className="font-semibold">{item.description}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Qty: {item.quantity} • Unit:{" "}
+                              {formatMoney(item.unitPrice)} • Total:{" "}
+                              {formatMoney(item.lineTotal)}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Auto: {item.isAutoGenerated ? "Yes" : "No"} •
+                              Removed: {item.isRemoved ? "Yes" : "No"}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Notes: {item.notes || "—"}
+                            </p>
+                          </div>
+
+                          {!item.isRemoved ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="rounded-2xl print:hidden"
+                              onClick={() => handleStartEdit(item)}
+                            >
+                              Edit Line
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 p-4">
+                    <p className="text-sm">
+                      Subtotal: {formatMoney(invoice.subtotal)}
+                    </p>
+                    <p className="text-sm">
+                      Discount: {formatMoney(invoice.discountAmount)}
+                    </p>
+                    <p className="text-sm">
+                      Tax: {formatMoney(invoice.taxAmount)}
+                    </p>
+                    <p className="mt-2 text-lg font-bold">
+                      Total: {formatMoney(invoice.totalAmount)}
+                    </p>
+                    <p className="text-sm">
+                      Paid: {formatMoney(invoice.paidAmount)}
+                    </p>
+                    <p className="text-sm">
+                      Balance: {formatMoney(invoice.balanceAmount)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
           </div>
 
           {editItemId ? (
@@ -365,7 +414,9 @@ export default function InvoiceDetailPage() {
 
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Description</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Description
+                    </label>
                     <Input
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
@@ -375,7 +426,9 @@ export default function InvoiceDetailPage() {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-medium">Quantity</label>
+                      <label className="mb-2 block text-sm font-medium">
+                        Quantity
+                      </label>
                       <Input
                         type="number"
                         value={editQuantity}
@@ -385,7 +438,9 @@ export default function InvoiceDetailPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium">Unit Price</label>
+                      <label className="mb-2 block text-sm font-medium">
+                        Unit Price
+                      </label>
                       <Input
                         type="number"
                         value={editUnitPrice}
@@ -396,7 +451,9 @@ export default function InvoiceDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Notes</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Notes
+                    </label>
                     <Textarea
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
@@ -405,7 +462,9 @@ export default function InvoiceDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Remove Reason</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Remove Reason
+                    </label>
                     <Textarea
                       value={removeReason}
                       onChange={(e) => setRemoveReason(e.target.value)}
@@ -563,4 +622,3 @@ export default function InvoiceDetailPage() {
     </div>
   );
 }
-

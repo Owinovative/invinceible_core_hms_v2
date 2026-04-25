@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch } from "@/lib/api";
 
 export interface IpdStaffMini {
   id: number;
@@ -316,5 +316,35 @@ export async function getIpdClinicalDashboard(admissionId: number) {
     {
       method: "GET",
     },
+  );
+}
+
+export function downloadAdmissionMedicalSummaryPdf(
+  admissionId: number,
+  admissionNumber?: string,
+) {
+  return apiDownload(
+    `/ipd-clinical/documents/admissions/${admissionId}/medical-summary.pdf`,
+    `${admissionNumber || `admission-${admissionId}`}-medical-summary.pdf`,
+  );
+}
+
+export function downloadAdmissionDischargeSummaryPdf(
+  admissionId: number,
+  admissionNumber?: string,
+) {
+  return apiDownload(
+    `/ipd-clinical/documents/admissions/${admissionId}/discharge-summary.pdf`,
+    `${admissionNumber || `admission-${admissionId}`}-discharge-summary.pdf`,
+  );
+}
+
+export function downloadAdmissionTreatmentChartPdf(
+  admissionId: number,
+  admissionNumber?: string,
+) {
+  return apiDownload(
+    `/ipd-clinical/documents/admissions/${admissionId}/treatment-chart.pdf`,
+    `${admissionNumber || `admission-${admissionId}`}-treatment-chart.pdf`,
   );
 }

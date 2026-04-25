@@ -59,6 +59,7 @@ export const clinicalAiTaskOptions: Array<{
 
 export interface AiAssistantStatus {
   enabled: boolean;
+  provider?: string;
   model: string;
   safetyNotice: string;
   tasks: ClinicalAiTask[];
@@ -84,9 +85,7 @@ export function getAiAssistantStatus() {
   return apiFetch<AiAssistantStatus>("/ai-assistant/status");
 }
 
-export function createClinicalAiDraft(
-  payload: CreateClinicalAiDraftPayload,
-) {
+export function createClinicalAiDraft(payload: CreateClinicalAiDraftPayload) {
   return apiFetch<ClinicalAiDraftResponse>("/ai-assistant/clinical-draft", {
     method: "POST",
     body: JSON.stringify(payload),

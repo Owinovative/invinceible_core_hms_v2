@@ -5,7 +5,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
 import {
   ClinicalAiRequestDto,
   ClinicalAiTask,
@@ -26,24 +25,38 @@ const TASK_LABELS: Record<ClinicalAiTask, string> = {
   [ClinicalAiTask.GENERAL_DRAFT]: 'clinical text draft',
 };
 
+type GeminiGenerateContentResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+  }>;
+  error?: {
+    message?: string;
+  };
+};
+
 @Injectable()
 export class AiAssistantService {
-  private readonly client?: OpenAI;
+  private readonly apiKey?: string;
   private readonly model: string;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY')?.trim();
+    this.apiKey =
+      this.configService.get<string>('GEMINI_API_KEY')?.trim() ||
+      this.configService.get<string>('GOOGLE_API_KEY')?.trim() ||
+      this.configService.get<string>('GOOGLE_GENAI_API_KEY')?.trim();
     this.model =
-      this.configService.get<string>('OPENAI_MODEL')?.trim() || 'gpt-5-mini';
-
-    if (apiKey) {
-      this.client = new OpenAI({ apiKey });
-    }
+      this.configService.get<string>('GEMINI_MODEL')?.trim() ||
+      'gemini-2.5-flash-lite';
   }
 
   getStatus() {
     return {
-      enabled: Boolean(this.client),
+      enabled: Boolean(this.apiKey),
+      provider: 'google-gemini',
       model: this.model,
       safetyNotice: SAFETY_NOTICE,
       tasks: Object.values(ClinicalAiTask),
@@ -51,9 +64,9 @@ export class AiAssistantService {
   }
 
   async createClinicalDraft(dto: ClinicalAiRequestDto, user: RequestUser) {
-    if (!this.client) {
+    if (!this.apiKey) {
       throw new ServiceUnavailableException(
-        'AI assistant is not configured. Set OPENAI_API_KEY on the backend environment.',
+        'AI assistant is not configured. Set GEMINI_API_KEY on the Railway backend environment.',
       );
     }
 
@@ -64,18 +77,46 @@ export class AiAssistantService {
     }
 
     try {
-      const response = await this.client.responses.create({
-        model: this.model,
-        instructions: this.instructionsFor(dto.task),
-        input: this.buildInput(dto, user),
-        max_output_tokens: 1200,
+      const response = await fetch(this.geminiEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey,
+        },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: this.instructionsFor(dto.task) }],
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: this.buildInput(dto, user) }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.25,
+            maxOutputTokens: 1200,
+          },
+        }),
       });
 
-      const output = response.output_text?.trim();
+      const payload = (await response.json()) as GeminiGenerateContentResponse;
+
+      if (!response.ok) {
+        throw new InternalServerErrorException(
+          payload.error?.message || 'Gemini assistant request failed.',
+        );
+      }
+
+      const output = payload.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text)
+        .filter(Boolean)
+        .join('\n')
+        .trim();
 
       if (!output) {
         throw new InternalServerErrorException(
-          'AI assistant returned an empty draft.',
+          'Gemini assistant returned an empty draft.',
         );
       }
 
@@ -147,5 +188,13 @@ export class AiAssistantService {
     } catch {
       return 'Context could not be serialized.';
     }
+  }
+
+  private geminiEndpoint() {
+    const modelPath = this.model.startsWith('models/')
+      ? this.model
+      : `models/${this.model}`;
+
+    return `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent`;
   }
 }

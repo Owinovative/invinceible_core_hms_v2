@@ -107,7 +107,7 @@ export default function HomePage() {
         <div className="clinical-mesh" />
         <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-background to-transparent" />
 
-        <div className="relative mx-auto flex min-h-[88svh] max-w-7xl flex-col px-5 py-5 md:px-8">
+        <div className="relative mx-auto flex min-h-[88svh] max-w-[1500px] flex-col px-5 py-5 md:px-8">
           <header className="flex items-center justify-between gap-4 rounded-[1.4rem] border border-white/12 bg-white/10 px-4 py-3 backdrop-blur-2xl">
             <AppLogo light />
             <nav className="hidden items-center gap-6 text-sm font-medium text-white/76 lg:flex">
@@ -121,7 +121,7 @@ export default function HomePage() {
                 Creators
               </Link>
               <Link href="#ai-next" className="transition hover:text-white">
-                AI next
+                AI available
               </Link>
             </nav>
             <Button
@@ -198,22 +198,25 @@ export default function HomePage() {
               const Icon = item.icon;
 
               return (
-              <div
-                key={item.label}
-                className="flex items-center gap-3 text-sm font-semibold text-white/82"
-              >
-                <Icon className="h-5 w-5 text-cyan-200" />
-                {item.label}
-              </div>
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 text-sm font-semibold text-white/82"
+                >
+                  <Icon className="h-5 w-5 text-cyan-200" />
+                  {item.label}
+                </div>
               );
             })}
           </div>
         </div>
       </section>
 
-      <section id="workflow" className="premium-system-bg relative overflow-hidden">
+      <section
+        id="workflow"
+        className="premium-system-bg relative overflow-hidden"
+      >
         <div className="clinical-mesh" />
-        <div className="relative mx-auto max-w-7xl px-5 py-16 md:px-8 md:py-20">
+        <div className="relative mx-auto max-w-[1500px] px-5 py-16 md:px-8 md:py-20">
           <div className="mb-9 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase text-cyan-700 dark:text-cyan-300">
@@ -255,7 +258,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-5 py-4 md:grid-cols-3 md:px-8">
+      <section className="mx-auto grid max-w-[1500px] gap-4 px-5 py-4 md:grid-cols-3 md:px-8">
         {photoPanels.map((panel) => (
           <div
             key={panel.label}
@@ -269,7 +272,10 @@ export default function HomePage() {
         ))}
       </section>
 
-      <section id="modules" className="mx-auto max-w-7xl px-5 py-16 md:px-8">
+      <section
+        id="modules"
+        className="mx-auto max-w-[1500px] px-5 py-16 md:px-8"
+      >
         <div className="grid gap-8 xl:grid-cols-[0.8fr_1.2fr] xl:items-start">
           <div className="space-y-4">
             <Badge className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
@@ -306,7 +312,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="creators" className="border-y border-white/10 bg-slate-950 text-white">
+      <section
+        id="creators"
+        className="border-y border-white/10 bg-slate-950 text-white"
+      >
         <div className="relative overflow-hidden">
           <div
             className="absolute inset-0 bg-cover bg-center opacity-20"
@@ -318,7 +327,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,0.96),rgba(6,78,59,0.64),rgba(15,23,42,0.92))]" />
           <div className="premium-aurora" />
 
-          <div className="relative mx-auto max-w-7xl px-5 py-16 md:px-8 md:py-20">
+          <div className="relative mx-auto max-w-[1500px] px-5 py-16 md:px-8 md:py-20">
             <div className="mb-8 max-w-3xl">
               <Badge className="rounded-full border border-white/15 bg-white/10 text-white">
                 Built by software engineers
@@ -384,20 +393,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="ai-next" className="mx-auto max-w-7xl px-5 py-16 md:px-8">
+      <section
+        id="ai-next"
+        className="mx-auto max-w-[1500px] px-5 py-16 md:px-8"
+      >
         <div className="premium-card rounded-[1.7rem] p-6 md:p-8">
           <div className="relative grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div>
               <Badge className="rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
-                Next phase
+                Available now
               </Badge>
               <h2 className="mt-4 text-3xl font-bold md:text-5xl">
-                AI clinical assistant, prepared for the next build.
+                AI clinical assistant is now active for hospital drafting.
               </h2>
               <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                The next major phase can connect a ChatGPT-powered assistant to
-                help doctors draft notes, autofill clinical text, and turn
-                structured patient facts into cleaner documentation.
+                The assistant connects through the secure backend and supports
+                doctor notes, patient instructions, discharge drafts, lab
+                summaries, pharmacy counselling, and cleaner clinical wording.
               </p>
             </div>
 
@@ -421,14 +433,17 @@ export default function HomePage() {
       </section>
 
       <section className="border-t border-white/10 bg-white/[0.025]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-8 md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-8 md:flex-row md:items-center md:justify-between md:px-8">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-400" />
             <p className="text-sm text-muted-foreground">
               Access is reserved for authorized hospital staff.
             </p>
           </div>
-          <Button asChild className="rounded-xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950">
+          <Button
+            asChild
+            className="rounded-xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+          >
             <Link href="/login">
               Continue to login
               <ArrowRight className="h-4 w-4" />

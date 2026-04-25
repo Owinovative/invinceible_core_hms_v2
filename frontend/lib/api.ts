@@ -102,4 +102,59 @@ export async function apiFetch<T>(
   return response.json() as Promise<T>;
 }
 
+export async function apiDownload(path: string, fileName: string) {
+  const token = getStoredToken();
+
+  if (isLocalApiUrl(API_BASE_URL) && !isLocalBrowser()) {
+    throw new ApiError(
+      "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL in Vercel to the Railway backend URL.",
+      0,
+    );
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(
+      "Unable to reach the hospital server. Verify the Railway backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
+      0,
+    );
+  }
+
+  if (!response.ok) {
+    let message = `Download failed with status ${response.status}`;
+
+    try {
+      const text = await response.text();
+      if (text) message = text;
+    } catch {
+      // ignore
+    }
+
+    if (response.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("hms_access_token");
+      window.location.assign("/login");
+    }
+
+    throw new ApiError(message, response.status);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 export { API_BASE_URL };

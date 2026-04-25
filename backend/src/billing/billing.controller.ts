@@ -7,9 +7,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { BillingService } from './billing.service';
 import { CreateBillingServiceDto } from './dto/create-billing-service.dto';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -118,6 +120,22 @@ export class BillingController {
   @Get('invoices')
   getAllInvoices(@CurrentUser() user: RequestUser) {
     return this.billingService.getAllInvoicesScoped(user);
+  }
+
+  @Get('invoices/:id/pdf')
+  async downloadInvoicePdf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+    @Res() response: Response,
+  ) {
+    const pdf = await this.billingService.getInvoicePdf(id, user);
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    response.end(pdf);
   }
 
   @Get('invoices/:id')
