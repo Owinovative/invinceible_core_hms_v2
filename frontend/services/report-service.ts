@@ -100,6 +100,12 @@ export interface ModuleOperationsReport {
     facilityId?: number | null;
     branchId?: number | null;
   };
+  summary: {
+    total: number;
+    active: number;
+    completed: number;
+    overdue: number;
+  };
   byModule: Array<{
     moduleSlug: string;
     moduleTitle: string;

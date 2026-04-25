@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import {
   Activity,
+  ArrowRight,
   BedDouble,
+  ClipboardCheck,
+  Clock3,
   FlaskConical,
   RefreshCw,
   ShieldAlert,
@@ -24,12 +28,14 @@ import { PriorityAlertsPanel } from "@/components/dashboard/priority-alerts-pane
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   usePharmacyAlerts,
   useSystemHealth,
   useUnresolvedCounts,
 } from "@/hooks/use-dashboard-data";
+import { useModuleOperationsReport } from "@/hooks/use-module-operations-report";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
 import { cn } from "@/lib/utils";
@@ -59,6 +65,13 @@ function SummaryCard({
       </div>
     </div>
   );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "No due date";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No due date";
+  return date.toLocaleString();
 }
 
 function SessionCard({
@@ -173,8 +186,8 @@ function OperationalPulseChart({
   return (
     <div className="h-[320px] rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4">
       {isLoading ? (
-        <div className="grid h-full grid-cols-5 items-end gap-3">
-          {Array.from({ length: 5 }).map((_, index) => (
+        <div className="grid h-full grid-cols-6 items-end gap-3">
+          {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton
               key={index}
               className="rounded-t-xl"
@@ -237,20 +250,25 @@ export default function DashboardPage() {
     facilityId,
     branchId: selectedBranchId,
   });
+  const moduleOperations = useModuleOperationsReport();
 
   const health = systemHealth.data;
   const counts = unresolvedCounts.data;
   const pharmacy = pharmacyAlerts.data ?? [];
+  const moduleReport = moduleOperations.data;
+  const recentModuleRecords = moduleReport?.recentRecords ?? [];
 
   const isLoading =
     systemHealth.isLoading ||
     unresolvedCounts.isLoading ||
-    pharmacyAlerts.isLoading;
+    pharmacyAlerts.isLoading ||
+    moduleOperations.isLoading;
 
   const isRefreshing =
     systemHealth.isFetching ||
     unresolvedCounts.isFetching ||
-    pharmacyAlerts.isFetching;
+    pharmacyAlerts.isFetching ||
+    moduleOperations.isFetching;
 
   const healthScore = health?.healthScore ?? "--";
   const status = health?.status ?? "healthy";
@@ -303,6 +321,11 @@ export default function DashboardPage() {
       label: "Billing",
       value: health?.summary.billingFailures ?? 0,
       color: "#34d399",
+    },
+    {
+      label: "Modules",
+      value: moduleReport?.summary.active ?? 0,
+      color: "#a78bfa",
     },
   ];
 
@@ -558,6 +581,108 @@ export default function DashboardPage() {
                 Billing failures needing follow-up.
               </p>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Module Command Center</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Live work moving through the new operational modules
+              </p>
+            </div>
+            <ClipboardCheck className="h-5 w-5 text-violet-400" />
+          </CardHeader>
+
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <SummaryCard
+              title="Module Records"
+              value={moduleReport?.summary.total ?? 0}
+              hint="All captured module work"
+              isLoading={moduleOperations.isLoading}
+            />
+            <SummaryCard
+              title="Active Work"
+              value={moduleReport?.summary.active ?? 0}
+              hint="Open, waiting, escalated, or in progress"
+              isLoading={moduleOperations.isLoading}
+            />
+            <SummaryCard
+              title="Completed"
+              value={moduleReport?.summary.completed ?? 0}
+              hint="Finished module work"
+              isLoading={moduleOperations.isLoading}
+            />
+            <SummaryCard
+              title="Overdue"
+              value={moduleReport?.summary.overdue ?? 0}
+              hint="Past due and still active"
+              isLoading={moduleOperations.isLoading}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Recent Module Work</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The newest operational records across all added modules
+              </p>
+            </div>
+            <Link href="/reports">
+              <Button type="button" variant="outline" className="rounded-xl">
+                Reports
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardHeader>
+
+          <CardContent className="space-y-3">
+            {moduleOperations.isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-20 rounded-2xl" />
+                ))}
+              </div>
+            ) : recentModuleRecords.length === 0 ? (
+              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                No module work has been captured yet.
+              </div>
+            ) : (
+              recentModuleRecords.slice(0, 5).map((record) => (
+                <Link
+                  key={record.id}
+                  href={`/${record.moduleSlug}`}
+                  className="block rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.06]"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="rounded-full">
+                          {record.moduleTitle}
+                        </Badge>
+                        <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                          {record.statusCode}
+                        </Badge>
+                      </div>
+                      <p className="mt-3 font-semibold">{record.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {record.recordNumber} / {record.workflowStage}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock3 className="h-4 w-4" />
+                      {formatDate(record.dueAt)}
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </CardContent>
         </Card>
       </section>
