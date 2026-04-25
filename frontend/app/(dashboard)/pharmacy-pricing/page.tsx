@@ -4,11 +4,14 @@ import * as React from "react";
 import {
   BadgeDollarSign,
   CheckCircle2,
+  Download,
+  FileText,
   Loader2,
   PackagePlus,
   Pill,
   Save,
   Search,
+  Upload,
   Warehouse,
 } from "lucide-react";
 
@@ -16,9 +19,13 @@ import { useScope } from "@/providers/scope-provider";
 import { useBranchPharmacyStock } from "@/hooks/use-branch-pharmacy-stock";
 import { useCreateBranchMedicineStock } from "@/hooks/use-create-branch-medicine-stock";
 import { useCreatePharmacyMedicine } from "@/hooks/use-create-pharmacy-medicine";
+import { useImportBranchMedicinePricing } from "@/hooks/use-import-branch-medicine-pricing";
 import { usePharmacyMedicines } from "@/hooks/use-pharmacy-medicines";
 import { useUpdateBranchMedicineStock } from "@/hooks/use-update-branch-medicine-stock";
-import type { BranchMedicineStockItem } from "@/services/pharmacy-stock-service";
+import {
+  getBranchMedicinePricingTemplate,
+  type BranchMedicineStockItem,
+} from "@/services/pharmacy-stock-service";
 import type { PharmacyMedicine } from "@/services/pharmacy-service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +70,7 @@ export default function PharmacyPricingPage() {
     useBranchPharmacyStock(selectedBranchId);
   const createMedicineMutation = useCreatePharmacyMedicine();
   const createStockMutation = useCreateBranchMedicineStock();
+  const importPricingMutation = useImportBranchMedicinePricing();
   const updateStockMutation = useUpdateBranchMedicineStock(selectedBranchId);
 
   const medicines = Array.isArray(medicinesData) ? medicinesData : [];
@@ -70,6 +78,9 @@ export default function PharmacyPricingPage() {
 
   const [message, setMessage] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
+  const [isDownloadingTemplate, setIsDownloadingTemplate] =
+    React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [medicineCode, setMedicineCode] = React.useState("");
   const [medicineName, setMedicineName] = React.useState("");
@@ -81,11 +92,13 @@ export default function PharmacyPricingPage() {
   const [selectedMedicineId, setSelectedMedicineId] = React.useState("");
   const [initialStock, setInitialStock] = React.useState("");
   const [branchReorderLevel, setBranchReorderLevel] = React.useState("");
+  const [branchBuyingPrice, setBranchBuyingPrice] = React.useState("");
   const [branchUnitPrice, setBranchUnitPrice] = React.useState("");
 
   const [editingStockId, setEditingStockId] = React.useState<number | null>(
     null,
   );
+  const [editBuyingPrice, setEditBuyingPrice] = React.useState("");
   const [editUnitPrice, setEditUnitPrice] = React.useState("");
   const [editReorderLevel, setEditReorderLevel] = React.useState("");
   const [editStockQuantity, setEditStockQuantity] = React.useState("");
@@ -115,10 +128,18 @@ export default function PharmacyPricingPage() {
   const missingPriceCount = branchStock.filter(
     (item) => item.unitPrice <= 0,
   ).length;
+  const missingBuyingCount = branchStock.filter(
+    (item) => item.buyingPrice <= 0,
+  ).length;
   const totalStockValue = branchStock.reduce(
     (sum, item) => sum + item.stockQuantity * item.unitPrice,
     0,
   );
+  const totalCostValue = branchStock.reduce(
+    (sum, item) => sum + item.stockQuantity * item.buyingPrice,
+    0,
+  );
+  const estimatedMargin = totalStockValue - totalCostValue;
   const activeCount = branchStock.filter((item) => item.isActive).length;
 
   const activeEditStock =
@@ -177,6 +198,7 @@ export default function PharmacyPricingPage() {
         medicineId: Number(selectedMedicineId),
         stockQuantity: numberOrUndefined(initialStock) ?? 0,
         reorderLevel: numberOrUndefined(branchReorderLevel) ?? 0,
+        buyingPrice: numberOrUndefined(branchBuyingPrice) ?? 0,
         unitPrice: numberOrUndefined(branchUnitPrice) ?? 0,
         isActive: true,
       });
@@ -184,6 +206,7 @@ export default function PharmacyPricingPage() {
       setSelectedMedicineId("");
       setInitialStock("");
       setBranchReorderLevel("");
+      setBranchBuyingPrice("");
       setBranchUnitPrice("");
       setMessage("Branch medicine price and stock created.");
     } catch (error) {
@@ -197,6 +220,7 @@ export default function PharmacyPricingPage() {
 
   const handleStartEdit = (stock: BranchMedicineStockItem) => {
     setEditingStockId(stock.id);
+    setEditBuyingPrice(String(stock.buyingPrice ?? 0));
     setEditUnitPrice(String(stock.unitPrice ?? 0));
     setEditReorderLevel(String(stock.reorderLevel ?? 0));
     setEditStockQuantity(String(stock.stockQuantity ?? 0));
@@ -211,6 +235,7 @@ export default function PharmacyPricingPage() {
       await updateStockMutation.mutateAsync({
         stockId: activeEditStock.id,
         payload: {
+          buyingPrice: Number(editBuyingPrice || 0),
           unitPrice: Number(editUnitPrice || 0),
           reorderLevel: Number(editReorderLevel || 0),
           stockQuantity: Number(editStockQuantity || 0),
@@ -225,6 +250,74 @@ export default function PharmacyPricingPage() {
           ? error.message
           : "Unable to update branch medicine price.",
       );
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setMessage(null);
+
+    if (!selectedBranchId) {
+      setMessage("Select a branch before downloading the pricing template.");
+      return;
+    }
+
+    try {
+      setIsDownloadingTemplate(true);
+      const template = await getBranchMedicinePricingTemplate(selectedBranchId);
+      const blob = new Blob([`\uFEFF${template.csvText}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = template.fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      setMessage(
+        `Template ready for ${template.branch.name}. ${template.rowCount} master medicines included.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to download branch pricing template.",
+      );
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleImportTemplate = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setMessage(null);
+
+    if (!selectedBranchId) {
+      setMessage("Select a branch before importing pharmacy pricing.");
+      event.target.value = "";
+      return;
+    }
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const csvText = await file.text();
+      const result = await importPricingMutation.mutateAsync({
+        branchId: selectedBranchId,
+        csvText,
+      });
+      setMessage(
+        `Imported ${result.processed} rows: ${result.created} created, ${result.updated} updated, ${result.skipped} skipped.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to import branch pharmacy pricing.",
+      );
+    } finally {
+      event.target.value = "";
     }
   };
 
@@ -324,6 +417,9 @@ export default function PharmacyPricingPage() {
               <p className="mt-2 text-xl font-bold">
                 {formatMoney(totalStockValue)}
               </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Margin {formatMoney(estimatedMargin)}
+              </p>
             </div>
             <BadgeDollarSign className="h-7 w-7 text-amber-500" />
           </CardContent>
@@ -334,7 +430,7 @@ export default function PharmacyPricingPage() {
               <p className="text-sm text-muted-foreground">Price Gaps</p>
               <p className="mt-2 text-2xl font-bold">{missingPriceCount}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {unmappedMedicines.length} not in branch
+                {missingBuyingCount} missing buying cost
               </p>
             </div>
             <CheckCircle2 className="h-7 w-7 text-rose-500" />
@@ -428,6 +524,64 @@ export default function PharmacyPricingPage() {
 
           <Card className="rounded-[1.2rem] gradient-border panel-shadow">
             <CardHeader>
+              <CardTitle>Excel Branch Pricing</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border bg-background/65 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Download, price, upload</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      The file includes every master drug. The branch fills
+                      stock, reorder level, buying price, and selling price.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleImportTemplate}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDownloadTemplate}
+                  disabled={!selectedBranchId || isDownloadingTemplate}
+                  className="h-12 rounded-xl"
+                >
+                  {isDownloadingTemplate ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Download CSV
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!selectedBranchId || importPricingMutation.isPending}
+                  className="h-12 rounded-xl"
+                >
+                  {importPricingMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  Import CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+            <CardHeader>
               <CardTitle>Add Branch Price</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -449,7 +603,7 @@ export default function PharmacyPricingPage() {
                   ))}
                 </select>
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Initial Stock
@@ -470,6 +624,19 @@ export default function PharmacyPricingPage() {
                     value={branchReorderLevel}
                     onChange={(event) =>
                       setBranchReorderLevel(event.target.value)
+                    }
+                    className="h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Buying Price
+                  </label>
+                  <Input
+                    type="number"
+                    value={branchBuyingPrice}
+                    onChange={(event) =>
+                      setBranchBuyingPrice(event.target.value)
                     }
                     className="h-12 rounded-xl"
                   />
@@ -532,113 +699,175 @@ export default function PharmacyPricingPage() {
                 No branch price records found.
               </div>
             ) : (
-              filteredStock.map((stock) => (
-                <div
-                  key={stock.id}
-                  className="rounded-xl border bg-background/65 p-4"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="rounded-full">
-                          {stock.medicine?.code || `MED-${stock.medicineId}`}
-                        </Badge>
-                        {stock.unitPrice <= 0 ? (
-                          <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                            Missing price
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <p className="mt-3 font-semibold">
-                        {medicineLabel(stock.medicine)}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Stock {stock.stockQuantity} / Reorder {stock.reorderLevel}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Branch price {formatMoney(stock.unitPrice)} / Value{" "}
-                        {formatMoney(stock.unitPrice * stock.stockQuantity)}
-                      </p>
-                    </div>
+              <div className="overflow-x-auto rounded-xl border bg-background/65">
+                <table className="w-full min-w-[1040px] text-left text-sm">
+                  <thead className="bg-muted/60 text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Code</th>
+                      <th className="px-4 py-3 font-semibold">Medicine</th>
+                      <th className="px-4 py-3 font-semibold">Stock</th>
+                      <th className="px-4 py-3 font-semibold">Reorder</th>
+                      <th className="px-4 py-3 font-semibold">Buying</th>
+                      <th className="px-4 py-3 font-semibold">Selling</th>
+                      <th className="px-4 py-3 font-semibold">Margin</th>
+                      <th className="px-4 py-3 font-semibold">Value</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                      <th className="px-4 py-3 font-semibold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStock.map((stock) => {
+                      const isEditing = editingStockId === stock.id;
+                      const margin = stock.unitPrice - stock.buyingPrice;
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="rounded-xl"
-                      onClick={() => handleStartEdit(stock)}
-                    >
-                      Edit
-                    </Button>
-                  </div>
-
-                  {editingStockId === stock.id ? (
-                    <div className="mt-4 grid gap-3 border-t pt-4 md:grid-cols-3">
-                      <div>
-                        <label className="mb-2 block text-xs font-medium">
-                          Stock
-                        </label>
-                        <Input
-                          type="number"
-                          value={editStockQuantity}
-                          onChange={(event) =>
-                            setEditStockQuantity(event.target.value)
-                          }
-                          className="h-11 rounded-xl"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-xs font-medium">
-                          Reorder
-                        </label>
-                        <Input
-                          type="number"
-                          value={editReorderLevel}
-                          onChange={(event) =>
-                            setEditReorderLevel(event.target.value)
-                          }
-                          className="h-11 rounded-xl"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-2 block text-xs font-medium">
-                          Price
-                        </label>
-                        <Input
-                          type="number"
-                          value={editUnitPrice}
-                          onChange={(event) =>
-                            setEditUnitPrice(event.target.value)
-                          }
-                          className="h-11 rounded-xl"
-                        />
-                      </div>
-                      <div className="flex gap-3 md:col-span-3">
-                        <Button
-                          type="button"
-                          className="rounded-xl"
-                          onClick={handleSaveEdit}
-                          disabled={updateStockMutation.isPending}
+                      return (
+                        <tr
+                          key={stock.id}
+                          className="border-t align-top transition hover:bg-muted/35"
                         >
-                          {updateStockMutation.isPending ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Save className="mr-2 h-4 w-4" />
-                          )}
-                          Save
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="rounded-xl"
-                          onClick={() => setEditingStockId(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ))
+                          <td className="px-4 py-4">
+                            <Badge variant="outline" className="rounded-full">
+                              {stock.medicine?.code || `MED-${stock.medicineId}`}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="font-semibold">
+                              {medicineLabel(stock.medicine)}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {stock.medicine?.manufacturer || "No manufacturer"}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                value={editStockQuantity}
+                                onChange={(event) =>
+                                  setEditStockQuantity(event.target.value)
+                                }
+                                className="h-10 min-w-24 rounded-xl"
+                              />
+                            ) : (
+                              stock.stockQuantity
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                value={editReorderLevel}
+                                onChange={(event) =>
+                                  setEditReorderLevel(event.target.value)
+                                }
+                                className="h-10 min-w-24 rounded-xl"
+                              />
+                            ) : (
+                              stock.reorderLevel
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                value={editBuyingPrice}
+                                onChange={(event) =>
+                                  setEditBuyingPrice(event.target.value)
+                                }
+                                className="h-10 min-w-28 rounded-xl"
+                              />
+                            ) : (
+                              formatMoney(stock.buyingPrice)
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                value={editUnitPrice}
+                                onChange={(event) =>
+                                  setEditUnitPrice(event.target.value)
+                                }
+                                className="h-10 min-w-28 rounded-xl"
+                              />
+                            ) : (
+                              formatMoney(stock.unitPrice)
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            <span
+                              className={
+                                margin >= 0
+                                  ? "font-semibold text-emerald-600 dark:text-emerald-300"
+                                  : "font-semibold text-rose-600 dark:text-rose-300"
+                              }
+                            >
+                              {formatMoney(margin)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            {formatMoney(stock.unitPrice * stock.stockQuantity)}
+                          </td>
+                          <td className="px-4 py-4">
+                            {stock.unitPrice <= 0 ? (
+                              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                                Missing price
+                              </Badge>
+                            ) : stock.stockQuantity <= stock.reorderLevel ? (
+                              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700 dark:text-rose-300">
+                                Reorder
+                              </Badge>
+                            ) : (
+                              <Badge className="rounded-full border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                                Ready
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            {isEditing ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="rounded-xl"
+                                  onClick={handleSaveEdit}
+                                  disabled={updateStockMutation.isPending}
+                                >
+                                  {updateStockMutation.isPending ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Save className="mr-2 h-4 w-4" />
+                                  )}
+                                  Save
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-xl"
+                                  onClick={() => setEditingStockId(null)}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl"
+                                onClick={() => handleStartEdit(stock)}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>

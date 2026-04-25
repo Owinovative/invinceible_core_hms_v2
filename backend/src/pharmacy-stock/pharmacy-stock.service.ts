@@ -11,7 +11,129 @@ import { UpdateBranchMedicineStockDto } from './dto/update-branch-medicine-stock
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
+import { ImportBranchPricingCsvDto } from './dto/import-branch-pricing-csv.dto';
 
+type CsvRow = Record<string, string>;
+
+const BRANCH_PRICING_COLUMNS = [
+  'medicineCode',
+  'medicineName',
+  'dosageForm',
+  'strength',
+  'manufacturer',
+  'currentStock',
+  'stockQuantity',
+  'reorderLevel',
+  'buyingPrice',
+  'sellingPrice',
+  'isActive',
+];
+
+function normalizeHeader(value: string) {
+  return value.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function escapeCsvCell(value: unknown) {
+  const text = value === null || value === undefined ? '' : String(value);
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function toCsv(rows: unknown[][]) {
+  return rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
+}
+
+function parseCsvRecords(csvText: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < csvText.length; index += 1) {
+    const char = csvText[index];
+
+    if (char === '"') {
+      if (inQuotes && csvText[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(cell);
+      cell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && csvText[index + 1] === '\n') {
+        index += 1;
+      }
+
+      row.push(cell);
+      if (row.some((value) => value.trim() !== '')) {
+        rows.push(row);
+      }
+      row = [];
+      cell = '';
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim() !== '')) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function mapCsvRow(headers: string[], cells: string[]): CsvRow {
+  return headers.reduce<CsvRow>((row, header, index) => {
+    row[header] = cells[index]?.trim() ?? '';
+    return row;
+  }, {});
+}
+
+function readText(row: CsvRow, aliases: string[]) {
+  for (const alias of aliases.map(normalizeHeader)) {
+    const value = row[alias];
+    if (value !== undefined && value.trim() !== '') {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function readNumber(row: CsvRow, aliases: string[]) {
+  const raw = readText(row, aliases);
+  if (!raw) return undefined;
+
+  const number = Number(raw.replace(/,/g, ''));
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function readInteger(row: CsvRow, aliases: string[]) {
+  const number = readNumber(row, aliases);
+  return number === undefined ? undefined : Math.max(0, Math.round(number));
+}
+
+function readBoolean(row: CsvRow, aliases: string[]) {
+  const raw = readText(row, aliases);
+  if (!raw) return undefined;
+
+  return ['true', 'yes', 'y', '1', 'active'].includes(raw.toLowerCase());
+}
 
 
 @Injectable()
@@ -55,6 +177,227 @@ export class PharmacyStockService {
       });
     }
   }
+
+  private async getScopedBranch(branchId: number, user: RequestUser) {
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      include: { facility: true },
+    });
+
+    if (!branch) {
+      throw new NotFoundException(`Branch with id ${branchId} not found`);
+    }
+
+    this.scopeService.assertBranchAccess(user, branch.facilityId, branchId);
+
+    return branch;
+  }
+
+  async getBranchPricingTemplate(branchId: number, user: RequestUser) {
+    const branch = await this.getScopedBranch(branchId, user);
+    const [medicines, branchStocks] = await Promise.all([
+      this.prisma.medicine.findMany({
+        where: { isActive: true },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.branchMedicineStock.findMany({
+        where: { branchId, facilityId: branch.facilityId },
+      }),
+    ]);
+
+    const stockByMedicineId = new Map(
+      branchStocks.map((stock) => [stock.medicineId, stock]),
+    );
+
+    const rows = [
+      BRANCH_PRICING_COLUMNS,
+      ...medicines.map((medicine) => {
+        const stock = stockByMedicineId.get(medicine.id);
+
+        return [
+          medicine.code,
+          medicine.name,
+          medicine.dosageForm ?? '',
+          medicine.strength ?? '',
+          medicine.manufacturer ?? '',
+          stock?.stockQuantity ?? 0,
+          stock?.stockQuantity ?? '',
+          stock?.reorderLevel ?? medicine.reorderLevel ?? 0,
+          stock?.buyingPrice ?? 0,
+          stock?.unitPrice ?? medicine.unitPrice ?? 0,
+          stock?.isActive ?? true,
+        ];
+      }),
+    ];
+
+    return {
+      fileName: `pharmacy-pricing-${branch.code ?? branch.id}.csv`,
+      branch: {
+        id: branch.id,
+        name: branch.name,
+        facilityId: branch.facilityId,
+        facilityName: branch.facility?.name ?? null,
+      },
+      columns: BRANCH_PRICING_COLUMNS,
+      rowCount: medicines.length,
+      csvText: toCsv(rows),
+    };
+  }
+
+  async importBranchPricing(
+    branchId: number,
+    dto: ImportBranchPricingCsvDto,
+    user: RequestUser,
+  ) {
+    const branch = await this.getScopedBranch(branchId, user);
+    const records = parseCsvRecords(dto.csvText);
+
+    if (records.length < 2) {
+      throw new BadRequestException(
+        'The uploaded pricing file must contain a header row and at least one medicine row.',
+      );
+    }
+
+    const headers = records[0].map(normalizeHeader);
+    const medicineCodeIndex = headers.indexOf('medicinecode');
+
+    if (medicineCodeIndex === -1) {
+      throw new BadRequestException(
+        'The pricing file must include a medicineCode column.',
+      );
+    }
+
+    const codes = Array.from(
+      new Set(
+        records
+          .slice(1)
+          .map((cells) => cells[medicineCodeIndex]?.trim())
+          .filter(Boolean)
+          .map((code) => code!.toUpperCase()),
+      ),
+    );
+
+    const medicines = await this.prisma.medicine.findMany({
+      where: {
+        code: {
+          in: codes,
+        },
+      },
+    });
+    const medicineByCode = new Map(
+      medicines.map((medicine) => [medicine.code.toUpperCase(), medicine]),
+    );
+
+    let processed = 0;
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: Array<{ row: number; medicineCode?: string; message: string }> =
+      [];
+
+    for (let index = 1; index < records.length; index += 1) {
+      const rowNumber = index + 1;
+      const row = mapCsvRow(headers, records[index]);
+      const medicineCode = readText(row, ['medicineCode']);
+
+      if (!medicineCode) {
+        skipped += 1;
+        errors.push({
+          row: rowNumber,
+          message: 'Missing medicineCode.',
+        });
+        continue;
+      }
+
+      const medicine = medicineByCode.get(medicineCode.toUpperCase());
+
+      if (!medicine) {
+        skipped += 1;
+        errors.push({
+          row: rowNumber,
+          medicineCode,
+          message: 'Medicine code does not exist in the master catalogue.',
+        });
+        continue;
+      }
+
+      const existing = await this.prisma.branchMedicineStock.findUnique({
+        where: {
+          branchId_medicineId: {
+            branchId,
+            medicineId: medicine.id,
+          },
+        },
+      });
+
+      const stockQuantity =
+        readInteger(row, ['stockQuantity', 'stock', 'quantity']) ??
+        existing?.stockQuantity ??
+        0;
+      const reorderLevel =
+        readInteger(row, ['reorderLevel', 'minimumStock']) ??
+        existing?.reorderLevel ??
+        medicine.reorderLevel ??
+        0;
+      const buyingPrice =
+        readNumber(row, ['buyingPrice', 'purchasePrice', 'costPrice']) ??
+        existing?.buyingPrice ??
+        0;
+      const unitPrice =
+        readNumber(row, ['sellingPrice', 'unitPrice', 'branchPrice']) ??
+        existing?.unitPrice ??
+        medicine.unitPrice ??
+        0;
+      const isActive = readBoolean(row, ['isActive', 'active']) ?? true;
+
+      await this.prisma.branchMedicineStock.upsert({
+        where: {
+          branchId_medicineId: {
+            branchId,
+            medicineId: medicine.id,
+          },
+        },
+        create: {
+          facilityId: branch.facilityId,
+          branchId,
+          medicineId: medicine.id,
+          stockQuantity,
+          reorderLevel,
+          buyingPrice,
+          unitPrice,
+          isActive,
+        },
+        update: {
+          stockQuantity,
+          reorderLevel,
+          buyingPrice,
+          unitPrice,
+          isActive,
+        },
+      });
+
+      processed += 1;
+      if (existing) {
+        updated += 1;
+      } else {
+        created += 1;
+      }
+    }
+
+    return {
+      branch: {
+        id: branch.id,
+        name: branch.name,
+        facilityId: branch.facilityId,
+      },
+      processed,
+      created,
+      updated,
+      skipped,
+      errors,
+    };
+  }
+
   async restockBranchMedicine(
       stockId: number,
       dto: RestockBranchMedicineDto,
@@ -81,6 +424,7 @@ export class PharmacyStockService {
             increment: dto.quantityToAdd,
           },
           reorderLevel: dto.reorderLevel ?? stock.reorderLevel,
+          buyingPrice: dto.buyingPrice ?? stock.buyingPrice,
           unitPrice: dto.unitPrice ?? stock.unitPrice,
         },
         include: {
@@ -144,6 +488,7 @@ export class PharmacyStockService {
         medicineId: dto.medicineId,
         stockQuantity: dto.stockQuantity ?? 0,
         reorderLevel: dto.reorderLevel ?? 0,
+        buyingPrice: dto.buyingPrice ?? 0,
         unitPrice: dto.unitPrice ?? 0,
         isActive: dto.isActive ?? true,
       },
@@ -203,11 +548,11 @@ export class PharmacyStockService {
   }
 
   async findByBranchScoped(branchId: number, user: RequestUser) {
-    this.scopeService.assertBranchAccess(user, user.homeFacilityId!, branchId);
+    const branch = await this.getScopedBranch(branchId, user);
 
     return this.prisma.branchMedicineStock.findMany({
       where: {
-        facilityId: user.homeFacilityId!,
+        facilityId: branch.facilityId,
         branchId,
       },
       include: {
@@ -258,6 +603,7 @@ export class PharmacyStockService {
       data: {
         stockQuantity: dto.stockQuantity,
         reorderLevel: dto.reorderLevel,
+        buyingPrice: dto.buyingPrice,
         unitPrice: dto.unitPrice,
         isActive: dto.isActive,
       },
@@ -380,6 +726,7 @@ export class PharmacyStockService {
         medicineName: item.medicine?.name ?? null,
         stockQuantity: item.stockQuantity,
         reorderLevel: item.reorderLevel,
+        buyingPrice: item.buyingPrice,
         unitPrice: item.unitPrice,
       })),
       outOfStockItems: outOfStockItems.map((item) => ({
@@ -393,6 +740,7 @@ export class PharmacyStockService {
         medicineName: item.medicine?.name ?? null,
         stockQuantity: item.stockQuantity,
         reorderLevel: item.reorderLevel,
+        buyingPrice: item.buyingPrice,
         unitPrice: item.unitPrice,
       })),
     };

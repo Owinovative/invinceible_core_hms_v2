@@ -21,6 +21,7 @@ import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
 import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
 import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { PostBedChargeDto } from './dto/post-bed-charge.dto';
+import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Roles } from '../auth/roles.decorator';
@@ -41,6 +42,31 @@ export class BillingController {
   @Get('services')
   getAllBillingServices() {
     return this.billingService.getAllBillingServices();
+  }
+
+  @Get('tariffs/pricing-template')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  getServiceTariffPricingTemplate(
+    @Query('facilityId') facilityId: string,
+    @Query('branchId') branchId: string | undefined,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.getServiceTariffPricingTemplate(
+      Number(facilityId),
+      branchId ? Number(branchId) : undefined,
+      user,
+    );
+  }
+
+  @Post('tariffs/pricing-import')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  importServiceTariffs(
+    @Body() dto: ImportServiceTariffsCsvDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.importServiceTariffs(dto, user);
   }
 
   @Post('tariffs')

@@ -211,6 +211,29 @@ export interface CreateServiceTariffPayload {
   notes?: string;
 }
 
+export interface ServiceTariffTemplate {
+  fileName: string;
+  facilityId: number;
+  branchId?: number | null;
+  columns: string[];
+  rowCount: number;
+  csvText: string;
+}
+
+export interface ServiceTariffImportResult {
+  facilityId: number;
+  branchId?: number | null;
+  processed: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{
+    row: number;
+    code?: string;
+    message: string;
+  }>;
+}
+
 export interface UpdateInvoiceItemPayload {
   description?: string;
   quantity?: number;
@@ -296,6 +319,37 @@ export async function createServiceTariff(payload: CreateServiceTariffPayload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getServiceTariffPricingTemplate(
+  facilityId: number,
+  branchId?: number | null,
+) {
+  const params = new URLSearchParams({ facilityId: String(facilityId) });
+  if (branchId) {
+    params.set("branchId", String(branchId));
+  }
+
+  return apiFetch<ServiceTariffTemplate>(
+    `/billing/tariffs/pricing-template?${params.toString()}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function importServiceTariffPricing(payload: {
+  facilityId: number;
+  branchId?: number | null;
+  csvText: string;
+}) {
+  return apiFetch<ServiceTariffImportResult>(
+    "/billing/tariffs/pricing-import",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function updateInvoiceItem(
