@@ -18,6 +18,7 @@ export function useImportBranchMedicinePricing() {
       queryClient.invalidateQueries({
         queryKey: ["branch-pharmacy-stock", payload.branchId],
       });
+      queryClient.invalidateQueries({ queryKey: ["pharmacy-medicines"] });
       queryClient.invalidateQueries({ queryKey: ["low-pharmacy-stock"] });
     },
   });

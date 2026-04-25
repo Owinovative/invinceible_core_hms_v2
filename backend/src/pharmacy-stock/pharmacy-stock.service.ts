@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacilityService } from '../facility/facility.service';
 import { BranchService } from '../branch/branch.service';
@@ -30,11 +31,22 @@ const BRANCH_PRICING_COLUMNS = [
 ];
 
 function normalizeHeader(value: string) {
-  return value.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+  return value
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
 }
 
 function escapeCsvCell(value: unknown) {
-  const text = value === null || value === undefined ? '' : String(value);
+  const text =
+    value === null || value === undefined
+      ? ''
+      : typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ? String(value)
+        : (JSON.stringify(value) ?? '');
 
   if (/[",\r\n]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
@@ -134,7 +146,6 @@ function readBoolean(row: CsvRow, aliases: string[]) {
 
   return ['true', 'yes', 'y', '1', 'active'].includes(raw.toLowerCase());
 }
-
 
 @Injectable()
 export class PharmacyStockService {
@@ -272,8 +283,8 @@ export class PharmacyStockService {
         records
           .slice(1)
           .map((cells) => cells[medicineCodeIndex]?.trim())
-          .filter(Boolean)
-          .map((code) => code!.toUpperCase()),
+          .filter((code): code is string => Boolean(code))
+          .map((code) => code.toUpperCase()),
       ),
     );
 
@@ -291,9 +302,14 @@ export class PharmacyStockService {
     let processed = 0;
     let created = 0;
     let updated = 0;
+    let masterCreated = 0;
+    let masterUpdated = 0;
     let skipped = 0;
-    const errors: Array<{ row: number; medicineCode?: string; message: string }> =
-      [];
+    const errors: Array<{
+      row: number;
+      medicineCode?: string;
+      message: string;
+    }> = [];
 
     for (let index = 1; index < records.length; index += 1) {
       const rowNumber = index + 1;
@@ -309,16 +325,64 @@ export class PharmacyStockService {
         continue;
       }
 
-      const medicine = medicineByCode.get(medicineCode.toUpperCase());
+      let medicine = medicineByCode.get(medicineCode.toUpperCase());
 
       if (!medicine) {
-        skipped += 1;
-        errors.push({
-          row: rowNumber,
-          medicineCode,
-          message: 'Medicine code does not exist in the master catalogue.',
+        const medicineName = readText(row, ['medicineName', 'name']);
+
+        if (!medicineName) {
+          skipped += 1;
+          errors.push({
+            row: rowNumber,
+            medicineCode,
+            message:
+              'Medicine code is new. Add medicineName so the master catalogue can be created.',
+          });
+          continue;
+        }
+
+        medicine = await this.prisma.medicine.create({
+          data: {
+            code: medicineCode.toUpperCase(),
+            name: medicineName,
+            dosageForm: readText(row, ['dosageForm', 'form']),
+            strength: readText(row, ['strength']),
+            manufacturer: readText(row, ['manufacturer']),
+            unitPrice:
+              readNumber(row, ['sellingPrice', 'unitPrice', 'branchPrice']) ??
+              0,
+            stockQuantity: 0,
+            reorderLevel:
+              readInteger(row, ['reorderLevel', 'minimumStock']) ?? 0,
+            isActive: readBoolean(row, ['isActive', 'active']) ?? true,
+          },
         });
-        continue;
+
+        medicineByCode.set(medicine.code.toUpperCase(), medicine);
+        masterCreated += 1;
+      } else {
+        const masterUpdate = {
+          name: readText(row, ['medicineName', 'name']) ?? medicine.name,
+          dosageForm:
+            readText(row, ['dosageForm', 'form']) ?? medicine.dosageForm,
+          strength: readText(row, ['strength']) ?? medicine.strength,
+          manufacturer:
+            readText(row, ['manufacturer']) ?? medicine.manufacturer,
+        };
+
+        if (
+          masterUpdate.name !== medicine.name ||
+          masterUpdate.dosageForm !== medicine.dosageForm ||
+          masterUpdate.strength !== medicine.strength ||
+          masterUpdate.manufacturer !== medicine.manufacturer
+        ) {
+          medicine = await this.prisma.medicine.update({
+            where: { id: medicine.id },
+            data: masterUpdate,
+          });
+          medicineByCode.set(medicine.code.toUpperCase(), medicine);
+          masterUpdated += 1;
+        }
       }
 
       const existing = await this.prisma.branchMedicineStock.findUnique({
@@ -393,51 +457,50 @@ export class PharmacyStockService {
       processed,
       created,
       updated,
+      masterCreated,
+      masterUpdated,
       skipped,
       errors,
     };
   }
 
-  async restockBranchMedicine(
-      stockId: number,
-      dto: RestockBranchMedicineDto,
-    ) {
-      const stock = await this.prisma.branchMedicineStock.findUnique({
-        where: { id: stockId },
-        include: {
-          medicine: true,
-          branch: true,
-          facility: true,
-        },
-      });
+  async restockBranchMedicine(stockId: number, dto: RestockBranchMedicineDto) {
+    const stock = await this.prisma.branchMedicineStock.findUnique({
+      where: { id: stockId },
+      include: {
+        medicine: true,
+        branch: true,
+        facility: true,
+      },
+    });
 
-      if (!stock) {
-        throw new NotFoundException(
-          `Branch medicine stock with id ${stockId} not found`,
-        );
-      }
-
-      const updated = await this.prisma.branchMedicineStock.update({
-        where: { id: stockId },
-        data: {
-          stockQuantity: {
-            increment: dto.quantityToAdd,
-          },
-          reorderLevel: dto.reorderLevel ?? stock.reorderLevel,
-          buyingPrice: dto.buyingPrice ?? stock.buyingPrice,
-          unitPrice: dto.unitPrice ?? stock.unitPrice,
-        },
-        include: {
-          medicine: true,
-          branch: true,
-          facility: true,
-        },
-      });
-
-      await this.resolveRecoveredStockNotifications(updated.id);
-
-      return updated;
+    if (!stock) {
+      throw new NotFoundException(
+        `Branch medicine stock with id ${stockId} not found`,
+      );
     }
+
+    const updated = await this.prisma.branchMedicineStock.update({
+      where: { id: stockId },
+      data: {
+        stockQuantity: {
+          increment: dto.quantityToAdd,
+        },
+        reorderLevel: dto.reorderLevel ?? stock.reorderLevel,
+        buyingPrice: dto.buyingPrice ?? stock.buyingPrice,
+        unitPrice: dto.unitPrice ?? stock.unitPrice,
+      },
+      include: {
+        medicine: true,
+        branch: true,
+        facility: true,
+      },
+    });
+
+    await this.resolveRecoveredStockNotifications(updated.id);
+
+    return updated;
+  }
 
   async restockBranchMedicineScoped(
     stockId: number,
@@ -448,7 +511,6 @@ export class PharmacyStockService {
 
     return this.restockBranchMedicine(stockId, dto);
   }
-
 
   async create(dto: CreateBranchMedicineStockDto) {
     await this.facilityService.findOne(dto.facilityId);
@@ -465,7 +527,9 @@ export class PharmacyStockService {
     });
 
     if (!medicine) {
-      throw new NotFoundException(`Medicine with id ${dto.medicineId} not found`);
+      throw new NotFoundException(
+        `Medicine with id ${dto.medicineId} not found`,
+      );
     }
 
     const existing = await this.prisma.branchMedicineStock.findFirst({
@@ -670,7 +734,7 @@ export class PharmacyStockService {
   }
 
   async getLowStock(facilityId?: number, branchId?: number) {
-    const where: any = {
+    const where: Prisma.BranchMedicineStockWhereInput = {
       isActive: true,
     };
 

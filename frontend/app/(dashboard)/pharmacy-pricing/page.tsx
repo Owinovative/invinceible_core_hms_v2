@@ -308,7 +308,7 @@ export default function PharmacyPricingPage() {
         csvText,
       });
       setMessage(
-        `Imported ${result.processed} rows: ${result.created} created, ${result.updated} updated, ${result.skipped} skipped.`,
+        `Imported ${result.processed} rows: ${result.created} branch prices created, ${result.updated} updated, ${result.masterCreated ?? 0} new master drugs added, ${result.skipped} skipped.`,
       );
     } catch (error) {
       setMessage(
@@ -348,7 +348,9 @@ export default function PharmacyPricingPage() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[420px]">
             <div className="rounded-xl border bg-background/70 p-4">
-              <p className="text-xs uppercase text-muted-foreground">Facility</p>
+              <p className="text-xs uppercase text-muted-foreground">
+                Facility
+              </p>
               <p className="mt-2 text-sm font-semibold">
                 {facilityName || "No facility"}
               </p>
@@ -360,7 +362,9 @@ export default function PharmacyPricingPage() {
                   value={selectedBranchId ? String(selectedBranchId) : ""}
                   onChange={(event) =>
                     setSelectedBranchId(
-                      event.target.value ? Number(event.target.value) : undefined,
+                      event.target.value
+                        ? Number(event.target.value)
+                        : undefined,
                     )
                   }
                   className="mt-2 h-10 w-full rounded-xl border bg-background px-3 text-sm"
@@ -566,7 +570,9 @@ export default function PharmacyPricingPage() {
                 <Button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={!selectedBranchId || importPricingMutation.isPending}
+                  disabled={
+                    !selectedBranchId || importPricingMutation.isPending
+                  }
                   className="h-12 rounded-xl"
                 >
                   {importPricingMutation.isPending ? (
@@ -591,7 +597,9 @@ export default function PharmacyPricingPage() {
                 </label>
                 <select
                   value={selectedMedicineId}
-                  onChange={(event) => setSelectedMedicineId(event.target.value)}
+                  onChange={(event) =>
+                    setSelectedMedicineId(event.target.value)
+                  }
                   className={appSelectClass}
                   disabled={!selectedBranchId}
                 >
@@ -727,7 +735,8 @@ export default function PharmacyPricingPage() {
                         >
                           <td className="px-4 py-4">
                             <Badge variant="outline" className="rounded-full">
-                              {stock.medicine?.code || `MED-${stock.medicineId}`}
+                              {stock.medicine?.code ||
+                                `MED-${stock.medicineId}`}
                             </Badge>
                           </td>
                           <td className="px-4 py-4">
@@ -735,7 +744,8 @@ export default function PharmacyPricingPage() {
                               {medicineLabel(stock.medicine)}
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {stock.medicine?.manufacturer || "No manufacturer"}
+                              {stock.medicine?.manufacturer ||
+                                "No manufacturer"}
                             </p>
                           </td>
                           <td className="px-4 py-4">
