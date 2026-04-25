@@ -16,6 +16,7 @@ import { UpdateBranchMedicineStockDto } from './dto/update-branch-medicine-stock
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
+import { ImportBranchPricingCsvDto } from './dto/import-branch-pricing-csv.dto';
 
 
 
@@ -40,6 +41,23 @@ export class PharmacyStockController {
   @Get('low-stock')
   getLowStock(@CurrentUser() user: RequestUser) {
     return this.pharmacyStockService.getLowStockScoped(user);
+  }
+
+  @Get('branch/:branchId/pricing-template')
+  getBranchPricingTemplate(
+    @Param('branchId', ParseIntPipe) branchId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.getBranchPricingTemplate(branchId, user);
+  }
+
+  @Post('branch/:branchId/pricing-import')
+  importBranchPricing(
+    @Param('branchId', ParseIntPipe) branchId: number,
+    @Body() dto: ImportBranchPricingCsvDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.importBranchPricing(branchId, dto, user);
   }
 
   @Get('branch/:branchId')

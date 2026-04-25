@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class RestockBranchMedicineDto {
   @IsInt()
@@ -11,6 +11,12 @@ export class RestockBranchMedicineDto {
   reorderLevel?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  buyingPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
   @Min(0)
   unitPrice?: number;
 

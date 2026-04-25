@@ -1136,6 +1136,7 @@ model BranchMedicineStock {
   medicineId    Int
   stockQuantity Int      @default(0)
   reorderLevel  Int      @default(0)
+  buyingPrice   Float    @default(0)
   unitPrice     Float    @default(0)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())

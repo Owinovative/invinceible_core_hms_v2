@@ -21,6 +21,135 @@ import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
 import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
 import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
+import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
+
+type TariffCsvRow = Record<string, string>;
+
+const SERVICE_TARIFF_COLUMNS = [
+  'tariffType',
+  'code',
+  'name',
+  'category',
+  'linkedId',
+  'unitPrice',
+  'isActive',
+  'notes',
+];
+
+const CORE_CLINICAL_TARIFFS = [
+  ['MANUAL', 'CONSULTATION', 'Consultation', 'SERVICE', '', 0, true, 'Core outpatient consultation charge'],
+  ['MANUAL', 'DOCTOR_REVIEW', 'Doctor review', 'SERVICE', '', 0, true, 'Clinical review after consultation or ward round'],
+  ['MANUAL', 'NURSING_CHARGE', 'Nursing charge', 'SERVICE', '', 0, true, 'Nursing procedure or daily nursing care'],
+  ['MANUAL', 'TRIAGE_CHARGE', 'Triage charge', 'SERVICE', '', 0, true, 'Front-door clinical triage charge'],
+  ['MANUAL', 'EMERGENCY_REVIEW', 'Emergency review', 'SERVICE', '', 0, true, 'Emergency unit clinical review'],
+  ['MANUAL', 'DRESSING', 'Dressing', 'PROCEDURE', '', 0, true, 'Wound dressing or minor procedure'],
+  ['MANUAL', 'INJECTION', 'Injection administration', 'PROCEDURE', '', 0, true, 'Drug administration service charge'],
+  ['MANUAL', 'OXYGEN_HOUR', 'Oxygen per hour', 'SERVICE', '', 0, true, 'Oxygen therapy hourly charge'],
+  ['MANUAL', 'PROCEDURE_ROOM', 'Procedure room', 'PROCEDURE', '', 0, true, 'Procedure room usage charge'],
+  ['MANUAL', 'NURSING_OBSERVATION', 'Nursing observation', 'SERVICE', '', 0, true, 'Observation and monitoring charge'],
+];
+
+function normalizeTariffHeader(value: string) {
+  return value.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function escapeTariffCsvCell(value: unknown) {
+  const text = value === null || value === undefined ? '' : String(value);
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function toTariffCsv(rows: unknown[][]) {
+  return rows
+    .map((row) => row.map(escapeTariffCsvCell).join(','))
+    .join('\r\n');
+}
+
+function parseTariffCsvRecords(csvText: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < csvText.length; index += 1) {
+    const char = csvText[index];
+
+    if (char === '"') {
+      if (inQuotes && csvText[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(cell);
+      cell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && csvText[index + 1] === '\n') {
+        index += 1;
+      }
+      row.push(cell);
+      if (row.some((value) => value.trim() !== '')) {
+        rows.push(row);
+      }
+      row = [];
+      cell = '';
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim() !== '')) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function mapTariffCsvRow(headers: string[], cells: string[]): TariffCsvRow {
+  return headers.reduce<TariffCsvRow>((row, header, index) => {
+    row[header] = cells[index]?.trim() ?? '';
+    return row;
+  }, {});
+}
+
+function readTariffText(row: TariffCsvRow, aliases: string[]) {
+  for (const alias of aliases.map(normalizeTariffHeader)) {
+    const value = row[alias];
+    if (value !== undefined && value.trim() !== '') {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function readTariffNumber(row: TariffCsvRow, aliases: string[]) {
+  const raw = readTariffText(row, aliases);
+  if (!raw) return undefined;
+
+  const number = Number(raw.replace(/,/g, ''));
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function readTariffBoolean(row: TariffCsvRow, aliases: string[]) {
+  const raw = readTariffText(row, aliases);
+  if (!raw) return undefined;
+
+  return ['true', 'yes', 'y', '1', 'active'].includes(raw.toLowerCase());
+}
 
 @Injectable()
 export class BillingService {
@@ -51,6 +180,282 @@ export class BillingService {
 
   private formatChargeDate(date: Date) {
     return date.toISOString().slice(0, 10);
+  }
+
+  private async assertServiceTariffScope(
+    facilityId: number,
+    branchId: number | undefined,
+    user: RequestUser,
+  ) {
+    if (!Number.isFinite(facilityId)) {
+      throw new BadRequestException('A valid facilityId is required');
+    }
+
+    await this.assertTariffReferences({ facilityId, branchId });
+    this.scopeService.assertBranchAccess(user, facilityId, branchId ?? null);
+  }
+
+  async getServiceTariffPricingTemplate(
+    facilityId: number,
+    branchId: number | undefined,
+    user: RequestUser,
+  ) {
+    await this.assertServiceTariffScope(facilityId, branchId, user);
+
+    const [billingServices, labTests, wards, beds, tariffs, branch] =
+      await Promise.all([
+        this.prisma.billingService.findMany({
+          where: { isActive: true },
+          orderBy: [{ category: 'asc' }, { name: 'asc' }],
+        }),
+        this.prisma.labTestCatalog.findMany({
+          where: { isActive: true },
+          orderBy: [{ category: 'asc' }, { testName: 'asc' }],
+        }),
+        this.prisma.ward.findMany({
+          where: {
+            isActive: true,
+            OR: [{ facilityId }, { facilityId: null }],
+          },
+          orderBy: [{ name: 'asc' }],
+        }),
+        this.prisma.bed.findMany({
+          where: {
+            isActive: true,
+            OR: [{ facilityId }, { facilityId: null }],
+          },
+          orderBy: [{ bedNumber: 'asc' }],
+        }),
+        this.prisma.serviceTariff.findMany({
+          where: {
+            facilityId,
+            branchId: branchId ?? null,
+          },
+        }),
+        branchId
+          ? this.prisma.branch.findUnique({ where: { id: branchId } })
+          : Promise.resolve(null),
+      ]);
+
+    const tariffByKey = new Map(
+      tariffs.map((tariff) => [
+        `${tariff.category}:${tariff.code}`,
+        tariff,
+      ]),
+    );
+    const findTariff = (category: string, code: string) =>
+      tariffByKey.get(
+        `${this.normalizeTariffCategory(category)}:${code.trim().toUpperCase()}`,
+      );
+
+    const rows: unknown[][] = [
+      SERVICE_TARIFF_COLUMNS,
+      ...billingServices.map((service) => {
+        const category = service.category ?? 'SERVICE';
+        const tariff = findTariff(category, service.code);
+
+        return [
+          'BILLING_SERVICE',
+          service.code,
+          service.name,
+          category,
+          service.id,
+          tariff?.unitPrice ?? service.defaultPrice,
+          tariff?.isActive ?? true,
+          tariff?.notes ?? '',
+        ];
+      }),
+      ...labTests.map((test) => {
+        const code = `LAB_TEST_${test.id}`;
+        const tariff = findTariff('LAB', code);
+
+        return [
+          'LAB_TEST',
+          code,
+          test.testName,
+          'LAB',
+          test.id,
+          tariff?.unitPrice ?? 0,
+          tariff?.isActive ?? true,
+          tariff?.notes ?? '',
+        ];
+      }),
+      ...wards.map((ward) => {
+        const code = `WARD_${ward.id}`;
+        const tariff = findTariff('IPD_BED', code);
+
+        return [
+          'WARD',
+          code,
+          `${ward.name} bed-day`,
+          'IPD_BED',
+          ward.id,
+          tariff?.unitPrice ?? 0,
+          tariff?.isActive ?? true,
+          tariff?.notes ?? '',
+        ];
+      }),
+      ...beds.map((bed) => {
+        const code = `BED_${bed.id}`;
+        const tariff = findTariff('IPD_BED', code);
+
+        return [
+          'BED',
+          code,
+          `Bed ${bed.bedLabel || bed.bedNumber}`,
+          'IPD_BED',
+          bed.id,
+          tariff?.unitPrice ?? 0,
+          tariff?.isActive ?? true,
+          tariff?.notes ?? '',
+        ];
+      }),
+      ...CORE_CLINICAL_TARIFFS.map((row) => {
+        const [, code, , category] = row;
+        const tariff = findTariff(String(category), String(code));
+
+        return tariff
+          ? [
+              row[0],
+              row[1],
+              row[2],
+              row[3],
+              row[4],
+              tariff.unitPrice,
+              tariff.isActive,
+              tariff.notes ?? row[7],
+            ]
+          : row;
+      }),
+    ];
+
+    return {
+      fileName: `service-tariffs-${branch?.code ?? branchId ?? 'facility'}.csv`,
+      facilityId,
+      branchId: branchId ?? null,
+      columns: SERVICE_TARIFF_COLUMNS,
+      rowCount: rows.length - 1,
+      csvText: toTariffCsv(rows),
+    };
+  }
+
+  async importServiceTariffs(
+    dto: ImportServiceTariffsCsvDto,
+    user: RequestUser,
+  ) {
+    await this.assertServiceTariffScope(dto.facilityId, dto.branchId, user);
+    const records = parseTariffCsvRecords(dto.csvText);
+
+    if (records.length < 2) {
+      throw new BadRequestException(
+        'The uploaded tariff file must contain a header row and at least one tariff row.',
+      );
+    }
+
+    const headers = records[0].map(normalizeTariffHeader);
+    const requiredColumns = ['code', 'name', 'category', 'unitprice'];
+    const missingColumn = requiredColumns.find(
+      (column) => !headers.includes(column),
+    );
+
+    if (missingColumn) {
+      throw new BadRequestException(
+        `The tariff file is missing the ${missingColumn} column.`,
+      );
+    }
+
+    let processed = 0;
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: Array<{ row: number; code?: string; message: string }> = [];
+
+    for (let index = 1; index < records.length; index += 1) {
+      const rowNumber = index + 1;
+      const row = mapTariffCsvRow(headers, records[index]);
+      const code = readTariffText(row, ['code'])?.trim().toUpperCase();
+      const name = readTariffText(row, ['name']);
+      const category = readTariffText(row, ['category']);
+      const unitPrice = readTariffNumber(row, ['unitPrice', 'price']);
+
+      if (!code || !name || !category || unitPrice === undefined) {
+        skipped += 1;
+        errors.push({
+          row: rowNumber,
+          code,
+          message: 'Code, name, category, and unitPrice are required.',
+        });
+        continue;
+      }
+
+      const tariffType = (
+        readTariffText(row, ['tariffType', 'type']) ?? 'MANUAL'
+      ).toUpperCase();
+      const linkedId = readTariffNumber(row, ['linkedId', 'sourceId']);
+      const linkedInt = linkedId ? Math.trunc(linkedId) : undefined;
+      const normalizedCategory = this.normalizeTariffCategory(category);
+      const payload: CreateServiceTariffDto = {
+        code,
+        name,
+        category: normalizedCategory,
+        facilityId: dto.facilityId,
+        branchId: dto.branchId,
+        unitPrice,
+        isActive: readTariffBoolean(row, ['isActive', 'active']) ?? true,
+        notes: readTariffText(row, ['notes']),
+      };
+
+      if (tariffType === 'BILLING_SERVICE') {
+        payload.billingServiceId = linkedInt;
+      } else if (tariffType === 'LAB_TEST') {
+        payload.labTestId = linkedInt;
+      } else if (tariffType === 'WARD') {
+        payload.wardId = linkedInt;
+      } else if (tariffType === 'BED') {
+        payload.bedId = linkedInt;
+      }
+
+      const existing = await this.prisma.serviceTariff.findFirst({
+        where: {
+          facilityId: dto.facilityId,
+          branchId: dto.branchId ?? null,
+          category: normalizedCategory,
+          code,
+        },
+        orderBy: { id: 'desc' },
+      });
+
+      try {
+        if (existing) {
+          await this.updateServiceTariff(existing.id, payload, user);
+          updated += 1;
+        } else {
+          await this.createServiceTariff(payload, user);
+          created += 1;
+        }
+        processed += 1;
+      } catch (error) {
+        skipped += 1;
+        errors.push({
+          row: rowNumber,
+          code,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Unable to import this tariff row.',
+        });
+      }
+    }
+
+    return {
+      facilityId: dto.facilityId,
+      branchId: dto.branchId ?? null,
+      processed,
+      created,
+      updated,
+      skipped,
+      errors,
+    };
   }
 
   private async assertTariffReferences(dto: {

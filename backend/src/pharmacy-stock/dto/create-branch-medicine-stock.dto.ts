@@ -25,6 +25,10 @@ export class CreateBranchMedicineStockDto {
 
   @IsOptional()
   @IsNumber()
+  buyingPrice?: number;
+
+  @IsOptional()
+  @IsNumber()
   unitPrice?: number;
 
   @IsOptional()

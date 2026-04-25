@@ -1,15 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { Banknote, Loader2, Save, ShieldCheck } from "lucide-react";
+import {
+  Banknote,
+  Download,
+  FileText,
+  Loader2,
+  Save,
+  ShieldCheck,
+  Upload,
+} from "lucide-react";
 
 import { useScope } from "@/providers/scope-provider";
 import { useBeds } from "@/hooks/use-beds";
 import { useBillingServices } from "@/hooks/use-billing-services";
 import { useServiceTariffs } from "@/hooks/use-service-tariffs";
 import { useCreateServiceTariff } from "@/hooks/use-create-service-tariff";
+import { useImportServiceTariffPricing } from "@/hooks/use-import-service-tariff-pricing";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { useWards } from "@/hooks/use-wards";
+import { getServiceTariffPricingTemplate } from "@/services/billing-service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,8 +49,12 @@ export default function BillingTariffsPage() {
   const { data: bedsData = [] } = useBeds();
   const { data: billingServicesData = [] } = useBillingServices();
   const createTariffMutation = useCreateServiceTariff();
+  const importTariffMutation = useImportServiceTariffPricing();
 
   const [message, setMessage] = React.useState<string | null>(null);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] =
+    React.useState(false);
+  const tariffFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [code, setCode] = React.useState("");
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("LAB");
@@ -150,6 +164,76 @@ export default function BillingTariffsPage() {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    setMessage(null);
+
+    if (!facilityId) {
+      setMessage("A facility is required before downloading a tariff template.");
+      return;
+    }
+
+    try {
+      setIsDownloadingTemplate(true);
+      const template = await getServiceTariffPricingTemplate(
+        facilityId,
+        selectedBranchId,
+      );
+      const blob = new Blob([`\uFEFF${template.csvText}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = template.fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      setMessage(`Tariff template downloaded with ${template.rowCount} rows.`);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to download tariff template.",
+      );
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleImportTemplate = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setMessage(null);
+
+    if (!facilityId) {
+      setMessage("A facility is required before importing tariffs.");
+      event.target.value = "";
+      return;
+    }
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const csvText = await file.text();
+      const result = await importTariffMutation.mutateAsync({
+        facilityId,
+        branchId: selectedBranchId,
+        csvText,
+      });
+      setMessage(
+        `Imported ${result.processed} tariffs: ${result.created} created, ${result.updated} updated, ${result.skipped} skipped.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to import tariff pricing.",
+      );
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[1.4rem] border gradient-border p-6 panel-shadow md:p-8">
@@ -189,7 +273,60 @@ export default function BillingTariffsPage() {
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <div className="space-y-4">
+          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-cyan-500" />
+                Branch Tariff Spreadsheet
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border bg-background/65 p-4 text-sm text-muted-foreground">
+                Download one pricing matrix for lab tests, billing services,
+                bed charges, wards, and core clinical fees. Edit the prices in
+                Excel, then import it back for this facility branch.
+              </div>
+              <input
+                ref={tariffFileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleImportTemplate}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDownloadTemplate}
+                  disabled={!facilityId || isDownloadingTemplate}
+                  className="h-12 rounded-xl"
+                >
+                  {isDownloadingTemplate ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Download CSV
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => tariffFileInputRef.current?.click()}
+                  disabled={!facilityId || importTariffMutation.isPending}
+                  className="h-12 rounded-xl"
+                >
+                  {importTariffMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  Import CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -339,6 +476,7 @@ export default function BillingTariffsPage() {
             </Button>
           </CardContent>
         </Card>
+        </div>
 
         <Card className="rounded-[1.2rem] gradient-border panel-shadow">
           <CardHeader>

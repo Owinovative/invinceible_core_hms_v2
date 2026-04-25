@@ -20,6 +20,7 @@ export interface BranchMedicineStockItem {
   medicineId: number;
   stockQuantity: number;
   reorderLevel: number;
+  buyingPrice: number;
   unitPrice: number;
   isActive: boolean;
   medicine?: PharmacyStockMedicine | null;
@@ -44,6 +45,7 @@ export interface LowStockSummaryItem {
   medicineName?: string | null;
   stockQuantity: number;
   reorderLevel: number;
+  buyingPrice: number;
   unitPrice: number;
 }
 
@@ -64,6 +66,7 @@ export interface LowStockResponse {
 export interface RestockBranchMedicinePayload {
   quantityToAdd: number;
   reorderLevel?: number;
+  buyingPrice?: number;
   unitPrice?: number;
 }
 
@@ -73,6 +76,7 @@ export interface CreateBranchMedicineStockPayload {
   medicineId: number;
   stockQuantity?: number;
   reorderLevel?: number;
+  buyingPrice?: number;
   unitPrice?: number;
   isActive?: boolean;
 }
@@ -80,8 +84,39 @@ export interface CreateBranchMedicineStockPayload {
 export interface UpdateBranchMedicineStockPayload {
   stockQuantity?: number;
   reorderLevel?: number;
+  buyingPrice?: number;
   unitPrice?: number;
   isActive?: boolean;
+}
+
+export interface BranchMedicinePricingTemplate {
+  fileName: string;
+  branch: {
+    id: number;
+    name: string;
+    facilityId: number;
+    facilityName?: string | null;
+  };
+  columns: string[];
+  rowCount: number;
+  csvText: string;
+}
+
+export interface BranchMedicinePricingImportResult {
+  branch: {
+    id: number;
+    name: string;
+    facilityId: number;
+  };
+  processed: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{
+    row: number;
+    medicineCode?: string;
+    message: string;
+  }>;
 }
 
 export async function getBranchPharmacyStock(branchId: number) {
@@ -130,6 +165,28 @@ export async function restockBranchMedicine(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getBranchMedicinePricingTemplate(branchId: number) {
+  return apiFetch<BranchMedicinePricingTemplate>(
+    `/pharmacy-stock/branch/${branchId}/pricing-template`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function importBranchMedicinePricing(
+  branchId: number,
+  csvText: string,
+) {
+  return apiFetch<BranchMedicinePricingImportResult>(
+    `/pharmacy-stock/branch/${branchId}/pricing-import`,
+    {
+      method: "POST",
+      body: JSON.stringify({ csvText }),
+    },
+  );
 }
 
 export async function createBranchMedicineStock(
