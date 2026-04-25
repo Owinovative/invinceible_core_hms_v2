@@ -25,8 +25,11 @@ export class PharmacyStockController {
   constructor(private readonly pharmacyStockService: PharmacyStockService) {}
 
   @Post()
-  create(@Body() dto: CreateBranchMedicineStockDto) {
-    return this.pharmacyStockService.create(dto);
+  create(
+    @Body() dto: CreateBranchMedicineStockDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.createScoped(dto, user);
   }
 
   @Get()
@@ -59,8 +62,9 @@ export class PharmacyStockController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateBranchMedicineStockDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.pharmacyStockService.update(id, dto);
+    return this.pharmacyStockService.updateScoped(id, dto, user);
   }
 
   @Patch(':id/add-stock/:quantity')
@@ -74,8 +78,13 @@ export class PharmacyStockController {
   restockBranchMedicine(
     @Param('stockId', ParseIntPipe) stockId: number,
     @Body() dto: RestockBranchMedicineDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.pharmacyStockService.restockBranchMedicine(stockId, dto);
+    return this.pharmacyStockService.restockBranchMedicineScoped(
+      stockId,
+      dto,
+      user,
+    );
   }
 
   @Patch(':id/deduct-stock/:quantity')

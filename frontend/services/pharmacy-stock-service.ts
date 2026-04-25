@@ -67,6 +67,23 @@ export interface RestockBranchMedicinePayload {
   unitPrice?: number;
 }
 
+export interface CreateBranchMedicineStockPayload {
+  facilityId: number;
+  branchId: number;
+  medicineId: number;
+  stockQuantity?: number;
+  reorderLevel?: number;
+  unitPrice?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateBranchMedicineStockPayload {
+  stockQuantity?: number;
+  reorderLevel?: number;
+  unitPrice?: number;
+  isActive?: boolean;
+}
+
 export async function getBranchPharmacyStock(branchId: number) {
   return apiFetch<BranchMedicineStockItem[]>(
     `/pharmacy-stock/branch/${branchId}`,
@@ -110,6 +127,25 @@ export async function restockBranchMedicine(
   payload: RestockBranchMedicinePayload,
 ) {
   return apiFetch<BranchMedicineStockItem>(`/pharmacy-stock/${stockId}/restock`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createBranchMedicineStock(
+  payload: CreateBranchMedicineStockPayload,
+) {
+  return apiFetch<BranchMedicineStockItem>("/pharmacy-stock", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateBranchMedicineStock(
+  stockId: number,
+  payload: UpdateBranchMedicineStockPayload,
+) {
+  return apiFetch<BranchMedicineStockItem>(`/pharmacy-stock/${stockId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });

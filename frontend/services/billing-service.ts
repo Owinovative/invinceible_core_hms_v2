@@ -241,8 +241,21 @@ export interface CreateMpesaPaymentRequestPayload {
   receivedByStaffId?: number;
 }
 
+export interface PostAdmissionBedChargePayload {
+  chargedDate?: string;
+  quantity?: number;
+  unitPrice?: number;
+  notes?: string;
+}
+
 export async function getBillingDashboard() {
   return apiFetch<BillingDashboardRecord>("/billing/dashboard", {
+    method: "GET",
+  });
+}
+
+export async function getBillingServices() {
+  return apiFetch<BillingServiceItem[]>("/billing/services", {
     method: "GET",
   });
 }
@@ -301,6 +314,16 @@ export async function removeInvoiceItem(
 ) {
   return apiFetch<InvoiceRecord>(`/billing/invoice-items/${id}/remove`, {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function postAdmissionBedCharge(
+  admissionId: number,
+  payload: PostAdmissionBedChargePayload,
+) {
+  return apiFetch<InvoiceRecord>(`/billing/admissions/${admissionId}/bed-charge`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

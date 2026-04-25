@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  BadgeDollarSign,
   BedDouble,
   CheckCircle2,
   ClipboardList,
@@ -35,6 +36,7 @@ import { useBeds } from "@/hooks/use-beds";
 import { useAuth } from "@/providers/auth-provider";
 import { useCreateAdmissionLabOrder } from "@/hooks/use-create-admission-lab-order";
 import { useLabTests } from "@/hooks/use-lab-tests";
+import { usePostAdmissionBedCharge } from "@/hooks/use-post-admission-bed-charge";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,6 +123,7 @@ export default function IpdDetailPage() {
   const createIpdDischargeSummaryMutation = useCreateIpdDischargeSummary();
   const { data: labTestsData } = useLabTests();
   const createAdmissionLabOrderMutation = useCreateAdmissionLabOrder();
+  const postAdmissionBedChargeMutation = usePostAdmissionBedCharge(id);
 
 
   const [message, setMessage] = React.useState<string | null>(null);
@@ -218,6 +221,12 @@ export default function IpdDetailPage() {
   const [labOrderItems, setLabOrderItems] = React.useState<
     { testId: number; testName: string; instructions?: string }[]
   >([]);
+  const [bedChargeDate, setBedChargeDate] = React.useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [bedChargeQuantity, setBedChargeQuantity] = React.useState("1");
+  const [bedChargeUnitPrice, setBedChargeUnitPrice] = React.useState("");
+  const [bedChargeNotes, setBedChargeNotes] = React.useState("");
 
 
 
@@ -604,6 +613,25 @@ export default function IpdDetailPage() {
     setSelectedTestInstructions("");
     setLabOrderItems([]);
     setMessage("Admission lab order created successfully.");
+  };
+
+  const handlePostBedCharge = async () => {
+    if (!data) return;
+
+    setMessage(null);
+
+    await postAdmissionBedChargeMutation.mutateAsync({
+      chargedDate: bedChargeDate || undefined,
+      quantity: bedChargeQuantity ? Number(bedChargeQuantity) : 1,
+      unitPrice: bedChargeUnitPrice
+        ? Number(bedChargeUnitPrice)
+        : undefined,
+      notes: bedChargeNotes.trim() || undefined,
+    });
+
+    setBedChargeUnitPrice("");
+    setBedChargeNotes("");
+    setMessage("Bed charge posted to the patient invoice.");
   };
 
 
@@ -1704,6 +1732,98 @@ export default function IpdDetailPage() {
                     </div>
                   ))
                 )}
+              </CardContent>
+            </Card>
+          </section>
+
+          <section>
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BadgeDollarSign className="h-5 w-5 text-primary" />
+                  IPD Bed Charge
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm font-medium">
+                    {data.ward?.name || "Current ward"}
+                    {data.bed?.bedNumber ? ` / Bed ${data.bed.bedNumber}` : ""}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Admission bed-day charges are auto-posted on admission and
+                    transfer. Use this control to post a missed day or override
+                    the tariff for a specific day.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Charge Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={bedChargeDate}
+                      onChange={(event) => setBedChargeDate(event.target.value)}
+                      className="h-12 rounded-2xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Days
+                    </label>
+                    <Input
+                      type="number"
+                      value={bedChargeQuantity}
+                      onChange={(event) =>
+                        setBedChargeQuantity(event.target.value)
+                      }
+                      className="h-12 rounded-2xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Override Price
+                    </label>
+                    <Input
+                      type="number"
+                      value={bedChargeUnitPrice}
+                      onChange={(event) =>
+                        setBedChargeUnitPrice(event.target.value)
+                      }
+                      className="h-12 rounded-2xl"
+                      placeholder="Leave empty for tariff"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Notes</label>
+                  <Textarea
+                    value={bedChargeNotes}
+                    onChange={(event) => setBedChargeNotes(event.target.value)}
+                    className="min-h-[90px] rounded-2xl"
+                    placeholder="Reason for manual bed charge"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  className="h-12 rounded-2xl"
+                  onClick={handlePostBedCharge}
+                  disabled={postAdmissionBedChargeMutation.isPending}
+                >
+                  {postAdmissionBedChargeMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <BadgeDollarSign className="mr-2 h-4 w-4" />
+                  )}
+                  Post Bed Charge
+                </Button>
               </CardContent>
             </Card>
           </section>
