@@ -26,6 +26,7 @@ export interface InvoiceItemRecord {
   isRemoved?: boolean;
   removedAt?: string | null;
   removedReason?: string | null;
+  createdAt?: string | null;
   billingService?: {
     id: number;
     code: string;
@@ -244,7 +245,12 @@ export interface UpdateInvoiceItemPayload {
 }
 
 export interface AddInvoiceItemPayload {
+  chargeType?: "SERVICE" | "LAB_TEST" | "MEDICINE" | "MANUAL";
   billingServiceId?: number;
+  labTestId?: number;
+  medicineId?: number;
+  branchMedicineStockId?: number;
+  chargedAt?: string;
   description: string;
   quantity?: number;
   unitPrice?: number;
@@ -279,6 +285,78 @@ export interface PostAdmissionBedChargePayload {
   quantity?: number;
   unitPrice?: number;
   notes?: string;
+}
+
+export interface PatientBillingWorkspace {
+  patient: NonNullable<InvoiceRecord["patient"]> & {
+    facilityId?: number;
+  };
+  openInvoice?: InvoiceRecord | null;
+  invoices: InvoiceRecord[];
+  activeAdmissions: Array<{
+    id: number;
+    statusCode?: string | null;
+    admittedAt?: string | null;
+    ward?: { id: number; name?: string | null } | null;
+    bed?: {
+      id: number;
+      bedNumber?: string | null;
+      bedLabel?: string | null;
+    } | null;
+    branch?: { id: number; name?: string | null } | null;
+  }>;
+  consultations: Array<{
+    id: number;
+    consultationNumber?: string | null;
+    statusCode?: string | null;
+    startedAt?: string | null;
+    doctor?: {
+      id: number;
+      firstName?: string | null;
+      lastName?: string | null;
+    } | null;
+  }>;
+  labOrders: Array<{
+    id: number;
+    orderNumber?: string | null;
+    status?: string | null;
+    createdAt?: string | null;
+    items?: Array<{
+      id: number;
+      status?: string | null;
+      test?: { id: number; testName?: string | null } | null;
+      results?: Array<{ id: number }>;
+    }>;
+  }>;
+  prescriptions: Array<{
+    id: number;
+    prescriptionNumber?: string | null;
+    statusCode?: string | null;
+    prescribedAt?: string | null;
+    items?: Array<{
+      id: number;
+      medicine?: { id: number; name?: string | null } | null;
+    }>;
+  }>;
+  dispenses: Array<{
+    id: number;
+    dispenseNumber?: string | null;
+    statusCode?: string | null;
+    dispensedAt?: string | null;
+    items?: Array<{
+      id: number;
+      quantityDispensed?: number;
+      medicine?: { id: number; name?: string | null } | null;
+    }>;
+  }>;
+  summary: {
+    invoiceCount: number;
+    openBalance: number;
+    activeAdmissions: number;
+    activeConsultations: number;
+    pendingLabOrders: number;
+    openPrescriptions: number;
+  };
 }
 
 export async function getBillingDashboard() {
@@ -316,6 +394,28 @@ export async function getInvoiceById(id: number) {
   return apiFetch<InvoiceRecord>(`/billing/invoices/${id}`, {
     method: "GET",
   });
+}
+
+export async function openPatientInvoice(
+  patientId: number,
+  payload: { branchId?: number; createdByStaffId?: number } = {},
+) {
+  return apiFetch<InvoiceRecord>(
+    `/billing/patients/${patientId}/open-invoice`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function getPatientBillingWorkspace(patientId: number) {
+  return apiFetch<PatientBillingWorkspace>(
+    `/billing/patients/${patientId}/workspace`,
+    {
+      method: "GET",
+    },
+  );
 }
 
 export async function getServiceTariffs() {

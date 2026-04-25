@@ -100,6 +100,26 @@ export class ReportsController {
     );
   }
 
+  @Get('profit')
+  getProfitAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getProfitAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('profit/export')
+  getProfitAnalyticsExport(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getProfitAnalyticsExport(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
   @Get('ipd')
   getIpdAnalytics(
     @Query() filter: ReportFilterDto,

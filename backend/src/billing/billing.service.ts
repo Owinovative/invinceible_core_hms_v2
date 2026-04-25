@@ -24,6 +24,7 @@ import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
 import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
 import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
+import { OpenPatientInvoiceDto } from './dto/open-patient-invoice.dto';
 import {
   addKeyValueGrid,
   addParagraph,
@@ -37,6 +38,7 @@ import {
 } from '../common/pdf/hospital-pdf';
 
 type TariffCsvRow = Record<string, string>;
+type InvoiceChargeType = 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
 
 const SERVICE_TARIFF_COLUMNS = [
   'tariffType',
@@ -292,6 +294,17 @@ export class BillingService {
 
   private formatChargeDate(date: Date) {
     return date.toISOString().slice(0, 10);
+  }
+
+  private parseChargeDate(value?: string) {
+    if (!value) return new Date();
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Invoice line date is invalid');
+    }
+
+    return date;
   }
 
   private async assertServiceTariffScope(
@@ -725,6 +738,183 @@ export class BillingService {
     });
   }
 
+  async openPatientInvoice(
+    patientId: number,
+    dto: OpenPatientInvoiceDto,
+    user: RequestUser,
+  ) {
+    const patient = await this.patientService.findOneScoped(patientId, user);
+    const branchId = dto.branchId ?? user.homeBranchId ?? null;
+
+    this.scopeService.assertBranchAccess(user, patient.facilityId, branchId);
+
+    const invoice = await this.getOrCreateOpenInvoice({
+      patientId: patient.id,
+      facilityId: patient.facilityId,
+      branchId,
+      createdByStaffId: user.staffId ?? dto.createdByStaffId ?? null,
+    });
+
+    await this.auditLogService.create({
+      moduleName: 'BILLING',
+      actionName: 'OPEN_PATIENT_INVOICE_WORKSPACE',
+      entityType: 'INVOICE',
+      entityId: String(invoice.id),
+      description: `Opened invoice workspace for ${patient.patientNumber}`,
+      facilityId: patient.facilityId,
+      branchId: branchId ?? undefined,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? dto.createdByStaffId,
+      afterData: JSON.stringify({
+        patientId: patient.id,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+      }),
+    });
+
+    return this.getInvoiceByIdScoped(invoice.id, user);
+  }
+
+  async getPatientBillingWorkspace(patientId: number, user: RequestUser) {
+    const patient = await this.patientService.findOneScoped(patientId, user);
+    const scope = this.scopeService.buildReadScope(user);
+    const where = {
+      ...scope,
+      patientId: patient.id,
+    };
+
+    const [
+      invoices,
+      activeAdmissions,
+      consultations,
+      labOrders,
+      prescriptions,
+      dispenses,
+    ] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        include: {
+          facility: true,
+          branch: true,
+          patient: true,
+          appointment: true,
+          consultation: true,
+          admission: true,
+          items: {
+            include: {
+              billingService: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+          payments: true,
+        },
+        orderBy: { id: 'desc' },
+        take: 20,
+      }),
+      this.prisma.admission.findMany({
+        where: {
+          ...where,
+          statusCode: { in: ['ADMITTED', 'ACTIVE', 'IN_PROGRESS'] },
+        },
+        include: {
+          ward: true,
+          bed: true,
+          branch: true,
+        },
+        orderBy: { id: 'desc' },
+        take: 10,
+      }),
+      this.prisma.consultation.findMany({
+        where,
+        include: {
+          doctor: true,
+          appointment: true,
+          branch: true,
+        },
+        orderBy: { id: 'desc' },
+        take: 10,
+      }),
+      this.prisma.labOrder.findMany({
+        where,
+        include: {
+          branch: true,
+          requestedBy: true,
+          items: {
+            include: {
+              test: true,
+              results: true,
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+        take: 10,
+      }),
+      this.prisma.prescription.findMany({
+        where,
+        include: {
+          branch: true,
+          prescribedBy: true,
+          items: {
+            include: {
+              medicine: true,
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+        take: 10,
+      }),
+      this.prisma.dispense.findMany({
+        where,
+        include: {
+          branch: true,
+          dispensedBy: true,
+          items: {
+            include: {
+              medicine: true,
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    const openInvoice =
+      invoices.find((invoice) =>
+        ['PENDING', 'PARTIALLY_PAID'].includes(invoice.statusCode),
+      ) ?? null;
+
+    return {
+      patient,
+      openInvoice,
+      invoices,
+      activeAdmissions,
+      consultations,
+      labOrders,
+      prescriptions,
+      dispenses,
+      summary: {
+        invoiceCount: invoices.length,
+        openBalance: invoices.reduce(
+          (sum, invoice) => sum + invoice.balanceAmount,
+          0,
+        ),
+        activeAdmissions: activeAdmissions.length,
+        activeConsultations: consultations.filter(
+          (consultation) => consultation.statusCode === 'IN_PROGRESS',
+        ).length,
+        pendingLabOrders: labOrders.filter((order) =>
+          ['REQUESTED', 'IN_PROGRESS'].includes(order.status),
+        ).length,
+        openPrescriptions: prescriptions.filter((prescription) =>
+          ['PRESCRIBED', 'PARTIALLY_DISPENSED'].includes(
+            prescription.statusCode,
+          ),
+        ).length,
+      },
+    };
+  }
+
   private async recalculateInvoiceTotalsFromItems(invoiceId: number) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
@@ -796,6 +986,7 @@ export class BillingService {
           include: {
             billingService: true,
           },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         },
         payments: true,
       },
@@ -818,6 +1009,7 @@ export class BillingService {
     sourceEntityType: string;
     sourceEntityId: string;
     billingServiceId?: number;
+    chargedAt?: Date;
   }) {
     const invoice = await this.getOrCreateOpenInvoice({
       patientId: params.patientId,
@@ -858,6 +1050,7 @@ export class BillingService {
         sourceEntityId: params.sourceEntityId,
         isAutoGenerated: true,
         isRemoved: false,
+        createdAt: params.chargedAt,
       },
     });
 
@@ -877,16 +1070,22 @@ export class BillingService {
       );
     }
 
-    const description = dto.description?.trim();
-    if (!description) {
-      throw new BadRequestException('Invoice line description is required');
-    }
-
     const quantity = dto.quantity ?? 1;
     if (quantity <= 0) {
       throw new BadRequestException('Invoice line quantity must be positive');
     }
 
+    const chargeType: InvoiceChargeType =
+      dto.chargeType ??
+      (dto.labTestId
+        ? 'LAB_TEST'
+        : dto.branchMedicineStockId || dto.medicineId
+          ? 'MEDICINE'
+          : dto.billingServiceId
+            ? 'SERVICE'
+            : 'MANUAL');
+    const chargedAt = this.parseChargeDate(dto.chargedAt);
+    let description = dto.description?.trim() ?? '';
     let resolvedUnitPrice = dto.unitPrice ?? 0;
     let billingService: {
       id: number;
@@ -895,8 +1094,15 @@ export class BillingService {
       category: string | null;
       defaultPrice: number;
     } | null = null;
+    let sourceModule = 'BILLING';
+    let sourceEntityType = 'MANUAL_LINE';
+    let sourceEntityId = `invoice-${invoice.id}-${Date.now()}`;
 
-    if (dto.billingServiceId) {
+    if (chargeType === 'SERVICE') {
+      if (!dto.billingServiceId) {
+        throw new BadRequestException('Select a billing service for this line');
+      }
+
       billingService = await this.prisma.billingService.findUnique({
         where: { id: dto.billingServiceId },
         select: {
@@ -914,6 +1120,8 @@ export class BillingService {
         );
       }
 
+      description = description || billingService.name;
+
       if (dto.unitPrice == null) {
         resolvedUnitPrice = await this.resolveChargePrice({
           facilityId: invoice.facilityId,
@@ -924,6 +1132,101 @@ export class BillingService {
           fallbackPrice: billingService.defaultPrice,
         });
       }
+
+      sourceEntityType = 'BILLING_SERVICE';
+      sourceEntityId = `billing-service-${billingService.id}-${chargedAt.toISOString()}`;
+    }
+
+    if (chargeType === 'LAB_TEST') {
+      if (!dto.labTestId) {
+        throw new BadRequestException('Select a lab test for this line');
+      }
+
+      const labTest = await this.prisma.labTestCatalog.findUnique({
+        where: { id: dto.labTestId },
+      });
+
+      if (!labTest) {
+        throw new NotFoundException(
+          `Lab test with id ${dto.labTestId} not found`,
+        );
+      }
+
+      description = description || `Lab Test: ${labTest.testName}`;
+
+      if (dto.unitPrice == null) {
+        resolvedUnitPrice = await this.resolveChargePrice({
+          facilityId: invoice.facilityId,
+          branchId: invoice.branchId,
+          category: 'LAB',
+          code: `LAB_TEST_${labTest.id}`,
+          labTestId: labTest.id,
+          fallbackPrice: 0,
+        });
+      }
+
+      sourceModule = 'LAB';
+      sourceEntityType = 'LAB_TEST';
+      sourceEntityId = `lab-test-${labTest.id}-${chargedAt.toISOString()}`;
+    }
+
+    if (chargeType === 'MEDICINE') {
+      if (!invoice.branchId) {
+        throw new BadRequestException(
+          'Medicine charges require a branch invoice so stock and prices stay separated.',
+        );
+      }
+
+      let stock = dto.branchMedicineStockId
+        ? await this.prisma.branchMedicineStock.findUnique({
+            where: { id: dto.branchMedicineStockId },
+            include: { medicine: true },
+          })
+        : null;
+
+      if (!stock && dto.medicineId) {
+        stock = await this.prisma.branchMedicineStock.findFirst({
+          where: {
+            facilityId: invoice.facilityId,
+            branchId: invoice.branchId ?? undefined,
+            medicineId: dto.medicineId,
+            isActive: true,
+          },
+          include: { medicine: true },
+          orderBy: { id: 'desc' },
+        });
+      }
+
+      if (!stock) {
+        throw new BadRequestException(
+          'Select a branch medicine stock item before billing a medicine',
+        );
+      }
+
+      this.scopeService.assertBranchAccess(
+        user,
+        stock.facilityId,
+        stock.branchId,
+      );
+
+      if (
+        stock.facilityId !== invoice.facilityId ||
+        (invoice.branchId && stock.branchId !== invoice.branchId)
+      ) {
+        throw new BadRequestException(
+          'Medicine stock must belong to the invoice facility and branch',
+        );
+      }
+
+      description = description || `Medicine: ${stock.medicine.name}`;
+      resolvedUnitPrice = dto.unitPrice ?? stock.unitPrice;
+      sourceModule = 'PHARMACY';
+      sourceEntityType = 'BRANCH_MEDICINE_STOCK';
+      sourceEntityId = `branch-stock-${stock.id}-${chargedAt.toISOString()}`;
+    }
+
+    if (!description) {
+      throw new BadRequestException('Invoice line description is required');
     }
 
     if (resolvedUnitPrice < 0) {
@@ -940,12 +1243,13 @@ export class BillingService {
         lineTotal: quantity * resolvedUnitPrice,
         statusCode: dto.statusCode ?? 'BILLED',
         notes: dto.notes,
-        sourceModule: 'BILLING',
-        sourceEntityType: 'MANUAL_LINE',
-        sourceEntityId: `invoice-${invoice.id}-${Date.now()}`,
+        sourceModule,
+        sourceEntityType,
+        sourceEntityId,
         isAutoGenerated: false,
         isRemoved: false,
         updatedByStaffId: user.staffId ?? dto.updatedByStaffId,
+        createdAt: chargedAt,
       },
     });
 
@@ -1421,6 +1725,7 @@ export class BillingService {
       sourceModule: 'IPD',
       sourceEntityType: 'BED_DAY',
       sourceEntityId: `${admission.id}:${dayKey}`,
+      chargedAt: chargedDate,
     });
   }
 
@@ -1576,6 +1881,7 @@ export class BillingService {
           include: {
             billingService: true,
           },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         },
         payments: true,
       },
@@ -1623,6 +1929,7 @@ export class BillingService {
           include: {
             billingService: true,
           },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         },
         payments: true,
       },
@@ -1645,7 +1952,7 @@ export class BillingService {
           include: {
             billingService: true,
           },
-          orderBy: { id: 'asc' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         },
         payments: true,
       },
@@ -1686,6 +1993,7 @@ export class BillingService {
           include: {
             billingService: true,
           },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         },
         payments: true,
       },
@@ -1734,6 +2042,7 @@ export class BillingService {
           include: {
             billingService: true,
           },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         },
         payments: true,
       },
@@ -1792,8 +2101,13 @@ export class BillingService {
           doc,
           [
             {
+              header: 'Date',
+              width: 70,
+              render: (item) => formatPdfDate(item.createdAt),
+            },
+            {
               header: 'Description',
-              width: 210,
+              width: 165,
               render: (item) => item.description,
             },
             { header: 'Qty', width: 40, render: (item) => item.quantity },

@@ -20,6 +20,9 @@ export function useAddInvoiceItem() {
     onSuccess: (updatedInvoice) => {
       queryClient.invalidateQueries({ queryKey: ["billing-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing-dashboard"] });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-billing-workspace", updatedInvoice.patientId],
+      });
       queryClient.setQueryData(
         ["billing-invoice", updatedInvoice.id],
         updatedInvoice,

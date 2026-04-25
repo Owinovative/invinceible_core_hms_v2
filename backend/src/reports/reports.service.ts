@@ -4,7 +4,14 @@ import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 function escapeCsvCell(value: unknown) {
-  const text = value === null || value === undefined ? '' : String(value);
+  const text =
+    value === null || value === undefined
+      ? ''
+      : typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ? String(value)
+        : (JSON.stringify(value) ?? '');
 
   if (/[",\r\n]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
@@ -935,6 +942,188 @@ export class ReportsService {
         partiallyDispensed,
         dispensed,
       },
+    };
+  }
+
+  async getProfitAnalytics(filter?: ReportFilterDto) {
+    const dateRange = this.buildDateRange(filter);
+    const dispenseWhere: any = {
+      ...this.facilityBranchWhere(filter),
+    };
+
+    if (dateRange) {
+      dispenseWhere.dispensedAt = dateRange;
+    }
+
+    const items = await this.prisma.dispenseItem.findMany({
+      where: {
+        dispense: dispenseWhere,
+      },
+      include: {
+        medicine: true,
+        dispense: {
+          include: {
+            facility: true,
+            branch: true,
+            patient: true,
+          },
+        },
+      },
+      orderBy: { id: 'desc' },
+      take: 10000,
+    });
+
+    const medicineIds = Array.from(
+      new Set(items.map((item) => item.medicineId)),
+    );
+    const stockRows = medicineIds.length
+      ? await this.prisma.branchMedicineStock.findMany({
+          where: {
+            medicineId: { in: medicineIds },
+            ...(filter?.facilityId ? { facilityId: filter.facilityId } : {}),
+            ...(filter?.branchId ? { branchId: filter.branchId } : {}),
+          },
+        })
+      : [];
+
+    const stockByKey = new Map(
+      stockRows.map((stock) => [
+        `${stock.branchId}:${stock.medicineId}`,
+        stock,
+      ]),
+    );
+    const byMedicine = new Map<
+      string,
+      {
+        medicineId: number;
+        medicineCode: string | null;
+        medicineName: string;
+        branchId: number | null;
+        branchName: string | null;
+        quantity: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+      }
+    >();
+
+    for (const item of items) {
+      const branchId = item.dispense.branchId ?? null;
+      const stock = branchId
+        ? stockByKey.get(`${branchId}:${item.medicineId}`)
+        : undefined;
+      const quantity = item.quantityDispensed ?? 0;
+      const revenue = item.lineTotal ?? quantity * (item.unitPrice ?? 0);
+      const cost = quantity * (stock?.buyingPrice ?? 0);
+      const key = `${branchId ?? 'facility'}:${item.medicineId}`;
+      const current = byMedicine.get(key) ?? {
+        medicineId: item.medicineId,
+        medicineCode: item.medicine?.code ?? null,
+        medicineName: item.medicine?.name ?? `Medicine #${item.medicineId}`,
+        branchId,
+        branchName: item.dispense.branch?.name ?? null,
+        quantity: 0,
+        revenue: 0,
+        cost: 0,
+        profit: 0,
+      };
+
+      current.quantity += quantity;
+      current.revenue += revenue;
+      current.cost += cost;
+      current.profit += revenue - cost;
+      byMedicine.set(key, current);
+    }
+
+    const rows = Array.from(byMedicine.values()).sort(
+      (a, b) => b.profit - a.profit,
+    );
+    const revenue = rows.reduce((sum, item) => sum + item.revenue, 0);
+    const cost = rows.reduce((sum, item) => sum + item.cost, 0);
+    const profit = revenue - cost;
+
+    return {
+      filters: {
+        startDate: filter?.startDate ?? null,
+        endDate: filter?.endDate ?? null,
+        facilityId: filter?.facilityId ?? null,
+        branchId: filter?.branchId ?? null,
+      },
+      summary: {
+        dispensedLines: items.length,
+        quantityDispensed: rows.reduce((sum, item) => sum + item.quantity, 0),
+        revenue,
+        cost,
+        grossProfit: profit,
+        marginPercent: revenue > 0 ? (profit / revenue) * 100 : 0,
+      },
+      byMedicine: rows,
+      recentLines: items.slice(0, 80).map((item) => {
+        const branchId = item.dispense.branchId ?? null;
+        const stock = branchId
+          ? stockByKey.get(`${branchId}:${item.medicineId}`)
+          : undefined;
+        const quantity = item.quantityDispensed ?? 0;
+        const revenue = item.lineTotal ?? quantity * (item.unitPrice ?? 0);
+        const cost = quantity * (stock?.buyingPrice ?? 0);
+
+        return {
+          id: item.id,
+          dispensedAt: item.dispense.dispensedAt,
+          dispenseNumber: item.dispense.dispenseNumber,
+          patientName: item.dispense.patient
+            ? [
+                item.dispense.patient.firstName,
+                item.dispense.patient.middleName,
+                item.dispense.patient.lastName,
+              ]
+                .filter(Boolean)
+                .join(' ')
+            : null,
+          medicineId: item.medicineId,
+          medicineCode: item.medicine?.code ?? null,
+          medicineName: item.medicine?.name ?? null,
+          branchName: item.dispense.branch?.name ?? null,
+          quantity,
+          sellingPrice: item.unitPrice,
+          buyingPrice: stock?.buyingPrice ?? 0,
+          revenue,
+          cost,
+          profit: revenue - cost,
+        };
+      }),
+    };
+  }
+
+  async getProfitAnalyticsExport(filter?: ReportFilterDto) {
+    const report = await this.getProfitAnalytics(filter);
+    const rows: unknown[][] = [
+      [
+        'branch',
+        'medicineCode',
+        'medicineName',
+        'quantity',
+        'revenue',
+        'cost',
+        'grossProfit',
+        'marginPercent',
+      ],
+      ...report.byMedicine.map((item) => [
+        item.branchName ?? 'Facility-wide',
+        item.medicineCode,
+        item.medicineName,
+        item.quantity,
+        item.revenue,
+        item.cost,
+        item.profit,
+        item.revenue > 0 ? (item.profit / item.revenue) * 100 : 0,
+      ]),
+    ];
+
+    return {
+      fileName: `pharmacy-profit-${new Date().toISOString().slice(0, 10)}.csv`,
+      rowCount: rows.length - 1,
+      csvText: toCsv(rows),
     };
   }
 

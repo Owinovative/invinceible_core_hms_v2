@@ -49,6 +49,14 @@ export class AuditLogController {
     return this.auditLogService.findAllScoped(query, user);
   }
 
+  @Get('export')
+  exportAuditLogs(
+    @Query() query: AuditLogQueryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.auditLogService.exportScoped(query, user);
+  }
+
   @Get('module/:moduleName')
   findByModule(
     @Param('moduleName') moduleName: string,

@@ -16,6 +16,11 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 
+type LoginAuditMeta = {
+  ipAddress?: string;
+  userAgent?: string;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -26,22 +31,101 @@ export class AuthService {
     private readonly scopeService: ScopeService,
   ) {}
 
-  async login(loginDto: LoginDto) {
+  private async recordLoginAudit(params: {
+    actionName: 'LOGIN_SUCCESS' | 'LOGIN_FAILED';
+    username: string;
+    reason?: string;
+    user?: {
+      id: number;
+      role?: { code?: string | null } | null;
+      homeFacilityId?: number | null;
+      homeBranchId?: number | null;
+      staff?: {
+        id?: number | null;
+        facilityId?: number | null;
+        branchId?: number | null;
+      } | null;
+    } | null;
+    meta?: LoginAuditMeta;
+    afterData?: Record<string, unknown>;
+  }) {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          moduleName: 'AUTH',
+          actionName: params.actionName,
+          entityType: 'USER',
+          entityId: params.user ? String(params.user.id) : params.username,
+          description:
+            params.actionName === 'LOGIN_SUCCESS'
+              ? `Successful login for ${params.username}`
+              : `Failed login for ${params.username}: ${params.reason ?? 'Invalid credentials'}`,
+          facilityId:
+            params.user?.homeFacilityId ??
+            params.user?.staff?.facilityId ??
+            undefined,
+          branchId:
+            params.user?.homeBranchId ??
+            params.user?.staff?.branchId ??
+            undefined,
+          actorUserId: params.user?.id,
+          actorStaffId: params.user?.staff?.id ?? undefined,
+          beforeData:
+            params.actionName === 'LOGIN_FAILED'
+              ? JSON.stringify({
+                  username: params.username,
+                  reason: params.reason ?? 'Invalid credentials',
+                  roleCode: params.user?.role?.code ?? null,
+                })
+              : undefined,
+          afterData: params.afterData
+            ? JSON.stringify(params.afterData)
+            : undefined,
+          ipAddress: params.meta?.ipAddress,
+          userAgent: params.meta?.userAgent,
+        },
+      });
+    } catch {
+      // Login should never fail because audit storage is temporarily unavailable.
+    }
+  }
+
+  async login(loginDto: LoginDto, auditMeta?: LoginAuditMeta) {
     const username = loginDto.username.trim();
     const password = loginDto.password.trim();
     const user = await this.userService.findAuthUserByUsername(username);
 
     if (!user) {
+      await this.recordLoginAudit({
+        actionName: 'LOGIN_FAILED',
+        username,
+        reason: 'UNKNOWN_USER',
+        meta: auditMeta,
+      });
       throw new UnauthorizedException('Invalid username or password');
     }
 
     if (!user.isActive) {
       if (user.lockedAt) {
+        await this.recordLoginAudit({
+          actionName: 'LOGIN_FAILED',
+          username,
+          reason: 'ACCOUNT_LOCKED',
+          user,
+          meta: auditMeta,
+        });
         throw new UnauthorizedException(
           'Account locked after too many failed login attempts. Contact the super admin to reactivate it.',
         );
       }
 
+      await this.recordLoginAudit({
+        actionName: 'LOGIN_FAILED',
+        username,
+        reason: 'ACCOUNT_INACTIVE',
+        user,
+        meta: auditMeta,
+      });
       throw new UnauthorizedException('User account is inactive');
     }
 
@@ -53,6 +137,13 @@ export class AuthService {
       user.homeFacility &&
       user.homeFacility.isActive === false
     ) {
+      await this.recordLoginAudit({
+        actionName: 'LOGIN_FAILED',
+        username,
+        reason: 'FACILITY_INACTIVE',
+        user,
+        meta: auditMeta,
+      });
       throw new UnauthorizedException(
         'Your facility is inactive. Access is suspended.',
       );
@@ -79,11 +170,27 @@ export class AuthService {
       });
 
       if (shouldLock) {
+        await this.recordLoginAudit({
+          actionName: 'LOGIN_FAILED',
+          username,
+          reason: 'ACCOUNT_LOCKED_AFTER_FAILED_ATTEMPTS',
+          user,
+          meta: auditMeta,
+          afterData: { failedLoginAttempts },
+        });
         throw new UnauthorizedException(
           'Account locked after too many failed login attempts. Contact the super admin to reactivate it.',
         );
       }
 
+      await this.recordLoginAudit({
+        actionName: 'LOGIN_FAILED',
+        username,
+        reason: 'BAD_PASSWORD',
+        user,
+        meta: auditMeta,
+        afterData: { failedLoginAttempts },
+      });
       throw new UnauthorizedException('Invalid username or password');
     }
 
@@ -117,6 +224,17 @@ export class AuthService {
       roleId: user.roleId,
       roleCode: user.role?.code ?? null,
       sessionVersion: updatedSession.sessionVersion,
+    });
+
+    await this.recordLoginAudit({
+      actionName: 'LOGIN_SUCCESS',
+      username,
+      user,
+      meta: auditMeta,
+      afterData: {
+        sessionVersion: updatedSession.sessionVersion,
+        roleCode: user.role?.code ?? null,
+      },
     });
 
     return {

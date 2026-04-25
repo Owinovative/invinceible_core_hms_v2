@@ -25,6 +25,7 @@ import { CreateServiceTariffDto } from './dto/create-service-tariff.dto';
 import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { PostBedChargeDto } from './dto/post-bed-charge.dto';
 import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
+import { OpenPatientInvoiceDto } from './dto/open-patient-invoice.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Roles } from '../auth/roles.decorator';
@@ -101,6 +102,23 @@ export class BillingController {
   @Post('invoices')
   createInvoice(@Body() dto: CreateInvoiceDto) {
     return this.billingService.createInvoice(dto);
+  }
+
+  @Post('patients/:id/open-invoice')
+  openPatientInvoice(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: OpenPatientInvoiceDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.openPatientInvoice(id, dto, user);
+  }
+
+  @Get('patients/:id/workspace')
+  getPatientBillingWorkspace(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.getPatientBillingWorkspace(id, user);
   }
 
   @Post('admissions/:id/bed-charge')
