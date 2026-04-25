@@ -25,7 +25,10 @@ import { useCompleteConsultation } from "@/hooks/use-complete-consultation";
 import { useTriageByAppointment } from "@/hooks/use-triage-by-appointment";
 import { useScope } from "@/providers/scope-provider";
 import { useAuth } from "@/providers/auth-provider";
-import type { PrescriptionItemSummary } from "@/services/prescription-service";
+import type {
+  PrescriptionItemSummary,
+  PrescriptionRecord,
+} from "@/services/prescription-service";
 
 
 import { useLabTests } from "@/hooks/use-lab-tests";
@@ -53,6 +56,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
 
 
 function formatDate(value?: string | null) {
@@ -226,7 +230,7 @@ export default function ConsultationDetailPage() {
   }, [historyData, data?.id]);
 
 
-  const consultationPrescriptionList = React.useMemo(
+  const consultationPrescriptionList = React.useMemo<PrescriptionRecord[]>(
     () => (Array.isArray(consultationPrescriptions) ? consultationPrescriptions : []),
     [consultationPrescriptions],
   );
@@ -236,6 +240,94 @@ export default function ConsultationDetailPage() {
     consultationPrescriptionList.find((item) => item.id === selectedPrescriptionId) ??
     consultationPrescriptionList[0] ??
     null;
+
+  const aiEncounterContext = React.useMemo(
+    () => ({
+      encounter: {
+        consultationNumber: data?.consultationNumber,
+        statusCode: data?.statusCode,
+        chiefComplaint: chiefComplaint || data?.chiefComplaint,
+        historyOfPresenting:
+          historyOfPresenting || data?.historyOfPresenting,
+        examinationFindings:
+          examinationFindings || data?.examinationFindings,
+        diagnosis: diagnosis || data?.diagnosis,
+        treatmentPlan: treatmentPlan || data?.treatmentPlan,
+        notes: notes || data?.notes,
+      },
+      patient: {
+        gender: data?.patient?.gender,
+      },
+      triage: triageData
+        ? {
+            priority: triageData.triagePriority,
+            chiefComplaint: triageData.chiefComplaint,
+            arrivalType: triageData.arrivalType,
+            temperatureC: triageData.temperatureC,
+            systolicBp: triageData.systolicBp,
+            diastolicBp: triageData.diastolicBp,
+            pulseRate: triageData.pulseRate,
+            respiratoryRate: triageData.respiratoryRate,
+            oxygenSaturation: triageData.oxygenSaturation,
+            painScore: triageData.painScore,
+            notes: triageData.notes,
+          }
+        : undefined,
+      latestLabOrder: latestConsultationLabOrder
+        ? {
+            orderNumber: latestConsultationLabOrder.orderNumber,
+            urgency: latestConsultationLabOrder.urgency,
+            status: latestConsultationLabOrder.status,
+            clinicalNotes: latestConsultationLabOrder.clinicalNotes,
+            tests: latestConsultationLabOrder.items?.map((item) => ({
+              testName: item.test?.testName,
+              status: item.status,
+              instructions: item.instructions,
+            })),
+          }
+        : undefined,
+      latestLabResults: latestLabResultsList.map((item) => ({
+        resultValue: item.resultValue,
+        remarks: item.remarks,
+        recordedAt: item.recordedAt,
+      })),
+      prescriptions: consultationPrescriptionList.map((prescription) => ({
+        prescriptionNumber: prescription.prescriptionNumber,
+        statusCode: prescription.statusCode,
+        notes: prescription.notes,
+        items: prescription.items?.map((item) => ({
+          medicine: item.medicine?.name,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          quantity: item.quantity,
+          instructions: item.instructions,
+          statusCode: item.statusCode,
+        })),
+      })),
+      recentHistory: patientHistory.slice(0, 3).map((item) => ({
+        consultationNumber: item.consultationNumber,
+        chiefComplaint: item.chiefComplaint,
+        diagnosis: item.diagnosis,
+        treatmentPlan: item.treatmentPlan,
+        statusCode: item.statusCode,
+      })),
+    }),
+    [
+      chiefComplaint,
+      consultationPrescriptionList,
+      data,
+      diagnosis,
+      examinationFindings,
+      historyOfPresenting,
+      latestConsultationLabOrder,
+      latestLabResultsList,
+      notes,
+      patientHistory,
+      treatmentPlan,
+      triageData,
+    ],
+  );
 
 
   const patientPrescriptionHistory = React.useMemo(() => {
@@ -522,10 +614,10 @@ export default function ConsultationDetailPage() {
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-violet-600/10 via-cyan-500/5 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-600/10 via-cyan-500/5 to-transparent" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-violet-600/10 px-3 py-1 text-violet-300">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-300">
               Consultation Workspace
             </Badge>
             <div className="flex items-center gap-3">
@@ -581,6 +673,15 @@ export default function ConsultationDetailPage() {
         </Card>
       ) : (
         <>
+          <ClinicalAiAssistant
+            title="Encounter AI Drafting"
+            subtitle="Use the current consultation, triage, lab, prescription, and recent history context to draft text for clinician review."
+            defaultTask="SOAP_NOTE"
+            defaultPrompt="Draft a concise SOAP note using only the documented encounter context. Mark missing information as not documented."
+            context={aiEncounterContext}
+            compact
+          />
+
           <section className="space-y-6">
             <Card className="rounded-[1.8rem] gradient-border panel-shadow">
               <CardHeader>

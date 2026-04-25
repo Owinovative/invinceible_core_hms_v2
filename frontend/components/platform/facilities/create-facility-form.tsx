@@ -141,7 +141,7 @@ export function CreateFacilityForm() {
     <Card className="rounded-[1.8rem] gradient-border panel-shadow">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <Building2 className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
           New Facility
         </CardTitle>
       </CardHeader>
@@ -449,7 +449,7 @@ export function CreateFacilityForm() {
 
               <Button
                 type="submit"
-                className="h-11 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-6 text-white hover:opacity-95"
+                className="h-11 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 px-6 text-white hover:opacity-95"
                 disabled={createFacilityMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />

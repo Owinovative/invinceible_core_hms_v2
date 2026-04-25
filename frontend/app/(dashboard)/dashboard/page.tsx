@@ -188,17 +188,25 @@ function AiAndSupportStrip() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
               <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
-                Next clinical intelligence layer
+                Clinical intelligence layer
               </Badge>
               <h2 className="mt-3 text-2xl font-bold tracking-tight">
-                AI doctor note assistant is staged for the next phase.
+                AI doctor note assistant is now connected.
               </h2>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                The dashboard now reserves a polished lane for a ChatGPT-backed
-                assistant that can later help doctors draft notes, autofill
-                clinical text, and prepare structured summaries from patient
-                context.
+                The dashboard now connects to a backend AI assistant that helps
+                doctors draft notes, clean clinical text, and prepare structured
+                summaries from patient context.
               </p>
+              <Button
+                asChild
+                className="mt-4 rounded-md bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+              >
+                <Link href="/ai-assistant">
+                  Open AI assistant
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
 
             <div className="grid min-w-[280px] gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -680,7 +688,7 @@ export default function DashboardPage() {
                 Live work moving through the new operational modules
               </p>
             </div>
-            <ClipboardCheck className="h-5 w-5 text-violet-400" />
+            <ClipboardCheck className="h-5 w-5 text-cyan-400" />
           </CardHeader>
 
           <CardContent className="grid gap-4 md:grid-cols-2">

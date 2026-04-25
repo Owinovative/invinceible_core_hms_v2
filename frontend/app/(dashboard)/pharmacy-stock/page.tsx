@@ -145,11 +145,11 @@ export default function PharmacyStockPage() {
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-violet-600/10 via-cyan-500/5 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-600/10 via-cyan-500/5 to-transparent" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-violet-600/10 px-3 py-1 text-violet-700 dark:text-violet-300">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700 dark:text-cyan-300">
               Pharmacy Stock
             </Badge>
 

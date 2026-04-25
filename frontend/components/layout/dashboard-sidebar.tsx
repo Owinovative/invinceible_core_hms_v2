@@ -9,6 +9,7 @@ import {
   Banknote,
   BedDouble,
   Bell,
+  Bot,
   CalendarPlus,
   ChevronLeft,
   ChevronRight,
@@ -53,6 +54,7 @@ const navSections = [
     label: "Command",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "AI Assistant", href: "/ai-assistant", icon: Bot },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Reports", href: "/reports", icon: Activity },
       { title: "Settings", href: "/settings", icon: Settings, adminOnly: true },

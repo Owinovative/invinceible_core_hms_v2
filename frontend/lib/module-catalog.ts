@@ -31,7 +31,7 @@ export type FacilityModule = {
   title: string;
   category: string;
   summary: string;
-  accent: "cyan" | "emerald" | "amber" | "rose" | "violet";
+  accent: "cyan" | "emerald" | "amber" | "rose" | "blue";
   icon: LucideIcon;
   workflow: string[];
   records: string[];
@@ -121,7 +121,7 @@ export const facilityModules: FacilityModule[] = [
     title: "ICU and HDU",
     category: "Clinical",
     summary: "Critical care bed control, observations, ventilator data, and consultant rounds.",
-    accent: "violet",
+    accent: "cyan",
     icon: BedDouble,
     workflow: ["ICU admission", "Hourly chart", "Round", "Step-down"],
     records: ["Ventilator settings", "Fluid balance", "Medication infusion", "Care bundles"],
@@ -143,7 +143,7 @@ export const facilityModules: FacilityModule[] = [
     title: "Mortuary",
     category: "Operations",
     summary: "Body admission, storage location, release approvals, and documentation.",
-    accent: "violet",
+    accent: "cyan",
     icon: FileCheck2,
     workflow: ["Receive", "Store", "Documentation", "Release"],
     records: ["Body tag", "Next of kin", "Release form", "Storage fees"],
@@ -187,7 +187,7 @@ export const facilityModules: FacilityModule[] = [
     title: "Insurance Claims",
     category: "Revenue",
     summary: "Benefit checks, pre-authorizations, claims, rejections, and payment reconciliation.",
-    accent: "violet",
+    accent: "cyan",
     icon: Banknote,
     workflow: ["Verify cover", "Authorize", "Submit claim", "Reconcile"],
     records: ["Policy details", "Claim packet", "Rejection reason", "Approval note"],
@@ -242,7 +242,7 @@ export const facilityModules: FacilityModule[] = [
     title: "Patient Portal",
     category: "Digital",
     summary: "Patient self-service for visits, invoices, results, messages, and follow-up.",
-    accent: "violet",
+    accent: "cyan",
     icon: TabletSmartphone,
     workflow: ["Verify patient", "View care", "Pay invoice", "Message facility"],
     records: ["Visit timeline", "Invoice copy", "Lab summary", "Appointment"],
@@ -330,7 +330,7 @@ export const facilityModules: FacilityModule[] = [
     title: "Oncology",
     category: "Clinical",
     summary: "Cancer care plans, chemo cycles, protocols, drug safety, and review tracking.",
-    accent: "violet",
+    accent: "cyan",
     icon: ShieldCheck,
     workflow: ["Care plan", "Protocol approval", "Cycle administration", "Toxicity review"],
     records: ["Diagnosis stage", "Chemo protocol", "Cycle sheet", "Adverse event"],

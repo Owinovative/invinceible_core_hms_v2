@@ -20,7 +20,7 @@
   --border: 214 32% 88%;
   --input: 214 32% 88%;
   --ring: 193 95% 35%;
-  --radius: 1rem;
+  --radius: 0.45rem;
 }
 
 .dark {
@@ -30,8 +30,8 @@
   --card-foreground: 210 40% 98%;
   --popover: 224 34% 10%;
   --popover-foreground: 210 40% 98%;
-  --primary: 262 83% 68%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 186 95% 36%;
+  --primary-foreground: 224 39% 7%;
   --secondary: 222 24% 16%;
   --secondary-foreground: 210 40% 98%;
   --muted: 223 22% 14%;
@@ -42,11 +42,12 @@
   --destructive-foreground: 210 40% 98%;
   --border: 222 22% 18%;
   --input: 222 22% 18%;
-  --ring: 262 83% 68%;
+  --ring: 186 95% 36%;
 }
 
 * {
   border-color: hsl(var(--border));
+  letter-spacing: 0 !important;
 }
 
 html,
@@ -75,7 +76,7 @@ body {
   background:
     radial-gradient(
       circle at top left,
-      rgba(124, 58, 237, 0.18),
+      rgba(16, 185, 129, 0.15),
       transparent 28%
     ),
     radial-gradient(
@@ -154,7 +155,7 @@ pre,
 .dark .gradient-border {
   background:
     linear-gradient(rgba(12, 18, 34, 0.94), rgba(12, 18, 34, 0.94)) padding-box,
-    linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(34, 211, 238, 0.18))
+    linear-gradient(135deg, rgba(34, 211, 238, 0.38), rgba(16, 185, 129, 0.2))
       border-box;
 }
 
@@ -232,6 +233,7 @@ pre,
     0 0 0 1px rgba(255, 255, 255, 0.72) inset;
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
+  border-radius: 0.55rem !important;
 }
 
 .dark .premium-card {
@@ -284,6 +286,7 @@ pre,
   background-size: cover;
   background-position: center;
   box-shadow: 0 22px 70px rgba(15, 23, 42, 0.24);
+  border-radius: 0.55rem !important;
 }
 
 .premium-image-panel::after {
@@ -374,7 +377,7 @@ pre,
     transparent 0%,
     rgba(34, 211, 238, 0.04) 20%,
     transparent 40%,
-    rgba(139, 92, 246, 0.05) 60%,
+    rgba(16, 185, 129, 0.05) 60%,
     transparent 80%
   );
   animation: sweep-lines 12s linear infinite;
@@ -433,12 +436,44 @@ pre,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.45);
-  border-radius: 999px;
+  background: rgba(6, 182, 212, 0.45);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.7);
+  background: rgba(16, 185, 129, 0.7);
+}
+
+[data-slot="card"],
+[data-slot="button"],
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"],
+[data-slot="select-content"],
+[data-slot="select-item"],
+.glass-panel,
+.gradient-border {
+  border-radius: 0.5rem !important;
+}
+
+.rounded-\[2rem\],
+.rounded-\[1\.9rem\],
+.rounded-\[1\.8rem\],
+.rounded-\[1\.7rem\],
+.rounded-\[1\.5rem\],
+.rounded-\[1\.4rem\],
+.rounded-\[1\.35rem\],
+.rounded-\[1\.3rem\],
+.rounded-\[1\.25rem\],
+.rounded-\[1\.2rem\],
+.rounded-\[1\.15rem\],
+.rounded-\[1\.1rem\],
+.rounded-\[1\.05rem\],
+.rounded-\[1rem\],
+.rounded-3xl,
+.rounded-2xl,
+.rounded-xl {
+  border-radius: 0.5rem !important;
 }
 @media print {
   body {
