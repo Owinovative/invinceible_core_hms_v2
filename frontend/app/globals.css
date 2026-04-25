@@ -170,6 +170,163 @@ pre,
     0 0 0 1px rgba(255, 255, 255, 0.03) inset;
 }
 
+.premium-system-bg {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(240, 249, 255, 0.82)),
+    radial-gradient(circle at 10% 0%, rgba(20, 184, 166, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 10%, rgba(245, 158, 11, 0.12), transparent 28%),
+    linear-gradient(180deg, #f7fbff 0%, #eef7f5 55%, #f8fafc 100%);
+}
+
+.dark .premium-system-bg {
+  background:
+    linear-gradient(135deg, rgba(4, 9, 20, 0.92), rgba(7, 17, 30, 0.88)),
+    radial-gradient(circle at 12% 0%, rgba(20, 184, 166, 0.22), transparent 34%),
+    radial-gradient(circle at 82% 4%, rgba(245, 158, 11, 0.12), transparent 26%),
+    linear-gradient(180deg, #050914 0%, #07111e 52%, #0b1118 100%);
+}
+
+.premium-aurora {
+  position: absolute;
+  inset: -24%;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from 110deg,
+      transparent 0deg,
+      rgba(34, 211, 238, 0.24) 54deg,
+      rgba(16, 185, 129, 0.18) 118deg,
+      rgba(245, 158, 11, 0.12) 188deg,
+      rgba(59, 130, 246, 0.2) 246deg,
+      transparent 330deg
+    );
+  filter: blur(82px);
+  opacity: 0.34;
+  transform-origin: center;
+  animation: aurora-drift 24s ease-in-out infinite alternate;
+}
+
+.dark .premium-aurora {
+  opacity: 0.42;
+}
+
+.clinical-mesh {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(14, 165, 233, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 184, 166, 0.07) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+  opacity: 0.46;
+}
+
+.premium-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow:
+    0 22px 70px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.dark .premium-card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(8, 14, 27, 0.74);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.36),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.premium-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0.18),
+    transparent 32%,
+    rgba(34, 211, 238, 0.08) 58%,
+    transparent 78%
+  );
+  opacity: 0.72;
+}
+
+.motion-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.motion-sheen::after {
+  content: "";
+  position: absolute;
+  inset: -40% -80%;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.18) 45%,
+    transparent 60%
+  );
+  transform: translateX(-55%) rotate(6deg);
+  animation: sheen-pass 9s ease-in-out infinite;
+}
+
+.premium-image-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.24);
+}
+
+.premium-image-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(2, 6, 23, 0.74), transparent 58%),
+    linear-gradient(125deg, rgba(6, 182, 212, 0.2), transparent 42%);
+}
+
+.engineer-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(240, 253, 250, 0.64)),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.08), rgba(16, 185, 129, 0.08));
+}
+
+.dark .engineer-card {
+  background:
+    linear-gradient(145deg, rgba(10, 20, 34, 0.82), rgba(6, 22, 28, 0.76)),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.1), rgba(245, 158, 11, 0.06));
+}
+
+@keyframes aurora-drift {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  100% {
+    transform: rotate(18deg) scale(1.08);
+  }
+}
+
+@keyframes sheen-pass {
+  0%,
+  62% {
+    transform: translateX(-55%) rotate(6deg);
+  }
+  100% {
+    transform: translateX(55%) rotate(6deg);
+  }
+}
+
 .status-success {
   background: rgba(16, 185, 129, 0.14);
   color: rgb(52, 211, 153);

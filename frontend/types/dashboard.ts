@@ -1,5 +1,21 @@
 export type SystemHealthStatus = "healthy" | "warning" | "critical";
 
+export interface SystemHealthAlertItem {
+  id: number;
+  title?: string | null;
+  message?: string | null;
+  notificationType?: string | null;
+  severity?: string | null;
+  moduleName?: string | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  facilityId?: number | null;
+  branchId?: number | null;
+  isRead?: boolean;
+  isResolved?: boolean;
+  createdAt?: string | null;
+}
+
 export interface SystemHealthSummaryResponse {
   filters: {
     facilityId: number | null;
@@ -18,8 +34,8 @@ export interface SystemHealthSummaryResponse {
     pendingLabQueue: number;
   };
   panels: {
-    recentCriticalAlerts: Array<any>;
-    recentWarnings: Array<any>;
+    recentCriticalAlerts: SystemHealthAlertItem[];
+    recentWarnings: SystemHealthAlertItem[];
     lowStockItems: Array<{
       id: number;
       facilityId: number;

@@ -13,21 +13,11 @@ export function DashboardShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="relative h-screen overflow-hidden bg-background text-foreground">
+    <div className="premium-system-bg relative h-screen overflow-hidden text-foreground">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.22] dark:opacity-[0.14]">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(148,163,184,0.06) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(148,163,184,0.06) 1px, transparent 1px)
-              `,
-              backgroundSize: "34px 34px",
-            }}
-          />
-        </div>
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cyan-500/[0.08] to-transparent" />
+        <div className="premium-aurora" />
+        <div className="clinical-mesh" />
+        <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-cyan-500/[0.12] via-emerald-400/[0.05] to-transparent" />
       </div>
 
       <div className="relative flex h-screen overflow-hidden">

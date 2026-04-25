@@ -100,7 +100,7 @@ function getNextStage(workflow: string[], currentStage: string) {
 }
 
 export function ModuleWorkspace({ slug }: { slug: string }) {
-  const module = getModuleBySlug(slug);
+  const moduleConfig = getModuleBySlug(slug);
   const {
     facilityId,
     selectedBranchId,
@@ -121,7 +121,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
   const [dueAt, setDueAt] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
 
-  if (!module) {
+  if (!moduleConfig) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
         Module not found.
@@ -129,7 +129,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
     );
   }
 
-  const Icon = module.icon;
+  const Icon = moduleConfig.icon;
   const records = data?.records ?? [];
   const summary = data?.summary;
 
@@ -148,18 +148,18 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
 
     try {
       await createMutation.mutateAsync({
-        moduleTitle: module.title,
+        moduleTitle: moduleConfig.title,
         title: title.trim(),
         description: description.trim() || undefined,
-        workflowStage: module.workflow[0] ?? "Intake",
+        workflowStage: moduleConfig.workflow[0] ?? "Intake",
         statusCode: "OPEN",
         priorityCode,
         facilityId,
         branchId: selectedBranchId,
         dueAt: dueAt || undefined,
         metadata: {
-          category: module.category,
-          expectedWorkflow: module.workflow,
+          category: moduleConfig.category,
+          expectedWorkflow: moduleConfig.workflow,
         },
       });
 
@@ -167,7 +167,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
       setDescription("");
       setPriorityCode("ROUTINE");
       setDueAt("");
-      setMessage(`${module.title} record created.`);
+      setMessage(`${moduleConfig.title} record created.`);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Unable to create module record.",
@@ -201,7 +201,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
   };
 
   const handleDownload = () => {
-    downloadCsv(`${module.slug}-records.csv`, [
+    downloadCsv(`${moduleConfig.slug}-records.csv`, [
       [
         "recordNumber",
         "title",
@@ -232,13 +232,13 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
       <section className="relative overflow-hidden rounded-[1.4rem] border gradient-border p-6 panel-shadow md:p-8">
         <div
           className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${
-            accentClasses[module.accent]
+            accentClasses[moduleConfig.accent]
           }`}
         />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <Badge className="mb-4 rounded-full border-0 bg-background/80 px-3 py-1 text-foreground">
-              {module.category}
+              {moduleConfig.category}
             </Badge>
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-background/80 shadow-sm">
@@ -246,10 +246,10 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                  {module.title}
+                  {moduleConfig.title}
                 </h1>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {module.summary}
+                  {moduleConfig.summary}
                 </p>
               </div>
             </div>
@@ -350,7 +350,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className="h-12 rounded-xl"
-                  placeholder={`${module.title} work item`}
+                  placeholder={`${moduleConfig.title} work item`}
                 />
               </div>
 
@@ -411,7 +411,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {module.controls.map((control) => (
+              {moduleConfig.controls.map((control) => (
                 <div
                   key={control}
                   className="flex items-center gap-3 rounded-xl border bg-background/65 p-3"
@@ -445,7 +445,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
               ) : (
                 records.map((record) => {
                   const nextStage = getNextStage(
-                    module.workflow,
+                    moduleConfig.workflow,
                     record.workflowStage,
                   );
                   const canAdvance =
@@ -541,7 +541,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                               onClick={() =>
                                 handleUpdate(record, {
                                   workflowStage:
-                                    module.workflow[module.workflow.length - 1] ??
+                                    moduleConfig.workflow[moduleConfig.workflow.length - 1] ??
                                     record.workflowStage,
                                   statusCode: "COMPLETED",
                                 })
@@ -560,7 +560,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
           </Card>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {module.records.map((record) => (
+            {moduleConfig.records.map((record) => (
               <div
                 key={record}
                 className="rounded-[1.1rem] border bg-card/90 p-5 shadow-sm"

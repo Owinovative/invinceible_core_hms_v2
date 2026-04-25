@@ -109,23 +109,24 @@ export default function ConsultationDetailPage() {
   const createLabOrderMutation = useCreateLabOrder();
   const { data: allLabOrders, isLoading: labOrdersLoading } = useLabOrders();
 
+  const consultationNumber = data?.consultationNumber;
 
   const consultationLabOrders = React.useMemo(() => {
     const orders = Array.isArray(allLabOrders) ? allLabOrders : [];
     return orders.filter((order) => {
       const sameAppointment =
-        data?.appointmentId && order.appointmentId === data.appointmentId;
+        appointmentId && order.appointmentId === appointmentId;
 
 
       const sameEncounterRef =
-        data?.consultationNumber &&
+        consultationNumber &&
         String((order as { encounterRef?: string | null }).encounterRef ?? "") ===
-          data.consultationNumber;
+          consultationNumber;
 
 
       return Boolean(sameAppointment || sameEncounterRef);
     });
-  }, [allLabOrders, data?.appointmentId, data?.consultationNumber]);
+  }, [allLabOrders, appointmentId, consultationNumber]);
 
 
   const latestConsultationLabOrder =
