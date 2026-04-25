@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { StaffService } from '../staff/staff.service';
@@ -7,7 +12,6 @@ import { NotificationQueryDto } from './dto/notification-query.dto';
 import { ResolveNotificationDto } from './dto/resolve-notification.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
-
 
 @Injectable()
 export class NotificationService {
@@ -31,7 +35,8 @@ export class NotificationService {
 
   private applyQueryFilters(where: any, query?: NotificationQueryDto) {
     if (query?.moduleName) where.moduleName = query.moduleName;
-    if (query?.notificationType) where.notificationType = query.notificationType;
+    if (query?.notificationType)
+      where.notificationType = query.notificationType;
     if (query?.isRead === 'true') where.isRead = true;
     if (query?.isRead === 'false') where.isRead = false;
     if (query?.isResolved === 'true') where.isResolved = true;
@@ -101,22 +106,108 @@ export class NotificationService {
     };
   }
 
+  private isFacilityAdmin(roleCode?: string | null) {
+    return ['ADMIN', 'FACILITY_ADMIN'].includes(roleCode ?? '');
+  }
 
-  async create(dto: CreateNotificationDto, user?: RequestUser) {
-    const facilityId = dto.facilityId ?? user?.homeFacilityId ?? undefined;
-    const branchId = dto.branchId;
+  private sameFacility(user: RequestUser, facilityId?: number | null) {
+    return (
+      !!facilityId &&
+      !!user.homeFacilityId &&
+      facilityId === user.homeFacilityId
+    );
+  }
 
-    if (user && facilityId) {
-      this.scopeService.assertBranchAccess(user, facilityId, branchId);
+  private async validateNotificationTarget(
+    dto: CreateNotificationDto,
+    user: RequestUser,
+  ) {
+    const roleCode = user.roleCode ?? '';
+    const isSuperAdmin = roleCode === 'SUPER_ADMIN';
+    const isFacilityAdmin = this.isFacilityAdmin(roleCode);
+
+    let facilityId = dto.facilityId ?? user.homeFacilityId ?? undefined;
+    let branchId = dto.branchId;
+
+    if (dto.targetUserId && dto.targetStaffId) {
+      throw new BadRequestException(
+        'Send a notification to either a user or a staff member, not both.',
+      );
+    }
+
+    if (!dto.targetUserId && !dto.targetStaffId) {
+      if (isSuperAdmin) {
+        return { facilityId, branchId };
+      }
+
+      if (isFacilityAdmin) {
+        if (!facilityId) {
+          throw new BadRequestException(
+            'Facility-wide notifications need a facility scope.',
+          );
+        }
+        this.scopeService.assertFacilityAccess(user, facilityId);
+        return { facilityId, branchId: undefined };
+      }
+
+      throw new ForbiddenException(
+        'Select a recipient. Only super admins can send system-wide notifications and facility admins can send facility-wide notifications.',
+      );
     }
 
     if (dto.targetUserId) {
-      await this.userService.findOne(dto.targetUserId);
+      const targetUser = await this.userService.findOne(dto.targetUserId);
+      const targetFacilityId =
+        targetUser.homeFacilityId ?? targetUser.staff?.facilityId ?? null;
+      const targetBranchId =
+        targetUser.homeBranchId ?? targetUser.staff?.branchId ?? null;
+      const targetRole = targetUser.role?.code ?? null;
+
+      if (!isSuperAdmin) {
+        const allowed =
+          targetRole === 'SUPER_ADMIN' ||
+          (this.isFacilityAdmin(targetRole) &&
+            this.sameFacility(user, targetFacilityId)) ||
+          this.sameFacility(user, targetFacilityId);
+
+        if (!allowed) {
+          throw new ForbiddenException(
+            'You can only notify super admin, your facility admins, or users in your facility.',
+          );
+        }
+      }
+
+      facilityId = facilityId ?? targetFacilityId ?? undefined;
+      branchId = branchId ?? targetBranchId ?? undefined;
     }
 
     if (dto.targetStaffId) {
-      await this.staffService.findOne(dto.targetStaffId);
+      const targetStaff = await this.staffService.findOne(dto.targetStaffId);
+
+      if (!isSuperAdmin && !this.sameFacility(user, targetStaff.facilityId)) {
+        throw new ForbiddenException(
+          'You can only notify staff in your facility.',
+        );
+      }
+
+      facilityId = facilityId ?? targetStaff.facilityId ?? undefined;
+      branchId = branchId ?? targetStaff.branchId ?? undefined;
     }
+
+    if (facilityId) {
+      this.scopeService.assertBranchAccess(user, facilityId, branchId);
+    }
+
+    return { facilityId, branchId };
+  }
+
+  async create(dto: CreateNotificationDto, user?: RequestUser) {
+    const { facilityId, branchId } = user
+      ? await this.validateNotificationTarget(dto, user)
+      : {
+          facilityId: dto.facilityId,
+          branchId: dto.branchId,
+        };
 
     return this.prisma.notification.create({
       data: {
@@ -137,55 +228,55 @@ export class NotificationService {
   }
 
   async findAll(query?: NotificationQueryDto) {
-  const where: any = {};
+    const where: any = {};
 
-  if (query?.moduleName) {
-    where.moduleName = query.moduleName;
+    if (query?.moduleName) {
+      where.moduleName = query.moduleName;
+    }
+
+    if (query?.notificationType) {
+      where.notificationType = query.notificationType;
+    }
+
+    if (query?.facilityId) {
+      where.facilityId = query.facilityId;
+    }
+
+    if (query?.branchId) {
+      where.branchId = query.branchId;
+    }
+
+    if (query?.isRead === 'true') {
+      where.isRead = true;
+    }
+
+    if (query?.isRead === 'false') {
+      where.isRead = false;
+    }
+
+    if (query?.isResolved === 'true') {
+      where.isResolved = true;
+    }
+
+    if (query?.isResolved === 'false') {
+      where.isResolved = false;
+    }
+
+    return this.prisma.notification.findMany({
+      where,
+      include: {
+        facility: true,
+        branch: true,
+        targetUser: true,
+        targetStaff: true,
+        resolvedByUser: true,
+        resolvedByStaff: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
   }
-
-  if (query?.notificationType) {
-    where.notificationType = query.notificationType;
-  }
-
-  if (query?.facilityId) {
-    where.facilityId = query.facilityId;
-  }
-
-  if (query?.branchId) {
-    where.branchId = query.branchId;
-  }
-
-  if (query?.isRead === 'true') {
-    where.isRead = true;
-  }
-
-  if (query?.isRead === 'false') {
-    where.isRead = false;
-  }
-
-  if (query?.isResolved === 'true') {
-    where.isResolved = true;
-  }
-
-  if (query?.isResolved === 'false') {
-    where.isResolved = false;
-  }
-
-  return this.prisma.notification.findMany({
-    where,
-    include: {
-      facility: true,
-      branch: true,
-      targetUser: true,
-      targetStaff: true,
-      resolvedByUser: true,
-      resolvedByStaff: true,
-    },
-    orderBy: {
-      id: 'desc',
-    },
-  });
-}
 
   async getBranchAlerts(facilityId?: number, branchId?: number) {
     const where: any = {
@@ -306,7 +397,7 @@ export class NotificationService {
       },
     };
   }
-async getPharmacistDashboardAlerts(staffId: number) {
+  async getPharmacistDashboardAlerts(staffId: number) {
     const staff = await this.staffService.findOne(staffId);
 
     if (!staff.branchId) {
@@ -343,8 +434,7 @@ async getPharmacistDashboardAlerts(staffId: number) {
     return this.buildAlertFeedResponse(items);
   }
 
-
- async getCashierDashboardAlerts(staffId: number) {
+  async getCashierDashboardAlerts(staffId: number) {
     const staff = await this.staffService.findOne(staffId);
 
     if (!staff.branchId) {
@@ -380,7 +470,6 @@ async getPharmacistDashboardAlerts(staffId: number) {
 
     return this.buildAlertFeedResponse(items);
   }
-
 
   async getAdminOperationsAlerts(userId: number) {
     const user = await this.userService.findOne(userId);
@@ -434,7 +523,6 @@ async getPharmacistDashboardAlerts(staffId: number) {
 
     return this.buildAlertFeedResponse(items);
   }
-
 
   async findOne(id: number) {
     const notification = await this.prisma.notification.findUnique({

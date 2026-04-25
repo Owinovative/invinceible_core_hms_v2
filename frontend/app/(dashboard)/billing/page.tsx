@@ -1,23 +1,36 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
+  BedDouble,
   CreditCard,
   FileText,
+  FlaskConical,
   Loader2,
+  Pill,
+  PlusCircle,
+  Printer,
   Receipt,
+  Search,
+  Stethoscope,
+  UserRound,
   Wallet,
 } from "lucide-react";
 
 import { useBillingDashboard } from "@/hooks/use-billing-dashboard";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useInvoiceById } from "@/hooks/use-invoice-by-id";
+import { usePatients } from "@/hooks/use-patients";
+import { useOpenPatientInvoice } from "@/hooks/use-open-patient-invoice";
+import { usePatientBillingWorkspace } from "@/hooks/use-patient-billing-workspace";
 import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { useCreateCashPayment } from "@/hooks/use-create-cash-payment";
 import { useCreateMpesaPaymentRequest } from "@/hooks/use-create-mpesa-payment-request";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
+import { AddInvoiceLinePanel } from "@/components/billing/add-invoice-line-panel";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +47,6 @@ function formatMoney(value?: number | null) {
   }).format(Number(value || 0));
 }
 
-
 function formatDate(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
@@ -43,13 +55,11 @@ function formatDate(value?: string | null) {
 }
 
 function patientName(
-  patient?:
-    | {
-        firstName?: string;
-        middleName?: string | null;
-        lastName?: string;
-      }
-    | null,
+  patient?: {
+    firstName?: string;
+    middleName?: string | null;
+    lastName?: string;
+  } | null,
 ) {
   if (!patient) return "Unknown patient";
   return [patient.firstName, patient.middleName, patient.lastName]
@@ -73,31 +83,72 @@ function statusTone(status?: string | null) {
 }
 
 export default function BillingPage() {
-  const { facilityName, selectedBranchName } = useScope();
+  const { facilityName, selectedBranchName, selectedBranchId } = useScope();
   const { user } = useAuth();
 
   const { data: dashboardData } = useBillingDashboard();
   const { data, isLoading } = useInvoices();
+  const { data: patientData, isLoading: patientsLoading } = usePatients();
   const invoices = Array.isArray(data) ? data : [];
+  const patients = React.useMemo(
+    () => (Array.isArray(patientData) ? patientData : []),
+    [patientData],
+  );
 
-  const [selectedInvoiceId, setSelectedInvoiceId] = React.useState<number | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = React.useState<
+    number | null
+  >(null);
+  const [selectedPatientId, setSelectedPatientId] = React.useState<
+    number | null
+  >(null);
+  const [patientSearch, setPatientSearch] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
 
+  const filteredPatients = React.useMemo(() => {
+    const search = patientSearch.trim().toLowerCase();
+    if (!search) return patients.slice(0, 40);
+
+    return patients
+      .filter((patient) => {
+        const name = patientName(patient).toLowerCase();
+        const patientNumber = String(patient.patientNumber ?? "").toLowerCase();
+        const phone = String(patient.phonePrimary ?? "").toLowerCase();
+        return (
+          name.includes(search) ||
+          patientNumber.includes(search) ||
+          phone.includes(search)
+        );
+      })
+      .slice(0, 40);
+  }, [patients, patientSearch]);
+
+  const selectedPatient =
+    patients.find((patient) => patient.id === selectedPatientId) ?? null;
+  const filteredInvoices = selectedPatientId
+    ? invoices.filter((item) => item.patientId === selectedPatientId)
+    : invoices;
+
   React.useEffect(() => {
-    if (!selectedInvoiceId && invoices.length > 0) {
-      setSelectedInvoiceId(invoices[0].id);
+    if (!selectedInvoiceId && filteredInvoices.length > 0) {
+      setSelectedInvoiceId(filteredInvoices[0].id);
     }
-  }, [invoices, selectedInvoiceId]);
+  }, [filteredInvoices, selectedInvoiceId]);
 
   const { data: invoiceDetail, isLoading: detailLoading } =
     useInvoiceById(selectedInvoiceId);
+  const { data: patientWorkspace } =
+    usePatientBillingWorkspace(selectedPatientId);
 
   const updateInvoiceItemMutation = useUpdateInvoiceItem();
   const removeInvoiceItemMutation = useRemoveInvoiceItem();
   const createCashPaymentMutation = useCreateCashPayment();
   const createMpesaPaymentRequestMutation = useCreateMpesaPaymentRequest();
+  const openPatientInvoiceMutation = useOpenPatientInvoice();
 
-  const invoice = invoiceDetail ?? invoices.find((item) => item.id === selectedInvoiceId) ?? null;
+  const invoice =
+    invoiceDetail ??
+    invoices.find((item) => item.id === selectedInvoiceId) ??
+    null;
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
 
@@ -191,6 +242,24 @@ export default function BillingPage() {
     setMessage("M-PESA payment request created successfully.");
   };
 
+  const handleOpenPatientInvoice = async () => {
+    if (!selectedPatientId) {
+      setMessage("Select a patient first.");
+      return;
+    }
+
+    const created = await openPatientInvoiceMutation.mutateAsync({
+      patientId: selectedPatientId,
+      payload: {
+        branchId: selectedBranchId,
+        createdByStaffId: user?.staffId ? Number(user.staffId) : undefined,
+      },
+    });
+
+    setSelectedInvoiceId(created.id);
+    setMessage(`Invoice workspace ready: ${created.invoiceNumber}`);
+  };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
@@ -214,7 +283,8 @@ export default function BillingPage() {
                   Billing & Invoices
                 </h1>
                 <p className="text-muted-foreground">
-                  Review invoices, edit bill lines, remove incorrect charges, and receive payments
+                  Review invoices, edit bill lines, remove incorrect charges,
+                  and receive payments
                 </p>
               </div>
             </div>
@@ -225,14 +295,18 @@ export default function BillingPage() {
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
-              <p className="mt-2 text-sm font-semibold">{facilityName || "No facility"}</p>
+              <p className="mt-2 text-sm font-semibold">
+                {facilityName || "No facility"}
+              </p>
             </div>
 
             <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
-              <p className="mt-2 text-sm font-semibold">{selectedBranchName || "No branch"}</p>
+              <p className="mt-2 text-sm font-semibold">
+                {selectedBranchName || "No branch"}
+              </p>
             </div>
           </div>
         </div>
@@ -305,18 +379,222 @@ export default function BillingPage() {
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card className="rounded-[1.8rem] gradient-border panel-shadow">
           <CardHeader>
-            <CardTitle>Invoice List</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <UserRound className="h-5 w-5 text-cyan-300" />
+              Patient Billing Queue
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={patientSearch}
+                onChange={(event) => setPatientSearch(event.target.value)}
+                className="h-12 rounded-2xl pl-10"
+                placeholder="Search patient name, number, or phone"
+              />
+            </div>
+
+            {patientsLoading ? (
+              <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 text-sm text-muted-foreground">
+                Loading patients...
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                No patients found.
+              </div>
+            ) : (
+              <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                {filteredPatients.map((patient) => {
+                  const patientInvoices = invoices.filter(
+                    (item) => item.patientId === patient.id,
+                  );
+                  const active = patient.id === selectedPatientId;
+
+                  return (
+                    <button
+                      key={patient.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPatientId(patient.id);
+                        setSelectedInvoiceId(patientInvoices[0]?.id ?? null);
+                        setMessage(null);
+                      }}
+                      className={`w-full rounded-[1.2rem] border p-4 text-left transition-all ${
+                        active
+                          ? "border-cyan-400/40 bg-cyan-500/10"
+                          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">
+                            {patientName(patient)}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {patient.patientNumber || "No patient number"}
+                          </p>
+                          <p className="mt-1 text-xs text-cyan-300">
+                            {patientInvoices.length} invoice
+                            {patientInvoices.length === 1 ? "" : "s"} available
+                          </p>
+                        </div>
+                        <Badge className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-muted-foreground">
+                          {patient.gender || "Patient"}
+                        </Badge>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+          <CardHeader>
+            <CardTitle>Patient Invoice Workspace</CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            {!selectedPatient ? (
+              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-6 text-sm text-muted-foreground">
+                Select a patient to see invoices, IPD, pharmacy, lab, and doctor
+                activity in one cashier view.
+              </div>
+            ) : (
+              <>
+                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-lg font-bold">
+                        {patientName(selectedPatient)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedPatient.patientNumber || "No patient number"}
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      className="h-11 rounded-2xl"
+                      onClick={handleOpenPatientInvoice}
+                      disabled={openPatientInvoiceMutation.isPending}
+                    >
+                      {openPatientInvoiceMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                      )}
+                      Open Invoice
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">Balance</p>
+                      <p className="mt-1 text-sm font-medium">
+                        {formatMoney(
+                          patientWorkspace?.summary.openBalance ?? 0,
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">Invoices</p>
+                      <p className="mt-1 text-sm font-medium">
+                        {patientWorkspace?.summary.invoiceCount ??
+                          filteredInvoices.length}
+                      </p>
+                    </div>
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-xs text-muted-foreground">Open Work</p>
+                      <p className="mt-1 text-sm font-medium">
+                        {(patientWorkspace?.summary.pendingLabOrders ?? 0) +
+                          (patientWorkspace?.summary.openPrescriptions ?? 0) +
+                          (patientWorkspace?.summary.activeAdmissions ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <Link
+                    href="/lab"
+                    className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.06]"
+                  >
+                    <FlaskConical className="mb-3 h-5 w-5 text-cyan-300" />
+                    <p className="font-semibold">Lab</p>
+                    <p className="text-sm text-muted-foreground">
+                      {patientWorkspace?.summary.pendingLabOrders ?? 0} pending
+                    </p>
+                  </Link>
+                  <Link
+                    href="/pharmacy"
+                    className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.06]"
+                  >
+                    <Pill className="mb-3 h-5 w-5 text-emerald-300" />
+                    <p className="font-semibold">Pharmacy</p>
+                    <p className="text-sm text-muted-foreground">
+                      {patientWorkspace?.summary.openPrescriptions ?? 0} open
+                    </p>
+                  </Link>
+                  <Link
+                    href={
+                      patientWorkspace?.activeAdmissions?.[0]?.id
+                        ? `/ipd/${patientWorkspace.activeAdmissions[0].id}`
+                        : "/ipd"
+                    }
+                    className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.06]"
+                  >
+                    <BedDouble className="mb-3 h-5 w-5 text-amber-300" />
+                    <p className="font-semibold">IPD</p>
+                    <p className="text-sm text-muted-foreground">
+                      {patientWorkspace?.summary.activeAdmissions ?? 0} active
+                    </p>
+                  </Link>
+                  <Link
+                    href={
+                      patientWorkspace?.consultations?.[0]?.id
+                        ? `/consultation/${patientWorkspace.consultations[0].id}`
+                        : "/doctor-queue"
+                    }
+                    className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.06]"
+                  >
+                    <Stethoscope className="mb-3 h-5 w-5 text-cyan-300" />
+                    <p className="font-semibold">Doctor</p>
+                    <p className="text-sm text-muted-foreground">
+                      {patientWorkspace?.summary.activeConsultations ?? 0}{" "}
+                      started
+                    </p>
+                  </Link>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+          <CardHeader>
+            <CardTitle>
+              Invoice List
+              {selectedPatient ? ` / ${patientName(selectedPatient)}` : ""}
+            </CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-3">
             {isLoading ? (
-              <div className="text-sm text-muted-foreground">Loading invoices...</div>
-            ) : invoices.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                Loading invoices...
+              </div>
+            ) : filteredInvoices.length === 0 ? (
               <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
-                No invoices found.
+                No invoices found for this view.
               </div>
             ) : (
-              invoices.map((item) => (
+              filteredInvoices.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -341,7 +619,9 @@ export default function BillingPage() {
                       </p>
                     </div>
 
-                    <Badge className={`rounded-full border px-3 py-1 ${statusTone(item.statusCode)}`}>
+                    <Badge
+                      className={`rounded-full border px-3 py-1 ${statusTone(item.statusCode)}`}
+                    >
                       {item.statusCode}
                     </Badge>
                   </div>
@@ -363,47 +643,130 @@ export default function BillingPage() {
                   Select an invoice.
                 </div>
               ) : detailLoading ? (
-                <div className="text-sm text-muted-foreground">Loading invoice details...</div>
+                <div className="text-sm text-muted-foreground">
+                  Loading invoice details...
+                </div>
               ) : (
                 <>
                   <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-lg font-bold">{invoice.invoiceNumber}</p>
+                        <p className="text-lg font-bold">
+                          {invoice.invoiceNumber}
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {patientName(invoice.patient)}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {invoice.patient?.patientNumber || "No patient number"}
+                          {invoice.patient?.patientNumber ||
+                            "No patient number"}
                         </p>
                       </div>
 
-                      <Badge className={`rounded-full border px-3 py-1 ${statusTone(invoice.statusCode)}`}>
+                      <Badge
+                        className={`rounded-full border px-3 py-1 ${statusTone(invoice.statusCode)}`}
+                      >
                         {invoice.statusCode}
                       </Badge>
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                        <p className="text-xs text-muted-foreground">Subtotal</p>
-                        <p className="mt-1 text-sm font-medium">{formatMoney(invoice.subtotal)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Subtotal
+                        </p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatMoney(invoice.subtotal)}
+                        </p>
                       </div>
                       <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                         <p className="text-xs text-muted-foreground">Total</p>
-                        <p className="mt-1 text-sm font-medium">{formatMoney(invoice.totalAmount)}</p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatMoney(invoice.totalAmount)}
+                        </p>
                       </div>
                       <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                         <p className="text-xs text-muted-foreground">Paid</p>
-                        <p className="mt-1 text-sm font-medium">{formatMoney(invoice.paidAmount)}</p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatMoney(invoice.paidAmount)}
+                        </p>
                       </div>
                       <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                         <p className="text-xs text-muted-foreground">Balance</p>
-                        <p className="mt-1 text-sm font-medium">{formatMoney(invoice.balanceAmount)}</p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatMoney(invoice.balanceAmount)}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Link href={`/billing/${invoice.id}`}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-2xl"
+                        >
+                          <Printer className="mr-2 h-4 w-4" />
+                          Print / PDF
+                        </Button>
+                      </Link>
+                      <Link href="/pharmacy">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-2xl"
+                        >
+                          <Pill className="mr-2 h-4 w-4" />
+                          Pharmacy
+                        </Button>
+                      </Link>
+                      <Link href="/lab">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-2xl"
+                        >
+                          <FlaskConical className="mr-2 h-4 w-4" />
+                          Lab
+                        </Button>
+                      </Link>
+                      {invoice.admissionId ? (
+                        <Link href={`/ipd/${invoice.admissionId}`}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="rounded-2xl"
+                          >
+                            <BedDouble className="mr-2 h-4 w-4" />
+                            IPD
+                          </Button>
+                        </Link>
+                      ) : null}
+                      {invoice.consultationId ? (
+                        <Link href={`/consultation/${invoice.consultationId}`}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="rounded-2xl"
+                          >
+                            <Stethoscope className="mr-2 h-4 w-4" />
+                            Doctor
+                          </Button>
+                        </Link>
+                      ) : null}
+                    </div>
+
+                    <AddInvoiceLinePanel
+                      invoiceId={invoice.id}
+                      branchId={invoice.branchId}
+                      currentStaffId={
+                        user?.staffId ? Number(user.staffId) : undefined
+                      }
+                      onMessage={setMessage}
+                    />
+
                     <p className="text-sm font-semibold">Invoice Lines</p>
 
                     {items.length === 0 ? (
@@ -418,13 +781,24 @@ export default function BillingPage() {
                         >
                           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                             <div>
-                              <p className="font-semibold">{item.description}</p>
+                              <p className="font-semibold">
+                                {item.description}
+                              </p>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                Qty: {item.quantity} • Unit: {formatMoney(item.unitPrice)} • Line: {formatMoney(item.lineTotal)}
+                                Qty: {item.quantity} / Unit:{" "}
+                                {formatMoney(item.unitPrice)} / Line:{" "}
+                                {formatMoney(item.lineTotal)}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                {item.isAutoGenerated ? "Auto generated" : "Manual"}
-                                {item.sourceModule ? ` • ${item.sourceModule}` : ""}
+                                Date: {formatDate(item.createdAt)}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {item.isAutoGenerated
+                                  ? "Auto generated"
+                                  : "Manual"}
+                                {item.sourceModule
+                                  ? ` / ${item.sourceModule}`
+                                  : ""}
                               </p>
                             </div>
 
@@ -449,7 +823,9 @@ export default function BillingPage() {
                       <p className="font-semibold">Edit Invoice Line</p>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Description</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Description
+                        </label>
                         <Input
                           value={editDescription}
                           onChange={(e) => setEditDescription(e.target.value)}
@@ -459,7 +835,9 @@ export default function BillingPage() {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <label className="mb-2 block text-sm font-medium">Quantity</label>
+                          <label className="mb-2 block text-sm font-medium">
+                            Quantity
+                          </label>
                           <Input
                             type="number"
                             value={editQuantity}
@@ -469,7 +847,9 @@ export default function BillingPage() {
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-sm font-medium">Unit Price</label>
+                          <label className="mb-2 block text-sm font-medium">
+                            Unit Price
+                          </label>
                           <Input
                             type="number"
                             value={editUnitPrice}
@@ -480,7 +860,9 @@ export default function BillingPage() {
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Notes</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Notes
+                        </label>
                         <Textarea
                           value={editNotes}
                           onChange={(e) => setEditNotes(e.target.value)}
@@ -489,7 +871,9 @@ export default function BillingPage() {
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Remove Reason</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Remove Reason
+                        </label>
                         <Textarea
                           value={removeReason}
                           onChange={(e) => setRemoveReason(e.target.value)}
@@ -630,7 +1014,8 @@ export default function BillingPage() {
                         className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
                       >
                         <p className="font-medium">
-                          {payment.paymentMethod} • {formatMoney(payment.amount)}
+                          {payment.paymentMethod} •{" "}
+                          {formatMoney(payment.amount)}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           Receipt: {payment.receiptNumber}
@@ -653,4 +1038,3 @@ export default function BillingPage() {
     </div>
   );
 }
-

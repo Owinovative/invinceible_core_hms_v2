@@ -69,10 +69,18 @@ const navSections = [
     ],
   },
   {
+    label: "Doctor Workbench",
+    items: [
+      { title: "Doctor Queue", href: "/doctor-queue", icon: Stethoscope },
+      { title: "Consultations", href: "/consultation", icon: Stethoscope },
+      { title: "Medical Reports", href: "/medical-records", icon: FileCheck2 },
+      { title: "AI Clinical Notes", href: "/ai-assistant", icon: Bot },
+    ],
+  },
+  {
     label: "Clinical",
     items: [
       { title: "Triage", href: "/triage", icon: HeartPulse },
-      { title: "Doctor Queue", href: "/doctor-queue", icon: Stethoscope },
       { title: "OPD Clinics", href: "/opd-clinics", icon: Stethoscope },
       { title: "Lab", href: "/lab", icon: FlaskConical },
       { title: "Admissions", href: "/ipd", icon: BedDouble },
@@ -123,8 +131,8 @@ const navSections = [
   {
     label: "Operations",
     items: [
-      { title: "Procurement", href: "/procurement", icon: Truck },
       { title: "Medical Records", href: "/medical-records", icon: FileCheck2 },
+      { title: "Procurement", href: "/procurement", icon: Truck },
       { title: "Assets", href: "/assets", icon: PackageSearch },
       { title: "Biomedical", href: "/biomedical", icon: Building2 },
       { title: "CSSD", href: "/cssd", icon: PackageCheck },
@@ -139,14 +147,22 @@ const navSections = [
   {
     label: "Digital & Quality",
     items: [
-      { title: "Patient Portal", href: "/patient-portal", icon: TabletSmartphone },
+      {
+        title: "Patient Portal",
+        href: "/patient-portal",
+        icon: TabletSmartphone,
+      },
       {
         title: "Infection Control",
         href: "/infection-control",
         icon: ShieldCheck,
       },
       { title: "Compliance", href: "/compliance", icon: ShieldCheck },
-      { title: "Quality Assurance", href: "/quality-assurance", icon: ShieldCheck },
+      {
+        title: "Quality Assurance",
+        href: "/quality-assurance",
+        icon: ShieldCheck,
+      },
     ],
   },
 ];

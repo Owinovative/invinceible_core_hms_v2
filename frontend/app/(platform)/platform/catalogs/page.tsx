@@ -312,7 +312,7 @@ export default function PlatformCatalogsPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[560px]">
+          <div className="grid gap-3 xl:w-[280px]">
             <div className="border border-cyan-400/15 bg-black/35 p-4">
               <p className="font-mono text-xs uppercase text-cyan-100/50">
                 Drugs

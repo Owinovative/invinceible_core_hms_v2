@@ -1,6 +1,5 @@
 "use client";
 
-
 import * as React from "react";
 import Link from "next/link";
 import {
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { useReadyForDoctorTriage } from "@/hooks/use-ready-for-doctor-triage";
 import { useCreateConsultation } from "@/hooks/use-create-consultation";
+import { useConsultations } from "@/hooks/use-consultations";
 import { useStaff } from "@/hooks/use-staff";
 import { useScope } from "@/providers/scope-provider";
 import { useAuth } from "@/providers/auth-provider";
@@ -24,19 +24,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-
 function getPatientName(item: TriageItem) {
   const p = item.patient;
   if (!p) return "Unknown patient";
   return [p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ");
 }
 
-
 function getDoctorName(doctor?: StaffItem | null) {
   if (!doctor) return "";
   return [doctor.firstName, doctor.lastName].filter(Boolean).join(" ");
 }
-
 
 function priorityRank(priority?: string | null) {
   switch ((priority || "NORMAL").toUpperCase()) {
@@ -51,7 +48,6 @@ function priorityRank(priority?: string | null) {
   }
 }
 
-
 function priorityTone(priority?: string | null) {
   switch ((priority || "NORMAL").toUpperCase()) {
     case "CRITICAL":
@@ -65,24 +61,31 @@ function priorityTone(priority?: string | null) {
   }
 }
 
-
 export default function DoctorQueuePage() {
   const { facilityName, selectedBranchName } = useScope();
   const { user } = useAuth();
   const { data: triageData, isLoading } = useReadyForDoctorTriage();
+  const { data: consultationData } = useConsultations();
   const { data: staffData } = useStaff();
   const createConsultationMutation = useCreateConsultation();
 
-
-  const triageItems = Array.isArray(triageData) ? triageData : [];
-  const staffItems = Array.isArray(staffData) ? (staffData as StaffItem[]) : [];
-
+  const triageItems = React.useMemo(
+    () => (Array.isArray(triageData) ? triageData : []),
+    [triageData],
+  );
+  const consultations = React.useMemo(
+    () => (Array.isArray(consultationData) ? consultationData : []),
+    [consultationData],
+  );
+  const staffItems = React.useMemo(
+    () => (Array.isArray(staffData) ? (staffData as StaffItem[]) : []),
+    [staffData],
+  );
 
   const doctors = React.useMemo(
     () => staffItems.filter((item) => item.isClinician && item.isActive),
     [staffItems],
   );
-
 
   const [doctorFilter, setDoctorFilter] = React.useState("all");
   const [clinicFilter, setClinicFilter] = React.useState("all");
@@ -90,8 +93,9 @@ export default function DoctorQueuePage() {
   const [myPatientsOnly, setMyPatientsOnly] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
-  const [createdConsultationId, setCreatedConsultationId] = React.useState<number | null>(null);
-
+  const [createdConsultationId, setCreatedConsultationId] = React.useState<
+    number | null
+  >(null);
 
   const clinics = React.useMemo(() => {
     const map = new Map<number, string>();
@@ -103,35 +107,57 @@ export default function DoctorQueuePage() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [triageItems]);
 
+  const activeConsultations = React.useMemo(
+    () =>
+      consultations.filter((item) => {
+        const inProgress = item.statusCode === "IN_PROGRESS";
+        const myPatientsOk = myPatientsOnly
+          ? String(item.doctorId ?? "") === String(user?.staffId ?? "")
+          : true;
+        return inProgress && myPatientsOk;
+      }),
+    [consultations, myPatientsOnly, user?.staffId],
+  );
+
+  const activeAppointmentIds = React.useMemo(
+    () =>
+      new Set(
+        activeConsultations
+          .map((item) => item.appointmentId)
+          .filter((id): id is number => Boolean(id)),
+      ),
+    [activeConsultations],
+  );
 
   const readyCases = React.useMemo(() => {
     const filtered = triageItems.filter((item) => {
-      const doctorOk =
-        doctorFilter === "all" || String(item.routedDoctorId ?? "") === doctorFilter;
+      if (item.appointmentId && activeAppointmentIds.has(item.appointmentId)) {
+        return false;
+      }
 
+      const doctorOk =
+        doctorFilter === "all" ||
+        String(item.routedDoctorId ?? "") === doctorFilter;
 
       const clinicOk =
         clinicFilter === "all" || String(item.clinicId ?? "") === clinicFilter;
 
-
       const priorityOk =
         priorityFilter === "all" ||
-        String(item.triagePriority ?? "NORMAL").toUpperCase() === priorityFilter;
-
+        String(item.triagePriority ?? "NORMAL").toUpperCase() ===
+          priorityFilter;
 
       const myPatientsOk = myPatientsOnly
         ? String(item.routedDoctorId ?? "") === String(user?.staffId ?? "")
         : true;
 
-
       return doctorOk && clinicOk && priorityOk && myPatientsOk;
     });
 
-
     return [...filtered].sort((a, b) => {
-      const pr = priorityRank(a.triagePriority) - priorityRank(b.triagePriority);
+      const pr =
+        priorityRank(a.triagePriority) - priorityRank(b.triagePriority);
       if (pr !== 0) return pr;
-
 
       const aTime = new Date(a.completedAt ?? "").getTime() || 0;
       const bTime = new Date(b.completedAt ?? "").getTime() || 0;
@@ -144,14 +170,16 @@ export default function DoctorQueuePage() {
     priorityFilter,
     myPatientsOnly,
     user?.staffId,
+    activeAppointmentIds,
   ]);
 
-
   const selectedCase = React.useMemo(
-    () => readyCases.find((item) => item.id === selectedId) ?? readyCases[0] ?? null,
+    () =>
+      readyCases.find((item) => item.id === selectedId) ??
+      readyCases[0] ??
+      null,
     [readyCases, selectedId],
   );
-
 
   React.useEffect(() => {
     if (!selectedId && readyCases.length > 0) {
@@ -159,39 +187,34 @@ export default function DoctorQueuePage() {
     }
   }, [readyCases, selectedId]);
 
-
   React.useEffect(() => {
     setCreatedConsultationId(null);
     setMessage(null);
   }, [selectedCase?.id]);
 
-
   const handleStartConsultation = async () => {
     if (!selectedCase) return;
-
 
     if (!selectedCase.appointmentId) {
       setMessage("This triage case has no appointment yet.");
       return;
     }
 
-
     const doctorId = selectedCase.routedDoctorId;
     if (!doctorId) {
-      setMessage("This patient has not been routed to a doctor yet from triage.");
+      setMessage(
+        "This patient has not been routed to a doctor yet from triage.",
+      );
       return;
     }
 
-
     setMessage(null);
     setCreatedConsultationId(null);
-
 
     const year = new Date().getFullYear();
     const consultationNumber = `CON-${year}-${selectedCase.id}-${Date.now()
       .toString()
       .slice(-4)}`;
-
 
     const created = await createConsultationMutation.mutateAsync({
       consultationNumber,
@@ -202,13 +225,11 @@ export default function DoctorQueuePage() {
       statusCode: "IN_PROGRESS",
     });
 
-
     setCreatedConsultationId(created.id);
     setMessage(
       `Consultation started successfully. Consultation No: ${created.consultationNumber}`,
     );
   };
-
 
   return (
     <div className="space-y-6">
@@ -217,19 +238,16 @@ export default function DoctorQueuePage() {
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
-
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
             <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700 dark:text-cyan-300">
               Doctor Queue
             </Badge>
 
-
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10">
                 <Stethoscope className="h-7 w-7 text-primary" />
               </div>
-
 
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
@@ -242,23 +260,24 @@ export default function DoctorQueuePage() {
             </div>
           </div>
 
-
-          <div className="grid gap-3 sm:grid-cols-3 xl:w-[560px]">
+          <div className="grid gap-3 sm:grid-cols-2 xl:w-[560px]">
             <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
-              <p className="mt-2 text-sm font-semibold">{facilityName || "No facility"}</p>
+              <p className="mt-2 text-sm font-semibold">
+                {facilityName || "No facility"}
+              </p>
             </div>
-
 
             <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
-              <p className="mt-2 text-sm font-semibold">{selectedBranchName || "No branch"}</p>
+              <p className="mt-2 text-sm font-semibold">
+                {selectedBranchName || "No branch"}
+              </p>
             </div>
-
 
             <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
@@ -266,17 +285,24 @@ export default function DoctorQueuePage() {
               </p>
               <p className="mt-2 text-sm font-semibold">{readyCases.length}</p>
             </div>
+
+            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Started
+              </p>
+              <p className="mt-2 text-sm font-semibold">
+                {activeConsultations.length}
+              </p>
+            </div>
           </div>
         </div>
       </section>
-
 
       {message ? (
         <div className="rounded-[1.4rem] border border-cyan-500/20 bg-cyan-500/8 px-4 py-4 text-sm text-cyan-300">
           {message}
         </div>
       ) : null}
-
 
       <section>
         <Card className="rounded-[1.8rem] gradient-border panel-shadow">
@@ -287,12 +313,10 @@ export default function DoctorQueuePage() {
                 Queue Filters
               </CardTitle>
 
-
               <div className="flex flex-wrap gap-2">
                 <Badge className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-cyan-300">
                   Ready Cases: {readyCases.length}
                 </Badge>
-
 
                 {myPatientsOnly ? (
                   <Badge className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-cyan-300">
@@ -307,10 +331,11 @@ export default function DoctorQueuePage() {
             </div>
           </CardHeader>
 
-
           <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
             <div>
-              <label className="mb-2 block text-sm font-medium">Filter by doctor</label>
+              <label className="mb-2 block text-sm font-medium">
+                Filter by doctor
+              </label>
               <select
                 value={doctorFilter}
                 onChange={(e) => setDoctorFilter(e.target.value)}
@@ -325,9 +350,10 @@ export default function DoctorQueuePage() {
               </select>
             </div>
 
-
             <div>
-              <label className="mb-2 block text-sm font-medium">Filter by clinic</label>
+              <label className="mb-2 block text-sm font-medium">
+                Filter by clinic
+              </label>
               <select
                 value={clinicFilter}
                 onChange={(e) => setClinicFilter(e.target.value)}
@@ -342,9 +368,10 @@ export default function DoctorQueuePage() {
               </select>
             </div>
 
-
             <div>
-              <label className="mb-2 block text-sm font-medium">Filter by priority</label>
+              <label className="mb-2 block text-sm font-medium">
+                Filter by priority
+              </label>
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
@@ -358,9 +385,10 @@ export default function DoctorQueuePage() {
               </select>
             </div>
 
-
             <div>
-              <label className="mb-2 block text-sm font-medium">Doctor scope</label>
+              <label className="mb-2 block text-sm font-medium">
+                Doctor scope
+              </label>
               <button
                 type="button"
                 onClick={() => setMyPatientsOnly((prev) => !prev)}
@@ -371,7 +399,11 @@ export default function DoctorQueuePage() {
                     : "border-white/10 bg-background text-foreground",
                 )}
               >
-                <span>{myPatientsOnly ? "Showing my patients only" : "Showing all visible patients"}</span>
+                <span>
+                  {myPatientsOnly
+                    ? "Showing my patients only"
+                    : "Showing all visible patients"}
+                </span>
                 <span
                   className={cn(
                     "rounded-full px-2 py-1 text-[10px] font-semibold",
@@ -388,13 +420,65 @@ export default function DoctorQueuePage() {
         </Card>
       </section>
 
+      <section>
+        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg">
+              Already Started Consultations
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {activeConsultations.length === 0 ? (
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                No active consultations are currently open.
+              </div>
+            ) : (
+              activeConsultations.slice(0, 8).map((consultation) => (
+                <div
+                  key={consultation.id}
+                  className="rounded-[1.2rem] border border-cyan-400/20 bg-cyan-500/8 p-4"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="font-semibold">
+                        {consultation.patient
+                          ? [
+                              consultation.patient.firstName,
+                              consultation.patient.middleName,
+                              consultation.patient.lastName,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")
+                          : "Unknown patient"}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {consultation.consultationNumber} /{" "}
+                        {consultation.patient?.patientNumber ||
+                          "No patient number"}
+                      </p>
+                    </div>
+                    <Link href={`/consultation/${consultation.id}`}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-2xl"
+                      >
+                        Open Active Notes
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
           <CardHeader>
             <CardTitle className="text-lg">Doctor Queue</CardTitle>
           </CardHeader>
-
 
           <CardContent className="space-y-3">
             {isLoading ? (
@@ -414,8 +498,8 @@ export default function DoctorQueuePage() {
             ) : (
               readyCases.map((item) => {
                 const active = selectedCase?.id === item.id;
-                const critical = (item.triagePriority || "").toUpperCase() === "CRITICAL";
-
+                const critical =
+                  (item.triagePriority || "").toUpperCase() === "CRITICAL";
 
                 return (
                   <button
@@ -432,7 +516,9 @@ export default function DoctorQueuePage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold">{getPatientName(item)}</p>
+                          <p className="truncate font-semibold">
+                            {getPatientName(item)}
+                          </p>
                           <span
                             className={cn(
                               "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
@@ -446,23 +532,19 @@ export default function DoctorQueuePage() {
                           ) : null}
                         </div>
 
-
                         <p className="mt-1 text-sm text-muted-foreground">
                           {item.patient?.patientNumber || item.triageNumber}
                         </p>
-
 
                         <p className="mt-2 text-sm text-muted-foreground">
                           {item.chiefComplaint || "No complaint captured"}
                         </p>
 
-
                         <p className="mt-2 text-xs text-cyan-300">
-                          Clinic: {item.clinic?.name || "Not assigned"} • Appointment:{" "}
-                          {item.appointmentId || "Pending"}
+                          Clinic: {item.clinic?.name || "Not assigned"} •
+                          Appointment: {item.appointmentId || "Pending"}
                         </p>
                       </div>
-
 
                       {active ? (
                         <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-400" />
@@ -475,7 +557,6 @@ export default function DoctorQueuePage() {
           </CardContent>
         </Card>
 
-
         <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -483,7 +564,6 @@ export default function DoctorQueuePage() {
               Selected Case Summary
             </CardTitle>
           </CardHeader>
-
 
           <CardContent className="space-y-5">
             {!selectedCase ? (
@@ -498,24 +578,26 @@ export default function DoctorQueuePage() {
                       <UserRound className="h-5 w-5 text-primary" />
                     </div>
 
-
                     <div className="min-w-0">
-                      <p className="text-lg font-bold">{getPatientName(selectedCase)}</p>
+                      <p className="text-lg font-bold">
+                        {getPatientName(selectedCase)}
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedCase.patient?.patientNumber || selectedCase.triageNumber}
+                        {selectedCase.patient?.patientNumber ||
+                          selectedCase.triageNumber}
                       </p>
                     </div>
                   </div>
 
-
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-xs text-muted-foreground">Chief Complaint</p>
+                      <p className="text-xs text-muted-foreground">
+                        Chief Complaint
+                      </p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedCase.chiefComplaint || "—"}
                       </p>
                     </div>
-
 
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Priority</p>
@@ -524,7 +606,6 @@ export default function DoctorQueuePage() {
                       </p>
                     </div>
 
-
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Clinic</p>
                       <p className="mt-1 text-sm font-medium">
@@ -532,20 +613,25 @@ export default function DoctorQueuePage() {
                       </p>
                     </div>
 
-
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-xs text-muted-foreground">Appointment ID</p>
+                      <p className="text-xs text-muted-foreground">
+                        Appointment ID
+                      </p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedCase.appointmentId || "Pending"}
                       </p>
                     </div>
 
-
                     <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3 md:col-span-2">
-                      <p className="text-xs text-muted-foreground">Routed Doctor</p>
+                      <p className="text-xs text-muted-foreground">
+                        Routed Doctor
+                      </p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedCase.routedDoctor
-                          ? [selectedCase.routedDoctor.firstName, selectedCase.routedDoctor.lastName]
+                          ? [
+                              selectedCase.routedDoctor.firstName,
+                              selectedCase.routedDoctor.lastName,
+                            ]
                               .filter(Boolean)
                               .join(" ")
                           : "Not assigned"}
@@ -554,12 +640,13 @@ export default function DoctorQueuePage() {
                   </div>
                 </div>
 
-
                 <div className="flex flex-wrap gap-3">
                   <Button
                     type="button"
                     className="h-12 rounded-2xl"
-                    disabled={!selectedCase || createConsultationMutation.isPending}
+                    disabled={
+                      !selectedCase || createConsultationMutation.isPending
+                    }
                     onClick={handleStartConsultation}
                   >
                     {createConsultationMutation.isPending ? (
@@ -570,10 +657,13 @@ export default function DoctorQueuePage() {
                     Start Consultation
                   </Button>
 
-
                   {createdConsultationId ? (
                     <Link href={`/consultation/${createdConsultationId}`}>
-                      <Button type="button" variant="outline" className="h-12 rounded-2xl">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-12 rounded-2xl"
+                      >
                         Open Consultation Page
                       </Button>
                     </Link>

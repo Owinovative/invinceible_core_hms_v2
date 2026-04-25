@@ -1,4 +1,6 @@
 import {
+  IsDateString,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -8,8 +10,28 @@ import {
 
 export class AddInvoiceItemDto {
   @IsOptional()
+  @IsIn(['SERVICE', 'LAB_TEST', 'MEDICINE', 'MANUAL'])
+  chargeType?: 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
+
+  @IsOptional()
   @IsInt()
   billingServiceId?: number;
+
+  @IsOptional()
+  @IsInt()
+  labTestId?: number;
+
+  @IsOptional()
+  @IsInt()
+  medicineId?: number;
+
+  @IsOptional()
+  @IsInt()
+  branchMedicineStockId?: number;
+
+  @IsOptional()
+  @IsDateString()
+  chargedAt?: string;
 
   @IsString()
   @MaxLength(255)

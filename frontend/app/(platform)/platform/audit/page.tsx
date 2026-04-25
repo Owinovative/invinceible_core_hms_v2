@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Activity,
   CalendarClock,
+  Download,
   Fingerprint,
   Loader2,
   MonitorCog,
@@ -13,9 +14,11 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuditLogs } from "@/hooks/use-audit-logs";
+import { getAuditLogsExport } from "@/services/audit-log-service";
 
 const modules = [
   "AUTH",
@@ -51,6 +54,7 @@ function actorName(log: {
 export default function AuditPage() {
   const [moduleName, setModuleName] = React.useState("");
   const [entityId, setEntityId] = React.useState("");
+  const [isExporting, setIsExporting] = React.useState(false);
   const { data, isLoading } = useAuditLogs({
     moduleName: moduleName || undefined,
     entityId: entityId || undefined,
@@ -60,6 +64,27 @@ export default function AuditPage() {
   const criticalCount = logs.filter((log) =>
     log.actionName.toUpperCase().includes("FAILED"),
   ).length;
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const file = await getAuditLogsExport({
+        moduleName: moduleName || undefined,
+        entityId: entityId || undefined,
+      });
+      const blob = new Blob([`\uFEFF${file.csvText}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -111,6 +136,20 @@ export default function AuditPage() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle>Trace Explorer</CardTitle>
             <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-xl"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Export CSV
+              </Button>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input

@@ -11,6 +11,27 @@ import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
+function escapeAuditCsvCell(value: unknown) {
+  const text =
+    value === null || value === undefined
+      ? ''
+      : typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ? String(value)
+        : (JSON.stringify(value) ?? '');
+
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+}
+
+function toAuditCsv(rows: unknown[][]) {
+  return rows.map((row) => row.map(escapeAuditCsvCell).join(',')).join('\r\n');
+}
+
 @Injectable()
 export class AuditLogService {
   constructor(
@@ -219,6 +240,63 @@ export class AuditLogService {
       },
       take: 300,
     });
+  }
+
+  async exportScoped(query: AuditLogQueryDto | undefined, user: RequestUser) {
+    const logs = await this.prisma.auditLog.findMany({
+      where: this.buildScopedWhere(query, user),
+      include: {
+        facility: true,
+        branch: true,
+        actorUser: true,
+        actorStaff: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      take: 10000,
+    });
+
+    const rows: unknown[][] = [
+      [
+        'date',
+        'module',
+        'action',
+        'actor',
+        'actorUserId',
+        'actorStaffId',
+        'facility',
+        'branch',
+        'entityType',
+        'entityId',
+        'ipAddress',
+        'userAgent',
+        'description',
+      ],
+      ...logs.map((log) => [
+        log.createdAt.toISOString(),
+        log.moduleName,
+        log.actionName,
+        log.actorStaff
+          ? `${log.actorStaff.firstName} ${log.actorStaff.lastName}`.trim()
+          : (log.actorUser?.fullName ?? log.actorUser?.username ?? 'System'),
+        log.actorUserId,
+        log.actorStaffId,
+        log.facility?.name ?? 'System',
+        log.branch?.name ?? 'Facility-wide',
+        log.entityType,
+        log.entityId,
+        log.ipAddress,
+        log.userAgent,
+        log.description,
+      ]),
+    ];
+
+    return {
+      fileName: `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`,
+      rowCount: rows.length - 1,
+      csvText: toAuditCsv(rows),
+    };
   }
 
   async findOne(id: number) {

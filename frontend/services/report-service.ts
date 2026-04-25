@@ -129,6 +129,48 @@ export interface ModuleOperationsReport {
   }>;
 }
 
+export interface ProfitAnalyticsReport {
+  filters: {
+    startDate?: string | null;
+    endDate?: string | null;
+    facilityId?: number | null;
+    branchId?: number | null;
+  };
+  summary: {
+    dispensedLines: number;
+    quantityDispensed: number;
+    revenue: number;
+    cost: number;
+    grossProfit: number;
+    marginPercent: number;
+  };
+  byMedicine: Array<{
+    medicineId: number;
+    medicineCode?: string | null;
+    medicineName: string;
+    branchId?: number | null;
+    branchName?: string | null;
+    quantity: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }>;
+  recentLines: Array<{
+    id: number;
+    dispensedAt?: string | null;
+    dispenseNumber?: string | null;
+    patientName?: string | null;
+    medicineName?: string | null;
+    branchName?: string | null;
+    quantity: number;
+    sellingPrice: number;
+    buyingPrice: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }>;
+}
+
 function reportParams(dateFrom?: string, dateTo?: string) {
   const params = new URLSearchParams();
 
@@ -181,6 +223,29 @@ export async function getModuleOperationsExport(
   const path = query
     ? `/reports/modules/export?${query}`
     : "/reports/modules/export";
+
+  return apiFetch<CsvExportResponse>(path, {
+    method: "GET",
+  });
+}
+
+export async function getProfitAnalytics(dateFrom?: string, dateTo?: string) {
+  const query = reportParams(dateFrom, dateTo);
+  const path = query ? `/reports/profit?${query}` : "/reports/profit";
+
+  return apiFetch<ProfitAnalyticsReport>(path, {
+    method: "GET",
+  });
+}
+
+export async function getProfitAnalyticsExport(
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  const query = reportParams(dateFrom, dateTo);
+  const path = query
+    ? `/reports/profit/export?${query}`
+    : "/reports/profit/export";
 
   return apiFetch<CsvExportResponse>(path, {
     method: "GET",
