@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -155,5 +156,18 @@ export class BillingController {
   @Get('dashboard')
   getBillingDashboard(@CurrentUser() user: RequestUser) {
     return this.billingService.getBillingDashboard(user);
+  }
+
+  @Get('revenue-integrity')
+  getRevenueIntegrity(@CurrentUser() user: RequestUser) {
+    return this.billingService.getRevenueIntegrity(user);
+  }
+
+  @Get('cashier-close')
+  getCashierClose(
+    @CurrentUser() user: RequestUser,
+    @Query('date') date?: string,
+  ) {
+    return this.billingService.getCashierClose(user, date);
   }
 }
