@@ -158,6 +158,16 @@ export default function IpdDetailPage() {
   const pendingTreatments = treatmentChart.filter(
     (item) => (item.statusCode || "PLANNED").toUpperCase() !== "ADMINISTERED",
   ).length;
+  const dueTreatments = treatmentChart.filter((item) => {
+    if ((item.statusCode || "PLANNED").toUpperCase() === "ADMINISTERED") {
+      return false;
+    }
+
+    if (!item.scheduledAt) return false;
+
+    const scheduled = new Date(item.scheduledAt);
+    return !Number.isNaN(scheduled.getTime()) && scheduled <= new Date();
+  }).length;
 
   const [noteType, setNoteType] = React.useState("");
   const [noteText, setNoteText] = React.useState("");
@@ -650,7 +660,7 @@ export default function IpdDetailPage() {
         </Card>
       ) : (
         <>
-          <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
             <Card className="rounded-[1.6rem] gradient-border panel-shadow">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
@@ -695,6 +705,21 @@ export default function IpdDetailPage() {
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                   <Syringe className="h-6 w-6 text-primary" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+              <CardContent className="flex items-center justify-between p-5">
+                <div>
+                  <p className="text-sm text-muted-foreground">Due Treatment</p>
+                  <p className="mt-2 text-2xl font-bold">{dueTreatments}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {pendingTreatments} pending total
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                  <Clock3 className="h-6 w-6 text-primary" />
                 </div>
               </CardContent>
             </Card>
@@ -1388,7 +1413,7 @@ export default function IpdDetailPage() {
                           <p className="text-sm text-muted-foreground">
                             {[entry.treatmentType, entry.dosage, entry.route, entry.frequency]
                               .filter(Boolean)
-                              .join(" • ") || "—"}
+                              .join(" / ") || "-"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Ordered by: {staffName(entry.orderedBy)}

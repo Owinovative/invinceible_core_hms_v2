@@ -8,6 +8,7 @@ import {
   Package,
   Pill,
   RefreshCw,
+  Search,
   Warehouse,
 } from "lucide-react";
 
@@ -40,6 +41,14 @@ function stockLabel(item: BranchMedicineStockItem) {
   return "IN STOCK";
 }
 
+function formatMoney(value?: number | null) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
+
 export default function PharmacyStockPage() {
   const { selectedBranchId, selectedBranchName, facilityName } = useScope();
 
@@ -49,11 +58,31 @@ export default function PharmacyStockPage() {
 
   const stocks = Array.isArray(data) ? data : [];
   const [message, setMessage] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
 
   const [activeStockId, setActiveStockId] = React.useState<number | null>(null);
   const [quantityToAdd, setQuantityToAdd] = React.useState("");
   const [reorderLevel, setReorderLevel] = React.useState("");
   const [unitPrice, setUnitPrice] = React.useState("");
+
+  const filteredStocks = React.useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return stocks;
+
+    return stocks.filter((item) =>
+      [
+        item.medicine?.name,
+        item.medicine?.code,
+        item.medicine?.dosageForm,
+        item.medicine?.strength,
+        item.branch?.name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [stocks, search]);
 
   const totalItems = stocks.length;
   const lowStockCount = stocks.filter(
@@ -63,6 +92,11 @@ export default function PharmacyStockPage() {
   const inStockCount = stocks.filter(
     (item) => item.stockQuantity > item.reorderLevel,
   ).length;
+  const missingPriceCount = stocks.filter((item) => item.unitPrice <= 0).length;
+  const totalStockValue = stocks.reduce(
+    (sum, item) => sum + item.stockQuantity * item.unitPrice,
+    0,
+  );
 
   const activeStock =
     stocks.find((item) => item.id === activeStockId) ?? null;
@@ -112,8 +146,6 @@ export default function PharmacyStockPage() {
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-violet-600/10 via-cyan-500/5 to-transparent" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
@@ -131,7 +163,7 @@ export default function PharmacyStockPage() {
                   Branch Pharmacy Stock
                 </h1>
                 <p className="text-muted-foreground">
-                  Monitor stock levels, detect low stock, and restock medicines
+                  Control branch stock, reorder levels, and dispensing prices
                 </p>
               </div>
             </div>
@@ -163,7 +195,7 @@ export default function PharmacyStockPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
         <Card className="rounded-[1.6rem] gradient-border panel-shadow">
           <CardContent className="flex items-center justify-between p-5">
             <div>
@@ -211,23 +243,53 @@ export default function PharmacyStockPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Stock Value</p>
+              <p className="mt-2 text-xl font-bold">
+                {formatMoney(totalStockValue)}
+              </p>
+              {missingPriceCount > 0 ? (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                  {missingPriceCount} missing prices
+                </p>
+              ) : null}
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+              <Pill className="h-6 w-6 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card className="rounded-[1.8rem] gradient-border panel-shadow">
           <CardHeader>
-            <CardTitle>Branch Stock List</CardTitle>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <CardTitle>Branch Stock List</CardTitle>
+              <div className="relative w-full lg:max-w-xs">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="h-11 rounded-xl pl-9"
+                  placeholder="Search medicine, code, form"
+                />
+              </div>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-4">
             {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading stock...</div>
-            ) : stocks.length === 0 ? (
+            ) : filteredStocks.length === 0 ? (
               <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
-                No branch medicine stock records found.
+                No branch medicine stock records matched.
               </div>
             ) : (
-              stocks.map((item) => (
+              filteredStocks.map((item) => (
                 <div
                   key={item.id}
                   className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
@@ -241,7 +303,7 @@ export default function PharmacyStockPage() {
                       <p className="text-sm text-muted-foreground">
                         {[item.medicine?.code, item.medicine?.dosageForm, item.medicine?.strength]
                           .filter(Boolean)
-                          .join(" • ") || "—"}
+                          .join(" / ") || "-"}
                       </p>
 
                       <div className="grid gap-3 md:grid-cols-3">
@@ -257,7 +319,14 @@ export default function PharmacyStockPage() {
 
                         <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
                           <p className="text-xs text-muted-foreground">Unit Price</p>
-                          <p className="mt-1 text-sm font-medium">{item.unitPrice}</p>
+                          <p className="mt-1 text-sm font-medium">
+                            {formatMoney(item.unitPrice)}
+                          </p>
+                          {item.unitPrice <= 0 ? (
+                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                              Fix before dispensing
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -376,7 +445,7 @@ export default function PharmacyStockPage() {
                     >
                       <p className="font-medium text-red-300">{item.medicineName || "Unknown medicine"}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Out of stock • Reorder level: {item.reorderLevel}
+                        Out of stock / Reorder level: {item.reorderLevel}
                       </p>
                     </div>
                   ))}
@@ -388,7 +457,7 @@ export default function PharmacyStockPage() {
                     >
                       <p className="font-medium text-amber-300">{item.medicineName || "Unknown medicine"}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Stock: {item.stockQuantity} • Reorder level: {item.reorderLevel}
+                        Stock: {item.stockQuantity} / Reorder level: {item.reorderLevel}
                       </p>
                     </div>
                   ))}
