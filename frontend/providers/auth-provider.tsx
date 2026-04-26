@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth-storage";
 import { Button } from "@/components/ui/button";
 import { getMe, loginUser } from "@/services/auth-service";
+import { markUserLocationLogout } from "@/services/user-location-service";
 import type { AuthUser } from "@/types/auth";
 
 const AUTO_LOGOUT_MS = 10 * 60 * 1000;
@@ -122,6 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = React.useCallback(() => {
     clearAutoLogoutTimers();
     setAutoLogoutWarning(false);
+    if (getAccessToken()) {
+      void markUserLocationLogout().catch(() => undefined);
+    }
     clearAccessToken();
     setUser(null);
     setTokenState(null);

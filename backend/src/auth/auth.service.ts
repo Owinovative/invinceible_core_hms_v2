@@ -13,6 +13,7 @@ import { ScopeService } from './scope.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UserLocationService } from '../user-location/user-location.service';
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 
@@ -29,6 +30,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly scopeService: ScopeService,
+    private readonly userLocationService: UserLocationService,
   ) {}
 
   private async recordLoginAudit(params: {
@@ -236,6 +238,13 @@ export class AuthService {
         roleCode: user.role?.code ?? null,
       },
     });
+
+    void this.userLocationService
+      .captureLogin(scopedUser, {
+        ipAddress: auditMeta?.ipAddress,
+        userAgent: auditMeta?.userAgent,
+      })
+      .catch(() => undefined);
 
     return {
       message: 'Login successful',

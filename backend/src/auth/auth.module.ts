@@ -8,12 +8,14 @@ import { JwtStrategy } from './jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { ScopeService } from './scope.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { UserLocationModule } from '../user-location/user-location.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     UserModule,
+    UserLocationModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

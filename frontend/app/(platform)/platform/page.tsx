@@ -10,6 +10,7 @@ import {
   KeyRound,
   LockKeyhole,
   MessageCircle,
+  MapPin,
   PhoneCall,
   Pill,
   ScrollText,
@@ -82,6 +83,12 @@ const items = [
     signal: "audit.trace",
   },
   {
+    title: "User Locations",
+    href: "/platform/user-locations",
+    icon: MapPin,
+    signal: "session.geo.trace",
+  },
+  {
     title: "Settings",
     href: "/platform/settings",
     icon: ServerCog,
@@ -110,6 +117,12 @@ const controlNodes = [
     href: "/platform/audit",
     icon: ScrollText,
     caption: "Who did what, where, and when",
+  },
+  {
+    title: "Location radar",
+    href: "/platform/user-locations",
+    icon: MapPin,
+    caption: "Live sessions and last known network location",
   },
   {
     title: "Permission matrix",

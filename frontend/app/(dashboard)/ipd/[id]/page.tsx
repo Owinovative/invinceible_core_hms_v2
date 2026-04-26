@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   BadgeDollarSign,
   BedDouble,
+  Bot,
   CheckCircle2,
   ClipboardList,
   Clock3,
@@ -16,6 +17,7 @@ import {
   LogOut,
   Plus,
   RefreshCw,
+  Sparkles,
   Stethoscope,
   Syringe,
   TestTube2,
@@ -39,6 +41,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useCreateAdmissionLabOrder } from "@/hooks/use-create-admission-lab-order";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { usePostAdmissionBedCharge } from "@/hooks/use-post-admission-bed-charge";
+import { useCreateClinicalAiDraft } from "@/hooks/use-ai-assistant";
 import {
   downloadAdmissionDischargeSummaryPdf,
   downloadAdmissionMedicalSummaryPdf,
@@ -127,6 +130,7 @@ export default function IpdDetailPage() {
   const { data: labTestsData } = useLabTests();
   const createAdmissionLabOrderMutation = useCreateAdmissionLabOrder();
   const postAdmissionBedChargeMutation = usePostAdmissionBedCharge(id);
+  const createClinicalAiDraftMutation = useCreateClinicalAiDraft();
 
   const [message, setMessage] = React.useState<string | null>(null);
   const [downloadingDocument, setDownloadingDocument] = React.useState<
@@ -238,6 +242,10 @@ export default function IpdDetailPage() {
   const [bedChargeQuantity, setBedChargeQuantity] = React.useState("1");
   const [bedChargeUnitPrice, setBedChargeUnitPrice] = React.useState("");
   const [bedChargeNotes, setBedChargeNotes] = React.useState("");
+  const [medicalSummaryPrompt, setMedicalSummaryPrompt] = React.useState(
+    "Create a concise inpatient medical summary for clinician review using the documented admission, progress notes, vitals, treatments, and lab results.",
+  );
+  const [medicalSummaryDraft, setMedicalSummaryDraft] = React.useState("");
 
   React.useEffect(() => {
     if (!dischargeSummary) return;
@@ -287,6 +295,92 @@ export default function IpdDetailPage() {
     availableTransferBeds,
     transferBedId,
   ]);
+
+  const handleGenerateMedicalSummary = async () => {
+    if (!data) return;
+
+    setMessage(null);
+
+    const latestVital = vitalRecords[0] ?? null;
+    const latestReview = doctorReviews[0] ?? null;
+    const patient = data.patient as typeof data.patient & {
+      dateOfBirth?: string | null;
+    };
+    const consultation = data.consultation as
+      | {
+          chiefComplaint?: string | null;
+          historyOfPresenting?: string | null;
+          examinationFindings?: string | null;
+          diagnosis?: string | null;
+          treatmentPlan?: string | null;
+        }
+      | null
+      | undefined;
+    const labContext = labOrders.slice(0, 8).map((order) => ({
+      orderNumber: order.orderNumber,
+      urgency: order.urgency,
+      status: order.status,
+      clinicalNotes: order.clinicalNotes,
+      tests: (order.items ?? []).map((item) => ({
+        testName: item.test?.testName,
+        status: item.status,
+        result: item.results?.[0]?.resultValue,
+        remarks: item.results?.[0]?.remarks,
+      })),
+    }));
+
+    const result = await createClinicalAiDraftMutation.mutateAsync({
+      task: "DISCHARGE_SUMMARY",
+      audience: "doctor preparing an inpatient medical summary",
+      prompt: medicalSummaryPrompt,
+      context: {
+        patient: {
+          name: patientName(patient),
+          patientNumber: patient?.patientNumber,
+          gender: patient?.gender,
+          dateOfBirth: patient?.dateOfBirth,
+        },
+        admission: {
+          admissionNumber: data.admissionNumber,
+          statusCode: data.statusCode,
+          admittedAt: data.admittedAt,
+          admissionReason: data.admissionReason,
+          ward: data.ward?.name,
+          bed: data.bed?.bedNumber,
+        },
+        consultation: consultation
+          ? {
+              chiefComplaint: consultation.chiefComplaint,
+              historyOfPresenting: consultation.historyOfPresenting,
+              examinationFindings: consultation.examinationFindings,
+              diagnosis: consultation.diagnosis,
+              treatmentPlan: consultation.treatmentPlan,
+            }
+          : null,
+        latestReview,
+        latestVital,
+        progressNotes: progressNotes.slice(0, 8).map((note) => ({
+          type: note.noteType,
+          text: note.noteText,
+          recordedAt: note.createdAt,
+          recordedBy: staffName(note.recordedBy),
+        })),
+        treatments: treatmentChart.slice(0, 12).map((item) => ({
+          treatmentType: item.treatmentType,
+          treatmentName: item.treatmentName,
+          dosage: item.dosage,
+          route: item.route,
+          frequency: item.frequency,
+          statusCode: item.statusCode,
+          scheduledAt: item.scheduledAt,
+          administeredAt: item.administeredAt,
+        })),
+        labs: labContext,
+      },
+    });
+
+    setMedicalSummaryDraft(result.output);
+  };
 
   const handleSaveDischargeSummary = async () => {
     if (!data) return;
@@ -1967,57 +2061,144 @@ export default function IpdDetailPage() {
           <section>
             <Card className="rounded-[1.8rem] gradient-border panel-shadow">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Clinical Documents
-                </CardTitle>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Medical Summary and Clinical Documents
+                    </CardTitle>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                      Generate a clinician-reviewed AI draft, refine it inside
+                      the page, then download official letterhead PDFs for the
+                      admission.
+                    </p>
+                  </div>
+                  <Badge className="w-fit rounded-full border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                    AI-assisted drafting
+                  </Badge>
+                </div>
               </CardHeader>
 
-              <CardContent className="grid gap-3 md:grid-cols-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl justify-start"
-                  onClick={() => handleDownloadDocument("medical")}
-                  disabled={Boolean(downloadingDocument)}
-                >
-                  {downloadingDocument === "medical" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Medical Summary PDF
-                </Button>
+              <CardContent className="space-y-5">
+                <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+                  <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="mb-4 flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-cyan-400" />
+                      <p className="font-semibold">AI medical summary draft</p>
+                    </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl justify-start"
-                  onClick={() => handleDownloadDocument("discharge")}
-                  disabled={Boolean(downloadingDocument)}
-                >
-                  {downloadingDocument === "discharge" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Discharge Summary PDF
-                </Button>
+                    <Textarea
+                      value={medicalSummaryPrompt}
+                      onChange={(event) =>
+                        setMedicalSummaryPrompt(event.target.value)
+                      }
+                      className="min-h-[120px] rounded-xl"
+                      placeholder="Tell the AI what kind of medical summary to prepare"
+                    />
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl justify-start"
-                  onClick={() => handleDownloadDocument("chart")}
-                  disabled={Boolean(downloadingDocument)}
-                >
-                  {downloadingDocument === "chart" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Inpatient Chart PDF
-                </Button>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <Button
+                        type="button"
+                        className="h-11 rounded-lg"
+                        onClick={handleGenerateMedicalSummary}
+                        disabled={createClinicalAiDraftMutation.isPending}
+                      >
+                        {createClinicalAiDraftMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Generate draft
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-11 rounded-lg"
+                        onClick={() => handleDownloadDocument("medical")}
+                        disabled={Boolean(downloadingDocument)}
+                      >
+                        {downloadingDocument === "medical" ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        Medical PDF
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.2rem] border border-cyan-300/15 bg-cyan-500/[0.04] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="font-semibold">Editable summary output</p>
+                      {medicalSummaryDraft ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg"
+                          onClick={() => setHospitalCourse(medicalSummaryDraft)}
+                        >
+                          Use as course
+                        </Button>
+                      ) : null}
+                    </div>
+                    <Textarea
+                      value={medicalSummaryDraft}
+                      onChange={(event) =>
+                        setMedicalSummaryDraft(event.target.value)
+                      }
+                      className="min-h-[250px] rounded-xl font-mono text-xs leading-6"
+                      placeholder="The AI draft appears here and remains editable before use."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 justify-start rounded-lg"
+                    onClick={() => handleDownloadDocument("medical")}
+                    disabled={Boolean(downloadingDocument)}
+                  >
+                    {downloadingDocument === "medical" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Medical Summary PDF
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 justify-start rounded-lg"
+                    onClick={() => handleDownloadDocument("discharge")}
+                    disabled={Boolean(downloadingDocument)}
+                  >
+                    {downloadingDocument === "discharge" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Discharge Summary PDF
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 justify-start rounded-lg"
+                    onClick={() => handleDownloadDocument("chart")}
+                    disabled={Boolean(downloadingDocument)}
+                  >
+                    {downloadingDocument === "chart" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Inpatient Chart PDF
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </section>
