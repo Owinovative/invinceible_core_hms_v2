@@ -33,8 +33,10 @@ import { PrescriptionItemModule } from './prescription-item/prescription-item.mo
 import { OperationalModuleModule } from './operational-module/operational-module.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { MasterCatalogModule } from './master-catalog/master-catalog.module';
+import { UserLocationModule } from './user-location/user-location.module';
 import { validateEnvironment } from './config/env.validation';
 import { AuditInterceptor } from './audit-log/audit.interceptor';
+import { UserLocationInterceptor } from './user-location/user-location.interceptor';
 
 @Module({
   imports: [
@@ -72,6 +74,7 @@ import { AuditInterceptor } from './audit-log/audit.interceptor';
     OperationalModuleModule,
     AiAssistantModule,
     MasterCatalogModule,
+    UserLocationModule,
   ],
   controllers: [AppController],
   providers: [
@@ -79,6 +82,10 @@ import { AuditInterceptor } from './audit-log/audit.interceptor';
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserLocationInterceptor,
     },
   ],
 })

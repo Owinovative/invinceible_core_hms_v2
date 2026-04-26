@@ -10,6 +10,7 @@ import {
   DatabaseZap,
   GitBranch,
   LayoutDashboard,
+  MapPin,
   ScrollText,
   Settings,
   Shield,
@@ -33,6 +34,7 @@ const navItems = [
   { title: "Staff", href: "/platform/staff", icon: UserCog },
   { title: "Clinics", href: "/platform/clinics", icon: Stethoscope },
   { title: "Notifications", href: "/platform/notifications", icon: BellRing },
+  { title: "User Locations", href: "/platform/user-locations", icon: MapPin },
   { title: "Audit Trail", href: "/platform/audit", icon: ScrollText },
   { title: "Settings", href: "/platform/settings", icon: Settings },
 ];

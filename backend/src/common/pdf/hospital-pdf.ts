@@ -184,6 +184,47 @@ export function addKeyValueGrid(
   }
 }
 
+export function addCompactKeyValueGrid(
+  doc: PDFKit.PDFDocument,
+  items: PdfKeyValue[],
+  columns = 3,
+) {
+  const pageWidth =
+    doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const columnGap = 8;
+  const columnWidth = (pageWidth - columnGap * (columns - 1)) / columns;
+
+  for (let index = 0; index < items.length; index += columns) {
+    const row = items.slice(index, index + columns);
+    const y = doc.y;
+    const height = 30;
+
+    ensureRoom(doc, height + 5);
+
+    row.forEach((item, offset) => {
+      const x = doc.page.margins.left + offset * (columnWidth + columnGap);
+      doc.rect(x, y, columnWidth, height).fillAndStroke('#ffffff', '#e2e8f0');
+      doc
+        .fillColor('#64748b')
+        .font('Helvetica-Bold')
+        .fontSize(6.8)
+        .text(item.label.toUpperCase(), x + 7, y + 6, {
+          width: columnWidth - 14,
+        });
+      doc
+        .fillColor('#0f172a')
+        .font('Helvetica')
+        .fontSize(8.3)
+        .text(textOrDash(item.value), x + 7, y + 17, {
+          width: columnWidth - 14,
+          ellipsis: true,
+        });
+    });
+
+    doc.y = y + height + 5;
+  }
+}
+
 export function addParagraph(
   doc: PDFKit.PDFDocument,
   label: string,
@@ -297,6 +338,89 @@ export function addTable<T>(
   });
 
   doc.moveDown(0.7);
+}
+
+export function addCompactTable<T>(
+  doc: PDFKit.PDFDocument,
+  columns: PdfTableColumn<T>[],
+  rows: T[],
+  emptyMessage = 'No records found.',
+) {
+  const startX = doc.page.margins.left;
+  const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
+
+  ensureRoom(doc, 28);
+  let y = doc.y;
+
+  doc.rect(startX, y, tableWidth, 18).fillAndStroke('#0f766e', '#0f766e');
+  let x = startX;
+  columns.forEach((column) => {
+    doc
+      .fillColor('#ffffff')
+      .font('Helvetica-Bold')
+      .fontSize(7.2)
+      .text(column.header, x + 4, y + 6, {
+        width: column.width - 8,
+      });
+    x += column.width;
+  });
+
+  doc.y = y + 18;
+
+  if (rows.length === 0) {
+    ensureRoom(doc, 28);
+    doc.rect(startX, doc.y, tableWidth, 24).fillAndStroke('#ffffff', '#e2e8f0');
+    doc
+      .fillColor('#64748b')
+      .font('Helvetica')
+      .fontSize(8)
+      .text(emptyMessage, startX + 6, doc.y + 8, {
+        width: tableWidth - 12,
+      });
+    doc.y += 29;
+    return;
+  }
+
+  rows.forEach((row, rowIndex) => {
+    const values = columns.map((column) =>
+      textOrDash(column.render(row, rowIndex)),
+    );
+    const rowHeight = Math.max(
+      22,
+      ...columns.map((column, columnIndex) => {
+        doc.font('Helvetica').fontSize(7.8);
+        return (
+          9 +
+          doc.heightOfString(values[columnIndex], {
+            width: column.width - 8,
+          })
+        );
+      }),
+    );
+
+    ensureRoom(doc, rowHeight + 4);
+    y = doc.y;
+    doc
+      .rect(startX, y, tableWidth, rowHeight)
+      .fillAndStroke(rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc', '#e2e8f0');
+
+    x = startX;
+    values.forEach((value, columnIndex) => {
+      doc
+        .fillColor('#0f172a')
+        .font('Helvetica')
+        .fontSize(7.8)
+        .text(value, x + 4, y + 6, {
+          width: columns[columnIndex].width - 8,
+          lineGap: 0.5,
+        });
+      x += columns[columnIndex].width;
+    });
+
+    doc.y = y + rowHeight;
+  });
+
+  doc.moveDown(0.35);
 }
 
 export function ensureRoom(doc: PDFKit.PDFDocument, requiredHeight: number) {
