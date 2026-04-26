@@ -8,6 +8,7 @@ export type ClinicalAiTask =
   | "LAB_RESULT_SUMMARY"
   | "BILLING_NARRATIVE"
   | "PHARMACY_COUNSELLING"
+  | "SYSTEM_NAVIGATION"
   | "GENERAL_DRAFT";
 
 export const clinicalAiTaskOptions: Array<{
@@ -49,6 +50,11 @@ export const clinicalAiTaskOptions: Array<{
     value: "PHARMACY_COUNSELLING",
     label: "Pharmacy counselling",
     description: "Medication-use counselling text for review.",
+  },
+  {
+    value: "SYSTEM_NAVIGATION",
+    label: "System navigator",
+    description: "Help a user find the right module and workflow.",
   },
   {
     value: "GENERAL_DRAFT",
