@@ -22,6 +22,7 @@ const TASK_LABELS: Record<ClinicalAiTask, string> = {
   [ClinicalAiTask.LAB_RESULT_SUMMARY]: 'lab result summary',
   [ClinicalAiTask.BILLING_NARRATIVE]: 'billing narrative',
   [ClinicalAiTask.PHARMACY_COUNSELLING]: 'pharmacy counselling note',
+  [ClinicalAiTask.SYSTEM_NAVIGATION]: 'system navigation guidance',
   [ClinicalAiTask.GENERAL_DRAFT]: 'clinical text draft',
 };
 
@@ -145,6 +146,17 @@ export class AiAssistantService {
   }
 
   private instructionsFor(task: ClinicalAiTask) {
+    if (task === ClinicalAiTask.SYSTEM_NAVIGATION) {
+      return [
+        'You are a careful hospital management system navigation assistant.',
+        'Help the staff member find the correct module, page, and next operational steps inside Invinceible Core HMS.',
+        'Use only the routes, module names, workflow signals, and user scope provided in the structured context.',
+        'Do not invent unavailable features, credentials, patient facts, medical advice, billing amounts, or clinical instructions.',
+        'Return a short answer with: Best module, Why, Next steps, and Safety or permission note.',
+        'If a task requires admin rights, say so clearly.',
+      ].join('\n');
+    }
+
     return [
       'You are a careful clinical documentation assistant inside a hospital management system.',
       'Create polished, concise, professional medical text for clinician review.',
@@ -161,6 +173,25 @@ export class AiAssistantService {
     const context = dto.context
       ? this.safeJson(dto.context, 9000)
       : 'No structured context provided.';
+
+    if (dto.task === ClinicalAiTask.SYSTEM_NAVIGATION) {
+      return [
+        `Task: ${TASK_LABELS[dto.task]}`,
+        `Audience: ${dto.audience?.trim() || 'hospital system user'}`,
+        `User role: ${user.roleCode || 'STAFF'}`,
+        `Facility scope: ${user.homeFacilityName || 'Not specified'}`,
+        `Branch scope: ${user.homeBranchName || 'Not specified'}`,
+        '',
+        'User is stuck with:',
+        dto.prompt?.trim() ||
+          'Use the structured context to suggest the best workflow route.',
+        '',
+        'Structured system map and current signals:',
+        context,
+        '',
+        'Return concise navigation guidance. Include route names exactly as provided when possible.',
+      ].join('\n');
+    }
 
     return [
       `Task: ${TASK_LABELS[dto.task]}`,

@@ -29,6 +29,8 @@ import {
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PriorityAlertsPanel } from "@/components/dashboard/priority-alerts-panel";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
+import { AdminCommandCenter } from "@/components/dashboard/admin-command-center";
+import { SystemNavigatorAssistant } from "@/components/dashboard/system-navigator-assistant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -509,6 +511,25 @@ export default function DashboardPage() {
       </section>
 
       <AiAndSupportStrip />
+
+      <section>
+        <SystemNavigatorAssistant
+          user={user}
+          scopeText={scopeText}
+          healthScore={healthScore}
+          openAlerts={counts?.counts.total ?? 0}
+          activeAdmissions={health?.summary.activeAdmissions ?? 0}
+          pendingLabs={health?.summary.pendingLabQueue ?? 0}
+        />
+      </section>
+
+      {["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
+        user?.roleCode ?? "",
+      ) ? (
+        <section>
+          <AdminCommandCenter compact />
+        </section>
+      ) : null}
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
