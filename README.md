@@ -21,6 +21,38 @@ It is designed to mirror how hospitals actually work:
 
 ---
 
+## 📸 Screenshots
+
+> Screenshots will be added here as the interface is polished.
+
+A strong healthcare system should be easy to understand at a glance. This section is prepared for visual previews of the most important workflows.
+
+### 🧭 Main Dashboard
+
+![Invinceible HMS Dashboard](docs/screenshots/dashboard.png)
+
+### 🩺 Triage Workflow
+
+![Triage Workflow](docs/screenshots/triage.png)
+
+### 👨‍⚕️ Doctor Queue
+
+![Doctor Queue](docs/screenshots/doctor-queue.png)
+
+### 📋 Consultation Workspace
+
+![Consultation Workspace](docs/screenshots/consultation.png)
+
+### 🏥 IPD Admission Management
+
+![IPD Admission Management](docs/screenshots/ipd.png)
+
+### 🧪 Lab Workflow
+
+![Lab Workflow](docs/screenshots/lab.png)
+
+---
+
 ## ⚡ Core Features
 
 ### 🧾 Patient Management
