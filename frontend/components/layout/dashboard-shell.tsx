@@ -2,7 +2,9 @@
 
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { ShellStatusFooter } from "@/components/layout/shell-status-footer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useScope } from "@/providers/scope-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
 
 export function DashboardShell({
@@ -11,10 +13,14 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const { mobileOpen, setMobileOpen } = useSidebar();
+  const { facilityName, selectedBranchName } = useScope();
+  const scope = [facilityName, selectedBranchName].filter(Boolean).join(" / ");
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#eeeeee] text-foreground dark:bg-[#111827]">
-      <div className="relative flex h-screen overflow-hidden">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-[#001a33] text-foreground">
+      <DashboardHeader />
+
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <DashboardSidebar />
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent
@@ -30,15 +36,15 @@ export function DashboardShell({
         </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <DashboardHeader />
-
-          <main className="min-h-0 flex-1 overflow-y-auto bg-[#eeeeee] dark:bg-[#111827]">
+          <main className="min-h-0 flex-1 overflow-y-auto bg-[#001a33]">
             <div className="mx-auto min-h-full max-w-[1700px] px-4 py-4 md:px-6 md:py-6 xl:px-8">
               {children}
             </div>
           </main>
         </div>
       </div>
+
+      <ShellStatusFooter label="Hospital operations console" scope={scope} />
     </div>
   );
 }

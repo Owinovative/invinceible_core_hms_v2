@@ -18,6 +18,7 @@ import { useSidebar } from "@/providers/sidebar-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
 import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
+import { AppLogo } from "@/components/shared/app-logo";
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
@@ -51,18 +52,22 @@ export function DashboardHeader() {
   const unreadCount = counts?.counts.unread ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-[#00477f] border-t-4 border-t-red-600 bg-[#005a9c] text-white shadow-md">
-      <div className="flex min-h-16 items-center gap-4 px-4 py-2 md:px-6">
+    <header className="sticky top-0 z-40 shrink-0 border-b border-[#2db6ff] border-t-4 border-t-red-600 bg-[#005da8] text-white shadow-[0_12px_30px_rgba(0,0,0,0.28)]">
+      <div className="flex min-h-20 items-center gap-4 px-4 py-3 md:px-6">
+        <div className="hidden min-w-[260px] shrink-0 items-center lg:flex">
+          <AppLogo light />
+        </div>
+
         <Button
           variant="outline"
           size="icon"
-          className="rounded-md border-white/60 bg-[#0b6ead] text-white hover:bg-[#1478bb] lg:hidden"
+          className="rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd] lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-md border border-[#75c7f2] bg-[#0b6ead] px-4 py-2.5 md:flex">
+        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-5 py-3 md:flex">
           <Search className="h-4 w-4 shrink-0 text-white" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
@@ -75,7 +80,7 @@ export function DashboardHeader() {
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className="hidden min-w-0 rounded-md border border-[#75c7f2] bg-[#0b6ead] px-4 py-2 shadow-sm md:flex md:items-center">
+          <div className="hidden min-w-0 rounded-lg border border-sky-300/60 bg-[#004f91] px-4 py-2.5 shadow-sm md:flex md:items-center">
             <div className="text-right">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[#e8f6ff]">
                 Facility
@@ -86,7 +91,7 @@ export function DashboardHeader() {
             </div>
           </div>
 
-          <div className="hidden min-w-[280px] max-w-[360px] rounded-md border border-[#75c7f2] bg-[#0b6ead] px-4 py-2 shadow-sm md:block">
+          <div className="hidden min-w-[260px] max-w-[340px] rounded-lg border border-sky-300/60 bg-[#004f91] px-4 py-2.5 shadow-sm md:block">
             <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-[#e8f6ff]">
               Branch
             </p>
@@ -120,7 +125,7 @@ export function DashboardHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-md border-white/60 bg-[#0b6ead] text-white hover:bg-[#1478bb]"
+            className="rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd]"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -134,7 +139,7 @@ export function DashboardHeader() {
             asChild
             variant="outline"
             size="icon"
-            className="relative rounded-md border-white/60 bg-[#0b6ead] text-white hover:bg-[#1478bb]"
+            className="relative rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd]"
           >
             <Link href="/notifications" aria-label="Notifications">
               <Bell className="h-4 w-4" />
@@ -148,7 +153,7 @@ export function DashboardHeader() {
             </Link>
           </Button>
 
-          <div className="flex min-w-0 items-center gap-3 rounded-md border border-[#75c7f2] bg-[#0b6ead] px-3 py-2 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
             <div className="hidden min-w-0 text-right sm:block">
               <p className="max-w-[210px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
                 {user?.username || "User"}
@@ -165,7 +170,7 @@ export function DashboardHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-md text-white hover:bg-[#1478bb] hover:text-white"
+              className="rounded-md text-white hover:bg-[#006fbd] hover:text-white"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />

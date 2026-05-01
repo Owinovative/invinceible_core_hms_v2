@@ -50,22 +50,39 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-[#242424] bg-[#303030] text-white transition-all duration-300",
-        mobile ? "w-full" : "hidden h-screen lg:flex",
+        "flex h-full shrink-0 flex-col border-r border-[#0b5f9e] bg-[#000d1c] text-white transition-all duration-300",
+        mobile ? "w-full" : "hidden h-full lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="border-b border-[#3f3f3f] px-4 py-5">
+      <div className="border-b border-[#113b63] px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-hidden">
-            {compact ? <AppLogo iconOnly light /> : <AppLogo light />}
+            {mobile ? (
+              compact ? (
+                <AppLogo iconOnly light />
+              ) : (
+                <AppLogo light />
+              )
+            ) : (
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300">
+                  Platform
+                </p>
+                {!compact ? (
+                  <p className="truncate text-sm font-semibold text-white">
+                    Control center
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {!mobile ? (
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-[#5a5a5a] bg-[#3a3a3a] text-white hover:bg-[#464646]"
+              className="shrink-0 rounded-md border-[#2c6fa4] bg-[#071d33] text-white hover:bg-[#0b3154]"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -79,20 +96,20 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="px-3 py-4">
-        <div className="rounded-md border border-[#464646] bg-[#383838] p-4">
+        <div className="rounded-lg border border-[#113b63] bg-[#06192d] p-4 shadow-[0_14px_35px_rgba(0,0,0,0.25)]">
           {compact ? (
             <div className="space-y-3 text-center">
-              <div className="rounded-md bg-[#444] p-2 text-xs font-semibold text-white">
+              <div className="rounded-md bg-[#0b3154] p-2 text-xs font-semibold text-white">
                 PA
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#bdbdbd]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
                 Platform Access
               </p>
 
-              <div className="flex min-w-0 items-center gap-2 rounded-md bg-[#444] px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2 rounded-md bg-[#0b3154] px-3 py-2">
                 <Shield className="h-4 w-4 shrink-0 text-white" />
                 <span className="min-w-0 truncate text-sm font-semibold text-white" title={user?.roleCode || "SUPER_ADMIN"}>
                   {user?.roleCode || "SUPER_ADMIN"}
@@ -100,7 +117,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
               </div>
 
               <div>
-                <p className="text-xs font-medium text-[#cfcfcf]">Area</p>
+                <p className="text-xs font-medium text-sky-300">Area</p>
                 <p className="truncate font-semibold text-white" title="Platform Administration">
                   Platform Administration
                 </p>
@@ -124,8 +141,8 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
                 "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
                 compact && "justify-center px-2",
                 isActive
-                  ? "bg-[#22b14c] text-white ring-1 ring-[#31d55f]"
-                  : "text-white hover:bg-[#3f3f3f] hover:text-white",
+                  ? "bg-[#0aa35c] text-white ring-1 ring-[#28e486] shadow-[0_0_22px_rgba(10,163,92,0.28)]"
+                  : "text-sky-50 hover:bg-[#071d33] hover:text-white",
               )}
               onClick={mobile ? closeMobileSidebar : undefined}
             >
