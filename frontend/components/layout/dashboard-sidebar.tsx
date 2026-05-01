@@ -54,6 +54,7 @@ const navSections = [
     label: "Command",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Platform Control", href: "/platform", icon: ShieldCheck, superAdminOnly: true },
       { title: "AI Assistant", href: "/ai-assistant", icon: Bot },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Reports", href: "/reports", icon: Activity },
@@ -182,16 +183,17 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   const canManageSettings = ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
     user?.roleCode ?? "",
   );
+  const isSuperAdmin = user?.roleCode === "SUPER_ADMIN";
 
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-sky-900 bg-[#061a2f] text-sky-50 transition-all duration-300",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-sky-300 bg-sky-500 text-white transition-all duration-300",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="shrink-0 border-b border-sky-900 px-4 py-5">
+      <div className="shrink-0 border-b border-sky-300/80 px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-hidden">
             {compact ? <AppLogo iconOnly light /> : <AppLogo light />}
@@ -201,7 +203,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-sky-500/35 bg-sky-400/10 text-sky-50 hover:bg-sky-400/20 hover:text-white"
+              className="shrink-0 rounded-md border-sky-100/70 bg-white/12 text-white hover:bg-white/20"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -215,13 +217,13 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 py-4">
-        <div className="rounded-md border border-sky-500/25 bg-[#0a2948] p-3">
+        <div className="rounded-md border border-sky-100/70 bg-sky-600/40 p-3">
           {compact ? (
-            <div className="space-y-2 text-center text-xs font-semibold text-sky-100/75">
-              <div className="rounded-md bg-sky-400/15 px-2 py-2 text-sky-200">
+            <div className="space-y-2 text-center text-xs font-semibold text-sky-50/80">
+              <div className="rounded-md bg-white/15 px-2 py-2 text-white">
                 F
               </div>
-              <div className="rounded-md bg-sky-400/15 px-2 py-2 text-sky-200">
+              <div className="rounded-md bg-white/15 px-2 py-2 text-white">
                 B
               </div>
             </div>
@@ -263,11 +265,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-md border border-sky-500/25 bg-[#0a2948] px-3 py-2 text-xs font-semibold text-sky-50 transition hover:bg-sky-400/15 hover:text-white",
+                  "flex items-center justify-center gap-2 rounded-md border border-sky-100/70 bg-sky-600/40 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/16",
                   compact && "px-2",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0 text-sky-300" />
+                <Icon className="h-4 w-4 shrink-0 text-sky-50" />
                 {!compact ? <span className="min-w-0 truncate">{item.title}</span> : null}
               </Link>
             );
@@ -288,6 +290,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
               <div className="space-y-1">
                 {section.items
                   .filter((item) => !item.adminOnly || canManageSettings)
+                  .filter((item) => !item.superAdminOnly || isSuperAdmin)
                   .map((item) => {
                     const Icon = item.icon;
                     const isActive =
@@ -304,8 +307,8 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                           "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-sky-400 text-[#061a2f] ring-1 ring-sky-200"
-                            : "text-sky-100/78 hover:bg-sky-400/12 hover:text-white",
+                            ? "bg-white text-sky-700 ring-1 ring-sky-100"
+                            : "text-sky-50/86 hover:bg-white/14 hover:text-white",
                         )}
                       >
                         <Icon

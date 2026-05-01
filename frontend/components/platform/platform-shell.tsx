@@ -18,13 +18,13 @@ export function PlatformShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#eaf7ff] text-foreground dark:bg-[#081b31]">
+    <div className="relative h-screen overflow-hidden bg-sky-50 text-foreground dark:bg-sky-950">
       <div className="relative flex h-screen">
         <PlatformSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <PlatformHeader />
-          <main className="flex-1 overflow-y-auto bg-[#eaf7ff] p-4 md:p-6 lg:p-8 dark:bg-[#081b31]">
+          <main className="flex-1 overflow-y-auto bg-sky-50 p-4 md:p-6 lg:p-8 dark:bg-sky-950">
             <div className="mx-auto max-w-[1600px]">{children}</div>
           </main>
         </div>
@@ -33,7 +33,7 @@ export function PlatformShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-[20rem] border-sky-900 bg-[#061a2f] p-0"
+          className="w-[20rem] border-sky-300 bg-sky-500 p-0"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Platform navigation</SheetTitle>
