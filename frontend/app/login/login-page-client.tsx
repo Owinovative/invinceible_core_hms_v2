@@ -88,38 +88,39 @@ export default function LoginPageClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#eef8ff] text-slate-950">
-      <div className="mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-8">
+    <main
+      className="relative min-h-screen overflow-hidden bg-[#061a2f] bg-cover bg-center text-slate-950"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=2200&q=88')",
+      }}
+    >
+      <div className="absolute inset-0 bg-[#061a2f]/78" />
+      <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-sky-300/18 lg:block" />
+
+      <div className="relative mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-8">
         <section className="hidden lg:block">
           <div className="max-w-2xl space-y-7">
-            <AppLogo />
+            <AppLogo light />
             <BadgeLike />
             <div className="space-y-4">
-              <h1 className="text-5xl font-bold leading-[1.04] text-slate-950">
+              <h1 className="text-5xl font-bold leading-[1.04] text-white">
                 Secure clinical access for serious hospital work.
               </h1>
-              <p className="max-w-xl text-base leading-8 text-slate-600">
+              <p className="max-w-xl text-base leading-8 text-sky-50/82">
                 Sign in to manage patient flow, billing, pharmacy, laboratory,
                 admissions, reporting, and facility operations.
               </p>
             </div>
 
-            <div
-              className="min-h-[330px] border border-sky-200 bg-cover bg-center shadow-lg"
-              style={{
-                backgroundImage:
-                  "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1500&q=86')",
-              }}
-            />
-
             <div className="grid gap-3">
               {loginHighlights.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 border border-sky-200 bg-white px-4 py-3 shadow-sm"
+                  className="flex items-center gap-3 border border-sky-300/25 bg-[#08243f]/88 px-4 py-3 shadow-xl"
                 >
-                  <ShieldCheck className="h-4 w-4 text-sky-700" />
-                  <span className="text-sm font-semibold text-slate-700">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-sky-300" />
+                  <span className="min-w-0 truncate text-sm font-semibold text-sky-50">
                     {item}
                   </span>
                 </div>
@@ -128,7 +129,7 @@ export default function LoginPageClient() {
           </div>
         </section>
 
-        <Card className="mx-auto w-full max-w-[500px] rounded-lg border border-sky-200 bg-white py-0 text-foreground shadow-xl">
+        <Card className="mx-auto w-full max-w-[500px] rounded-lg border border-sky-300/30 bg-white py-0 text-foreground shadow-2xl">
           <CardContent className="relative p-7 md:p-9">
             <div className="mb-7 flex flex-col items-center text-center lg:hidden">
               <AppLogo />
@@ -275,7 +276,7 @@ export default function LoginPageClient() {
 
 function BadgeLike() {
   return (
-    <div className="inline-flex items-center gap-2 border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800 shadow-sm">
+    <div className="inline-flex items-center gap-2 border border-sky-300/25 bg-[#08243f]/88 px-3 py-1 text-xs font-semibold text-sky-100 shadow-xl">
       System access
     </div>
   );

@@ -186,22 +186,22 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-sky-200 bg-white",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-sky-900 bg-[#061a2f] text-sky-50 transition-all duration-300",
         mobile ? "w-full" : "hidden h-screen lg:flex",
-        !mobile && (compact ? "w-24" : "w-72"),
+        !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="shrink-0 border-b border-sky-200 px-4 py-5">
+      <div className="shrink-0 border-b border-sky-900 px-4 py-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="overflow-hidden">
-            {compact ? <AppLogo iconOnly /> : <AppLogo />}
+          <div className="min-w-0 overflow-hidden">
+            {compact ? <AppLogo iconOnly light /> : <AppLogo light />}
           </div>
 
           {!mobile ? (
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-sky-200 bg-white"
+              className="shrink-0 rounded-md border-sky-500/35 bg-sky-400/10 text-sky-50 hover:bg-sky-400/20 hover:text-white"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -215,32 +215,32 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 py-4">
-        <div className="rounded-md border border-sky-200 bg-sky-50 p-3">
+        <div className="rounded-md border border-sky-500/25 bg-[#0a2948] p-3">
           {compact ? (
-            <div className="space-y-2 text-center text-xs font-semibold text-muted-foreground">
-              <div className="rounded-md bg-white px-2 py-2 text-sky-700">
+            <div className="space-y-2 text-center text-xs font-semibold text-sky-100/75">
+              <div className="rounded-md bg-sky-400/15 px-2 py-2 text-sky-200">
                 F
               </div>
-              <div className="rounded-md bg-white px-2 py-2 text-sky-700">
+              <div className="rounded-md bg-sky-400/15 px-2 py-2 text-sky-200">
                 B
               </div>
             </div>
           ) : (
             <div className="grid gap-2">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/60">
                   Facility
                 </p>
-                <p className="truncate text-sm font-semibold">
+                <p className="truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
                   {facilityName || "No facility"}
                 </p>
               </div>
-              <Separator className="bg-sky-200" />
+              <Separator className="bg-sky-500/25" />
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/60">
                   Branch
                 </p>
-                <p className="truncate text-sm font-semibold">
+                <p className="truncate text-sm font-semibold text-white" title={selectedBranchName || "No branch"}>
                   {selectedBranchName || "No branch"}
                 </p>
               </div>
@@ -263,12 +263,12 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-sky-100",
+                  "flex items-center justify-center gap-2 rounded-md border border-sky-500/25 bg-[#0a2948] px-3 py-2 text-xs font-semibold text-sky-50 transition hover:bg-sky-400/15 hover:text-white",
                   compact && "px-2",
                 )}
               >
-                <Icon className="h-4 w-4 text-sky-700" />
-                {!compact ? <span>{item.title}</span> : null}
+                <Icon className="h-4 w-4 shrink-0 text-sky-300" />
+                {!compact ? <span className="min-w-0 truncate">{item.title}</span> : null}
               </Link>
             );
           })}
@@ -280,7 +280,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
           {navSections.map((section) => (
             <div key={section.label} className="space-y-2">
               {!compact ? (
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-100/55">
                   {section.label}
                 </p>
               ) : null}
@@ -304,8 +304,8 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                           "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-sky-100 text-sky-800 ring-1 ring-sky-300"
-                            : "text-slate-600 hover:bg-sky-50 hover:text-slate-950",
+                            ? "bg-sky-400 text-[#061a2f] ring-1 ring-sky-200"
+                            : "text-sky-100/78 hover:bg-sky-400/12 hover:text-white",
                         )}
                       >
                         <Icon
@@ -314,7 +314,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                             !isActive && "group-hover:scale-110",
                           )}
                         />
-                        {!compact ? <span>{item.title}</span> : null}
+                        {!compact ? <span className="min-w-0 truncate">{item.title}</span> : null}
                       </Link>
                     );
                   })}
