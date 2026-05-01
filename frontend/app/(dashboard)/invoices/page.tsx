@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -61,6 +62,42 @@ function statusTone(status?: string | null) {
   }
 }
 
+function buildInvoiceVerificationCode(invoice?: { id: number; invoiceNumber: string; patientId: number; facilityId: number; issuedAt?: string | null } | null) {
+  if (!invoice) return "VAR-PENDING";
+
+  const seed = [
+    invoice.invoiceNumber,
+    invoice.id,
+    invoice.patientId,
+    invoice.facilityId,
+    invoice.issuedAt ? new Date(invoice.issuedAt).toISOString() : "",
+  ].join("|");
+
+  let checksum = 17;
+  for (const char of seed) {
+    checksum = (checksum * 31 + char.charCodeAt(0)) % 1679616;
+  }
+
+  return `VAR-${String(invoice.id).padStart(6, "0")}-${checksum
+    .toString(36)
+    .toUpperCase()
+    .padStart(4, "0")}`;
+}
+
+function VerificationBarcode({ code }: { code: string }) {
+  return (
+    <div className="rounded-sm border border-slate-300 bg-white p-1">
+      <div
+        className="h-9 w-44 bg-[repeating-linear-gradient(90deg,#111827_0_2px,#ffffff_2px_4px,#111827_4px_5px,#ffffff_5px_8px,#111827_8px_11px,#ffffff_11px_14px)]"
+        aria-hidden="true"
+      />
+      <p className="mt-1 text-center text-[10px] font-bold tracking-[0.18em] text-slate-950">
+        {code}
+      </p>
+    </div>
+  );
+}
+
 export default function InvoiceDetailPage() {
   const params = useParams();
   const id = Number(params.id);
@@ -73,6 +110,8 @@ export default function InvoiceDetailPage() {
     : [];
 
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
+  const verificationCode =
+    invoice?.verificationCode || buildInvoiceVerificationCode(invoice);
 
   const handlePrint = () => {
     window.print();
@@ -120,6 +159,24 @@ export default function InvoiceDetailPage() {
           .print-table td {
             color: #111827 !important;
             border-color: #d1d5db !important;
+          }
+
+          @page {
+            margin: 8mm;
+            size: A4;
+          }
+
+          #invoice-document {
+            font-size: 10px !important;
+          }
+
+          #invoice-document h2 {
+            font-size: 18px !important;
+          }
+
+          #invoice-document td,
+          #invoice-document th {
+            padding: 4px 6px !important;
           }
         }
       `}</style>
@@ -192,16 +249,27 @@ export default function InvoiceDetailPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="print-card rounded-[1.8rem] gradient-border panel-shadow">
+        <Card id="invoice-document" className="print-card rounded-[1.8rem] gradient-border panel-shadow">
           <CardContent className="p-6 md:p-10">
             <div className="space-y-8 print-text-dark">
               <div className="flex flex-col gap-6 border-b border-white/10 pb-8 print-muted">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 print-hide">
-                        <CreditCard className="h-7 w-7 text-primary" />
-                      </div>
+                      {invoice.facility?.logoUrl ? (
+                        <Image
+                          src={invoice.facility.logoUrl}
+                          alt={`${invoice.facility?.name || "Facility"} logo`}
+                          width={56}
+                          height={56}
+                          unoptimized
+                          className="h-14 w-14 rounded-lg border border-slate-200 bg-white object-contain p-1"
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-white">
+                          <CreditCard className="h-7 w-7 text-sky-700" />
+                        </div>
+                      )}
 
                       <div>
                         <h2 className="text-3xl font-bold tracking-tight print-text-dark">
@@ -252,6 +320,13 @@ export default function InvoiceDetailPage() {
                       <p className="text-xl font-bold print-text-dark">
                         {invoice.invoiceNumber}
                       </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
+                        VAR Code
+                      </p>
+                      <VerificationBarcode code={verificationCode} />
                     </div>
 
                     <div>
@@ -309,6 +384,12 @@ export default function InvoiceDetailPage() {
                   <thead>
                     <tr className="border-b border-white/10 bg-white/[0.03]">
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground print-muted">
+                        Date
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-muted-foreground print-muted">
+                        Ref
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-muted-foreground print-muted">
                         Description
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground print-muted">
@@ -326,7 +407,7 @@ export default function InvoiceDetailPage() {
                     {printableItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={6}
                           className="px-4 py-6 text-center text-muted-foreground print-muted"
                         >
                           No invoice lines found.
@@ -338,6 +419,12 @@ export default function InvoiceDetailPage() {
                           key={item.id}
                           className="border-b border-white/10 last:border-b-0"
                         >
+                          <td className="px-4 py-4 align-top text-xs print-text-dark">
+                            {formatDate(item.createdAt)}
+                          </td>
+                          <td className="px-4 py-4 align-top text-xs font-semibold print-text-dark">
+                            L{String(item.id).padStart(4, "0")}
+                          </td>
                           <td className="px-4 py-4 align-top">
                             <div>
                               <p className="font-medium print-text-dark">

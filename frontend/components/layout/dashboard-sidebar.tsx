@@ -188,22 +188,39 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-[#242424] bg-[#303030] text-white transition-all duration-300",
-        mobile ? "w-full" : "hidden h-screen lg:flex",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-[#0b5f9e] bg-[#000d1c] text-white transition-all duration-300",
+        mobile ? "w-full" : "hidden h-full lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="shrink-0 border-b border-[#3f3f3f] px-4 py-5">
+      <div className="shrink-0 border-b border-[#113b63] px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-hidden">
-            {compact ? <AppLogo iconOnly light /> : <AppLogo light />}
+            {mobile ? (
+              compact ? (
+                <AppLogo iconOnly light />
+              ) : (
+                <AppLogo light />
+              )
+            ) : (
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300">
+                  Menu
+                </p>
+                {!compact ? (
+                  <p className="truncate text-sm font-semibold text-white">
+                    Hospital controls
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {!mobile ? (
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-[#5a5a5a] bg-[#3a3a3a] text-white hover:bg-[#464646]"
+              className="shrink-0 rounded-md border-[#2c6fa4] bg-[#071d33] text-white hover:bg-[#0b3154]"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -217,29 +234,29 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 py-4">
-        <div className="rounded-md border border-[#464646] bg-[#383838] p-3">
+        <div className="rounded-lg border border-[#113b63] bg-[#06192d] p-3 shadow-[0_14px_35px_rgba(0,0,0,0.25)]">
           {compact ? (
             <div className="space-y-2 text-center text-xs font-semibold text-white">
-              <div className="rounded-md bg-[#444] px-2 py-2 text-white">
+              <div className="rounded-md bg-[#0b3154] px-2 py-2 text-white">
                 F
               </div>
-              <div className="rounded-md bg-[#444] px-2 py-2 text-white">
+              <div className="rounded-md bg-[#0b3154] px-2 py-2 text-white">
                 B
               </div>
             </div>
           ) : (
             <div className="grid gap-2">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#cfcfcf]">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-300">
                   Facility
                 </p>
                 <p className="truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
                   {facilityName || "No facility"}
                 </p>
               </div>
-              <Separator className="bg-[#4a4a4a]" />
+              <Separator className="bg-[#113b63]" />
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#cfcfcf]">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-300">
                   Branch
                 </p>
                 <p className="truncate text-sm font-semibold text-white" title={selectedBranchName || "No branch"}>
@@ -265,7 +282,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-md border border-[#4a4a4a] bg-[#383838] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#454545]",
+                  "flex items-center justify-center gap-2 rounded-md border border-[#164d7d] bg-[#071d33] px-3 py-2 text-xs font-semibold text-white transition hover:border-sky-400 hover:bg-[#0b3154]",
                   compact && "px-2",
                 )}
               >
@@ -282,7 +299,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
           {navSections.map((section) => (
             <div key={section.label} className="space-y-2">
               {!compact ? (
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#bdbdbd]">
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
                   {section.label}
                 </p>
               ) : null}
@@ -307,8 +324,8 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                           "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-[#22b14c] text-white ring-1 ring-[#31d55f]"
-                            : "text-white hover:bg-[#3f3f3f] hover:text-white",
+                            ? "bg-[#0aa35c] text-white ring-1 ring-[#28e486] shadow-[0_0_22px_rgba(10,163,92,0.28)]"
+                            : "text-sky-50 hover:bg-[#071d33] hover:text-white",
                         )}
                       >
                         <Icon

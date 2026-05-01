@@ -16,12 +16,14 @@ export interface HospitalPdfParty {
   registrationNo?: string | null;
   licenseNumber?: string | null;
   taxPin?: string | null;
+  logoUrl?: string | null;
 }
 
 export interface HospitalPdfOptions {
   title: string;
   subtitle?: string;
   reference?: string;
+  verificationCode?: string;
   facility?: HospitalPdfParty | null;
   branch?: HospitalPdfParty | null;
 }
@@ -93,6 +95,10 @@ export async function createHospitalPdfBuffer(
   options: HospitalPdfOptions,
   renderBody: (doc: PDFKit.PDFDocument) => void,
 ) {
+  const logoBuffer = await loadLogoBuffer(
+    options.facility?.logoUrl || options.branch?.logoUrl,
+  );
+
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
       size: 'A4',
@@ -109,11 +115,42 @@ export async function createHospitalPdfBuffer(
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    drawLetterhead(doc, options);
+    drawLetterhead(doc, options, logoBuffer);
     renderBody(doc);
     drawFooter(doc);
     doc.end();
   });
+}
+
+async function loadLogoBuffer(logoUrl?: string | null) {
+  if (!logoUrl) return undefined;
+
+  try {
+    if (logoUrl.startsWith('data:image/')) {
+      const [, payload] = logoUrl.split(',', 2);
+      return payload ? Buffer.from(payload, 'base64') : undefined;
+    }
+
+    if (!/^https?:\/\//i.test(logoUrl)) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+    const response = await fetch(logoUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) return undefined;
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return undefined;
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return undefined;
+  }
 }
 
 export function addSectionTitle(doc: PDFKit.PDFDocument, title: string) {
@@ -423,6 +460,52 @@ export function addCompactTable<T>(
   doc.moveDown(0.35);
 }
 
+export function drawVerificationBarcode(
+  doc: PDFKit.PDFDocument,
+  code: string,
+  x: number,
+  y: number,
+  width = 138,
+  height = 34,
+) {
+  const payload = code || 'UNVERIFIED';
+  const bits: number[] = [];
+
+  for (const char of payload) {
+    const value = char.charCodeAt(0);
+    for (let bit = 6; bit >= 0; bit -= 1) {
+      bits.push((value >> bit) & 1);
+    }
+    bits.push(0);
+  }
+
+  const barAreaWidth = width - 10;
+  const unit = barAreaWidth / Math.max(bits.length, 1);
+
+  doc.save();
+  doc.roundedRect(x, y, width, height, 2).fillAndStroke('#ffffff', '#cbd5e1');
+
+  let cursor = x + 5;
+  bits.forEach((bit, index) => {
+    if (bit) {
+      const barWidth = Math.max(0.7, unit * (index % 3 === 0 ? 1.7 : 1.05));
+      doc.rect(cursor, y + 5, barWidth, height - 15).fill('#111827');
+    }
+    cursor += unit;
+  });
+
+  doc
+    .fillColor('#111827')
+    .font('Helvetica-Bold')
+    .fontSize(5.8)
+    .text(payload, x + 5, y + height - 9, {
+      width: width - 10,
+      align: 'center',
+      characterSpacing: 0.3,
+    });
+  doc.restore();
+}
+
 export function ensureRoom(doc: PDFKit.PDFDocument, requiredHeight: number) {
   const bottom = doc.page.height - doc.page.margins.bottom - 42;
 
@@ -432,7 +515,11 @@ export function ensureRoom(doc: PDFKit.PDFDocument, requiredHeight: number) {
   }
 }
 
-function drawLetterhead(doc: PDFKit.PDFDocument, options: HospitalPdfOptions) {
+function drawLetterhead(
+  doc: PDFKit.PDFDocument,
+  options: HospitalPdfOptions,
+  logoBuffer?: Buffer,
+) {
   const left = doc.page.margins.left;
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const facilityName = options.facility?.name || 'Hospital Facility';
@@ -448,26 +535,37 @@ function drawLetterhead(doc: PDFKit.PDFDocument, options: HospitalPdfOptions) {
     .filter(Boolean)
     .join(' | ');
 
-  doc.rect(left, 36, width, 90).fillAndStroke('#ecfeff', '#0f766e');
-  doc.rect(left, 36, 10, 90).fill('#0f766e');
+  doc.rect(left, 34, width, 92).fillAndStroke('#eef7ff', '#0b5f9e');
+  doc.rect(left, 34, 10, 92).fill('#005da8');
+
+  let textLeft = left + 24;
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, left + 20, 49, { fit: [48, 48] });
+      textLeft = left + 78;
+    } catch {
+      textLeft = left + 24;
+    }
+  }
+
   doc
     .fillColor('#0f172a')
     .font('Helvetica-Bold')
     .fontSize(16)
-    .text(facilityName, left + 24, 52, { width: 285 });
+    .text(facilityName, textLeft, 50, { width: 275 });
   doc
-    .fillColor('#0f766e')
+    .fillColor('#005da8')
     .font('Helvetica-Bold')
     .fontSize(9)
-    .text(branchLine || 'Official Hospital Document', left + 24, 75, {
-      width: 285,
+    .text(branchLine || 'Official Hospital Document', textLeft, 73, {
+      width: 275,
     });
   doc
     .fillColor('#334155')
     .font('Helvetica')
     .fontSize(8)
-    .text(contact || 'Facility contact details not recorded', left + 24, 92, {
-      width: 300,
+    .text(contact || 'Facility contact details not recorded', textLeft, 90, {
+      width: 285,
       lineGap: 2,
     });
 
@@ -475,7 +573,7 @@ function drawLetterhead(doc: PDFKit.PDFDocument, options: HospitalPdfOptions) {
     .fillColor('#0f172a')
     .font('Helvetica-Bold')
     .fontSize(17)
-    .text(options.title, left + 330, 52, {
+    .text(options.title, left + 330, 48, {
       width: width - 350,
       align: 'right',
     });
@@ -485,15 +583,24 @@ function drawLetterhead(doc: PDFKit.PDFDocument, options: HospitalPdfOptions) {
       .fillColor('#334155')
       .font('Helvetica')
       .fontSize(9)
-      .text(options.subtitle, left + 330, 78, {
+      .text(options.subtitle, left + 330, 72, {
         width: width - 350,
         align: 'right',
       });
   }
 
-  if (options.reference) {
+  if (options.verificationCode) {
+    drawVerificationBarcode(
+      doc,
+      options.verificationCode,
+      doc.page.width - doc.page.margins.right - 138,
+      88,
+      138,
+      30,
+    );
+  } else if (options.reference) {
     doc
-      .fillColor('#0f766e')
+      .fillColor('#005da8')
       .font('Helvetica-Bold')
       .fontSize(8)
       .text(options.reference, left + 330, 98, {
@@ -502,7 +609,7 @@ function drawLetterhead(doc: PDFKit.PDFDocument, options: HospitalPdfOptions) {
       });
   }
 
-  doc.y = 148;
+  doc.y = 142;
 }
 
 function drawFooter(doc: PDFKit.PDFDocument) {
