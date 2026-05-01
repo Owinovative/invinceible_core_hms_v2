@@ -72,6 +72,8 @@ body {
     linear-gradient(180deg, #fbfdff 0%, #edf9ff 42%, #f8fcff 100%);
   color: hsl(var(--foreground));
   font-family: var(--font-sans), sans-serif;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
 }
 
 .dark body {
@@ -354,10 +356,7 @@ pre,
 }
 
 .code-grid-bg {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
+  display: none;
 }
 
 .code-grid-bg::before {

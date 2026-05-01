@@ -33,13 +33,29 @@ const quickPrompts = [
   "A doctor is stuck finding the right patient queue",
 ];
 
-function matchFunctions(prompt: string) {
+function isAdminUser(user: AuthUser | null) {
+  return ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
+    user?.roleCode ?? "",
+  );
+}
+
+function visibleFunctionsForUser(user: AuthUser | null) {
+  if (isAdminUser(user)) return adminCriticalFunctions;
+
+  return adminCriticalFunctions.filter(
+    (item) =>
+      !item.href.startsWith("/platform") &&
+      !["Super admin", "Admin", "Facility admin"].includes(item.owner),
+  );
+}
+
+function matchFunctions(prompt: string, functions: AdminCriticalFunction[]) {
   const normalized = prompt.toLowerCase();
   const words = normalized
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 2);
 
-  const scored = adminCriticalFunctions.map((item) => {
+  const scored = functions.map((item) => {
     const haystack = [
       item.title,
       item.category,
@@ -114,15 +130,16 @@ export function SystemNavigatorAssistant({
   );
 
   const suggestions = React.useMemo(() => {
-    const matched = matchFunctions(prompt);
+    const visibleFunctions = visibleFunctionsForUser(user);
+    const matched = matchFunctions(prompt, visibleFunctions);
     return matched.length > 0
       ? matched
-      : adminCriticalFunctions
+      : visibleFunctions
           .filter((item) =>
             ["critical", "high"].includes(item.urgency),
           )
           .slice(0, 5);
-  }, [prompt]);
+  }, [prompt, user]);
 
   const errorMessage = React.useMemo(() => {
     if (!mutation.error) return null;
@@ -150,7 +167,7 @@ export function SystemNavigatorAssistant({
           activeAdmissions,
           pendingLabs,
         },
-        availableRoutes: adminCriticalFunctions.map((item) => ({
+        availableRoutes: visibleFunctionsForUser(user).map((item) => ({
           title: item.title,
           href: item.href,
           category: item.category,

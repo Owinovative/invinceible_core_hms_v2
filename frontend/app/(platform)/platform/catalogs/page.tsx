@@ -158,7 +158,7 @@ export default function PlatformCatalogsPage() {
       const medicines = rows as PharmacyMedicine[];
       return (
         <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="bg-cyan-400/10 font-mono text-xs uppercase text-cyan-100/70">
+          <thead className="sticky top-0 z-10 bg-sky-950 font-mono text-xs uppercase text-cyan-100/70">
             <tr>
               <th className="px-4 py-3">Code</th>
               <th className="px-4 py-3">Drug</th>
@@ -170,7 +170,7 @@ export default function PlatformCatalogsPage() {
             </tr>
           </thead>
           <tbody>
-            {medicines.slice(0, 120).map((medicine) => (
+            {medicines.map((medicine) => (
               <tr
                 key={medicine.id}
                 className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
@@ -209,7 +209,7 @@ export default function PlatformCatalogsPage() {
       const services = rows as BillingServiceItem[];
       return (
         <table className="w-full min-w-[860px] text-left text-sm">
-          <thead className="bg-cyan-400/10 font-mono text-xs uppercase text-cyan-100/70">
+          <thead className="sticky top-0 z-10 bg-sky-950 font-mono text-xs uppercase text-cyan-100/70">
             <tr>
               <th className="px-4 py-3">Code</th>
               <th className="px-4 py-3">Service</th>
@@ -219,7 +219,7 @@ export default function PlatformCatalogsPage() {
             </tr>
           </thead>
           <tbody>
-            {services.slice(0, 120).map((service) => (
+            {services.map((service) => (
               <tr
                 key={service.id}
                 className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
@@ -251,7 +251,7 @@ export default function PlatformCatalogsPage() {
     const labTests = rows as LabTestCatalogItem[];
     return (
       <table className="w-full min-w-[760px] text-left text-sm">
-        <thead className="bg-cyan-400/10 font-mono text-xs uppercase text-cyan-100/70">
+        <thead className="sticky top-0 z-10 bg-sky-950 font-mono text-xs uppercase text-cyan-100/70">
           <tr>
             <th className="px-4 py-3">Test</th>
             <th className="px-4 py-3">Category</th>
@@ -260,7 +260,7 @@ export default function PlatformCatalogsPage() {
           </tr>
         </thead>
         <tbody>
-          {labTests.slice(0, 120).map((test) => (
+          {labTests.map((test) => (
             <tr
               key={test.id}
               className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
@@ -471,14 +471,14 @@ export default function PlatformCatalogsPage() {
             <div>
               <p className="font-semibold">{activeTab.label} Register</p>
               <p className="font-mono text-xs text-cyan-100/50">
-                showing {Math.min(rows.length, 120)} of {rows.length} rows
+                showing all {rows.length} rows
               </p>
             </div>
             <Badge className="rounded border-0 bg-cyan-400/10 font-mono text-cyan-100">
               csv.sync
             </Badge>
           </div>
-          <div className="overflow-x-auto">{renderRows()}</div>
+          <div className="max-h-[620px] overflow-auto">{renderRows()}</div>
         </div>
       </section>
     </div>

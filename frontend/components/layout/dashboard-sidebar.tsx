@@ -20,7 +20,6 @@ import {
   FlaskConical,
   HeartPulse,
   LayoutDashboard,
-  LockKeyhole,
   Monitor,
   PackageCheck,
   PackageSearch,
@@ -55,12 +54,6 @@ const navSections = [
     label: "Command",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      {
-        title: "Admin Control",
-        href: "/admin-control",
-        icon: LockKeyhole,
-        adminOnly: true,
-      },
       { title: "AI Assistant", href: "/ai-assistant", icon: Bot },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Reports", href: "/reports", icon: Activity },
