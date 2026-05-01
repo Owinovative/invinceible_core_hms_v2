@@ -24,25 +24,25 @@
 }
 
 .dark {
-  --background: 203 100% 98%;
-  --foreground: 214 56% 14%;
-  --card: 0 0% 100%;
-  --card-foreground: 214 56% 14%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 214 56% 14%;
-  --primary: 199 91% 38%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 204 76% 94%;
-  --secondary-foreground: 214 56% 18%;
-  --muted: 206 61% 95%;
-  --muted-foreground: 211 24% 38%;
-  --accent: 199 95% 91%;
-  --accent-foreground: 201 84% 24%;
+  --background: 214 48% 10%;
+  --foreground: 203 100% 96%;
+  --card: 213 45% 14%;
+  --card-foreground: 203 100% 96%;
+  --popover: 213 45% 14%;
+  --popover-foreground: 203 100% 96%;
+  --primary: 199 91% 48%;
+  --primary-foreground: 214 56% 10%;
+  --secondary: 211 44% 19%;
+  --secondary-foreground: 203 100% 94%;
+  --muted: 212 36% 18%;
+  --muted-foreground: 204 24% 72%;
+  --accent: 199 72% 23%;
+  --accent-foreground: 203 100% 94%;
   --destructive: 0 72% 55%;
   --destructive-foreground: 203 100% 98%;
-  --border: 205 47% 86%;
-  --input: 205 47% 86%;
-  --ring: 199 91% 38%;
+  --border: 205 37% 26%;
+  --input: 205 37% 26%;
+  --ring: 199 91% 48%;
 }
 
 * {
@@ -64,7 +64,7 @@ body {
 }
 
 .dark body {
-  background: #f5fbff;
+  background: #081b31;
   color: hsl(var(--foreground));
 }
 
@@ -81,7 +81,7 @@ select {
 }
 
 .dark select {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 select:focus {
@@ -146,7 +146,7 @@ pre,
 }
 
 .dark .premium-system-bg {
-  background: #f5fbff;
+  background: #081b31;
 }
 
 .premium-aurora {
@@ -369,6 +369,45 @@ pre,
 
 [class*="bg-white/["] {
   background-color: #ffffff !important;
+}
+
+.dark .bg-white,
+.dark .bg-\[\#f5fbff\],
+.dark .bg-\[\#f8fcff\],
+.dark .bg-\[\#eef8ff\],
+.dark .bg-\[\#eaf7ff\],
+.dark .bg-sky-50 {
+  background-color: #10243a !important;
+}
+
+.dark .bg-sky-100 {
+  background-color: #12314d !important;
+}
+
+.dark .border-sky-100,
+.dark .border-sky-200,
+.dark .border-sky-300 {
+  border-color: #24506f !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #f0f9ff !important;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-muted-foreground {
+  color: #b9d6ea !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-lg,
+.dark .shadow-xl,
+.dark .shadow-2xl {
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32) !important;
 }
 
 .text-cyan-100,

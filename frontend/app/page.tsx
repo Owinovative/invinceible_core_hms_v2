@@ -64,6 +64,24 @@ const modules = [
   "Settings",
 ];
 
+const photoFrames = [
+  {
+    title: "Clinical desk",
+    image:
+      "https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=900&q=86",
+  },
+  {
+    title: "Ward movement",
+    image:
+      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=900&q=86",
+  },
+  {
+    title: "Pharmacy work",
+    image:
+      "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=86",
+  },
+];
+
 const controlRows = [
   ["Facility structure", "Facilities, branches, departments, clinics, staff, and users are maintained from platform administration."],
   ["Clinical movement", "Queues, triage, consultation, laboratory, pharmacy, and admissions are connected around the patient visit."],
@@ -73,26 +91,35 @@ const controlRows = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#f5fbff] text-slate-950">
-      <section className="min-h-screen border-b border-sky-200 bg-[#f5fbff]">
-        <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col px-5 py-5 md:px-8">
-          <header className="flex items-center justify-between gap-4 border border-sky-200 bg-white px-4 py-3 shadow-sm">
-            <AppLogo />
-            <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 lg:flex">
-              <Link href="/workflow" className="hover:text-sky-700">
+    <main className="min-h-screen bg-[#eaf7ff] text-slate-950 dark:bg-[#081b31]">
+      <section
+        className="relative min-h-screen overflow-hidden bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=2200&q=88')",
+        }}
+      >
+        <div className="absolute inset-0 bg-[#061a2f]/78" />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-sky-300/18" />
+
+        <div className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col px-5 py-5 md:px-8">
+          <header className="flex items-center justify-between gap-4 border border-sky-300/25 bg-[#08243f]/92 px-4 py-4 shadow-2xl">
+            <AppLogo light />
+            <nav className="hidden min-w-0 items-center gap-7 text-sm font-semibold text-sky-50/82 lg:flex">
+              <Link href="/workflow" className="hover:text-sky-200">
                 Workflow
               </Link>
-              <Link href="/facilities" className="hover:text-sky-700">
+              <Link href="/facilities" className="hover:text-sky-200">
                 Facilities
               </Link>
-              <Link href="/creators" className="hover:text-sky-700">
+              <Link href="/creators" className="hover:text-sky-200">
                 Creators
               </Link>
-              <Link href="/login" className="hover:text-sky-700">
+              <Link href="/login" className="hover:text-sky-200">
                 Staff access
               </Link>
             </nav>
-            <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+            <Button asChild className="rounded-md bg-sky-400 text-[#061a2f] hover:bg-sky-300">
               <Link href="/login">
                 Enter system
                 <ArrowRight className="h-4 w-4" />
@@ -100,21 +127,21 @@ export default function HomePage() {
             </Button>
           </header>
 
-          <div className="grid flex-1 gap-8 py-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div className="grid flex-1 gap-8 py-8 lg:grid-cols-[1fr_0.92fr] lg:items-center">
             <div className="space-y-7">
-              <div className="inline-flex items-center gap-2 border border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-sky-800 shadow-sm">
+              <div className="inline-flex items-center gap-2 border border-sky-300/30 bg-[#0d3155]/88 px-3 py-2 text-sm font-semibold text-sky-100 shadow-xl">
                 <ShieldCheck className="h-4 w-4" />
-                Level 6 hospital management workspace
+                Hospital operating system
               </div>
 
               <div className="space-y-5">
-                <h1 className="max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-slate-950 md:text-7xl">
+                <h1 className="max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-white md:text-7xl">
                   Invinceible Core HMS
                 </h1>
-                <p className="max-w-2xl text-lg leading-8 text-slate-600 md:text-xl">
-                  A complete hospital operating system for patient flow,
-                  clinical work, pharmacy, laboratory, inpatient care, billing,
-                  audit, reporting, and platform control.
+                <p className="max-w-2xl text-lg leading-8 text-sky-50/84 md:text-xl">
+                  Built for patient registration, doctor work, lab requests,
+                  pharmacy dispensing, inpatient care, billing, reports, and
+                  administration.
                 </p>
               </div>
 
@@ -124,9 +151,9 @@ export default function HomePage() {
                   ["24/7", "audit-ready activity"],
                   ["1", "connected patient visit"],
                 ].map(([value, label]) => (
-                  <div key={label} className="border border-sky-200 bg-white p-4 shadow-sm">
-                    <p className="text-3xl font-bold text-sky-800">{value}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase text-slate-500">
+                  <div key={label} className="border border-sky-300/30 bg-[#08243f]/88 p-4 shadow-xl">
+                    <p className="text-3xl font-bold text-sky-300">{value}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase text-sky-50/65">
                       {label}
                     </p>
                   </div>
@@ -137,7 +164,7 @@ export default function HomePage() {
                 <Button
                   asChild
                   size="lg"
-                  className="rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                  className="rounded-md bg-sky-400 text-[#061a2f] hover:bg-sky-300"
                 >
                   <Link href="/login">
                     Open hospital portal
@@ -148,7 +175,7 @@ export default function HomePage() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="rounded-md border-sky-300 bg-white text-sky-800 hover:bg-sky-50"
+                  className="rounded-md border-sky-300/40 bg-[#08243f]/60 text-white hover:bg-sky-400/15"
                 >
                   <Link href="/workflow">View hospital workflow</Link>
                 </Button>
@@ -156,33 +183,42 @@ export default function HomePage() {
             </div>
 
             <div className="grid gap-4">
-              <div
-                className="min-h-[390px] border border-sky-200 bg-cover bg-center shadow-lg"
-                style={{
-                  backgroundImage:
-                    "url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1800&q=86')",
-                }}
-              />
+              <div className="border border-sky-300/30 bg-[#08243f]/88 p-4 shadow-2xl">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {photoFrames.map((photo) => (
+                    <div key={photo.title} className="border border-sky-300/25 bg-[#061a2f] p-2 shadow-xl">
+                      <div
+                        className="h-40 bg-cover bg-center"
+                        style={{ backgroundImage: `url('${photo.image}')` }}
+                      />
+                      <p className="mt-3 truncate px-1 text-sm font-semibold text-sky-50">
+                        {photo.title}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="border border-sky-200 bg-white p-4 shadow-sm">
-                  <Building2 className="mb-3 h-5 w-5 text-sky-700" />
-                  <p className="font-semibold">Facility and branch scope</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Staff work inside the right hospital branch.
+                <div className="border border-sky-300/30 bg-[#08243f]/88 p-4 shadow-xl">
+                  <Building2 className="mb-3 h-5 w-5 text-sky-300" />
+                  <p className="font-semibold text-white">Facility scope</p>
+                  <p className="mt-2 text-sm leading-6 text-sky-50/72">
+                    Staff work inside the correct hospital branch.
                   </p>
                 </div>
-                <div className="border border-sky-200 bg-white p-4 shadow-sm">
-                  <ClipboardCheck className="mb-3 h-5 w-5 text-sky-700" />
-                  <p className="font-semibold">Operational queue</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Patient work is visible from arrival to discharge.
+                <div className="border border-sky-300/30 bg-[#08243f]/88 p-4 shadow-xl">
+                  <ClipboardCheck className="mb-3 h-5 w-5 text-sky-300" />
+                  <p className="font-semibold text-white">Patient movement</p>
+                  <p className="mt-2 text-sm leading-6 text-sky-50/72">
+                    Visits move from reception to clinical services.
                   </p>
                 </div>
-                <div className="border border-sky-200 bg-white p-4 shadow-sm">
-                  <FileText className="mb-3 h-5 w-5 text-sky-700" />
-                  <p className="font-semibold">Printable records</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Invoices, summaries, charts, and reports stay ready.
+                <div className="border border-sky-300/30 bg-[#08243f]/88 p-4 shadow-xl">
+                  <FileText className="mb-3 h-5 w-5 text-sky-300" />
+                  <p className="font-semibold text-white">Records</p>
+                  <p className="mt-2 text-sm leading-6 text-sky-50/72">
+                    Invoices, summaries, and reports stay ready.
                   </p>
                 </div>
               </div>
@@ -231,26 +267,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-sky-200 bg-[#eaf7ff]">
+      <section className="border-y border-sky-200 bg-[#eaf7ff] dark:border-sky-900">
         <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-16 md:px-8 xl:grid-cols-[0.8fr_1.2fr]">
-          <div>
+          <div className="border border-sky-200 bg-white p-6 shadow-xl">
             <p className="text-sm font-semibold uppercase text-sky-700">
-              Real system coverage
+              Main work areas
             </p>
             <h2 className="mt-2 text-4xl font-bold tracking-tight text-slate-950">
-              The home page now says what the software actually does.
+              Everything starts from the patient visit.
             </h2>
             <p className="mt-4 text-base leading-8 text-slate-600">
-              No fake testimonials, no floating decorations, and no empty
-              marketing language. The public site points visitors to the real
-              hospital workflow and the staff portal.
+              Reception opens the visit. Doctors, lab, pharmacy, wards, and
+              billing continue from the same record.
             </p>
+            <Button asChild className="mt-6 rounded-md bg-sky-700 text-white hover:bg-sky-800">
+              <Link href="/login">
+                Go to staff portal
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {modules.map((module) => (
               <div key={module} className="border border-sky-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-sm font-semibold text-slate-800">{module}</p>
+                <p className="truncate text-sm font-semibold text-slate-800" title={module}>{module}</p>
               </div>
             ))}
           </div>

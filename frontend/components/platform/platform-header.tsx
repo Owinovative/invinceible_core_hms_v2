@@ -23,32 +23,32 @@ export function PlatformHeader() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-sky-200 bg-white shadow-sm">
-      <div className="flex h-20 items-center gap-4 px-4 md:px-6">
+    <header className="sticky top-0 z-30 border-b border-sky-900 bg-[#08243f] text-white shadow-lg">
+      <div className="flex min-h-24 items-center gap-4 px-4 py-3 md:px-6">
         <Button
           variant="outline"
           size="icon"
-          className="rounded-md border-sky-200 bg-white lg:hidden"
+          className="rounded-md border-sky-500/40 bg-sky-400/10 text-white hover:bg-sky-400/20 lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden items-center gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 md:flex">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white">
-            <Shield className="h-5 w-5 text-sky-700" />
+        <div className="hidden min-w-0 items-center gap-3 rounded-md border border-sky-500/30 bg-[#0d3155] px-4 py-3 md:flex">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-sky-400/15">
+            <Shield className="h-5 w-5 text-sky-300" />
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Secure Area</p>
-            <p className="font-semibold">Platform Administration</p>
+          <div className="min-w-0">
+            <p className="text-xs text-sky-100/70">Secure Area</p>
+            <p className="truncate font-semibold text-white">Platform Administration</p>
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
           <Button
             variant="outline"
             size="icon"
-            className="rounded-md border-sky-200 bg-white"
+            className="rounded-md border-sky-500/40 bg-sky-400/10 text-white hover:bg-sky-400/20"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -58,24 +58,24 @@ export function PlatformHeader() {
             )}
           </Button>
 
-          <div className="flex items-center gap-3 rounded-md border border-sky-200 bg-white px-3 py-2 shadow-sm">
-            <div className="hidden text-right sm:block">
-              <p className="max-w-[180px] truncate text-sm font-semibold">
+          <div className="flex min-w-0 items-center gap-3 rounded-md border border-sky-500/30 bg-[#0d3155] px-3 py-2 shadow-sm">
+            <div className="hidden min-w-0 text-right sm:block">
+              <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
                 {user?.username || "User"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-xs text-sky-100/70">
                 {user?.roleCode || "Role"}
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sky-100 font-semibold text-sky-800">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-sky-400 font-semibold text-[#06213b]">
               {initials}
             </div>
 
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-md"
+              className="rounded-md text-white hover:bg-sky-400/15 hover:text-white"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />

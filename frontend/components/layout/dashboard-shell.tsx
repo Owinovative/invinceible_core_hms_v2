@@ -13,14 +13,14 @@ export function DashboardShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#f5fbff] text-foreground">
+    <div className="relative h-screen overflow-hidden bg-[#eaf7ff] text-foreground dark:bg-[#081b31]">
       <div className="relative flex h-screen overflow-hidden">
         <DashboardSidebar />
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="w-[21rem] border-sky-200 bg-background p-0 lg:hidden"
+            className="w-[21rem] border-sky-900 bg-[#061a2f] p-0 lg:hidden"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
@@ -32,7 +32,7 @@ export function DashboardShell({
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <DashboardHeader />
 
-          <main className="min-h-0 flex-1 overflow-y-auto">
+          <main className="min-h-0 flex-1 overflow-y-auto bg-[#eaf7ff] dark:bg-[#081b31]">
             <div className="mx-auto min-h-full max-w-[1700px] px-4 py-4 md:px-6 md:py-6 xl:px-8">
               {children}
             </div>

@@ -51,43 +51,43 @@ export function DashboardHeader() {
   const unreadCount = counts?.counts.unread ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-sky-200 bg-white shadow-sm">
-      <div className="flex h-20 items-center gap-4 px-4 md:px-6">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-sky-900 bg-[#08243f] text-white shadow-lg">
+      <div className="flex min-h-24 items-center gap-4 px-4 py-3 md:px-6">
         <Button
           variant="outline"
           size="icon"
-          className="rounded-md border-sky-200 bg-white lg:hidden"
+          className="rounded-md border-sky-500/40 bg-sky-400/10 text-white hover:bg-sky-400/20 lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden max-w-xl flex-1 items-center gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 md:flex">
-          <Search className="h-4 w-4 text-sky-700" />
+        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-md border border-sky-500/30 bg-[#0d3155] px-4 py-3 md:flex">
+          <Search className="h-4 w-4 shrink-0 text-sky-300" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">
+            <p className="truncate text-sm font-semibold text-white">
               {selectedBranchName || facilityName || "Active workspace"}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="truncate text-xs text-sky-100/75">
               Patients, billing, lab, pharmacy, and admissions
             </p>
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-3">
-          <div className="hidden rounded-md border border-sky-200 bg-white px-4 py-2 shadow-sm md:flex md:items-center">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
+          <div className="hidden min-w-0 rounded-md border border-sky-500/30 bg-[#0d3155] px-4 py-2 shadow-sm md:flex md:items-center">
             <div className="text-right">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/65">
                 Facility
               </p>
-              <p className="max-w-[190px] truncate text-sm font-semibold text-foreground">
+              <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
                 {facilityName || "No facility"}
               </p>
             </div>
           </div>
 
-          <div className="hidden min-w-[240px] rounded-md border border-sky-200 bg-white px-4 py-2 shadow-sm md:block">
-            <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="hidden min-w-[280px] max-w-[360px] rounded-md border border-sky-500/30 bg-[#0d3155] px-4 py-2 shadow-sm md:block">
+            <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-sky-100/65">
               Branch
             </p>
 
@@ -98,7 +98,7 @@ export function DashboardHeader() {
                   setSelectedBranchId(value === "all" ? undefined : Number(value))
                 }
               >
-                <SelectTrigger className="h-8 border-0 bg-transparent px-0 shadow-none focus:ring-0">
+                <SelectTrigger className="h-8 border-0 bg-transparent px-0 text-white shadow-none focus:ring-0">
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
                 <SelectContent>
@@ -111,7 +111,7 @@ export function DashboardHeader() {
                 </SelectContent>
               </Select>
             ) : (
-              <p className="truncate text-sm font-semibold">
+              <p className="truncate text-sm font-semibold text-white" title={selectedBranchName || "No branch"}>
                 {selectedBranchName || "No branch"}
               </p>
             )}
@@ -120,7 +120,7 @@ export function DashboardHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-md border-sky-200 bg-white"
+            className="rounded-md border-sky-500/40 bg-sky-400/10 text-white hover:bg-sky-400/20"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -134,7 +134,7 @@ export function DashboardHeader() {
             asChild
             variant="outline"
             size="icon"
-            className="relative rounded-md border-sky-200 bg-white"
+            className="relative rounded-md border-sky-500/40 bg-sky-400/10 text-white hover:bg-sky-400/20"
           >
             <Link href="/notifications" aria-label="Notifications">
               <Bell className="h-4 w-4" />
@@ -148,24 +148,24 @@ export function DashboardHeader() {
             </Link>
           </Button>
 
-          <div className="flex items-center gap-3 rounded-md border border-sky-200 bg-white px-3 py-2 shadow-sm">
-            <div className="hidden text-right sm:block">
-              <p className="max-w-[180px] truncate text-sm font-semibold">
+          <div className="flex min-w-0 items-center gap-3 rounded-md border border-sky-500/30 bg-[#0d3155] px-3 py-2 shadow-sm">
+            <div className="hidden min-w-0 text-right sm:block">
+              <p className="max-w-[210px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
                 {user?.username || "User"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-xs text-sky-100/70">
                 {user?.roleCode || "Role"}
               </p>
             </div>
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-sky-100 text-sm font-bold text-sky-800">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-sky-400 text-sm font-bold text-[#06213b]">
               {initials}
             </div>
 
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-md"
+              className="rounded-md text-white hover:bg-sky-400/15 hover:text-white"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />
