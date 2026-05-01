@@ -30,6 +30,7 @@ import {
   addCompactTable,
   addSectionTitle,
   createHospitalPdfBuffer,
+  drawVerificationBarcode,
   formatPdfDate,
   formatPdfMoney,
   patientName,
@@ -285,6 +286,32 @@ export class BillingService {
 
     const nextNumber = (latestInvoice?.id ?? 0) + 1;
     return `INV-${String(nextNumber).padStart(6, '0')}`;
+  }
+
+  private buildInvoiceVerificationCode(invoice: {
+    id: number;
+    invoiceNumber: string;
+    patientId: number;
+    facilityId: number;
+    issuedAt?: Date | string | null;
+  }) {
+    const seed = [
+      invoice.invoiceNumber,
+      invoice.id,
+      invoice.patientId,
+      invoice.facilityId,
+      invoice.issuedAt ? new Date(invoice.issuedAt).toISOString() : '',
+    ].join('|');
+
+    let checksum = 17;
+    for (const char of seed) {
+      checksum = (checksum * 31 + char.charCodeAt(0)) % 1679616;
+    }
+
+    return `VAR-${String(invoice.id).padStart(6, '0')}-${checksum
+      .toString(36)
+      .toUpperCase()
+      .padStart(4, '0')}`;
   }
 
   private normalizeTariffCategory(category: string) {
@@ -1911,7 +1938,10 @@ export class BillingService {
       targetStaffId: dto.createdByStaffId,
     });
 
-    return invoice;
+    return {
+      ...invoice,
+      verificationCode: this.buildInvoiceVerificationCode(invoice),
+    };
   }
 
   getAllInvoices() {
@@ -1961,7 +1991,10 @@ export class BillingService {
       throw new NotFoundException(`Invoice with id ${id} not found`);
     }
 
-    return invoice;
+    return {
+      ...invoice,
+      verificationCode: this.buildInvoiceVerificationCode(invoice),
+    };
   }
 
   async getPatientBillingByPatientNumber(patientNumber: string) {
@@ -2069,12 +2102,14 @@ export class BillingService {
       (item) => item.isRemoved !== true,
     );
     const payments = invoice.payments ?? [];
+    const verificationCode = this.buildInvoiceVerificationCode(invoice);
 
     return createHospitalPdfBuffer(
       {
-        title: 'Patient Invoice',
+        title: 'INVOICE',
         subtitle: invoice.invoiceNumber,
         reference: invoice.statusCode,
+        verificationCode,
         facility: invoice.facility,
         branch: invoice.branch,
       },
@@ -2085,11 +2120,12 @@ export class BillingService {
           { label: 'Patient number', value: invoice.patient?.patientNumber },
           { label: 'Phone', value: invoice.patient?.phonePrimary },
           { label: 'Invoice number', value: invoice.invoiceNumber },
+          { label: 'VAR code', value: verificationCode },
           { label: 'Issued at', value: formatPdfDate(invoice.issuedAt) },
           { label: 'Branch', value: invoice.branch?.name },
           { label: 'Created by', value: staffName(invoice.createdBy) },
           { label: 'Status', value: invoice.statusCode },
-        ], 4);
+        ], 3);
 
         addSectionTitle(doc, 'Invoice lines');
         addCompactTable(
@@ -2097,23 +2133,33 @@ export class BillingService {
           [
             {
               header: 'Date',
-              width: 70,
+              width: 58,
               render: (item) => formatPdfDate(item.createdAt),
             },
             {
-              header: 'Description',
-              width: 245,
+              header: 'Ref',
+              width: 46,
+              render: (item) => `L${String(item.id).padStart(4, '0')}`,
+            },
+            {
+              header: 'Item',
+              width: 202,
               render: (item) => item.description,
             },
-            { header: 'Qty', width: 38, render: (item) => item.quantity },
+            { header: 'Qty', width: 32, render: (item) => item.quantity },
             {
               header: 'Unit',
-              width: 70,
+              width: 64,
               render: (item) => formatPdfMoney(item.unitPrice, currency),
             },
             {
+              header: 'Disc',
+              width: 42,
+              render: () => formatPdfMoney(0, currency),
+            },
+            {
               header: 'Total',
-              width: 76,
+              width: 55,
               render: (item) => formatPdfMoney(item.lineTotal, currency),
             },
           ],
@@ -2189,6 +2235,28 @@ export class BillingService {
             { label: 'M-PESA Paybill', value: invoice.facility?.mpesaPaybill },
             { label: 'M-PESA Till', value: invoice.facility?.mpesaTillNumber },
           ], 3);
+        }
+
+        const footerY = doc.y + 8;
+        if (footerY < doc.page.height - doc.page.margins.bottom - 78) {
+          doc
+            .fillColor('#475569')
+            .font('Helvetica')
+            .fontSize(7.5)
+            .text(
+              'This invoice is valid only with the VAR code above. Keep the original receipt for payment reconciliation.',
+              doc.page.margins.left,
+              footerY,
+              { width: 330 },
+            );
+          drawVerificationBarcode(
+            doc,
+            verificationCode,
+            doc.page.width - doc.page.margins.right - 142,
+            footerY - 4,
+            142,
+            34,
+          );
         }
       },
     );

@@ -67,6 +67,7 @@ export interface PaymentRecord {
 export interface InvoiceRecord {
   id: number;
   invoiceNumber: string;
+  verificationCode?: string;
   statusCode: string;
   subtotal: number;
   discountAmount: number;
