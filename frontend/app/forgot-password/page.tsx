@@ -60,30 +60,14 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.25),transparent_25%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.18),transparent_22%),radial-gradient(circle_at_bottom_center,rgba(14,165,233,0.14),transparent_18%)]" />
-      <div className="absolute inset-0 opacity-[0.18]">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(148,163,184,0.12) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(148,163,184,0.12) 1px, transparent 1px)
-            `,
-            backgroundSize: "34px 34px",
-          }}
-        />
-      </div>
-      <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
-      <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-cyan-400/15 blur-3xl" />
-
+    <main className="min-h-screen bg-[#f5fbff]">
       <div className="relative flex min-h-screen items-center justify-center px-6 py-10">
-        <Card className="w-full max-w-md rounded-[2rem] border-white/15 bg-white/10 text-white shadow-2xl backdrop-blur-2xl">
+        <Card className="w-full max-w-md rounded-lg border-sky-100 bg-white text-slate-900 shadow-xl">
           <CardContent className="p-8 md:p-10">
             <div className="mb-8 flex flex-col items-center text-center">
-              <AppLogo className="mb-4" light />
+              <AppLogo className="mb-4" />
               <h1 className="text-3xl font-bold tracking-tight">Reset access</h1>
-              <p className="mt-2 text-sm text-white/70">Enter your username</p>
+              <p className="mt-2 text-sm text-slate-600">Enter your username.</p>
             </div>
 
             {!result ? (
@@ -94,31 +78,31 @@ export default function ForgotPasswordPage() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-white/90">Username</FormLabel>
+                        <FormLabel>Username</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <User2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
+                            <User2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
-                              className="h-12 rounded-xl border-white/20 bg-white/10 pl-10 text-white placeholder:text-white/45"
+                              className="h-12 rounded-md border-sky-100 bg-white pl-10"
                               placeholder="Enter username"
                               {...field}
                             />
                           </div>
                         </FormControl>
-                        <FormMessage className="text-red-300" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
                   {error ? (
-                    <div className="rounded-xl border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {error}
                     </div>
                   ) : null}
 
                   <Button
                     type="submit"
-                    className="h-12 w-full rounded-xl bg-white text-slate-900 hover:bg-white/90"
+                    className="h-12 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Please wait..." : "Continue"}
@@ -128,7 +112,7 @@ export default function ForgotPasswordPage() {
                   <Button
                     asChild
                     variant="ghost"
-                    className="h-11 w-full rounded-xl text-white hover:bg-white/10 hover:text-white"
+                    className="h-11 w-full rounded-md text-slate-700 hover:bg-sky-50 hover:text-sky-800"
                   >
                     <Link href="/login">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -139,14 +123,14 @@ export default function ForgotPasswordPage() {
               </Form>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-xl border border-emerald-300/20 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100">
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
                   {result.message}
                 </div>
 
                 {result.devResetLink ? (
                   <Button
                     asChild
-                    className="h-12 w-full rounded-xl bg-white text-slate-900 hover:bg-white/90"
+                    className="h-12 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
                   >
                     <Link href={result.devResetLink.replace("http://localhost:3000", "")}>
                       Open reset page
@@ -158,7 +142,7 @@ export default function ForgotPasswordPage() {
                 <Button
                   asChild
                   variant="ghost"
-                  className="h-11 w-full rounded-xl text-white hover:bg-white/10 hover:text-white"
+                  className="h-11 w-full rounded-md text-slate-700 hover:bg-sky-50 hover:text-sky-800"
                 >
                   <Link href="/login">Back to sign in</Link>
                 </Button>

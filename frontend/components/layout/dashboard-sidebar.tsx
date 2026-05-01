@@ -186,12 +186,12 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-border/70 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-sky-200 bg-white",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-72"),
       )}
     >
-      <div className="shrink-0 border-b border-white/10 px-4 py-5">
+      <div className="shrink-0 border-b border-sky-200 px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="overflow-hidden">
             {compact ? <AppLogo iconOnly /> : <AppLogo />}
@@ -201,7 +201,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-2xl border-white/10 bg-white/[0.03]"
+              className="shrink-0 rounded-md border-sky-200 bg-white"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -215,13 +215,13 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 py-4">
-        <div className="premium-card rounded-[1.2rem] p-3">
+        <div className="rounded-md border border-sky-200 bg-sky-50 p-3">
           {compact ? (
             <div className="space-y-2 text-center text-xs font-semibold text-muted-foreground">
-              <div className="rounded-xl bg-cyan-500/10 px-2 py-2 text-cyan-300">
+              <div className="rounded-md bg-white px-2 py-2 text-sky-700">
                 F
               </div>
-              <div className="rounded-xl bg-emerald-500/10 px-2 py-2 text-emerald-300">
+              <div className="rounded-md bg-white px-2 py-2 text-sky-700">
                 B
               </div>
             </div>
@@ -235,7 +235,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                   {facilityName || "No facility"}
                 </p>
               </div>
-              <Separator className="bg-white/10" />
+              <Separator className="bg-sky-200" />
               <div>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   Branch
@@ -263,11 +263,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-cyan-500/10",
+                  "flex items-center justify-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-sky-100",
                   compact && "px-2",
                 )}
               >
-                <Icon className="h-4 w-4 text-cyan-300" />
+                <Icon className="h-4 w-4 text-sky-700" />
                 {!compact ? <span>{item.title}</span> : null}
               </Link>
             );
@@ -301,11 +301,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                         aria-label={item.title}
                         onClick={mobile ? closeMobileSidebar : undefined}
                         className={cn(
-                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                          "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-cyan-500/10 text-cyan-700 ring-1 ring-cyan-400/25 dark:text-cyan-100"
-                            : "text-muted-foreground hover:bg-cyan-500/10 hover:text-foreground",
+                            ? "bg-sky-100 text-sky-800 ring-1 ring-sky-300"
+                            : "text-slate-600 hover:bg-sky-50 hover:text-slate-950",
                         )}
                       >
                         <Icon

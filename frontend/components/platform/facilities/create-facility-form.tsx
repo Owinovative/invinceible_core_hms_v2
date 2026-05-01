@@ -449,7 +449,7 @@ export function CreateFacilityForm() {
 
               <Button
                 type="submit"
-                className="h-11 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 px-6 text-white hover:opacity-95"
+                className="h-11 rounded-md bg-sky-700 px-6 text-white hover:bg-sky-800"
                 disabled={createFacilityMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />

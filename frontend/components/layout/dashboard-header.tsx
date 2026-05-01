@@ -51,19 +51,19 @@ export function DashboardHeader() {
   const unreadCount = counts?.counts.unread ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-border/70 bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-sky-200 bg-white shadow-sm">
       <div className="flex h-20 items-center gap-4 px-4 md:px-6">
         <Button
           variant="outline"
           size="icon"
-          className="rounded-2xl border-white/10 bg-white/[0.03] lg:hidden"
+          className="rounded-md border-sky-200 bg-white lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="premium-card hidden max-w-xl flex-1 items-center gap-3 rounded-[1.35rem] px-4 py-3 md:flex">
-          <Search className="h-4 w-4 text-muted-foreground" />
+        <div className="hidden max-w-xl flex-1 items-center gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 md:flex">
+          <Search className="h-4 w-4 text-sky-700" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">
               {selectedBranchName || facilityName || "Active workspace"}
@@ -75,7 +75,7 @@ export function DashboardHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          <div className="hidden rounded-[1.25rem] border border-white/10 glass-panel px-4 py-2 panel-shadow md:flex md:items-center">
+          <div className="hidden rounded-md border border-sky-200 bg-white px-4 py-2 shadow-sm md:flex md:items-center">
             <div className="text-right">
               <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
@@ -86,7 +86,7 @@ export function DashboardHeader() {
             </div>
           </div>
 
-          <div className="hidden min-w-[240px] rounded-[1.25rem] border border-white/10 glass-panel px-4 py-2 panel-shadow md:block">
+          <div className="hidden min-w-[240px] rounded-md border border-sky-200 bg-white px-4 py-2 shadow-sm md:block">
             <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               Branch
             </p>
@@ -120,7 +120,7 @@ export function DashboardHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-2xl border-white/10 bg-white/[0.05]"
+            className="rounded-md border-sky-200 bg-white"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -134,7 +134,7 @@ export function DashboardHeader() {
             asChild
             variant="outline"
             size="icon"
-            className="relative rounded-2xl border-white/10 bg-white/[0.05]"
+            className="relative rounded-md border-sky-200 bg-white"
           >
             <Link href="/notifications" aria-label="Notifications">
               <Bell className="h-4 w-4" />
@@ -148,7 +148,7 @@ export function DashboardHeader() {
             </Link>
           </Button>
 
-          <div className="flex items-center gap-3 rounded-[1.4rem] border border-white/10 glass-panel px-3 py-2 panel-shadow">
+          <div className="flex items-center gap-3 rounded-md border border-sky-200 bg-white px-3 py-2 shadow-sm">
             <div className="hidden text-right sm:block">
               <p className="max-w-[180px] truncate text-sm font-semibold">
                 {user?.username || "User"}
@@ -158,14 +158,14 @@ export function DashboardHeader() {
               </p>
             </div>
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-emerald-500 to-amber-300 text-sm font-bold text-slate-950 shadow-[0_12px_24px_rgba(14,165,233,0.28)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-sky-100 text-sm font-bold text-sky-800">
               {initials}
             </div>
 
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-2xl"
+              className="rounded-md"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />

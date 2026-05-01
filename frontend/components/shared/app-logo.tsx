@@ -36,7 +36,7 @@ export function AppLogo({
             onError={() => setHasError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-600 to-cyan-500 text-white text-sm font-bold">
+          <div className="flex h-full w-full items-center justify-center bg-sky-700 text-white text-sm font-bold">
             IC
           </div>
         )}

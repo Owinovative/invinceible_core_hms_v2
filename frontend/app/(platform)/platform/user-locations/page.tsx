@@ -287,21 +287,21 @@ export default function PlatformUserLocationsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-lg border border-sky-300/20 bg-sky-950 p-6 text-white shadow-xl md:p-8">
+      <section className="overflow-hidden rounded-lg border border-sky-100 bg-white p-6 text-slate-900 shadow-xl md:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr] xl:items-end">
           <div className="space-y-5">
-            <Badge className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 font-mono text-cyan-100">
+            <Badge className="rounded-md border border-sky-200 bg-sky-50 px-3 py-1 font-mono text-sky-800">
               super-admin-only / live-location-intelligence
             </Badge>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10">
-                <Radar className="h-7 w-7 text-cyan-200" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-sky-100 bg-sky-50">
+                <Radar className="h-7 w-7 text-sky-700" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
                   User Location Control
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-white/68">
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
                   Tracks authenticated sessions by user, session version,
                   request route, device, network, and cached IP geolocation.
                   The last captured location remains available after logout.
@@ -311,28 +311,28 @@ export default function PlatformUserLocationsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-cyan-300/14 bg-white/[0.06] p-4">
-              <Wifi className="mb-3 h-5 w-5 text-emerald-300" />
+            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
+              <Wifi className="mb-3 h-5 w-5 text-emerald-600" />
               <p className="text-3xl font-bold">
                 {data?.summary.liveUsers ?? 0}
               </p>
-              <p className="text-xs text-white/55">
+              <p className="text-xs text-slate-500">
                 live within {data?.liveWindowMinutes ?? 10} min
               </p>
             </div>
-            <div className="rounded-xl border border-cyan-300/14 bg-white/[0.06] p-4">
-              <Activity className="mb-3 h-5 w-5 text-cyan-200" />
+            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
+              <Activity className="mb-3 h-5 w-5 text-sky-700" />
               <p className="text-3xl font-bold">
                 {data?.summary.events24h ?? 0}
               </p>
-              <p className="text-xs text-white/55">events in 24h</p>
+              <p className="text-xs text-slate-500">events in 24h</p>
             </div>
-            <div className="rounded-xl border border-cyan-300/14 bg-white/[0.06] p-4">
-              <Globe2 className="mb-3 h-5 w-5 text-amber-200" />
+            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
+              <Globe2 className="mb-3 h-5 w-5 text-amber-600" />
               <p className="text-3xl font-bold">
                 {data?.summary.cities ?? 0}
               </p>
-              <p className="text-xs text-white/55">cities detected</p>
+              <p className="text-xs text-slate-500">cities detected</p>
             </div>
           </div>
         </div>

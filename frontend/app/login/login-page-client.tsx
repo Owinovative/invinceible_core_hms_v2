@@ -88,39 +88,38 @@ export default function LoginPageClient() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-sky-950">
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-35"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=2400&q=86')",
-        }}
-      />
-      <div className="absolute inset-0 bg-sky-950/78" />
-
-      <div className="relative mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.16fr_0.84fr] lg:px-8">
-        <section className="hidden text-white lg:block">
+    <main className="relative min-h-screen overflow-hidden bg-[#eef8ff] text-slate-950">
+      <div className="mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-8">
+        <section className="hidden lg:block">
           <div className="max-w-2xl space-y-7">
-            <AppLogo light />
+            <AppLogo />
             <BadgeLike />
             <div className="space-y-4">
-              <h1 className="text-5xl font-bold leading-[1.02]">
-                Secure clinical access, designed for serious hospital work.
+              <h1 className="text-5xl font-bold leading-[1.04] text-slate-950">
+                Secure clinical access for serious hospital work.
               </h1>
-              <p className="max-w-xl text-base leading-8 text-white/72">
+              <p className="max-w-xl text-base leading-8 text-slate-600">
                 Sign in to manage patient flow, billing, pharmacy, laboratory,
                 admissions, reporting, and facility operations.
               </p>
             </div>
 
+            <div
+              className="min-h-[330px] border border-sky-200 bg-cover bg-center shadow-lg"
+              style={{
+                backgroundImage:
+                  "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1500&q=86')",
+              }}
+            />
+
             <div className="grid gap-3">
               {loginHighlights.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 rounded-[1.15rem] border border-white/12 bg-white/10 px-4 py-3 backdrop-blur-xl"
+                  className="flex items-center gap-3 border border-sky-200 bg-white px-4 py-3 shadow-sm"
                 >
-                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                  <span className="text-sm font-semibold text-white/84">
+                  <ShieldCheck className="h-4 w-4 text-sky-700" />
+                  <span className="text-sm font-semibold text-slate-700">
                     {item}
                   </span>
                 </div>
@@ -129,7 +128,7 @@ export default function LoginPageClient() {
           </div>
         </section>
 
-        <Card className="premium-card mx-auto w-full max-w-[500px] rounded-[2rem] py-0 text-foreground">
+        <Card className="mx-auto w-full max-w-[500px] rounded-lg border border-sky-200 bg-white py-0 text-foreground shadow-xl">
           <CardContent className="relative p-7 md:p-9">
             <div className="mb-7 flex flex-col items-center text-center lg:hidden">
               <AppLogo />
@@ -165,7 +164,7 @@ export default function LoginPageClient() {
                         <div className="relative">
                           <User2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            className="h-12 rounded-xl border-white/10 bg-white/70 pl-10 shadow-inner dark:bg-white/8"
+                            className="h-12 rounded-md border-sky-200 bg-white pl-10 shadow-inner"
                             placeholder="Enter username or email"
                             {...field}
                           />
@@ -187,7 +186,7 @@ export default function LoginPageClient() {
                           <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             type={showPassword ? "text" : "password"}
-                            className="h-12 rounded-xl border-white/10 bg-white/70 pl-10 pr-12 shadow-inner dark:bg-white/8"
+                            className="h-12 rounded-md border-sky-200 bg-white pl-10 pr-12 shadow-inner"
                             placeholder="Enter password"
                             {...field}
                           />
@@ -197,7 +196,7 @@ export default function LoginPageClient() {
                               showPassword ? "Hide password" : "Show password"
                             }
                             onClick={() => setShowPassword((value) => !value)}
-                            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-cyan-500/10 hover:text-cyan-500"
+                            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sky-100 hover:text-sky-700"
                           >
                             {showPassword ? (
                               <EyeOff className="h-4 w-4" />
@@ -229,7 +228,7 @@ export default function LoginPageClient() {
 
                 <Button
                   type="submit"
-                  className="motion-sheen h-12 w-full rounded-xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-white/90"
+                  className="h-12 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign in"}
@@ -238,7 +237,7 @@ export default function LoginPageClient() {
               </form>
             </Form>
 
-            <div className="mt-7 rounded-[1.2rem] border border-white/10 bg-white/[0.05] p-4">
+            <div className="mt-7 rounded-lg border border-sky-200 bg-sky-50 p-4">
               <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
                 Need assistance?
               </p>
@@ -252,7 +251,7 @@ export default function LoginPageClient() {
                     )}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+                    className="flex items-center justify-between gap-3 rounded-md border border-sky-200 bg-white px-3 py-2 text-sm transition hover:border-sky-400 hover:bg-sky-50"
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-semibold">
@@ -262,7 +261,7 @@ export default function LoginPageClient() {
                         {creator.phone}
                       </span>
                     </span>
-                    <MessageCircle className="h-4 w-4 shrink-0 text-emerald-400" />
+                    <MessageCircle className="h-4 w-4 shrink-0 text-sky-700" />
                   </a>
                 ))}
               </div>
@@ -276,7 +275,7 @@ export default function LoginPageClient() {
 
 function BadgeLike() {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-sky-900 px-3 py-1 text-xs font-semibold text-white">
+    <div className="inline-flex items-center gap-2 border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800 shadow-sm">
       System access
     </div>
   );

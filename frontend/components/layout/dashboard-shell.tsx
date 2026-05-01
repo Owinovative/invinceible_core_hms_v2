@@ -13,20 +13,14 @@ export function DashboardShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="premium-system-bg relative h-screen overflow-hidden text-foreground">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="premium-aurora" />
-        <div className="clinical-mesh" />
-        <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-cyan-500/[0.12] via-emerald-400/[0.05] to-transparent" />
-      </div>
-
+    <div className="relative h-screen overflow-hidden bg-[#f5fbff] text-foreground">
       <div className="relative flex h-screen overflow-hidden">
         <DashboardSidebar />
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="w-[21rem] border-white/10 bg-background p-0 lg:hidden"
+            className="w-[21rem] border-sky-200 bg-background p-0 lg:hidden"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
