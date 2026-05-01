@@ -21,7 +21,7 @@ export function PublicSiteHeader() {
             Creators
           </Link>
         </nav>
-        <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+        <Button asChild className="rounded-md bg-sky-600 text-white hover:bg-sky-700">
           <Link href="/login">
             Enter system
             <ArrowRight className="h-4 w-4" />

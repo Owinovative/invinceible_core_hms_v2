@@ -56,16 +56,15 @@ function SummaryCard({
   isLoading?: boolean;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.05]">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-lg border border-sky-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md">
       <div className="relative">
-        <p className="text-sm text-muted-foreground">{title}</p>
+        <p className="text-sm font-semibold text-slate-600">{title}</p>
         {isLoading ? (
-          <Skeleton className="mt-3 h-8 w-20 rounded-xl" />
+          <Skeleton className="mt-3 h-8 w-20 rounded-md" />
         ) : (
-          <p className="mt-3 text-3xl font-bold tracking-tight">{value}</p>
+          <p className="mt-3 text-4xl font-bold tracking-tight text-sky-700">{value}</p>
         )}
-        {hint ? <p className="mt-2 text-xs text-muted-foreground">{hint}</p> : null}
+        {hint ? <p className="mt-2 text-xs font-medium text-slate-500">{hint}</p> : null}
       </div>
     </div>
   );
@@ -90,39 +89,38 @@ function SessionCard({
   isRefreshing?: boolean;
 }) {
   return (
-    <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-500/5" />
+    <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
       <CardHeader className="relative flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Current Session</CardTitle>
+        <CardTitle className="text-xl text-slate-950">Current Session</CardTitle>
         {isRefreshing ? (
           <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
         ) : (
-          <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-sky-700">
             Live
           </div>
         )}
       </CardHeader>
 
       <CardContent className="relative space-y-4">
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
             User
           </p>
           <p className="mt-2 text-base font-semibold">{username || "—"}</p>
         </div>
 
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
             Role
           </p>
           <p className="mt-2 text-base font-semibold">{roleCode || "—"}</p>
         </div>
 
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
             Access Scope
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">{scopeText}</p>
+          <p className="mt-2 text-sm text-slate-600">{scopeText}</p>
         </div>
       </CardContent>
     </Card>
@@ -153,21 +151,21 @@ function InsightStrip({
         return (
           <div
             key={item.label}
-            className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 panel-shadow"
+            className="rounded-lg border border-sky-200 bg-white p-4 shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06]">
-                <Icon className="h-5 w-5 text-cyan-400" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-sky-50">
+                <Icon className="h-5 w-5 text-sky-700" />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {item.label}
                 </p>
                 {isLoading ? (
-                  <Skeleton className="mt-2 h-6 w-24 rounded-lg" />
+                  <Skeleton className="mt-2 h-6 w-24 rounded-md" />
                 ) : (
-                  <p className="truncate text-lg font-bold tracking-tight">
+                  <p className="truncate text-xl font-bold tracking-tight text-slate-950">
                     {item.value}
                   </p>
                 )}
@@ -183,24 +181,24 @@ function InsightStrip({
 function AiAndSupportStrip() {
   return (
     <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-      <Card className="premium-card motion-sheen rounded-[1.8rem] py-0">
+      <Card className="rounded-lg border-sky-200 bg-white py-0 shadow-sm">
         <CardContent className="relative p-5 md:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+              <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
                 Clinical intelligence layer
               </Badge>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
                 AI doctor note assistant is now connected.
               </h2>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+              <p className="mt-2 text-sm leading-7 text-slate-600">
                 The dashboard now connects to a backend AI assistant that helps
                 doctors draft notes, clean clinical text, and prepare structured
                 summaries from patient context.
               </p>
               <Button
                 asChild
-                className="mt-4 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                className="mt-4 rounded-md bg-sky-600 text-white hover:bg-sky-700"
               >
                 <Link href="/ai-assistant">
                   Open AI assistant
@@ -213,10 +211,10 @@ function AiAndSupportStrip() {
               {["Notes", "Autofill", "Summaries"].map((item) => (
                 <div
                   key={item}
-                  className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 py-3"
+                  className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white text-sky-700">
                       <Bot className="h-4 w-4" />
                     </div>
                     <p className="text-sm font-semibold">{item}</p>
@@ -228,16 +226,16 @@ function AiAndSupportStrip() {
         </CardContent>
       </Card>
 
-      <Card className="premium-card rounded-[1.8rem] py-0">
+      <Card className="rounded-lg border-sky-200 bg-white py-0 shadow-sm">
         <CardContent className="relative p-5 md:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
+              <p className="text-xs font-semibold uppercase text-slate-500">
                 Builder support
               </p>
-              <h2 className="mt-1 text-xl font-bold">Engineering assistance</h2>
+              <h2 className="mt-1 text-2xl font-bold text-slate-950">Engineering assistance</h2>
             </div>
-            <Sparkles className="h-5 w-5 text-amber-400" />
+            <Sparkles className="h-5 w-5 text-sky-600" />
           </div>
 
           <div className="grid gap-3">
@@ -247,7 +245,7 @@ function AiAndSupportStrip() {
                 href={getWhatsappLink(creator.whatsappNumber, creator.message)}
                 target="_blank"
                 rel="noreferrer"
-            className="rounded-[1.1rem] border border-sky-200 bg-white p-4 transition hover:border-sky-400 hover:bg-sky-50"
+            className="rounded-lg border border-sky-200 bg-sky-50 p-4 transition hover:border-sky-400 hover:bg-white"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -279,7 +277,7 @@ function OperationalPulseChart({
   data: Array<{ label: string; value: number; color: string }>;
 }) {
   return (
-    <div className="h-[320px] rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4">
+    <div className="h-[320px] rounded-lg border border-sky-200 bg-white p-4">
       {isLoading ? (
         <div className="grid h-full grid-cols-6 items-end gap-3">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -425,9 +423,8 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-white p-6 shadow-sm md:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-emerald-500/5 to-amber-400/10" />
+    <div className="space-y-7 text-slate-900">
+      <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-white p-6 shadow-md md:p-8">
         <div className="clinical-mesh opacity-40" />
 
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
@@ -437,7 +434,7 @@ export default function DashboardPage() {
             </Badge>
 
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
+              <h1 className="text-4xl font-bold tracking-tight text-slate-950 md:text-6xl">
                 Hospital Dashboard
               </h1>
               {isRefreshing ? (
@@ -454,7 +451,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
+            <p className="max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
               Live control over alerts, admissions, lab pressure, pharmacy
               issues, and operational flow across your current scope.
             </p>
@@ -468,40 +465,40 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:w-[520px]">
-            <div className="rounded-[1.35rem] border border-white/10 glass-panel panel-shadow px-4 py-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
                 Facility
               </p>
               {isLoading ? (
-                <Skeleton className="mt-3 h-5 w-28 rounded-lg" />
+                <Skeleton className="mt-3 h-5 w-28 rounded-md" />
               ) : (
-                <p className="mt-3 truncate text-sm font-semibold">
+                <p className="mt-3 truncate text-sm font-semibold text-slate-950">
                   {facilityLabel}
                 </p>
               )}
             </div>
 
-            <div className="rounded-[1.35rem] border border-white/10 glass-panel panel-shadow px-4 py-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
                 Branch
               </p>
               {isLoading ? (
-                <Skeleton className="mt-3 h-5 w-28 rounded-lg" />
+                <Skeleton className="mt-3 h-5 w-28 rounded-md" />
               ) : (
-                <p className="mt-3 truncate text-sm font-semibold">
+                <p className="mt-3 truncate text-sm font-semibold text-slate-950">
                   {branchLabel}
                 </p>
               )}
             </div>
 
-            <div className="rounded-[1.35rem] border border-white/10 glass-panel panel-shadow px-4 py-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
                 Health Score
               </p>
               {isLoading ? (
-                <Skeleton className="mt-3 h-6 w-20 rounded-lg" />
+                <Skeleton className="mt-3 h-6 w-20 rounded-md" />
               ) : (
-                <p className="mt-3 text-lg font-bold">{healthScore}</p>
+                <p className="mt-3 text-2xl font-bold text-sky-700">{healthScore}</p>
               )}
             </div>
           </div>
@@ -558,10 +555,10 @@ export default function DashboardPage() {
 
       {showHealthyEmptyState ? (
         <section>
-          <Card className="relative overflow-hidden rounded-[1.9rem] gradient-border panel-shadow">
+          <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
             <CardContent className="relative flex flex-col items-center justify-center px-6 py-14 text-center">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-cyan-500/5" />
-              <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10">
+              <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-emerald-500/10">
                 <Activity className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
               </div>
               <h2 className="relative text-2xl font-bold tracking-tight">
@@ -577,16 +574,16 @@ export default function DashboardPage() {
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Operational Summary</CardTitle>
+              <CardTitle className="text-xl text-slate-950">Operational Summary</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
                 High-level pressure points across your current scope
               </p>
             </div>
 
-            <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground md:block">
+            <div className="hidden rounded-md border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-sky-700 md:block">
               Live Snapshot
             </div>
           </CardHeader>
@@ -619,14 +616,14 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Growth & Flow</CardTitle>
-            <TrendingUp className="h-5 w-5 text-cyan-400" />
+            <CardTitle className="text-xl text-slate-950">Growth & Flow</CardTitle>
+            <TrendingUp className="h-5 w-5 text-sky-600" />
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold">Operational Readiness</p>
                 <Activity className="h-4 w-4 text-blue-400" />
@@ -641,7 +638,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold">Clinical Pressure</p>
                 <BedDouble className="h-4 w-4 text-amber-400" />
@@ -659,7 +656,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold">Financial Watch</p>
                 <Wallet className="h-4 w-4 text-emerald-400" />
@@ -680,15 +677,15 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Module Command Center</CardTitle>
+              <CardTitle className="text-xl text-slate-950">Module Command Center</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
                 Live work moving through the new operational modules
               </p>
             </div>
-            <ClipboardCheck className="h-5 w-5 text-cyan-400" />
+            <ClipboardCheck className="h-5 w-5 text-sky-600" />
           </CardHeader>
 
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -719,10 +716,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Recent Module Work</CardTitle>
+              <CardTitle className="text-xl text-slate-950">Recent Module Work</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
                 The newest operational records across all added modules
               </p>
@@ -743,7 +740,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : recentModuleRecords.length === 0 ? (
-              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-sky-300 bg-sky-50 p-4 text-sm text-slate-600">
                 No module work has been captured yet.
               </div>
             ) : (
@@ -751,15 +748,15 @@ export default function DashboardPage() {
                 <Link
                   key={record.id}
                   href={`/${record.moduleSlug}`}
-                  className="block rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.06]"
+                  className="block rounded-lg border border-sky-200 bg-sky-50 p-4 transition hover:border-sky-300 hover:bg-white"
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="rounded-full">
+                        <Badge variant="outline" className="rounded-md">
                           {record.moduleTitle}
                         </Badge>
-                        <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                        <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
                           {record.statusCode}
                         </Badge>
                       </div>
@@ -801,10 +798,10 @@ export default function DashboardPage() {
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <LowStockPanel items={health?.panels.lowStockItems ?? []} />
 
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Operational Pulse</CardTitle>
-            <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-300">
+            <CardTitle className="text-xl text-slate-950">Operational Pulse</CardTitle>
+            <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
               Live
             </Badge>
           </CardHeader>

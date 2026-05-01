@@ -24,24 +24,24 @@
 }
 
 .dark {
-  --background: 214 48% 10%;
+  --background: 199 89% 32%;
   --foreground: 203 100% 96%;
-  --card: 213 45% 14%;
+  --card: 199 89% 36%;
   --card-foreground: 203 100% 96%;
-  --popover: 213 45% 14%;
+  --popover: 199 89% 36%;
   --popover-foreground: 203 100% 96%;
   --primary: 199 91% 48%;
-  --primary-foreground: 214 56% 10%;
-  --secondary: 211 44% 19%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 199 76% 40%;
   --secondary-foreground: 203 100% 94%;
-  --muted: 212 36% 18%;
-  --muted-foreground: 204 24% 72%;
-  --accent: 199 72% 23%;
+  --muted: 199 76% 38%;
+  --muted-foreground: 203 100% 88%;
+  --accent: 199 84% 44%;
   --accent-foreground: 203 100% 94%;
   --destructive: 0 72% 55%;
   --destructive-foreground: 203 100% 98%;
-  --border: 205 37% 26%;
-  --input: 205 37% 26%;
+  --border: 199 84% 64%;
+  --input: 199 84% 64%;
   --ring: 199 91% 48%;
 }
 
@@ -64,7 +64,7 @@ body {
 }
 
 .dark body {
-  background: #081b31;
+  background: #0c4a6e;
   color: hsl(var(--foreground));
 }
 
@@ -146,7 +146,7 @@ pre,
 }
 
 .dark .premium-system-bg {
-  background: #081b31;
+  background: #0c4a6e;
 }
 
 .premium-aurora {
@@ -377,17 +377,17 @@ pre,
 .dark .bg-\[\#eef8ff\],
 .dark .bg-\[\#eaf7ff\],
 .dark .bg-sky-50 {
-  background-color: #10243a !important;
+  background-color: #075985 !important;
 }
 
 .dark .bg-sky-100 {
-  background-color: #12314d !important;
+  background-color: #0369a1 !important;
 }
 
 .dark .border-sky-100,
 .dark .border-sky-200,
 .dark .border-sky-300 {
-  border-color: #24506f !important;
+  border-color: #38bdf8 !important;
 }
 
 .dark .text-slate-950,
