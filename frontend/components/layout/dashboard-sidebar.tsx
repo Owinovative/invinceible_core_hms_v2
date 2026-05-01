@@ -188,12 +188,12 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-sky-300 bg-sky-500 text-white transition-all duration-300",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-[#242424] bg-[#303030] text-white transition-all duration-300",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="shrink-0 border-b border-sky-300/80 px-4 py-5">
+      <div className="shrink-0 border-b border-[#3f3f3f] px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-hidden">
             {compact ? <AppLogo iconOnly light /> : <AppLogo light />}
@@ -203,7 +203,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-sky-100/70 bg-white/12 text-white hover:bg-white/20"
+              className="shrink-0 rounded-md border-[#5a5a5a] bg-[#3a3a3a] text-white hover:bg-[#464646]"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -217,29 +217,29 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="shrink-0 px-3 py-4">
-        <div className="rounded-md border border-sky-100/70 bg-sky-600/40 p-3">
+        <div className="rounded-md border border-[#464646] bg-[#383838] p-3">
           {compact ? (
-            <div className="space-y-2 text-center text-xs font-semibold text-sky-50/80">
-              <div className="rounded-md bg-white/15 px-2 py-2 text-white">
+            <div className="space-y-2 text-center text-xs font-semibold text-white">
+              <div className="rounded-md bg-[#444] px-2 py-2 text-white">
                 F
               </div>
-              <div className="rounded-md bg-white/15 px-2 py-2 text-white">
+              <div className="rounded-md bg-[#444] px-2 py-2 text-white">
                 B
               </div>
             </div>
           ) : (
             <div className="grid gap-2">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/60">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#cfcfcf]">
                   Facility
                 </p>
                 <p className="truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
                   {facilityName || "No facility"}
                 </p>
               </div>
-              <Separator className="bg-sky-500/25" />
+              <Separator className="bg-[#4a4a4a]" />
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/60">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#cfcfcf]">
                   Branch
                 </p>
                 <p className="truncate text-sm font-semibold text-white" title={selectedBranchName || "No branch"}>
@@ -265,11 +265,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-md border border-sky-100/70 bg-sky-600/40 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/16",
+                  "flex items-center justify-center gap-2 rounded-md border border-[#4a4a4a] bg-[#383838] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#454545]",
                   compact && "px-2",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0 text-sky-50" />
+                <Icon className="h-4 w-4 shrink-0 text-white" />
                 {!compact ? <span className="min-w-0 truncate">{item.title}</span> : null}
               </Link>
             );
@@ -282,7 +282,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
           {navSections.map((section) => (
             <div key={section.label} className="space-y-2">
               {!compact ? (
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-100/55">
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#bdbdbd]">
                   {section.label}
                 </p>
               ) : null}
@@ -307,8 +307,8 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                           "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-white text-sky-700 ring-1 ring-sky-100"
-                            : "text-sky-50/86 hover:bg-white/14 hover:text-white",
+                            ? "bg-[#22b14c] text-white ring-1 ring-[#31d55f]"
+                            : "text-white hover:bg-[#3f3f3f] hover:text-white",
                         )}
                       >
                         <Icon

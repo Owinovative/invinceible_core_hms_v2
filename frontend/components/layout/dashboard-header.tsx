@@ -51,33 +51,33 @@ export function DashboardHeader() {
   const unreadCount = counts?.counts.unread ?? 0;
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-sky-400 bg-sky-600 text-white shadow-lg">
-      <div className="flex min-h-24 items-center gap-4 px-4 py-3 md:px-6">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-[#00477f] border-t-4 border-t-red-600 bg-[#005a9c] text-white shadow-md">
+      <div className="flex min-h-16 items-center gap-4 px-4 py-2 md:px-6">
         <Button
           variant="outline"
           size="icon"
-          className="rounded-md border-sky-200/70 bg-white/12 text-white hover:bg-white/20 lg:hidden"
+          className="rounded-md border-white/60 bg-[#0b6ead] text-white hover:bg-[#1478bb] lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-md border border-sky-200/70 bg-sky-500 px-4 py-3 md:flex">
-          <Search className="h-4 w-4 shrink-0 text-sky-50" />
+        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-md border border-[#75c7f2] bg-[#0b6ead] px-4 py-2.5 md:flex">
+          <Search className="h-4 w-4 shrink-0 text-white" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
               {selectedBranchName || facilityName || "Active workspace"}
             </p>
-            <p className="truncate text-xs text-sky-100/75">
+            <p className="truncate text-xs font-medium text-[#e8f6ff]">
               Patients, billing, lab, pharmacy, and admissions
             </p>
           </div>
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className="hidden min-w-0 rounded-md border border-sky-200/70 bg-sky-500 px-4 py-2 shadow-sm md:flex md:items-center">
+          <div className="hidden min-w-0 rounded-md border border-[#75c7f2] bg-[#0b6ead] px-4 py-2 shadow-sm md:flex md:items-center">
             <div className="text-right">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-sky-100/65">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#e8f6ff]">
                 Facility
               </p>
               <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
@@ -86,8 +86,8 @@ export function DashboardHeader() {
             </div>
           </div>
 
-          <div className="hidden min-w-[280px] max-w-[360px] rounded-md border border-sky-200/70 bg-sky-500 px-4 py-2 shadow-sm md:block">
-            <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-sky-100/65">
+          <div className="hidden min-w-[280px] max-w-[360px] rounded-md border border-[#75c7f2] bg-[#0b6ead] px-4 py-2 shadow-sm md:block">
+            <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-[#e8f6ff]">
               Branch
             </p>
 
@@ -120,7 +120,7 @@ export function DashboardHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-md border-sky-200/70 bg-white/12 text-white hover:bg-white/20"
+            className="rounded-md border-white/60 bg-[#0b6ead] text-white hover:bg-[#1478bb]"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -134,7 +134,7 @@ export function DashboardHeader() {
             asChild
             variant="outline"
             size="icon"
-            className="relative rounded-md border-sky-200/70 bg-white/12 text-white hover:bg-white/20"
+            className="relative rounded-md border-white/60 bg-[#0b6ead] text-white hover:bg-[#1478bb]"
           >
             <Link href="/notifications" aria-label="Notifications">
               <Bell className="h-4 w-4" />
@@ -148,24 +148,24 @@ export function DashboardHeader() {
             </Link>
           </Button>
 
-          <div className="flex min-w-0 items-center gap-3 rounded-md border border-sky-200/70 bg-sky-500 px-3 py-2 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3 rounded-md border border-[#75c7f2] bg-[#0b6ead] px-3 py-2 shadow-sm">
             <div className="hidden min-w-0 text-right sm:block">
               <p className="max-w-[210px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
                 {user?.username || "User"}
               </p>
-              <p className="truncate text-xs text-sky-100/70">
+              <p className="truncate text-xs font-medium text-[#e8f6ff]">
                 {user?.roleCode || "Role"}
               </p>
             </div>
 
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-white text-sm font-bold text-sky-700">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-sm font-bold text-[#005a9c]">
               {initials}
             </div>
 
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-md text-white hover:bg-white/18 hover:text-white"
+              className="rounded-md text-white hover:bg-[#1478bb] hover:text-white"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />
