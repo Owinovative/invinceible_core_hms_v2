@@ -187,7 +187,7 @@ export function ClinicalAiAssistant({
 
           <Button
             type="button"
-            className="h-11 w-full rounded-md bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-white/90"
+            className="h-11 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
             disabled={
               mutation.isPending ||
               status.isLoading ||
@@ -237,7 +237,7 @@ export function ClinicalAiAssistant({
               {errorMessage}
             </div>
           ) : output ? (
-            <div className="whitespace-pre-wrap rounded-md border border-border bg-white p-4 text-sm leading-7 text-slate-800 shadow-sm dark:bg-slate-950 dark:text-slate-100">
+            <div className="whitespace-pre-wrap rounded-md border border-border bg-white p-4 text-sm leading-7 text-slate-800 shadow-sm">
               {output}
             </div>
           ) : (

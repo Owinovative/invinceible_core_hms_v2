@@ -1,351 +1,234 @@
 import {
   Activity,
+  ArrowRight,
   BellRing,
-  Bot,
-  Braces,
   Building2,
-  Code2,
   DatabaseZap,
   GitBranch,
   KeyRound,
   LockKeyhole,
-  MessageCircle,
   MapPin,
-  PhoneCall,
-  Pill,
   ScrollText,
   ServerCog,
-  Shield,
   ShieldCheck,
   Stethoscope,
-  TerminalSquare,
   UserCog,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { creatorContacts, getWhatsappLink } from "@/lib/creator-contacts";
 
-const items = [
+const platformItems = [
   {
     title: "Facilities",
     href: "/platform/facilities",
     icon: Building2,
-    signal: "facility.registry",
+    text: "Create and maintain hospital facility records.",
   },
   {
     title: "Branches",
     href: "/platform/branches",
     icon: GitBranch,
-    signal: "branch.scope",
-  },
-  {
-    title: "Departments",
-    href: "/platform/departments",
-    icon: DatabaseZap,
-    signal: "dept.map",
+    text: "Control branch scope, service points, stock, and patient flow.",
   },
   {
     title: "Master Catalogs",
     href: "/platform/catalogs",
-    icon: Pill,
-    signal: "drug.service.lab.catalog",
+    icon: DatabaseZap,
+    text: "Manage drugs, services, lab tests, and CSV imports.",
   },
   {
     title: "Users",
     href: "/platform/users",
     icon: Users,
-    signal: "rbac.users",
+    text: "Create users, assign roles, and recover locked accounts.",
   },
   {
     title: "Staff",
     href: "/platform/staff",
     icon: UserCog,
-    signal: "staff.link",
+    text: "Link staff profiles to facility departments and system users.",
   },
   {
     title: "Clinics",
     href: "/platform/clinics",
     icon: Stethoscope,
-    signal: "service.points",
+    text: "Define service points used by doctors and front desk teams.",
   },
   {
     title: "Notifications",
     href: "/platform/notifications",
     icon: BellRing,
-    signal: "alert.bus",
-  },
-  {
-    title: "Audit Trail",
-    href: "/platform/audit",
-    icon: ScrollText,
-    signal: "audit.trace",
+    text: "Send scoped messages to system, facility, or staff users.",
   },
   {
     title: "User Locations",
     href: "/platform/user-locations",
     icon: MapPin,
-    signal: "session.geo.trace",
+    text: "Review active sessions, network location, device, and route evidence.",
   },
   {
-    title: "Settings",
-    href: "/platform/settings",
-    icon: ServerCog,
-    signal: "runtime.cfg",
-  },
-];
-
-const checks = [
-  "JWT guard online",
-  "Scope service enforced",
-  "Notification bus scoped",
-  "Role gates active",
-  "Audit trail inspectable",
-  "Facility topology controlled",
-];
-
-const controlNodes = [
-  {
-    title: "Master catalog kernel",
-    href: "/platform/catalogs",
-    icon: DatabaseZap,
-    caption: "CSV drug, service, and lab control",
-  },
-  {
-    title: "Audit review",
+    title: "Audit Trail",
     href: "/platform/audit",
     icon: ScrollText,
-    caption: "Who did what, where, and when",
+    text: "Inspect actor, action, time, network, and module history.",
   },
-  {
-    title: "Location radar",
-    href: "/platform/user-locations",
-    icon: MapPin,
-    caption: "Live sessions and last known network location",
-  },
-  {
-    title: "Permission matrix",
-    href: "/platform/settings",
-    icon: KeyRound,
-    caption: "RBAC and runtime discipline",
-  },
-  {
-    title: "AI clinical assistant",
-    href: "/ai-assistant",
-    icon: Bot,
-    caption: "Clinical writing support online",
-  },
+];
+
+const controlRows = [
+  ["Catalog control", "Master drugs, lab services, billing services, CSV download, CSV import, and branch pricing paths."],
+  ["Access control", "Users, staff links, role boundaries, locked accounts, and platform-only administration."],
+  ["Security evidence", "Audit logs, login records, live sessions, last seen location, browser, device, and IP details."],
+  ["Facility structure", "Facilities, branches, departments, clinics, and operational settings kept in one control area."],
+];
+
+const signalCards = [
+  { title: "Facilities", label: "Structure", icon: Building2 },
+  { title: "Roles", label: "Security", icon: KeyRound },
+  { title: "Audit", label: "Evidence", icon: ScrollText },
+  { title: "Locations", label: "Sessions", icon: MapPin },
 ];
 
 export default function PlatformHomePage() {
   return (
     <div className="space-y-6">
-      <section className="premium-card motion-sheen relative overflow-hidden rounded-[1.8rem] p-6 md:p-8">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-18"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=2200&q=85')",
-          }}
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(2,6,23,0.96),rgba(8,47,73,0.62),rgba(6,78,59,0.42))]" />
-        <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(to_right,rgba(34,211,238,.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,.1)_1px,transparent_1px)] [background-size:34px_34px]" />
-
-        <div className="relative grid gap-8 text-white xl:grid-cols-[1.05fr_0.95fr] xl:items-center">
-          <div className="space-y-6">
-            <Badge className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 font-mono text-cyan-100">
-              root@invinceible-core:/platform
+      <section className="border border-sky-200 bg-white p-6 shadow-sm md:p-8">
+        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr] xl:items-center">
+          <div className="space-y-5">
+            <Badge className="rounded-md border-0 bg-sky-100 px-3 py-1 text-sky-800">
+              Platform control
             </Badge>
-
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/12 ring-1 ring-cyan-300/20">
-                <TerminalSquare className="h-7 w-7 text-cyan-200" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+                <ShieldCheck className="h-7 w-7" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold leading-tight md:text-5xl">
-                  Platform Engineering Console
+                <h1 className="text-3xl font-bold leading-tight text-slate-950 md:text-5xl">
+                  Platform Administration
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
-                  A restricted control plane for structure, access, facility
-                  topology, service points, notifications, audit visibility, and
-                  operational discipline.
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                  Control the system structure from one bright workspace:
+                  facilities, branches, staff, users, clinics, master catalogs,
+                  audit evidence, notifications, and location intelligence.
                 </p>
               </div>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {checks.map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 rounded-[1.05rem] border border-white/12 bg-white/[0.07] px-4 py-3 backdrop-blur-xl"
-                >
-                  <LockKeyhole className="h-4 w-4 text-emerald-300" />
-                  <span className="font-mono text-xs text-white/82">
-                    {item}
-                  </span>
-                </div>
-              ))}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+                <Link href="/platform/admin-control">
+                  Open admin control
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-md border-sky-300 bg-white text-sky-800 hover:bg-sky-50"
+              >
+                <Link href="/dashboard">Return to hospital dashboard</Link>
+              </Button>
             </div>
           </div>
 
-          <div className="rounded-[1.35rem] border border-cyan-300/15 bg-black/52 p-4 font-mono text-xs text-cyan-100 shadow-2xl">
-            <div className="mb-3 flex items-center gap-2 border-b border-cyan-300/10 pb-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-              <span className="ml-2 text-white/45">ops-kernel.ts</span>
-            </div>
-            <pre className="overflow-hidden leading-6 text-cyan-100/82">
-              {`const console = await boot({
-  owner: "PLATFORM_ENGINEERING",
-  surface: "hospital.control-plane",
-  guard: ["jwt", "rbac", "scope", "audit"],
-});
-
-await console.verify([
-  "facilities",
-  "branches",
-  "users",
-  "staff",
-  "clinics",
-  "notifications",
-  "reports",
-]);
-
-emit("system.level", 6);`}
-            </pre>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {signalCards.map((item) => {
+              const Icon = item.icon;
+              return (
+              <div key={item.title} className="border border-sky-200 bg-[#f8fcff] p-5">
+                <Icon className="mb-4 h-6 w-6 text-sky-700" />
+                <p className="text-2xl font-bold text-slate-950">{item.title}</p>
+                <p className="mt-1 text-sm font-semibold uppercase text-slate-500">
+                  {item.label}
+                </p>
+              </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {items.map((item) => {
+        {platformItems.map((item) => {
           const Icon = item.icon;
-
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="premium-card group rounded-[1.35rem] p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/35"
+              className="group border border-sky-200 bg-white p-5 shadow-sm transition hover:border-sky-400 hover:bg-sky-50"
             >
-              <div className="relative">
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <Braces className="h-4 w-4 text-muted-foreground transition group-hover:text-cyan-400" />
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+                  <Icon className="h-5 w-5" />
                 </div>
-
-                <h2 className="text-lg font-semibold">{item.title}</h2>
-                <p className="mt-2 font-mono text-xs text-cyan-700/70 dark:text-cyan-200/70">
-                  {item.signal}
-                </p>
+                <ArrowRight className="h-4 w-4 text-sky-700 transition group-hover:translate-x-1" />
               </div>
+              <h2 className="text-lg font-semibold text-slate-950">
+                {item.title}
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                {item.text}
+              </p>
             </Link>
           );
         })}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.82fr_1.18fr]">
-        <div className="premium-card rounded-[1.5rem] p-5">
-          <div className="relative">
-            <div className="mb-5 flex items-center gap-3">
-              <Shield className="h-5 w-5 text-emerald-400" />
-              <h2 className="text-xl font-semibold">Access Discipline</h2>
-            </div>
-            <div className="space-y-3 text-sm leading-7 text-muted-foreground">
-              <p>Only platform owners should operate this console.</p>
-              <p>Define facility structure before clinical teams work.</p>
-              <p>
-                Every facility, branch, staff, and user decision should be
-                traceable from this area.
-              </p>
-            </div>
+      <section className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+        <div className="border border-sky-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <LockKeyhole className="h-5 w-5 text-sky-700" />
+            <h2 className="text-xl font-semibold text-slate-950">
+              Admin Discipline
+            </h2>
           </div>
+          <p className="text-sm leading-7 text-slate-600">
+            Platform work stays separate from daily facility work. Super admin
+            controls belong here, while hospital staff use the dashboard for
+            patient care and operations.
+          </p>
         </div>
 
-        <div className="premium-card rounded-[1.5rem] p-5">
-          <div className="relative">
-            <div className="mb-5 flex items-center gap-3">
-              <Activity className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-xl font-semibold">Control Nodes Online</h2>
-            </div>
-            <div className="grid gap-3 md:grid-cols-4">
-              {controlNodes.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.title}
-                    href={item.href}
-                    className="rounded-lg border border-cyan-300/10 bg-black/[0.08] px-4 py-3 font-mono text-sm transition hover:border-cyan-300/35 hover:bg-cyan-400/10 dark:bg-black/25"
-                  >
-                    <Icon className="mb-3 h-4 w-4 text-cyan-400" />
-                    <p>{item.title}</p>
-                    <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                      {item.caption}
-                    </p>
-                  </Link>
-                );
-              })}
-            </div>
+        <div className="border border-sky-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <Activity className="h-5 w-5 text-sky-700" />
+            <h2 className="text-xl font-semibold text-slate-950">
+              What This Area Controls
+            </h2>
           </div>
-        </div>
-      </section>
-
-      <section className="premium-card rounded-[1.5rem] p-5">
-        <div className="relative grid gap-5 xl:grid-cols-[0.75fr_1.25fr] xl:items-center">
-          <div>
-            <div className="mb-3 flex items-center gap-3">
-              <Code2 className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-xl font-semibold">Engineering Support</h2>
-            </div>
-            <p className="text-sm leading-7 text-muted-foreground">
-              Built by Eng. Otieno Owino and Eng. Moikoyo Paul, full-stack
-              engineers with more than 7 years of production software
-              experience.
-            </p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            {creatorContacts.map((creator) => (
-              <a
-                key={creator.name}
-                href={getWhatsappLink(creator.whatsappNumber, creator.message)}
-                target="_blank"
-                rel="noreferrer"
-                className="group rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-4 transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+          <div className="overflow-hidden border border-sky-200">
+            {controlRows.map(([label, detail]) => (
+              <div
+                key={label}
+                className="grid gap-2 border-b border-sky-100 p-4 last:border-b-0 md:grid-cols-[190px_1fr]"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{creator.name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {creator.role}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2 text-sm text-emerald-500">
-                      <PhoneCall className="h-4 w-4" />
-                      {creator.phone}
-                    </div>
-                  </div>
-                  <MessageCircle className="h-5 w-5 text-emerald-400 transition group-hover:scale-110" />
-                </div>
-              </a>
+                <p className="font-semibold text-sky-900">{label}</p>
+                <p className="text-sm leading-6 text-slate-600">{detail}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <div className="flex justify-end">
-        <Button
-          asChild
-          className="motion-sheen rounded-xl bg-cyan-400 text-slate-950 hover:bg-cyan-300"
-        >
-          <Link href="/dashboard">
-            Return to hospital dashboard
-            <ShieldCheck className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
+      <section className="border border-sky-200 bg-[#eaf7ff] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-3">
+              <ServerCog className="h-5 w-5 text-sky-700" />
+              <h2 className="text-xl font-semibold text-slate-950">
+                Platform is the system owner area.
+              </h2>
+            </div>
+            <p className="max-w-3xl text-sm leading-7 text-slate-600">
+              Facility admins can run facility-level settings. Super admins can
+              control the whole installation from this platform.
+            </p>
+          </div>
+          <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+            <Link href="/platform/settings">Open settings</Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }

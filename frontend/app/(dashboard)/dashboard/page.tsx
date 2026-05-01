@@ -200,7 +200,7 @@ function AiAndSupportStrip() {
               </p>
               <Button
                 asChild
-                className="mt-4 rounded-md bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+                className="mt-4 rounded-md bg-sky-700 text-white hover:bg-sky-800"
               >
                 <Link href="/ai-assistant">
                   Open AI assistant
@@ -247,7 +247,7 @@ function AiAndSupportStrip() {
                 href={getWhatsappLink(creator.whatsappNumber, creator.message)}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-4 transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+            className="rounded-[1.1rem] border border-sky-200 bg-white p-4 transition hover:border-sky-400 hover:bg-sky-50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -426,13 +426,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="premium-card motion-sheen relative overflow-hidden rounded-[2rem] p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-white p-6 shadow-sm md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-emerald-500/5 to-amber-400/10" />
         <div className="clinical-mesh opacity-40" />
 
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-4xl space-y-4">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700 dark:text-blue-300">
+            <Badge className="rounded-md border-0 bg-sky-100 px-3 py-1 text-sky-800">
               Operations Command Center
             </Badge>
 

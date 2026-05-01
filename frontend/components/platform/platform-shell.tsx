@@ -18,7 +18,7 @@ export function PlatformShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#f5fbff] text-foreground dark:bg-[#061526]">
+    <div className="relative h-screen overflow-hidden bg-[#f5fbff] text-foreground">
       <div className="relative flex h-screen">
         <PlatformSidebar />
 

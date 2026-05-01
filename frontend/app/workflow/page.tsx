@@ -15,20 +15,20 @@ export default function WorkflowPage() {
   return (
     <main className="min-h-screen bg-[#f5fbff] text-slate-900">
       <PublicSiteHeader />
-      <section className="bg-sky-950 text-white">
+      <section className="border-b border-sky-200 bg-white text-slate-950">
         <div className="mx-auto grid max-w-[1180px] gap-8 px-5 py-12 md:px-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div>
-            <p className="text-sm font-semibold uppercase text-sky-200">
+            <p className="text-sm font-semibold uppercase text-sky-700">
               System workflow
             </p>
             <h1 className="mt-2 text-4xl font-bold leading-tight md:text-5xl">
               The hospital flow is built around the patient visit.
             </h1>
-            <p className="mt-4 text-base leading-8 text-sky-50">
+            <p className="mt-4 text-base leading-8 text-slate-600">
               The system connects front desk, doctors, lab, pharmacy, IPD,
               billing, and reports so work does not disappear between desks.
             </p>
-            <Button asChild className="mt-6 rounded-md bg-sky-300 text-sky-950 hover:bg-sky-200">
+            <Button asChild className="mt-6 rounded-md bg-sky-700 text-white hover:bg-sky-800">
               <Link href="/login">
                 Enter the system
                 <ArrowRight className="h-4 w-4" />
@@ -36,7 +36,7 @@ export default function WorkflowPage() {
             </Button>
           </div>
           <div
-            className="min-h-[320px] border border-white/20 bg-cover bg-center"
+            className="min-h-[320px] border border-sky-200 bg-cover bg-center"
             style={{
               backgroundImage:
                 "url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1600&q=86')",

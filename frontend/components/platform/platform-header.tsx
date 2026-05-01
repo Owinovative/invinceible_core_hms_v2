@@ -23,20 +23,20 @@ export function PlatformHeader() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-background/75 backdrop-blur-2xl">
+    <header className="sticky top-0 z-30 border-b border-sky-200 bg-white shadow-sm">
       <div className="flex h-20 items-center gap-4 px-4 md:px-6">
         <Button
           variant="outline"
           size="icon"
-          className="rounded-xl lg:hidden"
+          className="rounded-md border-sky-200 bg-white lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="premium-card hidden items-center gap-3 rounded-[1.2rem] px-4 py-2 md:flex">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/10">
-            <Shield className="h-5 w-5 text-cyan-400" />
+        <div className="hidden items-center gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 md:flex">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-white">
+            <Shield className="h-5 w-5 text-sky-700" />
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Secure Area</p>
@@ -48,7 +48,7 @@ export function PlatformHeader() {
           <Button
             variant="outline"
             size="icon"
-            className="rounded-xl border-white/10 bg-white/[0.05]"
+            className="rounded-md border-sky-200 bg-white"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
@@ -58,7 +58,7 @@ export function PlatformHeader() {
             )}
           </Button>
 
-          <div className="flex items-center gap-3 rounded-[1.3rem] border glass-panel px-3 py-2 panel-shadow">
+          <div className="flex items-center gap-3 rounded-md border border-sky-200 bg-white px-3 py-2 shadow-sm">
             <div className="hidden text-right sm:block">
               <p className="max-w-[180px] truncate text-sm font-semibold">
                 {user?.username || "User"}
@@ -68,14 +68,14 @@ export function PlatformHeader() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-emerald-500 to-amber-300 font-semibold text-slate-950 shadow-lg">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sky-100 font-semibold text-sky-800">
               {initials}
             </div>
 
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-xl"
+              className="rounded-md"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />

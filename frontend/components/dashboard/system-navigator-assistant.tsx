@@ -235,7 +235,7 @@ export function SystemNavigatorAssistant({
 
           <Button
             type="button"
-            className="h-11 w-full rounded-md bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+            className="h-11 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
             onClick={askNavigator}
             disabled={mutation.isPending || !prompt.trim()}
           >

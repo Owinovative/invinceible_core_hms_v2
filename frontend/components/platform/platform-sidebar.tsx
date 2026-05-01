@@ -50,12 +50,12 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-white/10 bg-background/80 backdrop-blur-2xl transition-all duration-300",
+        "flex h-full shrink-0 flex-col border-r border-sky-200 bg-white transition-all duration-300",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-72"),
       )}
     >
-      <div className="border-b px-4 py-5">
+      <div className="border-b border-sky-200 px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="overflow-hidden">
             {compact ? <AppLogo iconOnly /> : <AppLogo />}
@@ -65,7 +65,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-xl border-white/10 bg-white/[0.03]"
+              className="shrink-0 rounded-md border-sky-200 bg-white"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -79,10 +79,10 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="px-3 py-4">
-        <div className="premium-card rounded-[1.2rem] p-4">
+        <div className="rounded-md border border-sky-200 bg-sky-50 p-4">
           {compact ? (
             <div className="space-y-3 text-center">
-              <div className="rounded-lg bg-cyan-500/10 p-2 text-xs font-semibold text-cyan-300">
+              <div className="rounded-md bg-white p-2 text-xs font-semibold text-sky-700">
                 PA
               </div>
             </div>
@@ -92,9 +92,9 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
                 Platform Access
               </p>
 
-              <div className="flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-3 py-2">
-                <Shield className="h-4 w-4 text-cyan-300" />
-                <span className="text-sm font-semibold text-cyan-200">
+              <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2">
+                <Shield className="h-4 w-4 text-sky-700" />
+                <span className="text-sm font-semibold text-sky-800">
                   {user?.roleCode || "SUPER_ADMIN"}
                 </span>
               </div>
@@ -124,8 +124,8 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
                 "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
                 compact && "justify-center px-2",
                 isActive
-                  ? "bg-cyan-400/10 text-cyan-700 ring-1 ring-cyan-300/25 dark:text-cyan-100"
-                  : "text-muted-foreground hover:bg-cyan-500/10 hover:text-foreground",
+                  ? "bg-sky-100 text-sky-800 ring-1 ring-sky-300"
+                  : "text-slate-600 hover:bg-sky-50 hover:text-slate-950",
               )}
               onClick={mobile ? closeMobileSidebar : undefined}
             >

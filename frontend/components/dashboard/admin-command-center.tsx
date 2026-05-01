@@ -393,11 +393,10 @@ export function AdminCommandCenter({
         className,
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(14,165,233,.08),transparent_38%,rgba(34,197,94,.08))]" />
       <CardHeader className="relative gap-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <Badge className="rounded-md border-0 bg-slate-950 text-white dark:bg-white dark:text-slate-950">
+            <Badge className="rounded-md border border-sky-200 bg-sky-50 text-sky-800">
               {adminCriticalFunctions.length}+ admin critical functions
             </Badge>
             <CardTitle className="mt-3 text-2xl">

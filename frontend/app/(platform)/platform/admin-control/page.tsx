@@ -82,21 +82,21 @@ export default function PlatformAdminControlPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden border border-sky-300/20 bg-sky-950 p-6 text-white shadow-xl md:p-8">
+      <section className="overflow-hidden border border-sky-200 bg-white p-6 shadow-sm md:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr] xl:items-end">
           <div className="space-y-4">
-            <Badge className="rounded border border-sky-300/25 bg-sky-900 px-3 py-1 font-mono text-sky-100">
+            <Badge className="rounded border border-sky-200 bg-sky-50 px-3 py-1 text-sky-800">
               platform-control / admin-intelligence
             </Badge>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-sky-300/25 bg-sky-900">
-                <ShieldCheck className="h-7 w-7 text-sky-200" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-sky-200 bg-sky-50">
+                <ShieldCheck className="h-7 w-7 text-sky-700" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
+                <h1 className="text-3xl font-bold tracking-tight text-slate-950 md:text-5xl">
                   Platform Admin Control Center
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-7 text-sky-50">
+                <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
                   The platform control layer for users, facilities, catalogs,
                   audit, location evidence, pricing paths, reports, and AI user
                   guidance.
@@ -106,24 +106,24 @@ export default function PlatformAdminControlPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-sky-300/20 bg-sky-900 p-4">
-              <Activity className="mb-3 h-5 w-5 text-sky-200" />
-              <p className="text-3xl font-bold">
+            <div className="border border-sky-200 bg-sky-50 p-4">
+              <Activity className="mb-3 h-5 w-5 text-sky-700" />
+              <p className="text-3xl font-bold text-slate-950">
                 {health?.healthScore ?? "--"}
               </p>
-              <p className="text-xs text-sky-100">health score</p>
+              <p className="text-xs text-slate-500">health score</p>
             </div>
-            <div className="border border-sky-300/20 bg-sky-900 p-4">
-              <ShieldCheck className="mb-3 h-5 w-5 text-emerald-300" />
-              <p className="text-3xl font-bold">{counts?.counts.total ?? 0}</p>
-              <p className="text-xs text-sky-100">open alerts</p>
+            <div className="border border-sky-200 bg-sky-50 p-4">
+              <ShieldCheck className="mb-3 h-5 w-5 text-sky-700" />
+              <p className="text-3xl font-bold text-slate-950">{counts?.counts.total ?? 0}</p>
+              <p className="text-xs text-slate-500">open alerts</p>
             </div>
-            <div className="border border-sky-300/20 bg-sky-900 p-4">
-              <Receipt className="mb-3 h-5 w-5 text-amber-200" />
-              <p className="text-3xl font-bold">
+            <div className="border border-sky-200 bg-sky-50 p-4">
+              <Receipt className="mb-3 h-5 w-5 text-sky-700" />
+              <p className="text-3xl font-bold text-slate-950">
                 {health?.summary.billingFailures ?? 0}
               </p>
-              <p className="text-xs text-sky-100">billing failures</p>
+              <p className="text-xs text-slate-500">billing failures</p>
             </div>
           </div>
         </div>

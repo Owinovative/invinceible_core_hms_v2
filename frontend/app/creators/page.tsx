@@ -7,15 +7,15 @@ export default function CreatorsPage() {
   return (
     <main className="min-h-screen bg-[#f5fbff] text-slate-900">
       <PublicSiteHeader />
-      <section className="bg-sky-950 text-white">
+      <section className="border-b border-sky-200 bg-white text-slate-950">
         <div className="mx-auto max-w-[1180px] px-5 py-12 md:px-8 md:py-16">
-          <p className="text-sm font-semibold uppercase text-sky-200">
+          <p className="text-sm font-semibold uppercase text-sky-700">
             System creators
           </p>
           <h1 className="mt-2 max-w-4xl text-4xl font-bold leading-tight md:text-5xl">
             Built by Eng. Otieno Owino and Eng. Moikoyo Paul.
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-8 text-sky-50">
+          <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600">
             The system is built by two full-stack software engineers with more
             than 7 years of software delivery experience. Eng. Otieno Owino
             leads backend work. Eng. Moikoyo Paul leads frontend work.
