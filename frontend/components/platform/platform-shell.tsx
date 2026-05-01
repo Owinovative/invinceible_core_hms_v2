@@ -1,6 +1,5 @@
 "use client";
 
-import { CodeBackground } from "@/components/platform/code-background";
 import { PlatformHeader } from "@/components/platform/platform-header";
 import { PlatformSidebar } from "@/components/platform/platform-sidebar";
 import {
@@ -19,10 +18,7 @@ export function PlatformShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="premium-system-bg relative h-screen overflow-hidden text-foreground">
-      <div className="premium-aurora" />
-      <CodeBackground />
-
+    <div className="relative h-screen overflow-hidden bg-[#f5fbff] text-foreground dark:bg-[#061526]">
       <div className="relative flex h-screen">
         <PlatformSidebar />
 
@@ -37,7 +33,7 @@ export function PlatformShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-[20rem] border-white/10 bg-[#050816] p-0"
+          className="w-[20rem] border-sky-200 bg-background p-0"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Platform navigation</SheetTitle>

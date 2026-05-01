@@ -120,6 +120,8 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
   const [priorityCode, setPriorityCode] = React.useState("ROUTINE");
   const [dueAt, setDueAt] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
+  const [queueFilter, setQueueFilter] = React.useState("active");
+  const [queueDensity, setQueueDensity] = React.useState("comfortable");
 
   if (!moduleConfig) {
     return (
@@ -132,6 +134,16 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
   const Icon = moduleConfig.icon;
   const records = data?.records ?? [];
   const summary = data?.summary;
+  const visibleRecords = records.filter((record) => {
+    if (queueFilter === "all") return true;
+    if (queueFilter === "closed") {
+      return ["COMPLETED", "CLOSED", "CANCELLED"].includes(record.statusCode);
+    }
+    return !["COMPLETED", "CLOSED", "CANCELLED"].includes(record.statusCode);
+  });
+  const queueHeightClass =
+    queueDensity === "compact" ? "max-h-[520px]" : "max-h-[680px]";
+  const recordPaddingClass = queueDensity === "compact" ? "p-3" : "p-4";
 
   const handleCreate = async () => {
     setMessage(null);
@@ -427,9 +439,40 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
         <div className="space-y-5">
           <Card className="rounded-[1.2rem] gradient-border panel-shadow">
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle>Live Work Queue</CardTitle>
-                <Sparkles className="h-5 w-5 text-cyan-500" />
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div className="flex items-center gap-3">
+                  <CardTitle>Live Work Queue</CardTitle>
+                  <Sparkles className="h-5 w-5 text-cyan-500" />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Queue view
+                    </label>
+                    <select
+                      value={queueFilter}
+                      onChange={(event) => setQueueFilter(event.target.value)}
+                      className={appSelectClass}
+                    >
+                      <option value="active">Active work</option>
+                      <option value="closed">Closed work</option>
+                      <option value="all">All records</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Density
+                    </label>
+                    <select
+                      value={queueDensity}
+                      onChange={(event) => setQueueDensity(event.target.value)}
+                      className={appSelectClass}
+                    >
+                      <option value="comfortable">Comfortable</option>
+                      <option value="compact">Compact</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -438,12 +481,13 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading module records...
                 </div>
-              ) : records.length === 0 ? (
+              ) : visibleRecords.length === 0 ? (
                 <div className="rounded-xl border border-dashed bg-background/65 p-4 text-sm text-muted-foreground">
-                  No live records yet.
+                  No records match this queue view.
                 </div>
               ) : (
-                records.map((record) => {
+                <div className={`${queueHeightClass} space-y-3 overflow-auto pr-1`}>
+                  {visibleRecords.map((record) => {
                   const nextStage = getNextStage(
                     moduleConfig.workflow,
                     record.workflowStage,
@@ -456,7 +500,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                   return (
                     <div
                       key={record.id}
-                      className="rounded-xl border bg-background/65 p-4"
+                      className={`rounded-xl border bg-background/65 ${recordPaddingClass}`}
                     >
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
@@ -554,7 +598,8 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                       </div>
                     </div>
                   );
-                })
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

@@ -19,27 +19,27 @@ import { useSystemHealth, useUnresolvedCounts } from "@/hooks/use-dashboard-data
 const controlSignals = [
   {
     title: "Access lockdown",
-    text: "User lockouts, role checks, session control, and branch scope.",
+    text: "Recover locked users, inspect roles, control sessions, and confirm branch scope.",
     icon: LockKeyhole,
   },
   {
     title: "Location evidence",
-    text: "Live and last-seen location intelligence for super admins.",
+    text: "Review live and last-seen location records for authenticated users.",
     icon: MapPin,
   },
   {
     title: "Revenue guard",
-    text: "Invoice line edits, cashier close, reports, tariffs, and leakage review.",
+    text: "Move quickly to invoices, tariffs, removed lines, cashier work, and reports.",
     icon: Receipt,
   },
   {
     title: "AI navigation",
-    text: "Guides stuck users to the right module without bypassing permissions.",
+    text: "Help staff find the correct module without bypassing their permissions.",
     icon: Bot,
   },
 ];
 
-export default function AdminControlPage() {
+export default function PlatformAdminControlPage() {
   const { user } = useAuth();
   const { facilityId, facilityName, selectedBranchId, selectedBranchName } =
     useScope();
@@ -64,9 +64,9 @@ export default function AdminControlPage() {
   if (!canManage) {
     return (
       <div className="space-y-6">
-        <Card className="rounded-lg gradient-border">
+        <Card className="rounded-lg border border-amber-200 bg-white">
           <CardContent className="p-8">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-300">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center border border-amber-200 bg-amber-50 text-amber-700">
               <ShieldCheck className="h-6 w-6" />
             </div>
             <h1 className="text-2xl font-bold">Admin access required</h1>
@@ -82,51 +82,48 @@ export default function AdminControlPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.6rem] border border-cyan-300/15 bg-slate-950 p-6 text-white shadow-2xl md:p-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,.24),transparent_28%),linear-gradient(125deg,rgba(2,6,23,.98),rgba(8,47,73,.72),rgba(6,78,59,.55))]" />
-        <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,rgba(34,211,238,.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,.12)_1px,transparent_1px)] [background-size:34px_34px]" />
-
-        <div className="relative grid gap-6 xl:grid-cols-[1fr_0.8fr] xl:items-end">
+      <section className="overflow-hidden border border-sky-300/20 bg-sky-950 p-6 text-white shadow-xl md:p-8">
+        <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr] xl:items-end">
           <div className="space-y-4">
-            <Badge className="rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 font-mono text-cyan-100">
-              admin-control / command-intelligence
+            <Badge className="rounded border border-sky-300/25 bg-sky-900 px-3 py-1 font-mono text-sky-100">
+              platform-control / admin-intelligence
             </Badge>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-cyan-300/25 bg-cyan-300/10">
-                <ShieldCheck className="h-7 w-7 text-cyan-200" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-sky-300/25 bg-sky-900">
+                <ShieldCheck className="h-7 w-7 text-sky-200" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-                  Admin Control Center
+                  Platform Admin Control Center
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-7 text-white/68">
-                  The hospital command layer for access, billing, pharmacy,
-                  reports, patient flow, audit, facility structure, and AI
-                  user guidance.
+                <p className="mt-2 max-w-3xl text-sm leading-7 text-sky-50">
+                  The platform control layer for users, facilities, catalogs,
+                  audit, location evidence, pricing paths, reports, and AI user
+                  guidance.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-cyan-300/14 bg-white/[0.06] p-4">
-              <Activity className="mb-3 h-5 w-5 text-cyan-200" />
+            <div className="border border-sky-300/20 bg-sky-900 p-4">
+              <Activity className="mb-3 h-5 w-5 text-sky-200" />
               <p className="text-3xl font-bold">
                 {health?.healthScore ?? "--"}
               </p>
-              <p className="text-xs text-white/55">health score</p>
+              <p className="text-xs text-sky-100">health score</p>
             </div>
-            <div className="rounded-lg border border-cyan-300/14 bg-white/[0.06] p-4">
+            <div className="border border-sky-300/20 bg-sky-900 p-4">
               <ShieldCheck className="mb-3 h-5 w-5 text-emerald-300" />
               <p className="text-3xl font-bold">{counts?.counts.total ?? 0}</p>
-              <p className="text-xs text-white/55">open alerts</p>
+              <p className="text-xs text-sky-100">open alerts</p>
             </div>
-            <div className="rounded-lg border border-cyan-300/14 bg-white/[0.06] p-4">
+            <div className="border border-sky-300/20 bg-sky-900 p-4">
               <Receipt className="mb-3 h-5 w-5 text-amber-200" />
               <p className="text-3xl font-bold">
                 {health?.summary.billingFailures ?? 0}
               </p>
-              <p className="text-xs text-white/55">billing failures</p>
+              <p className="text-xs text-sky-100">billing failures</p>
             </div>
           </div>
         </div>
@@ -136,9 +133,9 @@ export default function AdminControlPage() {
         {controlSignals.map((item) => {
           const Icon = item.icon;
           return (
-            <Card key={item.title} className="rounded-lg gradient-border">
+            <Card key={item.title} className="rounded-lg border border-sky-200 bg-white">
               <CardContent className="p-4">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
                   <Icon className="h-5 w-5" />
                 </div>
                 <p className="font-semibold">{item.title}</p>

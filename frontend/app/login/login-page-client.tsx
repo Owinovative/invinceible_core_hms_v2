@@ -9,7 +9,6 @@ import {
   LockKeyhole,
   MessageCircle,
   ShieldCheck,
-  Sparkles,
   User2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -89,7 +88,7 @@ export default function LoginPageClient() {
   };
 
   return (
-    <main className="premium-system-bg relative min-h-screen overflow-hidden">
+    <main className="relative min-h-screen overflow-hidden bg-sky-950">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-35"
         style={{
@@ -97,9 +96,7 @@ export default function LoginPageClient() {
             "url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=2400&q=86')",
         }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(2,6,23,0.92),rgba(7,17,30,0.82)_48%,rgba(6,78,59,0.56))]" />
-      <div className="premium-aurora" />
-      <div className="clinical-mesh" />
+      <div className="absolute inset-0 bg-sky-950/78" />
 
       <div className="relative mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.16fr_0.84fr] lg:px-8">
         <section className="hidden text-white lg:block">
@@ -111,9 +108,8 @@ export default function LoginPageClient() {
                 Secure clinical access, designed for serious hospital work.
               </h1>
               <p className="max-w-xl text-base leading-8 text-white/72">
-                Enter a premium command center for patient flow, billing,
-                pharmacy, laboratory, admissions, reporting, and facility
-                operations.
+                Sign in to manage patient flow, billing, pharmacy, laboratory,
+                admissions, reporting, and facility operations.
               </p>
             </div>
 
@@ -136,7 +132,7 @@ export default function LoginPageClient() {
         <Card className="premium-card mx-auto w-full max-w-[500px] rounded-[2rem] py-0 text-foreground">
           <CardContent className="relative p-7 md:p-9">
             <div className="mb-7 flex flex-col items-center text-center lg:hidden">
-              <AppLogo light />
+              <AppLogo />
             </div>
 
             <div className="mb-8 text-center">
@@ -280,9 +276,8 @@ export default function LoginPageClient() {
 
 function BadgeLike() {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-xl">
-      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-      Premium hospital workspace
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-sky-900 px-3 py-1 text-xs font-semibold text-white">
+      System access
     </div>
   );
 }

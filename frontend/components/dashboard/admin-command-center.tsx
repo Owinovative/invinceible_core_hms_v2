@@ -84,7 +84,7 @@ export const adminCriticalFunctions: AdminCriticalFunction[] = [
   },
   {
     title: "Permission matrix",
-    href: "/settings",
+    href: "/platform/settings",
     category: "Access",
     owner: "Facility admin",
     impact: "Control settings, facility scope, branch access, and admin-only operations.",
@@ -124,7 +124,7 @@ export const adminCriticalFunctions: AdminCriticalFunction[] = [
   },
   {
     title: "System notifications",
-    href: "/notifications",
+    href: "/platform/notifications",
     category: "Communication",
     owner: "Admin",
     impact: "Send scoped alerts to facility teams and resolve notification pressure.",
@@ -354,7 +354,7 @@ export const adminCriticalFunctions: AdminCriticalFunction[] = [
   },
   {
     title: "Settings guard",
-    href: "/settings",
+    href: "/platform/settings",
     category: "Configuration",
     owner: "Admin",
     impact: "Review hospital runtime settings and keep critical controls admin-only.",
@@ -412,7 +412,7 @@ export function AdminCommandCenter({
 
           {compact ? (
             <Button asChild className="rounded-md">
-              <Link href="/admin-control">Open full control board</Link>
+              <Link href="/platform/admin-control">Open full control board</Link>
             </Button>
           ) : null}
         </div>

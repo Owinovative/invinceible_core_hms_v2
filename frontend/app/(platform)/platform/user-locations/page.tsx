@@ -4,6 +4,8 @@ import * as React from "react";
 import {
   Activity,
   Clock3,
+  Download,
+  ExternalLink,
   Globe2,
   Loader2,
   LocateFixed,
@@ -19,9 +21,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useUserLocationOverview } from "@/hooks/use-user-location-overview";
 import type {
   UserLocationAggregate,
+  UserLocationEvent,
   UserLocationProfile,
 } from "@/services/user-location-service";
 
@@ -51,6 +55,98 @@ function positionPoint(profile: UserLocationProfile) {
     left: `${Math.min(96, Math.max(4, ((lng + 180) / 360) * 100))}%`,
     top: `${Math.min(92, Math.max(8, ((90 - lat) / 180) * 100))}%`,
   };
+}
+
+function hasCoordinates(profile?: UserLocationProfile | null) {
+  if (!profile) return false;
+  return (
+    Number.isFinite(Number(profile.latitude)) &&
+    Number.isFinite(Number(profile.longitude))
+  );
+}
+
+function googleMapsEmbed(profile: UserLocationProfile) {
+  return `https://www.google.com/maps?q=${profile.latitude},${profile.longitude}&z=14&output=embed`;
+}
+
+function googleMapsLink(profile: UserLocationProfile) {
+  return `https://www.google.com/maps/search/?api=1&query=${profile.latitude},${profile.longitude}`;
+}
+
+function escapeCsvCell(value: unknown) {
+  const text = value === null || value === undefined ? "" : String(value);
+  if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+function downloadCsv(fileName: string, rows: unknown[][]) {
+  const csvText = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
+  const blob = new Blob([`\uFEFF${csvText}`], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
+
+function dateOnly(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function matchesDateRange(
+  value: string | null | undefined,
+  fromDate: string,
+  toDate: string,
+) {
+  const day = dateOnly(value);
+  if (!day) return !fromDate && !toDate;
+  if (fromDate && day < fromDate) return false;
+  if (toDate && day > toDate) return false;
+  return true;
+}
+
+function matchesText(profile: UserLocationProfile, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return [
+    profile.fullName,
+    profile.username,
+    profile.roleCode,
+    profile.facility,
+    profile.branch,
+    profile.city,
+    profile.country,
+    profile.ipAddress,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(normalized);
+}
+
+function matchesEventText(event: UserLocationEvent, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return [
+    event.fullName,
+    event.username,
+    event.roleCode,
+    event.route,
+    event.eventType,
+    event.city,
+    event.country,
+    event.ipAddress,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(normalized);
 }
 
 function AggregateBars({
@@ -102,17 +198,97 @@ function AggregateBars({
 
 export default function PlatformUserLocationsPage() {
   const { data, isLoading, isFetching, refetch } = useUserLocationOverview();
+  const [query, setQuery] = React.useState("");
+  const [fromDate, setFromDate] = React.useState("");
+  const [toDate, setToDate] = React.useState("");
+  const [selectedProfileId, setSelectedProfileId] = React.useState<number | null>(
+    null,
+  );
   const profiles = data?.profiles ?? [];
-  const liveProfiles = profiles.filter((profile) => profile.isOnline);
-  const plottedProfiles = profiles.filter((profile) => positionPoint(profile));
+  const recentEvents = data?.recentEvents ?? [];
+  const filteredProfiles = profiles.filter(
+    (profile) =>
+      matchesText(profile, query) &&
+      matchesDateRange(profile.lastSeenAt, fromDate, toDate),
+  );
+  const filteredEvents = recentEvents.filter(
+    (event) =>
+      matchesEventText(event, query) &&
+      matchesDateRange(event.occurredAt, fromDate, toDate),
+  );
+  const plottedProfiles = filteredProfiles.filter((profile) =>
+    positionPoint(profile),
+  );
+  const selectedProfile =
+    filteredProfiles.find((profile) => profile.id === selectedProfileId) ??
+    plottedProfiles[0] ??
+    filteredProfiles[0] ??
+    null;
+  const selectedHasCoordinates = hasCoordinates(selectedProfile);
+
+  const handleDownloadCsv = () => {
+    downloadCsv("user-location-report.csv", [
+      [
+        "user",
+        "username",
+        "role",
+        "facility",
+        "branch",
+        "online",
+        "lastSeenAt",
+        "loggedOutAt",
+        "route",
+        "method",
+        "ipAddress",
+        "country",
+        "region",
+        "city",
+        "latitude",
+        "longitude",
+        "accuracyMeters",
+        "isp",
+        "org",
+        "confidence",
+        "source",
+        "device",
+        "browser",
+        "os",
+        "eventCount",
+      ],
+      ...filteredProfiles.map((profile) => [
+        userName(profile),
+        profile.username ?? "",
+        profile.roleCode ?? "",
+        profile.facility ?? "",
+        profile.branch ?? "",
+        profile.isOnline ? "yes" : "no",
+        profile.lastSeenAt,
+        profile.loggedOutAt ?? "",
+        profile.lastRoute ?? "",
+        profile.lastMethod ?? "",
+        profile.ipAddress ?? "",
+        profile.country ?? "",
+        profile.region ?? "",
+        profile.city ?? "",
+        profile.latitude ?? "",
+        profile.longitude ?? "",
+        profile.accuracyMeters ?? "",
+        profile.isp ?? "",
+        profile.org ?? "",
+        profile.confidence ?? "",
+        profile.geolocationSource ?? "",
+        profile.deviceType ?? "",
+        profile.browser ?? "",
+        profile.operatingSystem ?? "",
+        profile.eventCount,
+      ]),
+    ]);
+  };
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.6rem] border border-cyan-300/15 bg-slate-950 p-6 text-white shadow-2xl md:p-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(34,211,238,.22),transparent_26%),linear-gradient(125deg,rgba(2,6,23,.98),rgba(8,47,73,.78),rgba(6,78,59,.54))]" />
-        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(to_right,rgba(34,211,238,.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,.14)_1px,transparent_1px)] [background-size:30px_30px]" />
-
-        <div className="relative grid gap-6 xl:grid-cols-[1fr_0.9fr] xl:items-end">
+      <section className="overflow-hidden rounded-lg border border-sky-300/20 bg-sky-950 p-6 text-white shadow-xl md:p-8">
+        <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr] xl:items-end">
           <div className="space-y-5">
             <Badge className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 font-mono text-cyan-100">
               super-admin-only / live-location-intelligence
@@ -162,75 +338,153 @@ export default function PlatformUserLocationsPage() {
         </div>
       </section>
 
+      <Card className="rounded-lg border border-sky-200 bg-white">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1.2fr_0.55fr_0.55fr_auto_auto] md:items-end">
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              User, route, city, IP, or facility
+            </label>
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search tracked activity"
+              className="h-11 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">From</label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(event) => setFromDate(event.target.value)}
+              className="h-11 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium">To</label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className="h-11 rounded-md"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 rounded-md"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Refresh
+          </Button>
+          <Button
+            type="button"
+            className="h-11 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+            onClick={handleDownloadCsv}
+            disabled={filteredProfiles.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            CSV
+          </Button>
+        </CardContent>
+      </Card>
+
       <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Card className="overflow-hidden rounded-[1.3rem] gradient-border panel-shadow">
           <CardHeader className="gap-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <CardTitle className="flex items-center gap-2">
                 <LocateFixed className="h-5 w-5 text-cyan-500" />
-                Location Heat Surface
+                Google Maps Location View
               </CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 rounded-lg"
-                onClick={() => refetch()}
-                disabled={isFetching}
-              >
-                {isFetching ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Refresh
-              </Button>
+              {selectedProfile && selectedHasCoordinates ? (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="h-10 rounded-md"
+                >
+                  <a
+                    href={googleMapsLink(selectedProfile)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open map
+                  </a>
+                </Button>
+              ) : null}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="relative min-h-[360px] overflow-hidden rounded-[1.1rem] border border-border bg-slate-950">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(34,211,238,.15),transparent_32%),linear-gradient(135deg,rgba(8,47,73,.55),rgba(2,6,23,.98))]" />
-              <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(to_right,rgba(34,211,238,.2)_1px,transparent_1px),linear-gradient(to_bottom,rgba(34,197,94,.12)_1px,transparent_1px)] [background-size:42px_42px]" />
-              <div className="absolute inset-x-8 top-1/2 h-px bg-cyan-300/20" />
-              <div className="absolute inset-y-8 left-1/2 w-px bg-cyan-300/20" />
+            <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+              <div className="min-h-[390px] overflow-hidden rounded-md border border-border bg-slate-100">
+                {selectedProfile && selectedHasCoordinates ? (
+                  <iframe
+                    title={`Google map for ${userName(selectedProfile)}`}
+                    src={googleMapsEmbed(selectedProfile)}
+                    className="h-[390px] w-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <div className="flex min-h-[390px] items-center justify-center p-8 text-center text-sm leading-6 text-muted-foreground">
+                    No latitude and longitude coordinates match the current
+                    filters. IP-only sessions still appear in the table below.
+                  </div>
+                )}
+              </div>
 
-              {plottedProfiles.length === 0 ? (
-                <div className="relative z-10 flex min-h-[360px] items-center justify-center p-8 text-center text-sm text-white/60">
-                  No latitude and longitude points yet. IP-only private network
-                  sessions still appear in the live session table below.
+              <div className="rounded-md border border-border bg-background">
+                <div className="border-b border-border p-3">
+                  <p className="text-sm font-semibold">Tracked users</p>
+                  <p className="text-xs text-muted-foreground">
+                    {filteredProfiles.length} matching profiles
+                  </p>
                 </div>
-              ) : (
-                plottedProfiles.map((profile) => {
-                  const position = positionPoint(profile);
-                  if (!position) return null;
-
-                  return (
-                    <div
-                      key={profile.id}
-                      className="group absolute z-10 -translate-x-1/2 -translate-y-1/2"
-                      style={position}
-                    >
-                      <span
-                        className={`block h-4 w-4 rounded-full ring-4 ${
-                          profile.isOnline
-                            ? "bg-emerald-300 ring-emerald-300/22"
-                            : "bg-cyan-300 ring-cyan-300/20"
+                <div className="max-h-[336px] overflow-auto p-2">
+                  {filteredProfiles.length === 0 ? (
+                    <p className="p-3 text-sm text-muted-foreground">
+                      No users match the filters.
+                    </p>
+                  ) : (
+                    filteredProfiles.map((profile) => (
+                      <button
+                        key={profile.id}
+                        type="button"
+                        onClick={() => setSelectedProfileId(profile.id)}
+                        className={`mb-2 w-full border px-3 py-2 text-left text-sm transition last:mb-0 ${
+                          selectedProfile?.id === profile.id
+                            ? "border-sky-400 bg-sky-50 text-sky-950"
+                            : "border-border bg-white hover:border-sky-300"
                         }`}
-                      />
-                      <div className="pointer-events-none absolute left-4 top-4 hidden w-64 rounded-lg border border-cyan-300/20 bg-slate-950/95 p-3 text-xs text-white shadow-2xl group-hover:block">
-                        <p className="font-semibold">{userName(profile)}</p>
-                        <p className="mt-1 text-white/60">
-                          {profile.city || "Unknown city"},{" "}
-                          {profile.country || "Unknown country"}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate font-semibold">
+                            {userName(profile)}
+                          </span>
+                          <span
+                            className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                              profile.isOnline
+                                ? "bg-emerald-500"
+                                : "bg-slate-400"
+                            }`}
+                          />
+                        </div>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {profile.city || "Unknown city"} /{" "}
+                          {profile.ipAddress || "No IP"}
                         </p>
-                        <p className="mt-2 font-mono text-cyan-200">
-                          {profile.latitude?.toFixed(4)},{" "}
-                          {profile.longitude?.toFixed(4)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -281,21 +535,21 @@ export default function PlatformUserLocationsPage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading tracked sessions...
               </div>
-            ) : profiles.length === 0 ? (
+            ) : filteredProfiles.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                No user location profiles have been captured yet.
+                No user location profiles match the current filters.
               </div>
             ) : (
-              <div className="overflow-hidden rounded-lg border border-border">
-                <div className="grid min-w-[980px] grid-cols-[1.1fr_0.9fr_0.95fr_1fr_1.2fr] bg-muted/60 px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
+              <div className="max-h-[640px] overflow-auto rounded-lg border border-border">
+                <div className="sticky top-0 z-10 grid min-w-[1120px] grid-cols-[1.1fr_0.9fr_0.95fr_1fr_1.2fr] bg-muted px-4 py-3 text-xs font-semibold uppercase text-muted-foreground">
                   <span>User</span>
                   <span>Facility</span>
                   <span>Location</span>
                   <span>Device</span>
                   <span>Last route</span>
                 </div>
-                <div className="max-h-[620px] min-w-[980px] overflow-y-auto">
-                  {profiles.map((profile) => (
+                <div className="min-w-[1120px]">
+                  {filteredProfiles.map((profile) => (
                     <div
                       key={profile.id}
                       className="grid grid-cols-[1.1fr_0.9fr_0.95fr_1fr_1.2fr] gap-4 border-t border-border px-4 py-4 text-sm"
@@ -384,8 +638,8 @@ export default function PlatformUserLocationsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {(data?.recentEvents ?? []).slice(0, 18).map((event) => (
+            <div className="max-h-[640px] space-y-3 overflow-auto pr-1">
+              {filteredEvents.slice(0, 40).map((event) => (
                 <div
                   key={event.id}
                   className="rounded-lg border border-border bg-background/70 p-4"
@@ -415,9 +669,9 @@ export default function PlatformUserLocationsPage() {
                 </div>
               ))}
 
-              {(data?.recentEvents ?? []).length === 0 ? (
+              {filteredEvents.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                  No request stream captured yet.
+                  No request stream events match the current filters.
                 </div>
               ) : null}
             </div>

@@ -1,6 +1,12 @@
+"use client";
+
 import { Bot, FileCheck2, FlaskConical, Pill, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
+import { SystemNavigatorAssistant } from "@/components/dashboard/system-navigator-assistant";
+import { useSystemHealth, useUnresolvedCounts } from "@/hooks/use-dashboard-data";
+import { useAuth } from "@/providers/auth-provider";
+import { useScope } from "@/providers/scope-provider";
 
 const useCases = [
   {
@@ -15,7 +21,7 @@ const useCases = [
   },
   {
     title: "Pharmacy counselling",
-    text: "Prepare clear medication counselling text for pharmacist review.",
+    text: "Prepare medication counselling text for pharmacist review.",
     icon: Pill,
   },
   {
@@ -26,26 +32,44 @@ const useCases = [
 ];
 
 export default function AiAssistantPage() {
+  const { user } = useAuth();
+  const { facilityId, facilityName, selectedBranchId, selectedBranchName } =
+    useScope();
+  const systemHealth = useSystemHealth({
+    facilityId,
+    branchId: selectedBranchId,
+  });
+  const unresolvedCounts = useUnresolvedCounts({
+    facilityId,
+    branchId: selectedBranchId,
+  });
+
+  const health = systemHealth.data;
+  const counts = unresolvedCounts.data;
+  const scopeText = facilityName
+    ? `${facilityName} - ${selectedBranchName || "All allowed branches"}`
+    : "No facility scope";
+
   return (
     <div className="space-y-6">
-      <section className="premium-card relative overflow-hidden rounded-lg p-6 md:p-8">
-        <div className="clinical-mesh opacity-30" />
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-lg border border-sky-200 bg-white p-6 shadow-sm md:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-md border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              AI drafting workspace
+            <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
+              Two AI workspaces
             </Badge>
             <div className="flex items-center gap-3">
-              <div className="flex h-13 w-13 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+              <div className="flex h-13 w-13 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700">
                 <Bot className="h-6 w-6" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                  Clinical AI Assistant
+                  AI Assistant
                 </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-7 text-muted-foreground">
-                  Draft clinical text faster, then review and copy it into the
-                  correct module. The assistant never replaces the clinician.
+                <p className="mt-1 max-w-3xl text-sm leading-7 text-muted-foreground">
+                  Clinical AI drafts medical text. System AI guides users to
+                  the correct module and next step. The clinician still reviews
+                  all clinical output before use.
                 </p>
               </div>
             </div>
@@ -57,9 +81,9 @@ export default function AiAssistantPage() {
         {useCases.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.title} className="premium-card rounded-lg p-4">
-              <div className="relative flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
+            <div key={item.title} className="rounded-lg border border-sky-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
@@ -74,10 +98,21 @@ export default function AiAssistantPage() {
         })}
       </section>
 
-      <ClinicalAiAssistant
-        defaultTask="GENERAL_DRAFT"
-        subtitle="Use this general workspace for notes, summaries, patient instructions, billing wording, pharmacy counselling, and report text."
-      />
+      <section className="grid gap-6 2xl:grid-cols-2">
+        <ClinicalAiAssistant
+          defaultTask="GENERAL_DRAFT"
+          subtitle="Use this workspace for notes, summaries, patient instructions, pharmacy counselling, report text, and discharge wording."
+        />
+
+        <SystemNavigatorAssistant
+          user={user}
+          scopeText={scopeText}
+          healthScore={health?.healthScore ?? "--"}
+          openAlerts={counts?.counts.total ?? 0}
+          activeAdmissions={health?.summary.activeAdmissions ?? 0}
+          pendingLabs={health?.summary.pendingLabQueue ?? 0}
+        />
+      </section>
     </div>
   );
 }

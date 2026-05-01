@@ -10,6 +10,7 @@ import {
   DatabaseZap,
   GitBranch,
   LayoutDashboard,
+  LockKeyhole,
   MapPin,
   ScrollText,
   Settings,
@@ -26,6 +27,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 const navItems = [
   { title: "Platform Home", href: "/platform", icon: LayoutDashboard },
+  { title: "Admin Control", href: "/platform/admin-control", icon: LockKeyhole },
   { title: "Facilities", href: "/platform/facilities", icon: Building2 },
   { title: "Branches", href: "/platform/branches", icon: GitBranch },
   { title: "Departments", href: "/platform/departments", icon: Building2 },
