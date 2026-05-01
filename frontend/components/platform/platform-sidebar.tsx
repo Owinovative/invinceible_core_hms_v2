@@ -50,12 +50,12 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-sky-300 bg-sky-500 text-white transition-all duration-300",
+        "flex h-full shrink-0 flex-col border-r border-[#242424] bg-[#303030] text-white transition-all duration-300",
         mobile ? "w-full" : "hidden h-screen lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="border-b border-sky-300/80 px-4 py-5">
+      <div className="border-b border-[#3f3f3f] px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-hidden">
             {compact ? <AppLogo iconOnly light /> : <AppLogo light />}
@@ -65,7 +65,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-sky-100/70 bg-white/12 text-white hover:bg-white/20"
+              className="shrink-0 rounded-md border-[#5a5a5a] bg-[#3a3a3a] text-white hover:bg-[#464646]"
               onClick={toggleSidebar}
             >
               {compact ? (
@@ -79,28 +79,28 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
       </div>
 
       <div className="px-3 py-4">
-        <div className="rounded-md border border-sky-100/70 bg-sky-600/40 p-4">
+        <div className="rounded-md border border-[#464646] bg-[#383838] p-4">
           {compact ? (
             <div className="space-y-3 text-center">
-              <div className="rounded-md bg-white/15 p-2 text-xs font-semibold text-white">
+              <div className="rounded-md bg-[#444] p-2 text-xs font-semibold text-white">
                 PA
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-100/60">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#bdbdbd]">
                 Platform Access
               </p>
 
-              <div className="flex min-w-0 items-center gap-2 rounded-md bg-white/15 px-3 py-2">
-                <Shield className="h-4 w-4 shrink-0 text-sky-50" />
+              <div className="flex min-w-0 items-center gap-2 rounded-md bg-[#444] px-3 py-2">
+                <Shield className="h-4 w-4 shrink-0 text-white" />
                 <span className="min-w-0 truncate text-sm font-semibold text-white" title={user?.roleCode || "SUPER_ADMIN"}>
                   {user?.roleCode || "SUPER_ADMIN"}
                 </span>
               </div>
 
               <div>
-                <p className="text-xs text-sky-100/60">Area</p>
+                <p className="text-xs font-medium text-[#cfcfcf]">Area</p>
                 <p className="truncate font-semibold text-white" title="Platform Administration">
                   Platform Administration
                 </p>
@@ -124,8 +124,8 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
                 "group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
                 compact && "justify-center px-2",
                 isActive
-                  ? "bg-white text-sky-700 ring-1 ring-sky-100"
-                  : "text-sky-50/86 hover:bg-white/14 hover:text-white",
+                  ? "bg-[#22b14c] text-white ring-1 ring-[#31d55f]"
+                  : "text-white hover:bg-[#3f3f3f] hover:text-white",
               )}
               onClick={mobile ? closeMobileSidebar : undefined}
             >
