@@ -19,6 +19,10 @@ export interface Facility {
   taxPin?: string | null;
   licenseNumber?: string | null;
   logoUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapLocationLabel?: string | null;
+  googleMapsUrl?: string | null;
   timezone?: string | null;
   currency?: string | null;
   mpesaShortcode?: string | null;
@@ -49,6 +53,10 @@ export interface CreateFacilityPayload {
   taxPin?: string;
   licenseNumber?: string;
   logoUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  mapLocationLabel?: string;
+  googleMapsUrl?: string;
   timezone?: string;
   currency?: string;
   mpesaShortcode?: string;
@@ -79,6 +87,10 @@ export interface UpdateFacilityPayload {
   taxPin?: string;
   licenseNumber?: string;
   logoUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  mapLocationLabel?: string;
+  googleMapsUrl?: string;
   timezone?: string;
   currency?: string;
   mpesaShortcode?: string;

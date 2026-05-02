@@ -52,6 +52,9 @@ export interface LabResultItem {
   orderItemId: number;
   resultValue: string;
   remarks?: string | null;
+  attachmentFileName?: string | null;
+  attachmentMimeType?: string | null;
+  attachmentDataUrl?: string | null;
   recordedBy?: number | null;
   recordedAt?: string;
 }
@@ -122,6 +125,9 @@ export interface CreateLabResultPayload {
   orderItemId: number;
   resultValue: string;
   remarks?: string;
+  attachmentFileName?: string;
+  attachmentMimeType?: string;
+  attachmentDataUrl?: string;
   recordedBy?: number;
 }
 

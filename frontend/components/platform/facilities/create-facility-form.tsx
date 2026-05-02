@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Building2, Save } from "lucide-react";
+import { Building2, LocateFixed, MapPin, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +35,10 @@ const facilitySchema = z.object({
   taxPin: z.string().optional(),
   licenseNumber: z.string().optional(),
   logoUrl: z.string().optional(),
+  latitude: z.string().min(1, "Latitude is required"),
+  longitude: z.string().min(1, "Longitude is required"),
+  mapLocationLabel: z.string().optional(),
+  googleMapsUrl: z.string().optional(),
   timezone: z.string().optional(),
   currency: z.string().optional(),
   mpesaShortcode: z.string().optional(),
@@ -69,6 +73,10 @@ export function CreateFacilityForm() {
       taxPin: "",
       licenseNumber: "",
       logoUrl: "",
+      latitude: "",
+      longitude: "",
+      mapLocationLabel: "",
+      googleMapsUrl: "",
       timezone: "Africa/Nairobi",
       currency: "KES",
       mpesaShortcode: "",
@@ -100,6 +108,12 @@ export function CreateFacilityForm() {
         taxPin: values.taxPin || undefined,
         licenseNumber: values.licenseNumber || undefined,
         logoUrl: values.logoUrl || undefined,
+        latitude: Number(values.latitude),
+        longitude: Number(values.longitude),
+        mapLocationLabel: values.mapLocationLabel || undefined,
+        googleMapsUrl:
+          values.googleMapsUrl ||
+          `https://www.google.com/maps?q=${values.latitude},${values.longitude}`,
         timezone: values.timezone || undefined,
         currency: values.currency || undefined,
         mpesaShortcode: values.mpesaShortcode || undefined,
@@ -131,6 +145,10 @@ export function CreateFacilityForm() {
         taxPin: "",
         licenseNumber: "",
         logoUrl: "",
+        latitude: "",
+        longitude: "",
+        mapLocationLabel: "",
+        googleMapsUrl: "",
         timezone: "Africa/Nairobi",
         currency: "KES",
         mpesaShortcode: "",
@@ -143,6 +161,20 @@ export function CreateFacilityForm() {
       setSuccessMessage(null);
       setCreatedCode(null);
     }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latitude = String(Number(position.coords.latitude.toFixed(7)));
+      const longitude = String(Number(position.coords.longitude.toFixed(7)));
+      form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true });
+      form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true });
+      form.setValue("googleMapsUrl", `https://www.google.com/maps?q=${latitude},${longitude}`, {
+        shouldDirty: true,
+      });
+    });
   };
 
   return (
@@ -436,6 +468,88 @@ export function CreateFacilityForm() {
                 </FormItem>
               )}
             />
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="flex items-center gap-2 font-semibold">
+                    <MapPin className="h-4 w-4 text-sky-700" />
+                    Facility map location
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Coordinates are mandatory so the platform map can place the
+                    facility accurately.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={useCurrentLocation}
+                >
+                  <LocateFixed className="mr-2 h-4 w-4" />
+                  Use current location
+                </Button>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Latitude</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="-1.2921" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Longitude</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="36.8219" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="mapLocationLabel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location Label</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="Building, estate, landmark" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="googleMapsUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Google Maps URL</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="https://www.google.com/maps?q=..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <FormField
               control={form.control}

@@ -22,4 +22,5 @@ export interface RequestUser {
   }>;
 
   staffId?: number | null;
+  staffPassportPhotoUrl?: string | null;
 }

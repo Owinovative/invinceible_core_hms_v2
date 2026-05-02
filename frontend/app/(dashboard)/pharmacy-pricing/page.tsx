@@ -21,6 +21,7 @@ import { useCreateBranchMedicineStock } from "@/hooks/use-create-branch-medicine
 import { useCreatePharmacyMedicine } from "@/hooks/use-create-pharmacy-medicine";
 import { useImportBranchMedicinePricing } from "@/hooks/use-import-branch-medicine-pricing";
 import { usePharmacyMedicines } from "@/hooks/use-pharmacy-medicines";
+import { useRestockBranchMedicine } from "@/hooks/use-restock-branch-medicine";
 import { useUpdateBranchMedicineStock } from "@/hooks/use-update-branch-medicine-stock";
 import {
   getBranchMedicinePricingTemplate,
@@ -72,6 +73,7 @@ export default function PharmacyPricingPage() {
   const createStockMutation = useCreateBranchMedicineStock();
   const importPricingMutation = useImportBranchMedicinePricing();
   const updateStockMutation = useUpdateBranchMedicineStock(selectedBranchId);
+  const restockMutation = useRestockBranchMedicine();
 
   const medicines = Array.isArray(medicinesData) ? medicinesData : [];
   const branchStock = Array.isArray(stockData) ? stockData : [];
@@ -103,6 +105,11 @@ export default function PharmacyPricingPage() {
   const [editUnitPrice, setEditUnitPrice] = React.useState("");
   const [editReorderLevel, setEditReorderLevel] = React.useState("");
   const [editStockQuantity, setEditStockQuantity] = React.useState("");
+  const [reorderSearch, setReorderSearch] = React.useState("");
+  const [selectedReorderStockId, setSelectedReorderStockId] = React.useState("");
+  const [reorderQuantity, setReorderQuantity] = React.useState("");
+  const [reorderBuyingPrice, setReorderBuyingPrice] = React.useState("");
+  const [reorderUnitPrice, setReorderUnitPrice] = React.useState("");
 
   const stockMedicineIds = new Set(branchStock.map((item) => item.medicineId));
   const unmappedMedicines = medicines.filter(
@@ -147,6 +154,28 @@ export default function PharmacyPricingPage() {
       .includes(query);
   });
 
+  const filteredReorderStock = React.useMemo(() => {
+    const query = reorderSearch.trim().toLowerCase();
+    const source = branchStock.filter((item) => item.isActive !== false);
+    if (!query) return source.slice(0, 120);
+
+    return source
+      .filter((item) =>
+        [
+          item.medicine?.name,
+          item.medicine?.code,
+          item.medicine?.dosageForm,
+          item.medicine?.strength,
+          item.branch?.name,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [branchStock, reorderSearch]);
+
   const missingPriceCount = branchStock.filter(
     (item) => item.unitPrice <= 0,
   ).length;
@@ -166,6 +195,20 @@ export default function PharmacyPricingPage() {
 
   const activeEditStock =
     branchStock.find((item) => item.id === editingStockId) ?? null;
+  const activeReorderStock =
+    branchStock.find((item) => String(item.id) === selectedReorderStockId) ??
+    null;
+
+  React.useEffect(() => {
+    if (!activeReorderStock) {
+      setReorderBuyingPrice("");
+      setReorderUnitPrice("");
+      return;
+    }
+
+    setReorderBuyingPrice(String(activeReorderStock.buyingPrice ?? 0));
+    setReorderUnitPrice(String(activeReorderStock.unitPrice ?? 0));
+  }, [activeReorderStock?.id]);
 
   const handleCreateMedicine = async () => {
     setMessage(null);
@@ -271,6 +314,43 @@ export default function PharmacyPricingPage() {
         error instanceof Error
           ? error.message
           : "Unable to update branch medicine price.",
+      );
+    }
+  };
+
+  const handleRestock = async () => {
+    setMessage(null);
+
+    if (!activeReorderStock) {
+      setMessage("Search and select the drug to reorder.");
+      return;
+    }
+
+    const quantity = Number(reorderQuantity || 0);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setMessage("Enter a valid reordered quantity.");
+      return;
+    }
+
+    try {
+      await restockMutation.mutateAsync({
+        stockId: activeReorderStock.id,
+        payload: {
+          quantityToAdd: quantity,
+          buyingPrice: numberOrUndefined(reorderBuyingPrice),
+          unitPrice: numberOrUndefined(reorderUnitPrice),
+        },
+      });
+
+      setSelectedReorderStockId("");
+      setReorderSearch("");
+      setReorderQuantity("");
+      setReorderBuyingPrice("");
+      setReorderUnitPrice("");
+      setMessage("Drug reorder received and branch stock updated.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Unable to update reorder.",
       );
     }
   };
@@ -610,6 +690,136 @@ export default function PharmacyPricingPage() {
 
           <Card className="rounded-[1.2rem] gradient-border panel-shadow">
             <CardHeader>
+              <CardTitle>Drug Reorder</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Search Drug
+                </label>
+                <Input
+                  value={reorderSearch}
+                  onChange={(event) => setReorderSearch(event.target.value)}
+                  className="mb-2 h-12 rounded-xl"
+                  placeholder="Search medicine name, code, strength, or form"
+                  disabled={!selectedBranchId}
+                />
+                <select
+                  value={selectedReorderStockId}
+                  onChange={(event) =>
+                    setSelectedReorderStockId(event.target.value)
+                  }
+                  className={appSelectClass}
+                  disabled={!selectedBranchId}
+                >
+                  <option value="">Select branch stock item</option>
+                  {filteredReorderStock.map((stock) => (
+                    <option key={stock.id} value={String(stock.id)}>
+                      {medicineLabel(stock.medicine)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {activeReorderStock ? (
+                <div className="grid gap-3 rounded-xl border bg-background/65 p-4 text-sm md:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground">
+                      Current Stock
+                    </p>
+                    <p className="mt-1 font-bold">
+                      {activeReorderStock.stockQuantity}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground">
+                      Reorder Level
+                    </p>
+                    <p className="mt-1 font-bold">
+                      {activeReorderStock.reorderLevel}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground">
+                      Unit
+                    </p>
+                    <p className="mt-1 font-bold">
+                      {[
+                        activeReorderStock.medicine?.dosageForm,
+                        activeReorderStock.medicine?.strength,
+                      ]
+                        .filter(Boolean)
+                        .join(" / ") || "Unit"}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Reordered Amount
+                  </label>
+                  <Input
+                    type="number"
+                    value={reorderQuantity}
+                    onChange={(event) => setReorderQuantity(event.target.value)}
+                    className="h-12 rounded-xl"
+                    disabled={!activeReorderStock}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Buying Price
+                  </label>
+                  <Input
+                    type="number"
+                    value={reorderBuyingPrice}
+                    onChange={(event) =>
+                      setReorderBuyingPrice(event.target.value)
+                    }
+                    className="h-12 rounded-xl"
+                    disabled={!activeReorderStock}
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">
+                    Selling Price
+                  </label>
+                  <Input
+                    type="number"
+                    value={reorderUnitPrice}
+                    onChange={(event) =>
+                      setReorderUnitPrice(event.target.value)
+                    }
+                    className="h-12 rounded-xl"
+                    disabled={!activeReorderStock}
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleRestock}
+                disabled={
+                  restockMutation.isPending ||
+                  !selectedBranchId ||
+                  !activeReorderStock
+                }
+                className="h-12 rounded-xl"
+              >
+                {restockMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <PackagePlus className="mr-2 h-4 w-4" />
+                )}
+                Receive Reorder
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+            <CardHeader>
               <CardTitle>Add Branch Price</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -738,9 +948,9 @@ export default function PharmacyPricingPage() {
                 No branch price records found.
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border bg-background/65">
+              <div className="max-h-[620px] overflow-auto rounded-xl border bg-background/65">
                 <table className="w-full min-w-[1040px] text-left text-sm">
-                  <thead className="bg-muted/60 text-xs uppercase text-muted-foreground">
+                  <thead className="sticky top-0 z-10 bg-muted text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Code</th>
                       <th className="px-4 py-3 font-semibold">Medicine</th>

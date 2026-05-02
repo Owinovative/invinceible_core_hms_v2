@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
 type PdfValue = string | number | Date | null | undefined;
 
@@ -24,6 +25,7 @@ export interface HospitalPdfOptions {
   subtitle?: string;
   reference?: string;
   verificationCode?: string;
+  qrPayload?: unknown;
   facility?: HospitalPdfParty | null;
   branch?: HospitalPdfParty | null;
 }
@@ -98,6 +100,7 @@ export async function createHospitalPdfBuffer(
   const logoBuffer = await loadLogoBuffer(
     options.facility?.logoUrl || options.branch?.logoUrl,
   );
+  const qrBuffer = await createDocumentQr(options);
 
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
@@ -115,7 +118,7 @@ export async function createHospitalPdfBuffer(
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    drawLetterhead(doc, options, logoBuffer);
+    drawLetterhead(doc, options, logoBuffer, qrBuffer);
     renderBody(doc);
     drawFooter(doc);
     doc.end();
@@ -519,6 +522,7 @@ function drawLetterhead(
   doc: PDFKit.PDFDocument,
   options: HospitalPdfOptions,
   logoBuffer?: Buffer,
+  qrBuffer?: Buffer,
 ) {
   const left = doc.page.margins.left;
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -589,15 +593,18 @@ function drawLetterhead(
       });
   }
 
-  if (options.verificationCode) {
-    drawVerificationBarcode(
-      doc,
-      options.verificationCode,
-      doc.page.width - doc.page.margins.right - 138,
-      88,
-      138,
-      30,
-    );
+  if (qrBuffer) {
+    doc.image(qrBuffer, doc.page.width - doc.page.margins.right - 52, 84, {
+      fit: [42, 42],
+    });
+    doc
+      .fillColor('#334155')
+      .font('Helvetica-Bold')
+      .fontSize(6.5)
+      .text(options.verificationCode || options.reference || 'VERIFY', left + 330, 112, {
+        width: width - 390,
+        align: 'right',
+      });
   } else if (options.reference) {
     doc
       .fillColor('#005da8')
@@ -610,6 +617,29 @@ function drawLetterhead(
   }
 
   doc.y = 142;
+}
+
+async function createDocumentQr(options: HospitalPdfOptions) {
+  const payload =
+    options.qrPayload ??
+    ({
+      title: options.title,
+      subtitle: options.subtitle,
+      reference: options.reference,
+      verificationCode: options.verificationCode,
+      facility: options.facility?.name,
+      branch: options.branch?.name,
+    } satisfies Record<string, unknown>);
+
+  try {
+    return QRCode.toBuffer(JSON.stringify(payload), {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      scale: 3,
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 function drawFooter(doc: PDFKit.PDFDocument) {

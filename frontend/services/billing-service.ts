@@ -100,6 +100,9 @@ export interface InvoiceRecord {
     phone?: string | null;
     email?: string | null;
     address?: string | null;
+    town?: string | null;
+    county?: string | null;
+    country?: string | null;
     website?: string | null;
     logoUrl?: string | null;
     mpesaPaybill?: string | null;

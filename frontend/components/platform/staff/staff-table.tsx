@@ -186,12 +186,24 @@ export function StaffTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <UserCog className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            {staff.passportPhotoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={staff.passportPhotoUrl}
+                                alt=""
+                                className="h-full w-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <UserCog className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            )}
                           </div>
                           <div>
                             <p className="font-semibold">{fullName(staff)}</p>
                             <p className="text-sm text-muted-foreground">
                               {staff.email || staff.phone || "No contact"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              ID: {staff.nationalIdNumber || "Not recorded"}
                             </p>
                           </div>
                         </div>
@@ -277,6 +289,43 @@ export function StaffTable() {
                               },
                               { name: "designation", label: "Designation" },
                               {
+                                name: "nationalIdNumber",
+                                label: "National ID Number",
+                              },
+                              {
+                                name: "nationalIdImageUrl",
+                                label: "National ID Image URL/Data",
+                                className: "md:col-span-2",
+                              },
+                              {
+                                name: "passportPhotoUrl",
+                                label: "Passport Photo URL/Data",
+                                className: "md:col-span-2",
+                              },
+                              {
+                                name: "clinicianRegistrationNumber",
+                                label: "Clinician Registration No.",
+                              },
+                              {
+                                name: "clinicianBoard",
+                                label: "Registration Board",
+                                type: "select",
+                                options: [
+                                  "Kenya Medical Practitioners and Dentists Council",
+                                  "Clinical Officers Council",
+                                  "Nursing Council of Kenya",
+                                  "Pharmacy and Poisons Board",
+                                  "Kenya Medical Laboratory Technicians and Technologists Board",
+                                  "Radiation Protection Board",
+                                  "Physiotherapy Council of Kenya",
+                                  "Kenya Nutritionists and Dieticians Institute",
+                                  "Public Health Officers and Technicians Council",
+                                ].map((board) => ({
+                                  label: board,
+                                  value: board,
+                                })),
+                              },
+                              {
                                 name: "facilityId",
                                 label: "Facility",
                                 type: "select",
@@ -351,6 +400,13 @@ export function StaffTable() {
                               phone: staff.phone ?? "",
                               gender: staff.gender ?? "OTHER",
                               designation: staff.designation ?? "",
+                              nationalIdNumber: staff.nationalIdNumber ?? "",
+                              nationalIdImageUrl:
+                                staff.nationalIdImageUrl ?? "",
+                              passportPhotoUrl: staff.passportPhotoUrl ?? "",
+                              clinicianRegistrationNumber:
+                                staff.clinicianRegistrationNumber ?? "",
+                              clinicianBoard: staff.clinicianBoard ?? "",
                               facilityId: String(staff.facilityId),
                               branchId: staff.branchId
                                 ? String(staff.branchId)
@@ -373,6 +429,21 @@ export function StaffTable() {
                                   gender: optionalValue(values.gender),
                                   designation: optionalValue(
                                     values.designation,
+                                  ),
+                                  nationalIdNumber: optionalValue(
+                                    values.nationalIdNumber,
+                                  ),
+                                  nationalIdImageUrl: optionalValue(
+                                    values.nationalIdImageUrl,
+                                  ),
+                                  passportPhotoUrl: optionalValue(
+                                    values.passportPhotoUrl,
+                                  ),
+                                  clinicianRegistrationNumber: optionalValue(
+                                    values.clinicianRegistrationNumber,
+                                  ),
+                                  clinicianBoard: optionalValue(
+                                    values.clinicianBoard,
                                   ),
                                   facilityId: Number(values.facilityId),
                                   branchId: values.branchId

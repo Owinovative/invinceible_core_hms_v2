@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Save, UserCog } from "lucide-react";
+import { Bot, Camera, Save, UserCog } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useReadIdentityCard } from "@/hooks/use-ai-assistant";
 import { useCreateStaff } from "@/hooks/use-create-staff";
 import { useFacilities } from "@/hooks/use-facilities";
 import { useBranches } from "@/hooks/use-branches";
@@ -37,6 +38,11 @@ const staffSchema = z.object({
   phone: z.string().optional(),
   gender: z.string().optional(),
   designation: z.string().optional(),
+  nationalIdNumber: z.string().min(1, "National ID number is required"),
+  nationalIdImageUrl: z.string().optional(),
+  passportPhotoUrl: z.string().optional(),
+  clinicianRegistrationNumber: z.string().optional(),
+  clinicianBoard: z.string().optional(),
   facilityId: z.string().min(1, "Facility is required"),
   branchId: z.string().optional(),
   roleId: z.string().min(1, "Role is required"),
@@ -47,6 +53,49 @@ const staffSchema = z.object({
 });
 
 type StaffFormValues = z.infer<typeof staffSchema>;
+
+const clinicianBoards = [
+  "Kenya Medical Practitioners and Dentists Council",
+  "Clinical Officers Council",
+  "Nursing Council of Kenya",
+  "Pharmacy and Poisons Board",
+  "Kenya Medical Laboratory Technicians and Technologists Board",
+  "Radiation Protection Board",
+  "Physiotherapy Council of Kenya",
+  "Kenya Nutritionists and Dieticians Institute",
+  "Public Health Officers and Technicians Council",
+];
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+}
+
+async function compactImageDataUrl(file: File, maxSide = 1200) {
+  const dataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(dataUrl);
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Unable to prepare image.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -67,6 +116,7 @@ function getErrorMessage(error: unknown) {
 
 export function CreateStaffForm() {
   const createStaffMutation = useCreateStaff();
+  const readIdentityMutation = useReadIdentityCard();
   const { data: facilitiesData } = useFacilities();
   const { data: branchesData } = useBranches();
   const { data: usersData } = useUsers();
@@ -74,6 +124,7 @@ export function CreateStaffForm() {
 
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [createdCode, setCreatedCode] = React.useState<string | null>(null);
+  const [ocrMessage, setOcrMessage] = React.useState<string | null>(null);
 
   const facilities = Array.isArray(facilitiesData) ? facilitiesData : [];
   const branches = Array.isArray(branchesData) ? branchesData : [];
@@ -90,6 +141,11 @@ export function CreateStaffForm() {
       phone: "",
       gender: "",
       designation: "",
+      nationalIdNumber: "",
+      nationalIdImageUrl: "",
+      passportPhotoUrl: "",
+      clinicianRegistrationNumber: "",
+      clinicianBoard: "",
       facilityId: "",
       branchId: "",
       roleId: "",
@@ -101,6 +157,9 @@ export function CreateStaffForm() {
   });
 
   const selectedFacilityId = form.watch("facilityId");
+  const isClinician = form.watch("isClinician") === "true";
+  const nationalIdImageUrl = form.watch("nationalIdImageUrl");
+  const passportPhotoUrl = form.watch("passportPhotoUrl");
 
   const filteredBranches = React.useMemo(() => {
     if (!selectedFacilityId) return branches;
@@ -135,6 +194,12 @@ export function CreateStaffForm() {
         phone: values.phone?.trim() || undefined,
         gender: values.gender || undefined,
         designation: values.designation?.trim() || undefined,
+        nationalIdNumber: values.nationalIdNumber.trim(),
+        nationalIdImageUrl: values.nationalIdImageUrl || undefined,
+        passportPhotoUrl: values.passportPhotoUrl || undefined,
+        clinicianRegistrationNumber:
+          values.clinicianRegistrationNumber?.trim() || undefined,
+        clinicianBoard: values.clinicianBoard || undefined,
         facilityId: Number(values.facilityId),
         branchId: values.branchId ? Number(values.branchId) : undefined,
         roleId: Number(values.roleId),
@@ -156,6 +221,11 @@ export function CreateStaffForm() {
         phone: "",
         gender: "",
         designation: "",
+        nationalIdNumber: "",
+        nationalIdImageUrl: "",
+        passportPhotoUrl: "",
+        clinicianRegistrationNumber: "",
+        clinicianBoard: "",
         facilityId: "",
         branchId: "",
         roleId: "",
@@ -168,6 +238,72 @@ export function CreateStaffForm() {
       console.error("Create staff error:", error);
       setSuccessMessage(null);
       setCreatedCode(null);
+    }
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    field: "nationalIdImageUrl" | "passportPhotoUrl",
+    maxSide: number,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setOcrMessage(null);
+      const value = await compactImageDataUrl(file, maxSide);
+      form.setValue(field, value, { shouldDirty: true, shouldValidate: true });
+    } catch (error) {
+      setOcrMessage(
+        error instanceof Error ? error.message : "Unable to upload image.",
+      );
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleReadIdentity = async () => {
+    setOcrMessage(null);
+
+    if (!nationalIdImageUrl) {
+      setOcrMessage("Upload the national ID image before running AI reading.");
+      return;
+    }
+
+    try {
+      const result = await readIdentityMutation.mutateAsync(nationalIdImageUrl);
+      if (result.nationalIdNumber) {
+        form.setValue("nationalIdNumber", result.nationalIdNumber, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      if (result.fullName) {
+        const parts = result.fullName.split(/\s+/).filter(Boolean);
+        if (parts.length > 0) {
+          form.setValue("firstName", parts[0], {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+        if (parts.length > 1) {
+          form.setValue("lastName", parts.slice(1).join(" "), {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }
+      }
+
+      setOcrMessage(
+        `AI reading complete. Confidence ${Math.round(
+          (result.confidence || 0) * 100,
+        )}%. Please verify before saving.`,
+      );
+    } catch (error) {
+      setOcrMessage(
+        error instanceof Error ? error.message : "Unable to read ID image.",
+      );
     }
   };
 
@@ -309,6 +445,94 @@ export function CreateStaffForm() {
 
             <FormField
               control={form.control}
+              name="nationalIdNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>National ID Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Mandatory"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="font-semibold">National ID image</p>
+                  <p className="text-sm text-muted-foreground">
+                    Upload the ID card, then let AI read the visible name and ID
+                    number. The fields remain editable.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={handleReadIdentity}
+                  disabled={
+                    readIdentityMutation.isPending || !nationalIdImageUrl
+                  }
+                >
+                  <Bot className="mr-2 h-4 w-4" />
+                  {readIdentityMutation.isPending ? "Reading..." : "AI read ID"}
+                </Button>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="h-11 rounded-xl"
+                  onChange={(event) =>
+                    handleImageUpload(event, "nationalIdImageUrl", 1600)
+                  }
+                />
+                {nationalIdImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={nationalIdImageUrl}
+                    alt=""
+                    className="h-20 w-32 rounded-lg border object-cover"
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <div className="flex items-center gap-3">
+                <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border bg-sky-50">
+                  {passportPhotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={passportPhotoUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="h-7 w-7 text-sky-700" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">Passport photo</p>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="mt-2 h-11 rounded-xl"
+                    onChange={(event) =>
+                      handleImageUpload(event, "passportPhotoUrl", 900)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
               name="facilityId"
               render={({ field }) => (
                 <FormItem>
@@ -429,6 +653,56 @@ export function CreateStaffForm() {
               )}
             />
 
+            {isClinician ? (
+              <>
+                <FormField
+                  control={form.control}
+                  name="clinicianRegistrationNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Registration Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="Board registration number"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="clinicianBoard"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Registration Board</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11 rounded-xl">
+                            <SelectValue placeholder="Select board" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {clinicianBoards.map((board) => (
+                            <SelectItem key={board} value={board}>
+                              {board}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : null}
+
             <FormField
               control={form.control}
               name="isPrescriber"
@@ -484,6 +758,12 @@ export function CreateStaffForm() {
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400">
                   {successMessage}
                   {createdCode ? ` Staff Code: ${createdCode}` : ""}
+                </div>
+              ) : null}
+
+              {ocrMessage ? (
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
+                  {ocrMessage}
                 </div>
               ) : null}
 

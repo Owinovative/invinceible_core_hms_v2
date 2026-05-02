@@ -361,6 +361,9 @@ export class LabService {
           orderItemId: createLabResultDto.orderItemId,
           resultValue: createLabResultDto.resultValue,
           remarks: createLabResultDto.remarks,
+          attachmentFileName: createLabResultDto.attachmentFileName,
+          attachmentMimeType: createLabResultDto.attachmentMimeType,
+          attachmentDataUrl: createLabResultDto.attachmentDataUrl,
           recordedBy: createLabResultDto.recordedBy,
         },
       });

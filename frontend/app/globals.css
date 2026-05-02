@@ -798,133 +798,374 @@ pre,
   color: #6b7280;
 }
 
+.invoice-premium-paper {
+  width: 210mm;
+  min-height: auto;
+  margin: 0 auto;
+  padding: 9mm 10mm 8mm;
+  border: 1px solid #d8e3ed;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: Arial, Helvetica, sans-serif;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+}
+
+.invoice-premium-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #0ea5e9;
+  padding-bottom: 10px;
+}
+
+.invoice-premium-brand {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.invoice-premium-logo {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid #bae6fd;
+  background: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0284c7;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.invoice-premium-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.invoice-premium-brand h2 {
+  margin: 0;
+  color: #334155;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.invoice-premium-brand p {
+  margin: 3px 0 0;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.invoice-premium-title {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: #334155;
+}
+
+.invoice-premium-title strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.invoice-premium-title span {
+  font-family: "Courier New", monospace;
+  font-size: 9px;
+  color: #64748b;
+}
+
+.invoice-premium-qr {
+  width: 62px;
+  height: 62px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  padding: 3px;
+}
+
+.invoice-premium-meta {
+  display: grid;
+  grid-template-columns: 2.2fr 1.2fr 1.25fr 1fr;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid #dbeafe;
+}
+
+.invoice-premium-meta div {
+  min-width: 0;
+}
+
+.invoice-premium-meta span,
+.invoice-premium-pay b {
+  display: block;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.invoice-premium-meta b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.invoice-premium-meta small {
+  display: block;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.invoice-premium-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.invoice-premium-table thead {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.invoice-premium-table th,
+.invoice-premium-table td {
+  border-bottom: 1px dashed #cbd5e1;
+  padding: 4px 5px;
+  vertical-align: top;
+}
+
+.invoice-premium-table th {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.invoice-premium-table td:nth-child(1) {
+  width: 74px;
+  color: #64748b;
+}
+
+.invoice-premium-table td:nth-child(3),
+.invoice-premium-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.invoice-premium-table td:nth-child(5),
+.invoice-premium-table td:nth-child(6),
+.invoice-premium-table th:nth-child(5),
+.invoice-premium-table th:nth-child(6) {
+  text-align: right;
+}
+
+.invoice-premium-bottom {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  gap: 16px;
+  padding-top: 10px;
+}
+
+.invoice-premium-pay {
+  color: #475569;
+  font-size: 11px;
+}
+
+.invoice-premium-pay p {
+  margin: 2px 0;
+}
+
+.invoice-premium-pay small {
+  display: block;
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.invoice-premium-totals {
+  border: 1px solid #cbd5e1;
+}
+
+.invoice-premium-totals p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 4px 7px;
+  font-size: 11px;
+}
+
+.invoice-premium-totals p:last-child {
+  border-bottom: 0;
+}
+
+.invoice-premium-totals .grand {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.invoice-premium-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  border-top: 1px solid #dbeafe;
+  padding-top: 6px;
+  color: #64748b;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
 .medical-report-paper {
-  min-height: 980px;
+  min-height: 930px;
   border: 1px solid #bfdbfe;
   background: #ffffff;
   color: #0f172a;
-  padding: 34px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  padding: 26px;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.11);
 }
 
 .medical-report-letterhead {
   display: grid;
-  grid-template-columns: 86px 1fr;
-  gap: 18px;
-  border-bottom: 3px solid #0b5f9e;
-  padding-bottom: 18px;
+  grid-template-columns: 72px 1fr;
+  gap: 14px;
+  border-bottom: 2px solid #0b5f9e;
+  padding-bottom: 14px;
 }
 
 .medical-report-letterhead img,
 .medical-report-logo {
-  height: 78px;
-  width: 78px;
+  height: 64px;
+  width: 64px;
   object-fit: contain;
 }
 
 .medical-report-logo {
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 6px;
   background: #dff3ff;
   color: #0b5f9e;
-  font-size: 48px;
+  font-size: 38px;
   font-weight: 900;
 }
 
 .medical-report-letterhead h2 {
   color: #0b3f71;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 900;
   line-height: 1.1;
 }
 
 .medical-report-letterhead p {
-  margin-top: 4px;
+  margin-top: 3px;
   color: #475569;
-  font-size: 13px;
+  font-size: 11.5px;
 }
 
 .medical-report-title {
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  align-items: flex-start;
+  gap: 14px;
   border-bottom: 1px solid #dbeafe;
-  padding: 26px 0 14px;
+  padding: 18px 0 10px;
 }
 
 .medical-report-title h3 {
   color: #082f49;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 900;
 }
 
 .medical-report-title p {
   color: #475569;
   font-weight: 700;
+  font-size: 12px;
+}
+
+.medical-report-qr {
+  height: 58px;
+  width: 58px;
+  border: 1px solid #c7dff4;
+  background: #ffffff;
+  padding: 4px;
 }
 
 .medical-report-patient {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 18px 0;
+  gap: 8px;
+  padding: 12px 0;
 }
 
 .medical-report-patient div {
   border: 1px solid #dbeafe;
   background: #f7fcff;
-  padding: 11px 12px;
+  padding: 8px 10px;
 }
 
 .medical-report-patient span {
   display: block;
   color: #64748b;
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .medical-report-patient b {
   display: block;
-  margin-top: 4px;
-  font-size: 14px;
+  margin-top: 3px;
+  font-size: 12px;
 }
 
 .medical-report-body {
-  min-height: 540px;
+  min-height: 470px;
 }
 
 .medical-report-body h4 {
-  margin-top: 18px;
+  margin-top: 12px;
   color: #0b5f9e;
-  font-size: 14px;
+  font-size: 11.5px;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .medical-report-body p {
-  margin-top: 7px;
+  margin-top: 4px;
   white-space: pre-wrap;
   color: #1f2937;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 11.5px;
+  line-height: 1.55;
 }
 
 .medical-report-signature {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 24px;
+  gap: 18px;
   border-top: 1px solid #dbeafe;
-  padding-top: 24px;
+  padding-top: 14px;
 }
 
 .medical-report-signature img,
 .medical-report-signature span {
   display: block;
-  height: 54px;
-  width: 190px;
+  height: 42px;
+  width: 160px;
   object-fit: contain;
 }
 
@@ -934,13 +1175,14 @@ pre,
 
 .medical-report-signature b {
   display: block;
-  margin-top: 8px;
+  margin-top: 5px;
+  font-size: 12px;
 }
 
 .medical-report-signature p,
 .medical-report-signature small {
   color: #64748b;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 @media print {

@@ -36,3 +36,8 @@ export class ClinicalAiRequestDto {
   @MaxLength(80)
   audience?: string;
 }
+
+export class IdentityOcrRequestDto {
+  @IsString()
+  imageDataUrl!: string;
+}

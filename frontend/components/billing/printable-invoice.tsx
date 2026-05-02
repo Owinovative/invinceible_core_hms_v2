@@ -1,6 +1,7 @@
 "use client";
 
 import type { InvoiceRecord, InvoiceItemRecord } from "@/services/billing-service";
+import { QrCodeImage } from "@/components/shared/qr-code-image";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -63,46 +64,6 @@ function paymentLines(invoice: InvoiceRecord) {
   return lines;
 }
 
-function Barcode({ code }: { code: string }) {
-  const bits = Array.from(code || "UNVERIFIED")
-    .flatMap((char) =>
-      char
-        .charCodeAt(0)
-        .toString(2)
-        .padStart(7, "0")
-        .split(""),
-    )
-    .slice(0, 74);
-
-  return (
-    <div className="invoice-barcode" aria-label={`VAR code ${code}`}>
-      {bits.map((bit, index) => (
-        <span
-          key={`${bit}-${index}`}
-          className={bit === "1" ? "bg-black" : "bg-transparent"}
-        />
-      ))}
-    </div>
-  );
-}
-
-function QrMark() {
-  return (
-    <div className="invoice-qr" aria-hidden="true">
-      {Array.from({ length: 64 }).map((_, index) => (
-        <span
-          key={index}
-          className={
-            (index * 7 + Math.floor(index / 8) * 5) % 3 === 0
-              ? "bg-white"
-              : "bg-black"
-          }
-        />
-      ))}
-    </div>
-  );
-}
-
 function itemUnit(item: InvoiceItemRecord) {
   return (
     item.billingService?.category ||
@@ -117,156 +78,116 @@ export function PrintableInvoice({ invoice }: { invoice: InvoiceRecord }) {
   const verificationCode =
     invoice.verificationCode ||
     `${invoice.invoiceNumber}-${String(invoice.id).padStart(6, "0")}`;
+  const qrPayload = JSON.stringify({
+    type: "invoice",
+    invoiceNumber: invoice.invoiceNumber,
+    verificationCode,
+    facility: invoice.facility?.name,
+    patient: {
+      number: invoice.patient?.patientNumber,
+      name: patientName(invoice.patient),
+    },
+    total: invoice.totalAmount,
+    issuedAt: invoice.issuedAt,
+    items: items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      amount: item.lineTotal,
+      date: item.createdAt,
+    })),
+  });
 
   return (
-    <div className="invoice-paper">
-      <header className="invoice-head">
-        <div>
-          <h2>{(invoice.facility?.name || "Hospital Facility").toUpperCase()}</h2>
-          <div className="invoice-contact">
+    <div className="invoice-paper invoice-premium-paper">
+      <header className="invoice-premium-head">
+        <div className="invoice-premium-brand">
+          <div className="invoice-premium-logo">
             {invoice.facility?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={invoice.facility.logoUrl} alt="" />
             ) : (
-              <div className="invoice-logo-fallback">+</div>
+              <span>+</span>
             )}
-            <div>
-              <p>
-                <span>Email:</span>{" "}
-                <em>{invoice.facility?.email || "not recorded"}</em>
-              </p>
-              <p>
-                <span>Tel:</span>{" "}
-                <em>{invoice.facility?.phone || "not recorded"}</em>
-              </p>
-            </div>
           </div>
-
-          <dl className="invoice-patient">
-            <div>
-              <dt>Patient&apos;s ID:</dt>
-              <dd>{invoice.invoiceNumber}</dd>
-            </div>
-            <div>
-              <dt>M/S:</dt>
-              <dd>{patientName(invoice.patient)}</dd>
-            </div>
-            <div>
-              <dt>Tel</dt>
-              <dd>{invoice.patient?.phonePrimary || "+254-000-000-000"}</dd>
-            </div>
-            <div>
-              <dt>DateOfAdmission</dt>
-              <dd>{formatDate(invoice.issuedAt)}</dd>
-            </div>
-          </dl>
+          <div>
+            <h2>{(invoice.facility?.name || "Hospital Facility").toUpperCase()}</h2>
+            <p>{[invoice.facility?.email, invoice.facility?.phone].filter(Boolean).join("  |  ")}</p>
+            <p>{[invoice.facility?.address, invoice.facility?.town].filter(Boolean).join(", ")}</p>
+          </div>
         </div>
 
-        <div className="invoice-title-block">
-          <p>INVOICE</p>
-          <Barcode code={verificationCode} />
-          <span>COLLECTION</span>
-          <strong>Collection</strong>
+        <div className="invoice-premium-title">
+          <strong>INVOICE</strong>
+          <QrCodeImage value={qrPayload} className="invoice-premium-qr" />
+          <span>{verificationCode}</span>
         </div>
       </header>
 
-      <table className="invoice-table">
+      <section className="invoice-premium-meta">
+        <div>
+          <span>Patient</span>
+          <b>{patientName(invoice.patient)}</b>
+          <small>{invoice.patient?.patientNumber || invoice.invoiceNumber}</small>
+        </div>
+        <div>
+          <span>Phone</span>
+          <b>{invoice.patient?.phonePrimary || "-"}</b>
+        </div>
+        <div>
+          <span>Invoice No.</span>
+          <b>{invoice.invoiceNumber}</b>
+        </div>
+        <div>
+          <span>Date</span>
+          <b>{formatDate(invoice.issuedAt)}</b>
+        </div>
+      </section>
+
+      <table className="invoice-premium-table">
         <thead>
           <tr>
-            <th>Qty</th>
-            <th>Unit</th>
+            <th>Date</th>
             <th>Item</th>
-            <th>Unitprice</th>
-            <th>TotalPrice</th>
-            <th>Vat%</th>
-            <th>Disc</th>
-            <th>V A T</th>
-            <th>NetTotal</th>
+            <th>Unit</th>
+            <th>Qty</th>
+            <th className="text-right">Price</th>
+            <th className="text-right">Total</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item) => (
             <tr key={item.id}>
-              <td>
-                <span>{`{${invoice.invoiceNumber};}`}</span>
-                {item.quantity}
-              </td>
-              <td>{itemUnit(item)}</td>
+              <td>{formatDate(item.createdAt)}</td>
               <td>{item.description}</td>
+              <td>{itemUnit(item)}</td>
+              <td>{item.quantity}</td>
               <td>{compactMoney(item.unitPrice)}</td>
-              <td>{Number(item.lineTotal || 0)}</td>
-              <td>0</td>
-              <td>0</td>
-              <td>0</td>
-              <td>
-                <small>{formatDate(item.createdAt)}</small>
-                <b>{Number(item.lineTotal || 0)}</b>
-              </td>
+              <td>{compactMoney(item.lineTotal)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <section className="invoice-total-grid">
-        <div className="invoice-payment-boxes">
-          {["SHAPayable", "VAT", "Cash", "Paybill", "Amount"].map((label) => (
-            <label key={label}>
-              {label}
-              <span>0</span>
-            </label>
+      <section className="invoice-premium-bottom">
+        <div className="invoice-premium-pay">
+          <b>Payment</b>
+          {lines.map((line) => (
+            <p key={line}>{line}</p>
           ))}
+          <small>Served at {formatTime()}</small>
         </div>
-        <div className="invoice-totals">
-          <label>
-            This Invoice
-            <span>{Number(invoice.totalAmount || 0)}</span>
-          </label>
-          <label>
-            Subtotal
-            <span>{Number(invoice.subtotal || 0)}</span>
-          </label>
-          <label>
-            VAT
-            <span>{Number(invoice.taxAmount || 0)}</span>
-          </label>
-          <label>
-            Discount
-            <span>{Number(invoice.discountAmount || 0)}</span>
-          </label>
-          <label>
-            Grand Total
-            <span>{Number(invoice.totalAmount || 0)}</span>
-          </label>
+        <div className="invoice-premium-totals">
+          <p><span>Subtotal</span><b>{compactMoney(invoice.subtotal)}</b></p>
+          <p><span>VAT</span><b>{compactMoney(invoice.taxAmount)}</b></p>
+          <p><span>Discount</span><b>{compactMoney(invoice.discountAmount)}</b></p>
+          <p className="grand"><span>Grand Total</span><b>{compactMoney(invoice.totalAmount)}</b></p>
         </div>
       </section>
 
-      <footer className="invoice-footer">
-        <div>
-          <p>
-            Note: Cold chain items cannot be returned for refund or any other
-            reason
-          </p>
-          <div className="invoice-pay">
-            <QrMark />
-            <div>
-              {lines.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </div>
-          </div>
-          <p className="invoice-served">
-            <span>Served by</span>
-            <b>{formatTime()}</b>
-          </p>
-        </div>
-        <div className="invoice-system">
-          <b>SYSTEM GENERATED BY INVINCEIBLE CORE HMS</b>
-          <span>Official hospital invoice from approved billing lines.</span>
-        </div>
+      <footer className="invoice-premium-footer">
+        <span>Items {items.length}</span>
+        <span>Generated by Invinceible Core HMS</span>
       </footer>
-
-      <div className="invoice-page-number">Page 1 of 1</div>
-      <div className="invoice-item-count">Items&nbsp;&nbsp;&nbsp;{items.length}</div>
     </div>
   );
 }

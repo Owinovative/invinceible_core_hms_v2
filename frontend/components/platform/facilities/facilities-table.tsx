@@ -5,6 +5,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  MapPin,
   Power,
   Search,
 } from "lucide-react";
@@ -20,6 +21,11 @@ import { EditRecordDialog } from "@/components/platform/shared/edit-record-dialo
 
 function optionalValue(value: string) {
   return value.trim() || undefined;
+}
+
+function optionalNumber(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : undefined;
 }
 
 export function FacilitiesTable() {
@@ -163,7 +169,16 @@ export function FacilitiesTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Building2 className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            {facility.logoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={facility.logoUrl}
+                                alt=""
+                                className="h-full w-full rounded-xl object-contain"
+                              />
+                            ) : (
+                              <Building2 className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            )}
                           </div>
                           <div>
                             <p className="font-semibold">{facility.name}</p>
@@ -192,9 +207,31 @@ export function FacilitiesTable() {
                       </td>
 
                       <td className="px-5 py-4 text-sm">
-                        {[facility.town, facility.county, facility.country]
-                          .filter(Boolean)
-                          .join(", ") || "—"}
+                        <div className="space-y-1">
+                          <p>
+                            {[facility.town, facility.county, facility.country]
+                              .filter(Boolean)
+                              .join(", ") || "-"}
+                          </p>
+                          {facility.latitude && facility.longitude ? (
+                            <a
+                              href={
+                                facility.googleMapsUrl ||
+                                `https://www.google.com/maps?q=${facility.latitude},${facility.longitude}`
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 underline underline-offset-4"
+                            >
+                              <MapPin className="h-3 w-3" />
+                              {facility.mapLocationLabel || "Open map"}
+                            </a>
+                          ) : (
+                            <span className="text-xs text-rose-600">
+                              Coordinates missing
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-5 py-4 text-sm">
@@ -249,9 +286,21 @@ export function FacilitiesTable() {
                                 type: "email",
                               },
                               { name: "website", label: "Website" },
+                              { name: "logoUrl", label: "Logo URL/Data" },
                               {
                                 name: "address",
                                 label: "Physical Address",
+                                className: "md:col-span-2",
+                              },
+                              { name: "latitude", label: "Latitude" },
+                              { name: "longitude", label: "Longitude" },
+                              {
+                                name: "mapLocationLabel",
+                                label: "Map Location Label",
+                              },
+                              {
+                                name: "googleMapsUrl",
+                                label: "Google Maps URL",
                                 className: "md:col-span-2",
                               },
                               { name: "timezone", label: "Timezone" },
@@ -295,7 +344,21 @@ export function FacilitiesTable() {
                               phone: facility.phone ?? "",
                               email: facility.email ?? "",
                               website: facility.website ?? "",
+                              logoUrl: facility.logoUrl ?? "",
                               address: facility.address ?? "",
+                              latitude:
+                                facility.latitude !== null &&
+                                facility.latitude !== undefined
+                                  ? String(facility.latitude)
+                                  : "",
+                              longitude:
+                                facility.longitude !== null &&
+                                facility.longitude !== undefined
+                                  ? String(facility.longitude)
+                                  : "",
+                              mapLocationLabel:
+                                facility.mapLocationLabel ?? "",
+                              googleMapsUrl: facility.googleMapsUrl ?? "",
                               timezone: facility.timezone ?? "",
                               currency: facility.currency ?? "",
                               registrationNo: facility.registrationNo ?? "",
@@ -323,7 +386,16 @@ export function FacilitiesTable() {
                                   phone: optionalValue(values.phone),
                                   email: optionalValue(values.email),
                                   website: optionalValue(values.website),
+                                  logoUrl: optionalValue(values.logoUrl),
                                   address: optionalValue(values.address),
+                                  latitude: optionalNumber(values.latitude),
+                                  longitude: optionalNumber(values.longitude),
+                                  mapLocationLabel: optionalValue(
+                                    values.mapLocationLabel,
+                                  ),
+                                  googleMapsUrl: optionalValue(
+                                    values.googleMapsUrl,
+                                  ),
                                   timezone: optionalValue(values.timezone),
                                   currency: optionalValue(values.currency),
                                   registrationNo: optionalValue(

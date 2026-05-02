@@ -1,7 +1,6 @@
 "use client";
 
-import { LogOut, Menu, Moon, Shield, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { LogOut, Menu, Shield } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/providers/sidebar-provider";
@@ -9,7 +8,6 @@ import { useAuth } from "@/providers/auth-provider";
 import { AppLogo } from "@/components/shared/app-logo";
 
 export function PlatformHeader() {
-  const { theme, setTheme } = useTheme();
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
 
@@ -50,19 +48,6 @@ export function PlatformHeader() {
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd]"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-
           <div className="flex min-w-0 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
             <div className="hidden min-w-0 text-right sm:block">
               <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>

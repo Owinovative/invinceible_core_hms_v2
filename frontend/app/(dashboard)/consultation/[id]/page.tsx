@@ -10,6 +10,7 @@ import {
   ClipboardList,
   FlaskConical,
   Loader2,
+  Paperclip,
   Pill,
   Plus,
   Save,
@@ -1685,6 +1686,18 @@ export default function ConsultationDetailPage() {
                                       ? formatDate(itemResult.recordedAt)
                                       : "—"}
                                   </p>
+
+                                  {itemResult?.attachmentDataUrl ? (
+                                    <a
+                                      href={itemResult.attachmentDataUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 underline underline-offset-4"
+                                    >
+                                      <Paperclip className="h-4 w-4" />
+                                      Open attached lab result
+                                    </a>
+                                  ) : null}
                                 </div>
                               </div>
                             );

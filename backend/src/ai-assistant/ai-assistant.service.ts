@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   ClinicalAiRequestDto,
   ClinicalAiTask,
+  IdentityOcrRequestDto,
 } from './dto/clinical-ai-request.dto';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
@@ -145,6 +146,117 @@ export class AiAssistantService {
     }
   }
 
+  async extractIdentity(dto: IdentityOcrRequestDto, user: RequestUser) {
+    if (!this.apiKey) {
+      throw new ServiceUnavailableException(
+        'AI identity reading is not configured. Set GEMINI_API_KEY on the Railway backend environment.',
+      );
+    }
+
+    const image = this.parseImageDataUrl(dto.imageDataUrl);
+    if (!image) {
+      throw new BadRequestException('Provide a valid image data URL.');
+    }
+
+    try {
+      const response = await fetch(this.geminiEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey,
+        },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [
+              {
+                text: [
+                  'Read the national identification card image for staff onboarding.',
+                  'Return strict JSON only with keys: fullName, nationalIdNumber, confidence, notes.',
+                  'Do not invent values. Use null when text is unreadable.',
+                  'confidence must be a number from 0 to 1.',
+                ].join('\n'),
+              },
+            ],
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: [
+                    `Requester role: ${user.roleCode || 'STAFF'}`,
+                    'Extract only the visible legal name and national ID number from this ID image.',
+                  ].join('\n'),
+                },
+                {
+                  inline_data: {
+                    mime_type: image.mimeType,
+                    data: image.base64,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 400,
+            responseMimeType: 'application/json',
+          },
+        }),
+      });
+
+      const payload = (await response.json()) as GeminiGenerateContentResponse;
+
+      if (!response.ok) {
+        throw new InternalServerErrorException(
+          payload.error?.message || 'Gemini identity reading failed.',
+        );
+      }
+
+      const output = payload.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text)
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+
+      if (!output) {
+        throw new InternalServerErrorException(
+          'Gemini returned an empty identity reading.',
+        );
+      }
+
+      const parsed = this.parseJsonObject(output);
+      return {
+        fullName:
+          typeof parsed.fullName === 'string' ? parsed.fullName.trim() : null,
+        nationalIdNumber:
+          typeof parsed.nationalIdNumber === 'string'
+            ? parsed.nationalIdNumber.trim()
+            : null,
+        confidence:
+          typeof parsed.confidence === 'number'
+            ? Math.max(0, Math.min(1, parsed.confidence))
+            : 0,
+        notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+        model: this.model,
+        generatedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ServiceUnavailableException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+
+      const message =
+        error instanceof Error ? error.message : 'AI identity reading failed.';
+
+      throw new InternalServerErrorException(message);
+    }
+  }
+
   private instructionsFor(task: ClinicalAiTask) {
     if (task === ClinicalAiTask.SYSTEM_NAVIGATION) {
       return [
@@ -218,6 +330,39 @@ export class AiAssistantService {
         : serialized;
     } catch {
       return 'Context could not be serialized.';
+    }
+  }
+
+  private parseImageDataUrl(value: string) {
+    const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i);
+    if (!match) return null;
+    return {
+      mimeType: match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1],
+      base64: match[2],
+    };
+  }
+
+  private parseJsonObject(value: string): Record<string, unknown> {
+    const cleaned = value
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```$/i, '')
+      .trim();
+
+    try {
+      return JSON.parse(cleaned) as Record<string, unknown>;
+    } catch {
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        return JSON.parse(cleaned.slice(start, end + 1)) as Record<
+          string,
+          unknown
+        >;
+      }
+      throw new InternalServerErrorException(
+        'Gemini identity response was not valid JSON.',
+      );
     }
   }
 

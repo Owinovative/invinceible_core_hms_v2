@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientService } from '../patient/patient.service';
 import { AppointmentService } from '../appointment/appointment.service';
@@ -27,7 +28,6 @@ import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
 import { OpenPatientInvoiceDto } from './dto/open-patient-invoice.dto';
 import {
-  drawVerificationBarcode,
   formatPdfMoney,
   loadLogoBuffer,
   patientName,
@@ -2115,6 +2115,29 @@ export class BillingService {
   ) {
     const logoBuffer = await loadLogoBuffer(invoice.facility?.logoUrl);
     const paymentLines = this.invoicePaymentLines(invoice);
+    const qrPayload = JSON.stringify({
+      type: 'invoice',
+      invoiceNumber: invoice.invoiceNumber,
+      verificationCode,
+      facility: invoice.facility?.name,
+      patient: {
+        number: invoice.patient?.patientNumber,
+        name: patientName(invoice.patient),
+      },
+      total: invoice.totalAmount,
+      issuedAt: invoice.issuedAt,
+      items: printableItems.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        amount: item.lineTotal,
+        date: item.createdAt,
+      })),
+    });
+    const qrBuffer = await QRCode.toBuffer(qrPayload, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      scale: 4,
+    });
 
     return new Promise<Buffer>((resolve, reject) => {
       const doc = new PDFDocument({
@@ -2138,7 +2161,7 @@ export class BillingService {
       const rowHeight = 22;
 
       const drawHeader = () => {
-        doc.rect(left, 18, width, 162).fill('#e9e9e9');
+        doc.rect(left, 18, width, 142).fill('#f1f5f9');
         doc
           .fillColor('#8b8b8b')
           .font('Times-Bold')
@@ -2189,16 +2212,13 @@ export class BillingService {
           .font('Times-Roman')
           .fontSize(22)
           .text('INVOICE', right - 105, 70, { width: 98, align: 'right' });
-        drawVerificationBarcode(doc, verificationCode, right - 102, 112, 96, 24);
+        doc.image(qrBuffer, right - 78, 103, { fit: [58, 58] });
         doc
           .fillColor('#7b7b7b')
-          .font('Helvetica-Oblique')
-          .fontSize(9)
-          .text('COLLECTION', right - 97, 139, { width: 95, align: 'right' })
-          .font('Times-Roman')
-          .fontSize(18)
-          .text('Collection', right - 105, 157, {
-            width: 100,
+          .font('Helvetica')
+          .fontSize(7)
+          .text(verificationCode, right - 130, 164, {
+            width: 125,
             align: 'right',
           });
 
@@ -2213,7 +2233,7 @@ export class BillingService {
           ['Tel', patient?.phonePrimary || '-'],
           ['DateOfAdmission', this.shortInvoiceDate(admittedAt)],
         ];
-        let y = 116;
+        let y = 108;
         details.forEach(([label, value]) => {
           doc
             .fillColor('#6b7280')
@@ -2226,7 +2246,7 @@ export class BillingService {
           y += 16;
         });
 
-        doc.y = 184;
+        doc.y = 166;
       };
 
       const drawTableHeader = () => {
@@ -2236,15 +2256,12 @@ export class BillingService {
           .fillColor('#6b7280')
           .font('Times-Roman')
           .fontSize(9)
-          .text('Qty', left + 2, headerY)
-          .text('Unit', left + 38, headerY)
-          .text('Item', left + 122, headerY)
-          .text('Unitprice', left + 268, headerY)
-          .text('TotalPrice', left + 326, headerY)
-          .text('Vat%', left + 394, headerY)
-          .text('Disc', left + 432, headerY)
-          .text('V A T', left + 470, headerY)
-          .text('NetTotal', left + 520, headerY);
+          .text('Date', left + 2, headerY)
+          .text('Item', left + 76, headerY)
+          .text('Unit', left + 294, headerY)
+          .text('Qty', left + 365, headerY)
+          .text('Price', left + 430, headerY)
+          .text('Total', left + 520, headerY);
         doc
           .moveTo(left, headerY + 13)
           .lineTo(right, headerY + 13)
@@ -2284,20 +2301,17 @@ export class BillingService {
           .undash();
 
         const values = [
-          String(quantity),
-          unitText,
+          this.shortInvoiceDate(item.createdAt),
           item.description,
+          unitText,
+          String(quantity),
           this.compactMoney(item.unitPrice, currency),
-          String(Number(item.lineTotal || 0)),
-          '0',
-          '0',
-          '0',
-          String(Number(item.lineTotal || 0)),
+          this.compactMoney(item.lineTotal, currency),
         ];
         columns.forEach((column, columnIndex) => {
           doc
-            .fillColor(columnIndex === 8 ? '#111827' : '#374151')
-            .font(columnIndex === 8 ? 'Helvetica-Bold' : 'Helvetica')
+            .fillColor(columnIndex === 5 ? '#111827' : '#374151')
+            .font(columnIndex === 5 ? 'Helvetica-Bold' : 'Helvetica')
             .fontSize(8)
             .text(values[columnIndex], column.x, y + 4, {
               width: column.width,
@@ -2305,14 +2319,6 @@ export class BillingService {
               ellipsis: true,
             });
         });
-        doc
-          .fillColor('#374151')
-          .font('Helvetica')
-          .fontSize(7)
-          .text(this.shortInvoiceDate(item.createdAt), right - 52, y + 1, {
-            width: 48,
-            align: 'right',
-          });
         doc.y = y + rowHeight;
       });
 
@@ -2322,33 +2328,7 @@ export class BillingService {
         doc.y = 24;
       }
 
-      const totalsY = doc.y + 8;
-      doc
-        .fillColor('#6b7280')
-        .font('Helvetica')
-        .fontSize(8)
-        .text('SHAPayable', left + 25, totalsY)
-        .text('VAT', left + 142, totalsY)
-        .text('Cash', left + 218, totalsY)
-        .text('Paybill', left + 292, totalsY)
-        .text('Amount', left + 368, totalsY)
-        .text('This Invoice', right - 96, totalsY);
-
-      const boxY = totalsY + 14;
-      [left + 8, left + 82, left + 156, left + 230, left + 304].forEach((x) =>
-        doc.rect(x, boxY, 72, 18).strokeColor('#a3a3a3').stroke(),
-      );
-      doc
-        .rect(right - 185, boxY, 178, 18)
-        .strokeColor('#a3a3a3')
-        .stroke()
-        .fillColor('#111827')
-        .font('Helvetica-Bold')
-        .fontSize(11)
-        .text(String(Number(invoice.totalAmount || 0)), right - 85, boxY + 3, {
-          width: 78,
-          align: 'right',
-        });
+      const boxY = doc.y + 12;
 
       const totalRows = [
         ['Subtotal', invoice.subtotal],
@@ -2357,7 +2337,7 @@ export class BillingService {
         ['Grand Total', invoice.totalAmount],
       ];
       totalRows.forEach(([label, value], index) => {
-        const rowY = boxY + 23 + index * 20;
+        const rowY = boxY + index * 18;
         doc
           .fillColor('#6b7280')
           .font('Helvetica')
@@ -2390,7 +2370,7 @@ export class BillingService {
           footerY,
           { width: 390 },
         );
-      this.drawQrPlaceholder(doc, left + 8, footerY + 18);
+      doc.image(qrBuffer, left + 8, footerY + 18, { fit: [58, 58] });
       doc
         .fillColor('#7b5c2d')
         .font('Helvetica')
@@ -2444,15 +2424,12 @@ export class BillingService {
   private invoicePrintColumns() {
     const left = 20;
     return [
-      { x: left + 2, width: 34, align: 'left' as const },
-      { x: left + 40, width: 76, align: 'left' as const },
-      { x: left + 122, width: 138, align: 'left' as const },
-      { x: left + 268, width: 56, align: 'left' as const },
-      { x: left + 326, width: 58, align: 'left' as const },
-      { x: left + 394, width: 34, align: 'left' as const },
-      { x: left + 432, width: 34, align: 'left' as const },
-      { x: left + 470, width: 38, align: 'left' as const },
-      { x: left + 512, width: 54, align: 'right' as const },
+      { x: left + 2, width: 70, align: 'left' as const },
+      { x: left + 76, width: 214, align: 'left' as const },
+      { x: left + 294, width: 66, align: 'left' as const },
+      { x: left + 365, width: 38, align: 'left' as const },
+      { x: left + 420, width: 70, align: 'right' as const },
+      { x: left + 494, width: 72, align: 'right' as const },
     ];
   }
 

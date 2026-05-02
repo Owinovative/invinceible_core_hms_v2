@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsEmail,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -39,6 +40,29 @@ export class CreateStaffDto {
   @IsString()
   @MaxLength(150)
   designation?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  nationalIdNumber: string;
+
+  @IsOptional()
+  @IsString()
+  nationalIdImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  passportPhotoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  clinicianRegistrationNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  clinicianBoard?: string;
 
   @IsOptional()
   @IsBoolean()

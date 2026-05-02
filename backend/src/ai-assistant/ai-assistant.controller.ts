@@ -3,7 +3,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AiAssistantService } from './ai-assistant.service';
-import { ClinicalAiRequestDto } from './dto/clinical-ai-request.dto';
+import {
+  ClinicalAiRequestDto,
+  IdentityOcrRequestDto,
+} from './dto/clinical-ai-request.dto';
 
 @Controller('ai-assistant')
 @UseGuards(AuthGuard('jwt'))
@@ -21,5 +24,13 @@ export class AiAssistantController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.aiAssistantService.createClinicalDraft(dto, user);
+  }
+
+  @Post('identity-ocr')
+  extractIdentity(
+    @Body() dto: IdentityOcrRequestDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.aiAssistantService.extractIdentity(dto, user);
   }
 }

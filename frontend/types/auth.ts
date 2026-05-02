@@ -38,6 +38,7 @@ export interface AuthUser {
   allowedBranches?: AuthAllowedBranch[];
 
   staffId?: number | null;
+  staffPassportPhotoUrl?: string | null;
 }
 
 export interface LoginResponse {

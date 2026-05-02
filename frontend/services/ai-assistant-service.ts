@@ -87,6 +87,15 @@ export interface ClinicalAiDraftResponse {
   generatedAt: string;
 }
 
+export interface IdentityOcrResponse {
+  fullName?: string | null;
+  nationalIdNumber?: string | null;
+  confidence: number;
+  notes?: string;
+  model: string;
+  generatedAt: string;
+}
+
 export function getAiAssistantStatus() {
   return apiFetch<AiAssistantStatus>("/ai-assistant/status");
 }
@@ -95,5 +104,12 @@ export function createClinicalAiDraft(payload: CreateClinicalAiDraftPayload) {
   return apiFetch<ClinicalAiDraftResponse>("/ai-assistant/clinical-draft", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function readIdentityCard(imageDataUrl: string) {
+  return apiFetch<IdentityOcrResponse>("/ai-assistant/identity-ocr", {
+    method: "POST",
+    body: JSON.stringify({ imageDataUrl }),
   });
 }
