@@ -9,6 +9,7 @@ import { useShaClaimSummary } from "@/hooks/use-sha-claim-summary";
 import { useShaClaims } from "@/hooks/use-sha-claims";
 import { useUpdateShaClaim } from "@/hooks/use-update-sha-claim";
 import { searchDiagnoses } from "@/lib/diagnosis-catalog";
+import { downloadShaClaimPdf } from "@/services/sha-claim-service";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,19 @@ function patientName(patient?: {
     .join(" ");
 }
 
+function readImageAsDataUrl(file?: File | null) {
+  return new Promise<string>((resolve, reject) => {
+    if (!file) {
+      resolve("");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ShaClaimsPage() {
   const { data: claimsData = [] } = useShaClaims();
   const { data: summary } = useShaClaimSummary();
@@ -55,6 +69,9 @@ export default function ShaClaimsPage() {
   const [diagnosisText, setDiagnosisText] = React.useState("");
   const [claimedAmount, setClaimedAmount] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [patientSignatureUrl, setPatientSignatureUrl] = React.useState("");
+  const [facilitySignatureUrl, setFacilitySignatureUrl] = React.useState("");
+  const [rubberStampUrl, setRubberStampUrl] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
 
   const patientMatches = React.useMemo(() => {
@@ -107,12 +124,18 @@ export default function ShaClaimsPage() {
         ? Number(claimedAmount)
         : selectedInvoice?.totalAmount,
       notes: notes.trim() || undefined,
+      patientSignatureUrl: patientSignatureUrl || undefined,
+      facilitySignatureUrl: facilitySignatureUrl || undefined,
+      rubberStampUrl: rubberStampUrl || undefined,
     });
 
     setMessage(`SHA claim ${created.claimNumber} created.`);
     setSelectedInvoiceId("");
     setClaimedAmount("");
     setNotes("");
+    setPatientSignatureUrl("");
+    setFacilitySignatureUrl("");
+    setRubberStampUrl("");
   };
 
   const updateClaimStatus = async (id: number, statusCode: string) => {
@@ -135,10 +158,10 @@ export default function ShaClaimsPage() {
             download.
           </p>
         </div>
-        <Button asChild className="rounded-md bg-[#075a9b] text-white">
+        <Button asChild variant="outline" className="rounded-md">
           <a href="/templates/claim-form-shif.docx" download>
             <Download className="mr-2 h-4 w-4" />
-            Download SHIF template
+            Original template
           </a>
         </Button>
       </div>
@@ -289,6 +312,47 @@ export default function ShaClaimsPage() {
               placeholder="Claim notes, authorization references, or rejection follow-up"
             />
 
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                [
+                  "Patient signature",
+                  patientSignatureUrl,
+                  setPatientSignatureUrl,
+                ],
+                [
+                  "Facility signature",
+                  facilitySignatureUrl,
+                  setFacilitySignatureUrl,
+                ],
+                ["Rubber stamp", rubberStampUrl, setRubberStampUrl],
+              ].map(([label, value, setter]) => (
+                <label key={String(label)} className="space-y-2 text-sm">
+                  <span className="font-medium">{String(label)}</span>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="h-11 rounded-md"
+                    onChange={async (event) => {
+                      const dataUrl = await readImageAsDataUrl(
+                        event.target.files?.[0],
+                      );
+                      (setter as React.Dispatch<React.SetStateAction<string>>)(
+                        dataUrl,
+                      );
+                    }}
+                  />
+                  {value ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={String(value)}
+                      alt=""
+                      className="h-14 w-full rounded-md border object-contain"
+                    />
+                  ) : null}
+                </label>
+              ))}
+            </div>
+
             {message ? (
               <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
                 {message}
@@ -355,26 +419,46 @@ export default function ShaClaimsPage() {
                         </Badge>
                       </td>
                       <td className="px-3 py-3">
-                        <select
-                          value={claim.statusCode}
-                          onChange={(event) =>
-                            void updateClaimStatus(claim.id, event.target.value)
-                          }
-                          className="h-9 rounded-md border px-2"
-                        >
-                          {[
-                            "DRAFT",
-                            "SUBMITTED",
-                            "APPROVED",
-                            "PAID",
-                            "REJECTED",
-                            "CANCELLED",
-                          ].map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex flex-wrap gap-2">
+                          <select
+                            value={claim.statusCode}
+                            onChange={(event) =>
+                              void updateClaimStatus(
+                                claim.id,
+                                event.target.value,
+                              )
+                            }
+                            className="h-9 rounded-md border px-2"
+                          >
+                            {[
+                              "DRAFT",
+                              "SUBMITTED",
+                              "APPROVED",
+                              "PAID",
+                              "REJECTED",
+                              "CANCELLED",
+                            ].map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-md"
+                            onClick={() =>
+                              void downloadShaClaimPdf(
+                                claim.id,
+                                claim.claimNumber,
+                              )
+                            }
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            PDF
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

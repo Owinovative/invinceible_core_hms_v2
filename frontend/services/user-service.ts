@@ -27,6 +27,8 @@ export interface UserItem {
   failedLoginAttempts?: number;
   lockedAt?: string | null;
   lockReason?: string | null;
+  pendingDeactivationAt?: string | null;
+  pendingDeactivationReason?: string | null;
   canAccessAllBranchesInFacility?: boolean;
   roleId: number;
   homeFacilityId?: number | null;
@@ -91,5 +93,11 @@ export async function adminResetUserPassword(
   return apiFetch<UserItem>(`/users/${id}/reset-password`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteUser(id: number) {
+  return apiFetch<UserItem>(`/users/${id}`, {
+    method: "DELETE",
   });
 }

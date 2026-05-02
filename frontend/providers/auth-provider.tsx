@@ -8,8 +8,15 @@ import {
   setAccessToken,
 } from "@/lib/auth-storage";
 import { Button } from "@/components/ui/button";
-import { getMe, loginUser } from "@/services/auth-service";
-import { markUserLocationLogout } from "@/services/user-location-service";
+import {
+  acceptOwnDeactivation,
+  getMe,
+  loginUser,
+} from "@/services/auth-service";
+import {
+  markUserLocationLogout,
+  recordPreciseUserLocation,
+} from "@/services/user-location-service";
 import type { AuthUser } from "@/types/auth";
 
 const AUTO_LOGOUT_MS = 20 * 60 * 1000;
@@ -42,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [autoLogoutWarning, setAutoLogoutWarning] = React.useState(false);
   const warningTimerRef = React.useRef<number | null>(null);
   const logoutTimerRef = React.useRef<number | null>(null);
+  const locationWatchRef = React.useRef<number | null>(null);
 
   const clearAutoLogoutTimers = React.useCallback(() => {
     if (warningTimerRef.current) {
@@ -170,6 +178,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [clearAutoLogoutTimers, resetInactivityTimer, token, user]);
 
+  React.useEffect(() => {
+    if (!token || !user || !("geolocation" in navigator)) return;
+
+    const sendPosition = (position: GeolocationPosition) => {
+      void recordPreciseUserLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracyMeters: position.coords.accuracy,
+      }).catch(() => undefined);
+    };
+
+    navigator.geolocation.getCurrentPosition(sendPosition, () => undefined, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+    });
+
+    locationWatchRef.current = navigator.geolocation.watchPosition(
+      sendPosition,
+      () => undefined,
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 30000,
+      },
+    );
+
+    return () => {
+      if (locationWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchRef.current);
+        locationWatchRef.current = null;
+      }
+    };
+  }, [token, user]);
+
   const value = React.useMemo<AuthContextValue>(
     () => ({
       user,
@@ -209,6 +252,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             >
               Sign out now
             </Button>
+          </div>
+        </div>
+      ) : null}
+      {user?.pendingDeactivationAt ? (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/65 p-4">
+          <div className="w-[min(28rem,100%)] rounded-lg border bg-white p-5 text-slate-950 shadow-2xl">
+            <p className="text-lg font-bold">Super admin deactivation request</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Another authorized administrator has requested to deactivate this
+              super admin account. For security, it will only take effect after
+              you accept it.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-lg"
+                onClick={() => setUser((current) =>
+                  current
+                    ? {
+                        ...current,
+                        pendingDeactivationAt: null,
+                        pendingDeactivationReason: null,
+                      }
+                    : current,
+                )}
+              >
+                Review later
+              </Button>
+              <Button
+                type="button"
+                className="rounded-lg bg-red-600 text-white hover:bg-red-700"
+                onClick={async () => {
+                  await acceptOwnDeactivation();
+                  logout();
+                }}
+              >
+                Accept and deactivate
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

@@ -163,10 +163,8 @@ export default function BillingPage() {
   const [editNotes, setEditNotes] = React.useState("");
   const [removeReason, setRemoveReason] = React.useState("");
 
-  const [cashReceiptNumber, setCashReceiptNumber] = React.useState("");
   const [cashAmount, setCashAmount] = React.useState("");
 
-  const [mpesaReceiptNumber, setMpesaReceiptNumber] = React.useState("");
   const [mpesaAmount, setMpesaAmount] = React.useState("");
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
 
@@ -220,13 +218,11 @@ export default function BillingPage() {
     if (!invoice) return;
 
     await createCashPaymentMutation.mutateAsync({
-      receiptNumber: cashReceiptNumber.trim(),
       invoiceId: invoice.id,
       amount: Number(cashAmount || 0),
       receivedByStaffId: user?.staffId ? Number(user.staffId) : undefined,
     });
 
-    setCashReceiptNumber("");
     setCashAmount("");
     setMessage("Cash payment recorded successfully.");
   };
@@ -235,14 +231,12 @@ export default function BillingPage() {
     if (!invoice) return;
 
     await createMpesaPaymentRequestMutation.mutateAsync({
-      receiptNumber: mpesaReceiptNumber.trim(),
       invoiceId: invoice.id,
       amount: Number(mpesaAmount || 0),
       phoneNumber: mpesaPhoneNumber.trim(),
       receivedByStaffId: user?.staffId ? Number(user.staffId) : undefined,
     });
 
-    setMpesaReceiptNumber("");
     setMpesaAmount("");
     setMpesaPhoneNumber("");
     setMessage("M-PESA payment request created successfully.");
@@ -927,13 +921,6 @@ export default function BillingPage() {
                   <p className="font-semibold">Cash Payment</p>
 
                   <Input
-                    value={cashReceiptNumber}
-                    onChange={(e) => setCashReceiptNumber(e.target.value)}
-                    className="h-12 rounded-2xl"
-                    placeholder="Receipt number"
-                  />
-
-                  <Input
                     type="number"
                     value={cashAmount}
                     onChange={(e) => setCashAmount(e.target.value)}
@@ -956,13 +943,6 @@ export default function BillingPage() {
 
                 <div className="space-y-4 rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
                   <p className="font-semibold">M-PESA Payment</p>
-
-                  <Input
-                    value={mpesaReceiptNumber}
-                    onChange={(e) => setMpesaReceiptNumber(e.target.value)}
-                    className="h-12 rounded-2xl"
-                    placeholder="Receipt number"
-                  />
 
                   <Input
                     type="number"

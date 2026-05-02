@@ -52,4 +52,16 @@ export class CreateShaClaimDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  patientSignatureUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  facilitySignatureUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  rubberStampUrl?: string;
 }

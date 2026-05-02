@@ -52,6 +52,8 @@ export interface PaymentRecord {
   paymentMethod: string;
   statusCode: string;
   phoneNumber?: string | null;
+  checkoutRequestId?: string | null;
+  merchantRequestId?: string | null;
   transactionRef?: string | null;
   mpesaReceiptNumber?: string | null;
   paidAt?: string | null;
@@ -284,7 +286,7 @@ export interface RemoveInvoiceItemPayload {
 }
 
 export interface CreateCashPaymentPayload {
-  receiptNumber: string;
+  receiptNumber?: string;
   invoiceId: number;
   amount: number;
   notes?: string;
@@ -292,12 +294,13 @@ export interface CreateCashPaymentPayload {
 }
 
 export interface CreateMpesaPaymentRequestPayload {
-  receiptNumber: string;
+  receiptNumber?: string;
   invoiceId: number;
   amount: number;
   phoneNumber: string;
   notes?: string;
   receivedByStaffId?: number;
+  forceResend?: boolean;
 }
 
 export interface PostAdmissionBedChargePayload {
@@ -535,11 +538,12 @@ export async function createCashPayment(payload: CreateCashPaymentPayload) {
 export interface MpesaPaymentRequestResponse {
   message: string;
   payment: PaymentRecord;
-  stkSimulation?: {
+  duplicatePrevented?: boolean;
+  stkRequest?: {
     phoneNumber: string;
     amount: number;
     checkoutRequestId: string;
-    merchantRequestId: string;
+    merchantRequestId?: string;
   };
 }
 
@@ -552,6 +556,37 @@ export async function createMpesaPaymentRequest(
       method: "POST",
       body: JSON.stringify(payload),
     },
+  );
+}
+
+export async function resendMpesaPaymentRequest(paymentId: number) {
+  return apiFetch<MpesaPaymentRequestResponse>(
+    `/billing/payments/${paymentId}/mpesa/resend`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function getPublicVerifiedInvoice(
+  invoiceNumber: string,
+  code: string,
+) {
+  const params = new URLSearchParams({ invoice: invoiceNumber, code });
+  return apiFetch<InvoiceRecord>(
+    `/billing-public/invoices/verify?${params.toString()}`,
+    { method: "GET" },
+  );
+}
+
+export function downloadPublicVerifiedInvoicePdf(
+  invoiceNumber: string,
+  code: string,
+) {
+  const params = new URLSearchParams({ invoice: invoiceNumber, code });
+  return apiDownload(
+    `/billing-public/invoices/verify.pdf?${params.toString()}`,
+    `${invoiceNumber || "verified-invoice"}.pdf`,
   );
 }
 export function getInvoicePdfUrl(id: number) {

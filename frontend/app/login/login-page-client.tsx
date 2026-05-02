@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  Home,
   LockKeyhole,
   MessageCircle,
   ShieldCheck,
@@ -218,15 +219,6 @@ export default function LoginPageClient() {
                   </div>
                 ) : null}
 
-                <div className="flex justify-end">
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm font-semibold text-sky-700 transition hover:text-sky-900"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-
                 <Button
                   type="submit"
                   className="h-12 w-full rounded-md bg-sky-700 text-base font-bold text-white shadow-[0_12px_30px_rgba(2,132,199,0.24)] hover:bg-sky-800"
@@ -234,6 +226,18 @@ export default function LoginPageClient() {
                 >
                   {isLoading ? "Signing in..." : "Sign in"}
                   <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full rounded-md border-sky-200 bg-white text-sky-800 hover:bg-sky-50"
+                >
+                  <Link href="/">
+                    <Home className="mr-2 h-4 w-4" />
+                    Back to home
+                  </Link>
                 </Button>
               </form>
             </Form>

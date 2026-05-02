@@ -49,14 +49,18 @@ export class StaffController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateStaffDto: UpdateStaffDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.staffService.update(id, updateStaffDto);
+    return this.staffService.secureUpdate(id, updateStaffDto, user);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.staffService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.staffService.secureRemove(id, user);
   }
 }

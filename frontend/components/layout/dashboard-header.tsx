@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Bell, LogOut, Menu, Search } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,7 @@ import { AppLogo } from "@/components/shared/app-logo";
 export function DashboardHeader() {
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
+  const [photoOpen, setPhotoOpen] = useState(false);
   const {
     facilityId,
     facilityName,
@@ -148,7 +149,11 @@ export function DashboardHeader() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white text-sm font-bold text-[#005a9c]">
+            <button
+              type="button"
+              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white text-sm font-bold text-[#005a9c]"
+              onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
+            >
               {user?.staffPassportPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -157,9 +162,9 @@ export function DashboardHeader() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                initials
+                <span>{initials}</span>
               )}
-            </div>
+            </button>
 
             <Button
               variant="ghost"
@@ -172,6 +177,19 @@ export function DashboardHeader() {
           </div>
         </div>
       </div>
+      {photoOpen && user?.staffPassportPhotoUrl ? (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/80 p-4"
+          onClick={() => setPhotoOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={user.staffPassportPhotoUrl}
+            alt=""
+            className="max-h-[86vh] max-w-[92vw] rounded-lg border-4 border-white bg-white object-contain shadow-2xl"
+          />
+        </div>
+      ) : null}
     </header>
   );
 }

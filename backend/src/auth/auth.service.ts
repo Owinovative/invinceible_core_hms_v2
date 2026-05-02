@@ -292,8 +292,15 @@ export class AuthService {
         fullName: user.fullName,
         isActive: user.isActive,
         role: user.role,
+        pendingDeactivationAt: user.pendingDeactivationAt,
+        pendingDeactivationReason: user.pendingDeactivationReason,
       },
     };
+  }
+
+  async acceptOwnDeactivation(user: any) {
+    await this.userService.acceptOwnDeactivation(user);
+    return { message: 'Your super admin account has been deactivated.' };
   }
 
   async validateUser(userId: number) {

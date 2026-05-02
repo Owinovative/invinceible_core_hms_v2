@@ -39,6 +39,8 @@ export interface AuthUser {
 
   staffId?: number | null;
   staffPassportPhotoUrl?: string | null;
+  pendingDeactivationAt?: string | null;
+  pendingDeactivationReason?: string | null;
 }
 
 export interface LoginResponse {

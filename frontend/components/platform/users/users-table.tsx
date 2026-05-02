@@ -8,6 +8,7 @@ import {
   LockKeyhole,
   Power,
   Search,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useUsers } from "@/hooks/use-users";
@@ -17,6 +18,8 @@ import { useRoles } from "@/hooks/use-roles";
 import { useUpdateUser } from "@/hooks/use-update-user";
 import { useUpdateUserStatus } from "@/hooks/use-update-user-status";
 import { useAdminResetUserPassword } from "@/hooks/use-admin-reset-user-password";
+import { useDeleteUser } from "@/hooks/use-delete-user";
+import { useAuth } from "@/providers/auth-provider";
 import type { UserItem } from "@/services/user-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -36,6 +39,8 @@ export function UsersTable() {
   const updateUserMutation = useUpdateUser();
   const updateUserStatusMutation = useUpdateUserStatus();
   const resetPasswordMutation = useAdminResetUserPassword();
+  const deleteUserMutation = useDeleteUser();
+  const { user: currentUser } = useAuth();
 
   const items = React.useMemo<UserItem[]>(() => {
     return Array.isArray(data) ? data : [];
@@ -373,6 +378,29 @@ export function UsersTable() {
                             {user.isActive === false
                               ? "Reactivate"
                               : "Deactivate"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+                            disabled={
+                              deleteUserMutation.isPending ||
+                              user.isActive !== false ||
+                              currentUser?.id === user.id
+                            }
+                            onClick={async () => {
+                              if (
+                                !window.confirm(
+                                  `Delete inactive user ${user.username}?`,
+                                )
+                              ) {
+                                return;
+                              }
+                              await deleteUserMutation.mutateAsync(user.id);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
                           </Button>
                         </div>
                       </td>

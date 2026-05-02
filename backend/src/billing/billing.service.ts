@@ -36,6 +36,26 @@ import {
 type TariffCsvRow = Record<string, string>;
 type InvoiceChargeType = 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
 
+type MpesaStkResponse = {
+  MerchantRequestID?: string;
+  CheckoutRequestID?: string;
+  ResponseCode?: string;
+  ResponseDescription?: string;
+  CustomerMessage?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+type MpesaConfig = {
+  consumerKey?: string;
+  consumerSecret?: string;
+  passkey?: string;
+  shortcode?: string;
+  callbackUrl?: string;
+  transactionType: string;
+  accountReference: string;
+};
+
 const SERVICE_TARIFF_COLUMNS = [
   'tariffType',
   'code',
@@ -2173,6 +2193,62 @@ export class BillingService {
     );
   }
 
+  async getVerifiedInvoice(invoiceNumber: string, code: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { invoiceNumber },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        appointment: true,
+        consultation: true,
+        admission: true,
+        createdBy: true,
+        items: {
+          include: {
+            billingService: true,
+            updatedBy: true,
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        },
+        payments: {
+          include: {
+            receivedBy: true,
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        },
+      },
+    });
+
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    const verificationCode = this.buildInvoiceVerificationCode(invoice);
+    if (verificationCode !== code) {
+      throw new BadRequestException('Invoice verification code is invalid');
+    }
+
+    return {
+      ...invoice,
+      verificationCode,
+      publicVerifiedAt: new Date().toISOString(),
+    };
+  }
+
+  async getVerifiedInvoicePdf(invoiceNumber: string, code: string) {
+    const invoice = await this.getVerifiedInvoice(invoiceNumber, code);
+    const currency =
+      invoice.facility?.currency || invoice.branch?.currency || 'KES';
+    const printableItems = (invoice.items ?? []).filter(
+      (item) => item.isRemoved !== true,
+    );
+
+    return this.createCollectionInvoicePdf(
+      invoice,
+      printableItems,
+      invoice.verificationCode,
+      currency,
+    );
+  }
+
   async getPaymentReceiptPdf(id: number, user: RequestUser) {
     const payment = await this.prisma.payment.findUnique({
       where: { id },
@@ -2723,16 +2799,209 @@ export class BillingService {
     return formatPdfMoney(value, currency).replace(/\s/g, '');
   }
 
+  private generateReceiptNumber(prefix = 'RCT') {
+    const dateKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const entropy = `${Date.now().toString(36)}${Math.random()
+      .toString(36)
+      .slice(2, 6)}`.toUpperCase();
+    return `${prefix}-${dateKey}-${entropy}`;
+  }
+
+  private normalizeMpesaPhone(phoneNumber: string) {
+    const digits = phoneNumber.replace(/\D/g, '');
+    if (digits.startsWith('254') && digits.length === 12) return digits;
+    if (digits.startsWith('0') && digits.length === 10) {
+      return `254${digits.slice(1)}`;
+    }
+    if (digits.startsWith('7') && digits.length === 9) return `254${digits}`;
+    throw new BadRequestException(
+      'Use a valid Kenyan M-PESA phone number, for example 0712345678 or 254712345678',
+    );
+  }
+
+  private getMpesaBaseUrl() {
+    return process.env.MPESA_ENV === 'production'
+      ? 'https://api.safaricom.co.ke'
+      : 'https://sandbox.safaricom.co.ke';
+  }
+
+  private resolveMpesaConfig(invoice: any): MpesaConfig {
+    const facility = invoice.facility ?? {};
+    const branch = invoice.branch ?? {};
+    const shortcode =
+      branch.mpesaShortcode ||
+      facility.mpesaShortcode ||
+      branch.mpesaPaybill ||
+      facility.mpesaPaybill ||
+      branch.mpesaTillNumber ||
+      facility.mpesaTillNumber ||
+      process.env.MPESA_SHORTCODE;
+    const hasTill =
+      Boolean(branch.mpesaTillNumber || facility.mpesaTillNumber) &&
+      !Boolean(branch.mpesaPaybill || facility.mpesaPaybill);
+
+    return {
+      consumerKey: process.env.MPESA_CONSUMER_KEY,
+      consumerSecret: process.env.MPESA_CONSUMER_SECRET,
+      passkey: process.env.MPESA_PASSKEY,
+      shortcode,
+      callbackUrl: process.env.MPESA_CALLBACK_URL,
+      transactionType:
+        process.env.MPESA_TRANSACTION_TYPE ||
+        (hasTill ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline'),
+      accountReference:
+        branch.mpesaAccountNumber ||
+        facility.mpesaAccountNumber ||
+        invoice.invoiceNumber,
+    };
+  }
+
+  private assertMpesaConfigured(config: MpesaConfig) {
+    const missing = [
+      ['MPESA_CONSUMER_KEY', config.consumerKey],
+      ['MPESA_CONSUMER_SECRET', config.consumerSecret],
+      ['MPESA_PASSKEY', config.passkey],
+      ['MPESA_SHORTCODE or facility shortcode/paybill/till', config.shortcode],
+      ['MPESA_CALLBACK_URL', config.callbackUrl],
+    ].filter(([, value]) => !value);
+
+    if (missing.length) {
+      throw new BadRequestException(
+        `M-PESA Daraja is not configured. Missing: ${missing
+          .map(([key]) => key)
+          .join(', ')}`,
+      );
+    }
+  }
+
+  private async getMpesaAccessToken(config: MpesaConfig) {
+    this.assertMpesaConfigured(config);
+    const credentials = Buffer.from(
+      `${config.consumerKey}:${config.consumerSecret}`,
+    ).toString('base64');
+    const response = await fetch(
+      `${this.getMpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`,
+      {
+        headers: {
+          Authorization: `Basic ${credentials}`,
+        },
+      },
+    );
+
+    const data = (await response.json().catch(() => ({}))) as {
+      access_token?: string;
+      errorMessage?: string;
+    };
+
+    if (!response.ok || !data.access_token) {
+      throw new BadRequestException(
+        data.errorMessage || 'Unable to get M-PESA access token',
+      );
+    }
+
+    return data.access_token;
+  }
+
+  private mpesaTimestamp() {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+      now.getDate(),
+    )}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  }
+
+  private async sendDarajaStkPush(params: {
+    invoice: any;
+    amount: number;
+    phoneNumber: string;
+  }) {
+    const config = this.resolveMpesaConfig(params.invoice);
+    this.assertMpesaConfigured(config);
+    const token = await this.getMpesaAccessToken(config);
+    const timestamp = this.mpesaTimestamp();
+    const password = Buffer.from(
+      `${config.shortcode}${config.passkey}${timestamp}`,
+    ).toString('base64');
+    const amount = Math.max(1, Math.round(Number(params.amount || 0)));
+    const phoneNumber = this.normalizeMpesaPhone(params.phoneNumber);
+
+    const response = await fetch(
+      `${this.getMpesaBaseUrl()}/mpesa/stkpush/v1/processrequest`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          BusinessShortCode: config.shortcode,
+          Password: password,
+          Timestamp: timestamp,
+          TransactionType: config.transactionType,
+          Amount: amount,
+          PartyA: phoneNumber,
+          PartyB: config.shortcode,
+          PhoneNumber: phoneNumber,
+          CallBackURL: config.callbackUrl,
+          AccountReference: String(config.accountReference).slice(0, 12),
+          TransactionDesc: `Invoice ${params.invoice.invoiceNumber}`.slice(
+            0,
+            13,
+          ),
+        }),
+      },
+    );
+    const data = (await response.json().catch(() => ({}))) as MpesaStkResponse;
+
+    if (!response.ok || data.ResponseCode !== '0') {
+      throw new BadRequestException(
+        data.errorMessage ||
+          data.ResponseDescription ||
+          'M-PESA STK Push request was not accepted',
+      );
+    }
+
+    return { data, phoneNumber };
+  }
+
+  private async findPendingMpesaPayment(
+    invoiceId: number,
+    phoneNumber: string,
+    amount: number,
+  ) {
+    const normalizedPhone = this.normalizeMpesaPhone(phoneNumber);
+    const freshWindow = new Date(Date.now() - 1000 * 60 * 15);
+
+    return this.prisma.payment.findFirst({
+      where: {
+        invoiceId,
+        paymentMethod: 'MPESA',
+        statusCode: 'PENDING',
+        phoneNumber: normalizedPhone,
+        amount: Number(amount || 0),
+        requestedAt: { gte: freshWindow },
+      },
+      include: {
+        facility: true,
+        branch: true,
+        invoice: true,
+        receivedBy: true,
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
+  }
+
   async createCashPayment(dto: CreateCashPaymentDto) {
+    const invoice = await this.getInvoiceById(dto.invoiceId);
+    const receiptNumber = dto.receiptNumber || this.generateReceiptNumber('CSH');
+
     const existing = await this.prisma.payment.findFirst({
-      where: { receiptNumber: dto.receiptNumber },
+      where: { receiptNumber },
     });
 
     if (existing) {
       throw new BadRequestException('Receipt number already exists');
     }
-
-    const invoice = await this.getInvoiceById(dto.invoiceId);
 
     if (dto.receivedByStaffId) {
       await this.staffService.findOne(dto.receivedByStaffId);
@@ -2752,7 +3021,7 @@ export class BillingService {
       data: {
         facilityId: invoice.facilityId,
         branchId: invoice.branchId,
-        receiptNumber: dto.receiptNumber,
+        receiptNumber,
         invoiceId: dto.invoiceId,
         amount: dto.amount,
         paymentMethod: 'CASH',
@@ -2801,15 +3070,8 @@ export class BillingService {
   }
 
   async createMpesaPaymentRequest(dto: CreateMpesaPaymentRequestDto) {
-    const existing = await this.prisma.payment.findFirst({
-      where: { receiptNumber: dto.receiptNumber },
-    });
-
-    if (existing) {
-      throw new BadRequestException('Receipt number already exists');
-    }
-
     const invoice = await this.getInvoiceById(dto.invoiceId);
+    const normalizedPhone = this.normalizeMpesaPhone(dto.phoneNumber);
 
     if (dto.receivedByStaffId) {
       await this.staffService.findOne(dto.receivedByStaffId);
@@ -2825,21 +3087,52 @@ export class BillingService {
       );
     }
 
-    const checkoutRequestId = `CHK-${Date.now()}`;
-    const merchantRequestId = `MRC-${Date.now()}`;
+    const pending = await this.findPendingMpesaPayment(
+      dto.invoiceId,
+      normalizedPhone,
+      dto.amount,
+    );
+
+    if (pending && !dto.forceResend) {
+      return {
+        message:
+          'A pending M-PESA STK Push already exists for this invoice, amount, and phone number. Use resend if the patient did not receive it.',
+        payment: pending,
+        duplicatePrevented: true,
+      };
+    }
+
+    const receiptNumber = dto.receiptNumber || this.generateReceiptNumber('MPESA');
+    const existing = await this.prisma.payment.findFirst({
+      where: { receiptNumber },
+    });
+
+    if (existing) {
+      throw new BadRequestException('Receipt number already exists');
+    }
+
+    const stk = await this.sendDarajaStkPush({
+      invoice,
+      amount: dto.amount,
+      phoneNumber: normalizedPhone,
+    });
 
     const payment = await this.prisma.payment.create({
       data: {
         facilityId: invoice.facilityId,
         branchId: invoice.branchId,
-        receiptNumber: dto.receiptNumber,
+        receiptNumber,
         invoiceId: dto.invoiceId,
         amount: dto.amount,
         paymentMethod: 'MPESA',
         statusCode: 'PENDING',
-        phoneNumber: dto.phoneNumber,
-        checkoutRequestId,
-        merchantRequestId,
+        phoneNumber: normalizedPhone,
+        checkoutRequestId: stk.data.CheckoutRequestID,
+        merchantRequestId: stk.data.MerchantRequestID,
+        callbackPayload: JSON.stringify({
+          request: stk.data,
+          requestedAt: new Date().toISOString(),
+        }),
         receivedByStaffId: dto.receivedByStaffId,
         notes: dto.notes,
       },
@@ -2878,13 +3171,108 @@ export class BillingService {
 
     return {
       message:
-        'M-PESA payment request created. In production this is where STK push is initiated.',
+        stk.data.CustomerMessage ||
+        'M-PESA STK Push sent. Ask the patient to enter their M-PESA PIN.',
       payment,
-      stkSimulation: {
-        phoneNumber: dto.phoneNumber,
+      stkRequest: {
+        phoneNumber: normalizedPhone,
         amount: dto.amount,
-        checkoutRequestId,
-        merchantRequestId,
+        checkoutRequestId: stk.data.CheckoutRequestID,
+        merchantRequestId: stk.data.MerchantRequestID,
+      },
+    };
+  }
+
+  async resendMpesaPaymentRequest(id: number, user: RequestUser) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: {
+        invoice: {
+          include: {
+            facility: true,
+            branch: true,
+            patient: true,
+            appointment: true,
+            admission: true,
+            items: true,
+            payments: true,
+          },
+        },
+        facility: true,
+        branch: true,
+        receivedBy: true,
+      },
+    });
+
+    if (!payment) throw new NotFoundException(`Payment with id ${id} not found`);
+    this.scopeService.assertBranchAccess(
+      user,
+      payment.facilityId,
+      payment.branchId,
+    );
+
+    if (payment.paymentMethod !== 'MPESA') {
+      throw new BadRequestException('Only M-PESA payment requests can be resent');
+    }
+
+    if (payment.statusCode !== 'PENDING') {
+      throw new BadRequestException('Only pending M-PESA requests can be resent');
+    }
+
+    if (!payment.phoneNumber) {
+      throw new BadRequestException('Payment has no phone number to resend to');
+    }
+
+    const stk = await this.sendDarajaStkPush({
+      invoice: payment.invoice,
+      amount: payment.amount,
+      phoneNumber: payment.phoneNumber,
+    });
+
+    const updated = await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        checkoutRequestId: stk.data.CheckoutRequestID,
+        merchantRequestId: stk.data.MerchantRequestID,
+        requestedAt: new Date(),
+        callbackPayload: JSON.stringify({
+          resend: stk.data,
+          resentAt: new Date().toISOString(),
+          previousCheckoutRequestId: payment.checkoutRequestId,
+        }),
+      },
+      include: {
+        facility: true,
+        branch: true,
+        invoice: true,
+        receivedBy: true,
+      },
+    });
+
+    await this.auditLogService.create({
+      moduleName: 'BILLING',
+      actionName: 'RESEND_MPESA_STK_PUSH',
+      entityType: 'PAYMENT',
+      entityId: String(payment.id),
+      description: `M-PESA STK Push resent for invoice ${payment.invoiceId}`,
+      facilityId: payment.facilityId,
+      branchId: payment.branchId ?? undefined,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? undefined,
+      beforeData: JSON.stringify(payment),
+      afterData: JSON.stringify(updated),
+    });
+
+    return {
+      message:
+        stk.data.CustomerMessage ||
+        'M-PESA STK Push resent. Ask the patient to enter their M-PESA PIN.',
+      payment: updated,
+      stkRequest: {
+        phoneNumber: payment.phoneNumber,
+        amount: payment.amount,
+        checkoutRequestId: stk.data.CheckoutRequestID,
+        merchantRequestId: stk.data.MerchantRequestID,
       },
     };
   }
@@ -3003,6 +3391,40 @@ export class BillingService {
     });
 
     return failedPayment;
+  }
+
+  async handleMpesaCallback(payload: any) {
+    const callback = payload?.Body?.stkCallback;
+    const checkoutRequestId = callback?.CheckoutRequestID;
+
+    if (!checkoutRequestId) {
+      return { message: 'Ignored callback without CheckoutRequestID' };
+    }
+
+    if (Number(callback.ResultCode) !== 0) {
+      await this.failMpesaPayment(checkoutRequestId, JSON.stringify(payload));
+      return { message: 'M-PESA callback recorded as failed' };
+    }
+
+    const metadataItems: Array<{ Name: string; Value?: string | number }> =
+      callback?.CallbackMetadata?.Item ?? [];
+    const metadata = metadataItems.reduce<Record<string, string | number>>(
+      (acc, item) => {
+        acc[item.Name] = item.Value ?? '';
+        return acc;
+      },
+      {},
+    );
+
+    await this.confirmMpesaPayment({
+      checkoutRequestId,
+      merchantRequestId: callback.MerchantRequestID,
+      mpesaReceiptNumber: String(metadata.MpesaReceiptNumber || ''),
+      transactionRef: String(metadata.MpesaReceiptNumber || checkoutRequestId),
+      callbackPayload: JSON.stringify(payload),
+    });
+
+    return { message: 'M-PESA callback confirmed' };
   }
 
   async getRevenueIntegrity(user: RequestUser) {

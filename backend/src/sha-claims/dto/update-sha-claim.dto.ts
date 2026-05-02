@@ -67,4 +67,16 @@ export class UpdateShaClaimDto {
   @IsOptional()
   @IsString()
   notes?: string | null;
+
+  @IsOptional()
+  @IsString()
+  patientSignatureUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  facilitySignatureUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  rubberStampUrl?: string | null;
 }

@@ -381,10 +381,43 @@ export class StaffService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const staff = await this.findOne(id);
+
+    if (staff.isActive) {
+      throw new BadRequestException(
+        'Active staff cannot be deleted. Deactivate the staff record first.',
+      );
+    }
 
     return this.prisma.staff.delete({
       where: { id },
     });
+  }
+
+  async secureUpdate(
+    id: number,
+    updateStaffDto: UpdateStaffDto,
+    actor: RequestUser,
+  ) {
+    const staff = await this.findOne(id);
+
+    if (
+      updateStaffDto.isActive === false &&
+      (actor.staffId === id || actor.userId === staff.userId)
+    ) {
+      throw new BadRequestException('You cannot deactivate yourself');
+    }
+
+    return this.update(id, updateStaffDto);
+  }
+
+  async secureRemove(id: number, actor: RequestUser) {
+    const staff = await this.findOne(id);
+
+    if (actor.staffId === id || actor.userId === staff.userId) {
+      throw new BadRequestException('You cannot delete yourself');
+    }
+
+    return this.remove(id);
   }
 }

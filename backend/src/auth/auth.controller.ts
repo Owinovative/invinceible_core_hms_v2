@@ -34,4 +34,10 @@ export class AuthController {
   getProfile(@Req() req: any) {
     return req.user;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('accept-deactivation')
+  acceptDeactivation(@Req() req: any) {
+    return this.authService.acceptOwnDeactivation(req.user);
+  }
 }

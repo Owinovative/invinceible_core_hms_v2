@@ -24,4 +24,6 @@ export interface RequestUser {
 
   staffId?: number | null;
   staffPassportPhotoUrl?: string | null;
+  pendingDeactivationAt?: Date | null;
+  pendingDeactivationReason?: string | null;
 }
