@@ -197,6 +197,7 @@ export default function ConsultationDetailPage() {
 
 
   const [selectedMedicineId, setSelectedMedicineId] = React.useState("");
+  const [medicineSearch, setMedicineSearch] = React.useState("");
   const [itemDosage, setItemDosage] = React.useState("");
   const [itemFrequency, setItemFrequency] = React.useState("");
   const [itemDuration, setItemDuration] = React.useState("");
@@ -205,6 +206,7 @@ export default function ConsultationDetailPage() {
 
 
   const [selectedTestId, setSelectedTestId] = React.useState("");
+  const [labTestSearch, setLabTestSearch] = React.useState("");
   const [labUrgency, setLabUrgency] = React.useState("ROUTINE");
   const [labClinicalNotes, setLabClinicalNotes] = React.useState("");
   const [labInstruction, setLabInstruction] = React.useState("");
@@ -346,10 +348,47 @@ export default function ConsultationDetailPage() {
   }, [branchStockData]);
 
 
+  const filteredStockItems = React.useMemo(() => {
+    const query = medicineSearch.trim().toLowerCase();
+    if (!query) return availableStockItems.slice(0, 120);
+
+    return availableStockItems
+      .filter((item) =>
+        [
+          item.medicine?.name,
+          item.medicine?.code,
+          item.medicine?.dosageForm,
+          item.medicine?.strength,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [availableStockItems, medicineSearch]);
+
+
   const labTests = React.useMemo(
     () => (Array.isArray(labTestsData) ? labTestsData : []),
     [labTestsData],
   );
+
+
+  const filteredLabTests = React.useMemo(() => {
+    const query = labTestSearch.trim().toLowerCase();
+    if (!query) return labTests.slice(0, 120);
+
+    return labTests
+      .filter((test) =>
+        [test.testName, test.category, test.specimenType]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [labTestSearch, labTests]);
 
 
   const availableWardOptions = React.useMemo(() => {
@@ -1208,15 +1247,21 @@ export default function ConsultationDetailPage() {
                   <>
                     <div>
                       <label className="mb-2 block text-sm font-medium">
-                        Select Medicine from Branch Stock
+                        Search Medicine from Branch Stock
                       </label>
+                      <Input
+                        value={medicineSearch}
+                        onChange={(e) => setMedicineSearch(e.target.value)}
+                        className="mb-2 h-12 rounded-2xl"
+                        placeholder="Search drug name, code, form, or strength"
+                      />
                       <select
                         value={selectedMedicineId}
                         onChange={(e) => setSelectedMedicineId(e.target.value)}
                         className="flex h-12 w-full rounded-2xl border border-white/10 bg-background px-4 text-sm"
                       >
                         <option value="">Select medicine</option>
-                        {availableStockItems.map((item) => (
+                        {filteredStockItems.map((item) => (
                           <option key={item.id} value={String(item.medicineId)}>
                             {item.medicine?.name}
                             {item.medicine?.strength ? ` - ${item.medicine.strength}` : ""} (
@@ -1395,14 +1440,20 @@ export default function ConsultationDetailPage() {
 
               <CardContent className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Select Test</label>
+                  <label className="mb-2 block text-sm font-medium">Search Test</label>
+                  <Input
+                    value={labTestSearch}
+                    onChange={(e) => setLabTestSearch(e.target.value)}
+                    className="mb-2 h-12 rounded-2xl"
+                    placeholder="Search lab service name, specimen, or category"
+                  />
                   <select
                     value={selectedTestId}
                     onChange={(e) => setSelectedTestId(e.target.value)}
                     className="flex h-12 w-full rounded-2xl border border-white/10 bg-background px-4 text-sm"
                   >
                     <option value="">Select lab test</option>
-                    {labTests.map((test) => (
+                    {filteredLabTests.map((test) => (
                       <option key={test.id} value={String(test.id)}>
                         {test.testName}
                       </option>

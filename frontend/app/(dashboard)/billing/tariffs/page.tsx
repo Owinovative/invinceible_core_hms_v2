@@ -61,16 +61,58 @@ export default function BillingTariffsPage() {
   const [unitPrice, setUnitPrice] = React.useState("");
   const [billingServiceId, setBillingServiceId] = React.useState("");
   const [labTestId, setLabTestId] = React.useState("");
+  const [labTestSearch, setLabTestSearch] = React.useState("");
+  const [billingServiceSearch, setBillingServiceSearch] = React.useState("");
   const [wardId, setWardId] = React.useState("");
   const [bedId, setBedId] = React.useState("");
   const [notes, setNotes] = React.useState("");
 
-  const labTests = Array.isArray(labTestsData) ? labTestsData : [];
-  const wards = Array.isArray(wardsData) ? wardsData : [];
-  const beds = Array.isArray(bedsData) ? bedsData : [];
-  const billingServices = Array.isArray(billingServicesData)
-    ? billingServicesData
-    : [];
+  const labTests = React.useMemo(
+    () => (Array.isArray(labTestsData) ? labTestsData : []),
+    [labTestsData],
+  );
+  const wards = React.useMemo(
+    () => (Array.isArray(wardsData) ? wardsData : []),
+    [wardsData],
+  );
+  const beds = React.useMemo(
+    () => (Array.isArray(bedsData) ? bedsData : []),
+    [bedsData],
+  );
+  const billingServices = React.useMemo(
+    () => (Array.isArray(billingServicesData) ? billingServicesData : []),
+    [billingServicesData],
+  );
+
+  const filteredLabTests = React.useMemo(() => {
+    const query = labTestSearch.trim().toLowerCase();
+    if (!query) return labTests.slice(0, 120);
+
+    return labTests
+      .filter((test) =>
+        [test.testName, test.category, test.specimenType]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [labTestSearch, labTests]);
+
+  const filteredBillingServices = React.useMemo(() => {
+    const query = billingServiceSearch.trim().toLowerCase();
+    if (!query) return billingServices.slice(0, 120);
+
+    return billingServices
+      .filter((service) =>
+        [service.name, service.code, service.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [billingServiceSearch, billingServices]);
 
   const handleSelectLabTest = (value: string) => {
     setLabTestId(value);
@@ -385,13 +427,19 @@ export default function BillingTariffsPage() {
                 <label className="mb-2 block text-sm font-medium">
                   Lab Test
                 </label>
+                <Input
+                  value={labTestSearch}
+                  onChange={(event) => setLabTestSearch(event.target.value)}
+                  className="mb-2 h-12 rounded-xl"
+                  placeholder="Search lab service name, specimen, or category"
+                />
                 <select
                   value={labTestId}
                   onChange={(event) => handleSelectLabTest(event.target.value)}
                   className={appSelectClass}
                 >
                   <option value="">Select lab test</option>
-                  {labTests.map((test) => (
+                  {filteredLabTests.map((test) => (
                     <option key={test.id} value={String(test.id)}>
                       {test.testName}
                       {test.category ? ` / ${test.category}` : ""}
@@ -403,6 +451,14 @@ export default function BillingTariffsPage() {
                 <label className="mb-2 block text-sm font-medium">
                   Billing Service
                 </label>
+                <Input
+                  value={billingServiceSearch}
+                  onChange={(event) =>
+                    setBillingServiceSearch(event.target.value)
+                  }
+                  className="mb-2 h-12 rounded-xl"
+                  placeholder="Search service name, code, or category"
+                />
                 <select
                   value={billingServiceId}
                   onChange={(event) =>
@@ -411,7 +467,7 @@ export default function BillingTariffsPage() {
                   className={appSelectClass}
                 >
                   <option value="">Select billing service</option>
-                  {billingServices.map((service) => (
+                  {filteredBillingServices.map((service) => (
                     <option key={service.id} value={String(service.id)}>
                       {service.name} / {formatMoney(service.defaultPrice)}
                     </option>

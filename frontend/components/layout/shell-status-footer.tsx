@@ -31,21 +31,21 @@ export function ShellStatusFooter({ label, scope }: ShellStatusFooterProps) {
   }, []);
 
   return (
-    <footer className="flex h-9 shrink-0 items-center justify-between gap-3 border-t border-[#0b5f9e] bg-[#001326] px-4 text-xs font-medium text-sky-100 md:px-6">
+    <footer className="clinical-footer-bg flex h-9 shrink-0 items-center justify-between gap-3 border-t border-sky-200 px-4 text-xs font-semibold text-sky-900 shadow-[0_-8px_22px_rgba(3,76,126,0.08)] md:px-6">
       <div className="flex min-w-0 items-center gap-2">
-        <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
+        <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
         <span className="truncate">{label}</span>
         {scope ? (
-          <span className="hidden truncate text-sky-300 sm:inline">
+          <span className="hidden truncate text-sky-700 sm:inline">
             / {scope}
           </span>
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 text-sky-200">
+      <div className="flex shrink-0 items-center gap-2 text-sky-800">
         <Clock3 className="h-4 w-4" />
         <span>{formatClock(now)}</span>
-        <span className="hidden text-sky-400 md:inline">
+        <span className="hidden text-sky-700 md:inline">
           {user?.username ? ` / ${user.username}` : ""}
         </span>
       </div>

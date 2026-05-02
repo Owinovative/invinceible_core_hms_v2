@@ -166,6 +166,21 @@ export default function IpdDetailPage() {
     () => (Array.isArray(labTestsData) ? labTestsData : []),
     [labTestsData],
   );
+  const [labTestSearch, setLabTestSearch] = React.useState("");
+  const filteredLabTests = React.useMemo(() => {
+    const query = labTestSearch.trim().toLowerCase();
+    if (!query) return labTests.slice(0, 120);
+
+    return labTests
+      .filter((test) =>
+        [test.testName, test.category, test.specimenType]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [labTests, labTestSearch]);
 
   const totalProgressNotes = progressNotes.length;
   const totalTreatments = treatmentChart.length;
@@ -1821,15 +1836,21 @@ export default function IpdDetailPage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-medium">
-                      Lab Test
+                      Search Lab Test
                     </label>
+                    <Input
+                      value={labTestSearch}
+                      onChange={(e) => setLabTestSearch(e.target.value)}
+                      className="mb-2 h-12 rounded-2xl"
+                      placeholder="Search lab service name, category, or specimen"
+                    />
                     <select
                       value={selectedTestId}
                       onChange={(e) => setSelectedTestId(e.target.value)}
                       className={appSelectClass}
                     >
                       <option value="">Select lab test</option>
-                      {labTests
+                      {filteredLabTests
                         .filter((test) => test.isActive !== false)
                         .map((test) => (
                           <option key={test.id} value={String(test.id)}>

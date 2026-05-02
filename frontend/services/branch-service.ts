@@ -22,7 +22,9 @@ export interface Branch {
   currency?: string | null;
   mpesaShortcode?: string | null;
   mpesaPaybill?: string | null;
+  mpesaAccountNumber?: string | null;
   mpesaTillNumber?: string | null;
+  mpesaPochiNumber?: string | null;
   isDefault?: boolean;
   isActive?: boolean;
   createdAt?: string;
@@ -44,7 +46,9 @@ export interface CreateBranchPayload {
   currency?: string;
   mpesaShortcode?: string;
   mpesaPaybill?: string;
+  mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
+  mpesaPochiNumber?: string;
   isDefault?: boolean;
   isActive?: boolean;
 }
@@ -64,7 +68,9 @@ export interface UpdateBranchPayload {
   currency?: string;
   mpesaShortcode?: string;
   mpesaPaybill?: string;
+  mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
+  mpesaPochiNumber?: string;
   isDefault?: boolean;
   isActive?: boolean;
 }

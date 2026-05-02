@@ -294,19 +294,19 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
         </div>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 border-y border-sky-200 bg-sky-50/70 px-4 py-4 md:grid-cols-4">
         {[
           ["Total", summary?.total ?? 0],
           ["Active", summary?.active ?? 0],
           ["Completed", summary?.completed ?? 0],
           ["Overdue", summary?.overdue ?? 0],
         ].map(([label, value]) => (
-          <Card key={label} className="rounded-[1.2rem] gradient-border panel-shadow">
-            <CardContent className="p-5">
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <p className="mt-2 text-2xl font-bold">{value}</p>
-            </CardContent>
-          </Card>
+          <div key={label} className="border-l-2 border-sky-300 px-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {label}
+            </p>
+            <p className="mt-1 text-2xl font-black text-sky-800">{value}</p>
+          </div>
         ))}
       </section>
 

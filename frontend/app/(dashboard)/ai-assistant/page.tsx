@@ -77,11 +77,11 @@ export default function AiAssistantPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="space-y-3 rounded-lg border border-sky-200 bg-sky-50/70 p-4">
         {useCases.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.title} className="rounded-lg border border-sky-200 bg-white p-4 shadow-sm">
+            <div key={item.title} className="flex items-start gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700">
                   <Icon className="h-4 w-4" />
@@ -98,7 +98,7 @@ export default function AiAssistantPage() {
         })}
       </section>
 
-      <section className="grid gap-6 2xl:grid-cols-2">
+      <section className="space-y-6">
         <ClinicalAiAssistant
           defaultTask="GENERAL_DRAFT"
           subtitle="Use this workspace for notes, summaries, patient instructions, pharmacy counselling, report text, and discharge wording."

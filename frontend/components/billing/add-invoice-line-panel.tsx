@@ -69,15 +69,26 @@ export function AddInvoiceLinePanel({
     branchId ?? undefined,
   );
 
-  const billingServices = Array.isArray(billingServicesData)
-    ? billingServicesData
-    : [];
-  const labTests = Array.isArray(labTestsData) ? labTestsData : [];
-  const tariffs = Array.isArray(tariffsData) ? tariffsData : [];
-  const branchStock = Array.isArray(branchStockData) ? branchStockData : [];
+  const billingServices = React.useMemo(
+    () => (Array.isArray(billingServicesData) ? billingServicesData : []),
+    [billingServicesData],
+  );
+  const labTests = React.useMemo(
+    () => (Array.isArray(labTestsData) ? labTestsData : []),
+    [labTestsData],
+  );
+  const tariffs = React.useMemo(
+    () => (Array.isArray(tariffsData) ? tariffsData : []),
+    [tariffsData],
+  );
+  const branchStock = React.useMemo(
+    () => (Array.isArray(branchStockData) ? branchStockData : []),
+    [branchStockData],
+  );
 
   const [chargeType, setChargeType] = React.useState<ChargeType>("SERVICE");
   const [selectedId, setSelectedId] = React.useState("");
+  const [itemSearch, setItemSearch] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [quantity, setQuantity] = React.useState("1");
   const [unitPrice, setUnitPrice] = React.useState("");
@@ -86,11 +97,60 @@ export function AddInvoiceLinePanel({
 
   React.useEffect(() => {
     setSelectedId("");
+    setItemSearch("");
     setDescription("");
     setQuantity("1");
     setUnitPrice("");
     setNotes("");
   }, [chargeType]);
+
+  const normalizedSearch = itemSearch.trim().toLowerCase();
+  const filteredBillingServices = React.useMemo(() => {
+    if (!normalizedSearch) return billingServices.slice(0, 120);
+
+    return billingServices
+      .filter((service) =>
+        [service.name, service.code, service.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch),
+      )
+      .slice(0, 120);
+  }, [billingServices, normalizedSearch]);
+
+  const filteredLabTests = React.useMemo(() => {
+    if (!normalizedSearch) return labTests.slice(0, 120);
+
+    return labTests
+      .filter((test) =>
+        [test.testName, test.category, test.specimenType]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch),
+      )
+      .slice(0, 120);
+  }, [labTests, normalizedSearch]);
+
+  const filteredBranchStock = React.useMemo(() => {
+    if (!normalizedSearch) return branchStock.slice(0, 120);
+
+    return branchStock
+      .filter((stock) =>
+        [
+          stock.medicine?.name,
+          stock.medicine?.code,
+          stock.medicine?.dosageForm,
+          stock.medicine?.strength,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch),
+      )
+      .slice(0, 120);
+  }, [branchStock, normalizedSearch]);
 
   const handleSelectItem = (value: string) => {
     setSelectedId(value);
@@ -213,7 +273,9 @@ export function AddInvoiceLinePanel({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">Item Name</label>
+          <label className="mb-2 block text-sm font-medium">
+            Search Item
+          </label>
           {chargeType === "MANUAL" ? (
             <Input
               value={description}
@@ -222,37 +284,57 @@ export function AddInvoiceLinePanel({
               placeholder="Manual charge description"
             />
           ) : (
-            <select
-              value={selectedId}
-              onChange={(event) => handleSelectItem(event.target.value)}
-              className={appSelectClass}
-              disabled={chargeType === "MEDICINE" && !branchId}
-            >
-              <option value="">Choose item</option>
-              {chargeType === "SERVICE"
-                ? billingServices.map((service) => (
-                    <option key={service.id} value={String(service.id)}>
-                      {service.name} / {formatMoney(service.defaultPrice)}
-                    </option>
-                  ))
-                : null}
-              {chargeType === "LAB_TEST"
-                ? labTests.map((test) => (
-                    <option key={test.id} value={String(test.id)}>
-                      {test.testName}
-                    </option>
-                  ))
-                : null}
-              {chargeType === "MEDICINE"
-                ? branchStock.map((stock) => (
-                    <option key={stock.id} value={String(stock.id)}>
-                      {stock.medicine?.name ?? `Medicine #${stock.medicineId}`}{" "}
-                      / Stock {stock.stockQuantity} /{" "}
-                      {formatMoney(stock.unitPrice)}
-                    </option>
-                  ))
-                : null}
-            </select>
+            <div className="space-y-2">
+              <Input
+                value={itemSearch}
+                onChange={(event) => setItemSearch(event.target.value)}
+                className="h-12 rounded-2xl"
+                placeholder={
+                  chargeType === "MEDICINE"
+                    ? "Search drug name, code, form, or strength"
+                    : chargeType === "LAB_TEST"
+                      ? "Search lab service name, code, specimen, or category"
+                      : "Search service name, code, or category"
+                }
+                disabled={chargeType === "MEDICINE" && !branchId}
+              />
+              <select
+                value={selectedId}
+                onChange={(event) => handleSelectItem(event.target.value)}
+                className={appSelectClass}
+                disabled={chargeType === "MEDICINE" && !branchId}
+              >
+                <option value="">Choose item</option>
+                {chargeType === "SERVICE"
+                  ? filteredBillingServices.map((service) => (
+                      <option key={service.id} value={String(service.id)}>
+                        {service.name} / {formatMoney(service.defaultPrice)}
+                      </option>
+                    ))
+                  : null}
+                {chargeType === "LAB_TEST"
+                  ? filteredLabTests.map((test) => (
+                      <option key={test.id} value={String(test.id)}>
+                        {test.testName}
+                      </option>
+                    ))
+                  : null}
+                {chargeType === "MEDICINE"
+                  ? filteredBranchStock.map((stock) => (
+                      <option key={stock.id} value={String(stock.id)}>
+                        {stock.medicine?.name ??
+                          `Medicine #${stock.medicineId}`}{" "}
+                        / Stock {stock.stockQuantity} /{" "}
+                        {formatMoney(stock.unitPrice)}
+                      </option>
+                    ))
+                  : null}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Showing the first 120 matching records. Search narrows the full
+                catalog before selection.
+              </p>
+            </div>
           )}
         </div>
 

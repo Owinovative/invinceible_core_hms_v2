@@ -122,7 +122,7 @@ export async function createHospitalPdfBuffer(
   });
 }
 
-async function loadLogoBuffer(logoUrl?: string | null) {
+export async function loadLogoBuffer(logoUrl?: string | null) {
   if (!logoUrl) return undefined;
 
   try {

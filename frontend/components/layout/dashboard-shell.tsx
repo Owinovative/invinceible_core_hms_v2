@@ -17,7 +17,7 @@ export function DashboardShell({
   const scope = [facilityName, selectedBranchName].filter(Boolean).join(" / ");
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-[#001a33] text-foreground">
+    <div className="clinical-shell-bg relative flex h-screen flex-col overflow-hidden text-foreground">
       <DashboardHeader />
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -26,7 +26,7 @@ export function DashboardShell({
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="w-[21rem] border-[#242424] bg-[#303030] p-0 lg:hidden"
+            className="clinical-sidebar-bg w-[21rem] border-[#0b5f9e] p-0 lg:hidden"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
@@ -36,7 +36,7 @@ export function DashboardShell({
         </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <main className="min-h-0 flex-1 overflow-y-auto bg-[#001a33]">
+          <main className="clinical-workspace-bg min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto min-h-full max-w-[1700px] px-4 py-4 md:px-6 md:py-6 xl:px-8">
               {children}
             </div>

@@ -21,6 +21,7 @@ import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { downloadInvoicePdf } from "@/services/billing-service";
 import { AddInvoiceLinePanel } from "@/components/billing/add-invoice-line-panel";
+import { PrintableInvoice } from "@/components/billing/printable-invoice";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,30 +42,6 @@ function formatDate(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString();
-}
-
-function patientName(
-  patient?: {
-    firstName?: string;
-    middleName?: string | null;
-    lastName?: string;
-  } | null,
-) {
-  if (!patient) return "Unknown patient";
-  return [patient.firstName, patient.middleName, patient.lastName]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function statusTone(status?: string | null) {
-  switch ((status || "").toUpperCase()) {
-    case "PAID":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
-    case "PARTIALLY_PAID":
-      return "border-amber-500/20 bg-amber-500/10 text-amber-300";
-    default:
-      return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300";
-  }
 }
 
 export default function InvoiceDetailPage() {
@@ -272,142 +249,93 @@ export default function InvoiceDetailPage() {
         </Card>
       ) : (
         <>
-          <div id="invoice-print-area" className="space-y-6 print:max-w-none">
-            <section>
-              <Card className="rounded-[1.8rem] gradient-border panel-shadow">
-                <CardHeader>
-                  <CardTitle>Invoice Header</CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-lg font-bold">
-                      {invoice.facility?.name || "Hospital Name"}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {invoice.facility?.address || "Hospital address"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {invoice.facility?.phone || "Phone"} /{" "}
-                      {invoice.facility?.email || "Email"}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Invoice Number
-                      </p>
-                      <p className="mt-1 text-sm font-medium">
-                        {invoice.invoiceNumber}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <div className="mt-2">
-                        <Badge
-                          className={`rounded-full border px-3 py-1 ${statusTone(invoice.statusCode)}`}
-                        >
-                          {invoice.statusCode}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-xs text-muted-foreground">Issued At</p>
-                      <p className="mt-1 text-sm font-medium">
-                        {formatDate(invoice.issuedAt)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-xs text-muted-foreground">Patient</p>
-                      <p className="mt-1 text-sm font-medium">
-                        {patientName(invoice.patient)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
-
-            <section>
-              <Card className="rounded-[1.8rem] gradient-border panel-shadow">
-                <CardHeader>
-                  <CardTitle>Invoice Lines</CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {items.length === 0 ? (
-                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
-                      No invoice items found.
-                    </div>
-                  ) : (
-                    items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
-                      >
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div>
-                            <p className="font-semibold">{item.description}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Qty: {item.quantity} / Unit:{" "}
-                              {formatMoney(item.unitPrice)} / Total:{" "}
-                              {formatMoney(item.lineTotal)}
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Date: {formatDate(item.createdAt)}
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Auto: {item.isAutoGenerated ? "Yes" : "No"} /
-                              Removed: {item.isRemoved ? "Yes" : "No"}
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Notes: {item.notes || "-"}
-                            </p>
-                          </div>
-
-                          {!item.isRemoved ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="rounded-2xl print:hidden"
-                              onClick={() => handleStartEdit(item)}
-                            >
-                              Edit Line
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))
-                  )}
-
-                  <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 p-4">
-                    <p className="text-sm">
-                      Subtotal: {formatMoney(invoice.subtotal)}
-                    </p>
-                    <p className="text-sm">
-                      Discount: {formatMoney(invoice.discountAmount)}
-                    </p>
-                    <p className="text-sm">
-                      Tax: {formatMoney(invoice.taxAmount)}
-                    </p>
-                    <p className="mt-2 text-lg font-bold">
-                      Total: {formatMoney(invoice.totalAmount)}
-                    </p>
-                    <p className="text-sm">
-                      Paid: {formatMoney(invoice.paidAmount)}
-                    </p>
-                    <p className="text-sm">
-                      Balance: {formatMoney(invoice.balanceAmount)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
+          <div id="invoice-print-area" className="print:max-w-none">
+            <PrintableInvoice invoice={invoice} />
           </div>
+
+          <section className="print:hidden">
+            <div className="overflow-hidden rounded-[1.2rem] border border-sky-200 bg-white shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
+              <div className="flex flex-col gap-2 border-b border-sky-100 px-4 py-3 dark:border-sky-900/50 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-950 dark:text-white">
+                    Invoice Line Control
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Edit wrong lines, remove unnecessary billing lines, then
+                    print the compact invoice above.
+                  </p>
+                </div>
+                <Badge className="w-fit rounded border-0 bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200">
+                  {items.filter((item) => !item.isRemoved).length} active lines
+                </Badge>
+              </div>
+
+              <div className="max-h-[360px] overflow-auto">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead className="sticky top-0 z-10 bg-sky-50 text-xs uppercase text-sky-900 dark:bg-slate-900 dark:text-sky-200">
+                    <tr>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Item</th>
+                      <th className="px-4 py-3">Qty</th>
+                      <th className="px-4 py-3">Unit Price</th>
+                      <th className="px-4 py-3">Total</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-t border-sky-100 dark:border-sky-900/40"
+                      >
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {formatDate(item.createdAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-slate-950 dark:text-white">
+                            {item.description}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {item.sourceModule || item.billingService?.category || "Manual"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">{item.quantity}</td>
+                        <td className="px-4 py-3">
+                          {formatMoney(item.unitPrice)}
+                        </td>
+                        <td className="px-4 py-3 font-semibold">
+                          {formatMoney(item.lineTotal)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            className={`rounded border-0 ${
+                              item.isRemoved
+                                ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200"
+                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
+                            }`}
+                          >
+                            {item.isRemoved ? "Removed" : "Active"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => handleStartEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
 
           {editItemId ? (
             <section>

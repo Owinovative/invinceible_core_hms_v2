@@ -50,7 +50,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-[#0b5f9e] bg-[#000d1c] text-white transition-all duration-300",
+        "clinical-sidebar-bg flex h-full shrink-0 flex-col border-r border-[#0b5f9e] text-white transition-all duration-300",
         mobile ? "w-full" : "hidden h-full lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
