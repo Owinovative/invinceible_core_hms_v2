@@ -10,6 +10,7 @@ import {
   Loader2,
   Pill,
   ReceiptText,
+  Search,
   ServerCog,
   ShieldCheck,
   Upload,
@@ -29,6 +30,7 @@ import type { LabTestCatalogItem } from "@/services/lab-service";
 import type { PharmacyMedicine } from "@/services/pharmacy-service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const catalogTabs: Array<{
   kind: MasterCatalogKind;
@@ -76,6 +78,7 @@ export default function PlatformCatalogsPage() {
   const [activeKind, setActiveKind] =
     React.useState<MasterCatalogKind>("medicines");
   const [message, setMessage] = React.useState<string | null>(null);
+  const [catalogSearch, setCatalogSearch] = React.useState("");
   const [isDownloading, setIsDownloading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -84,7 +87,47 @@ export default function PlatformCatalogsPage() {
   const { data: overview } = useMasterCatalogOverview();
   const { data: rowsData = [], isLoading } = useMasterCatalogRows(activeKind);
   const importMutation = useImportMasterCatalogCsv(activeKind);
-  const rows = Array.isArray(rowsData) ? rowsData : [];
+  const rows = React.useMemo(
+    () => (Array.isArray(rowsData) ? rowsData : []),
+    [rowsData],
+  );
+  const filteredRows = React.useMemo(() => {
+    const query = catalogSearch.trim().toLowerCase();
+    if (!query) return rows;
+
+    return rows.filter((row) => {
+      if (activeKind === "medicines") {
+        const medicine = row as PharmacyMedicine;
+        return [
+          medicine.name,
+          medicine.code,
+          medicine.dosageForm,
+          medicine.strength,
+          medicine.manufacturer,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      }
+
+      if (activeKind === "billing-services") {
+        const service = row as BillingServiceItem;
+        return [service.name, service.code, service.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      }
+
+      const test = row as LabTestCatalogItem;
+      return [test.testName, test.category, test.specimenType]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [activeKind, catalogSearch, rows]);
 
   const handleDownload = async () => {
     setMessage(null);
@@ -146,16 +189,16 @@ export default function PlatformCatalogsPage() {
       );
     }
 
-    if (rows.length === 0) {
+    if (filteredRows.length === 0) {
       return (
         <div className="border border-dashed border-sky-200 bg-sky-50 p-4 text-sm text-slate-600">
-          No master rows found in this catalog.
+          No matching master rows found in this catalog.
         </div>
       );
     }
 
     if (activeKind === "medicines") {
-      const medicines = rows as PharmacyMedicine[];
+      const medicines = filteredRows as PharmacyMedicine[];
       return (
         <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
@@ -206,7 +249,7 @@ export default function PlatformCatalogsPage() {
     }
 
     if (activeKind === "billing-services") {
-      const services = rows as BillingServiceItem[];
+      const services = filteredRows as BillingServiceItem[];
       return (
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
@@ -248,7 +291,7 @@ export default function PlatformCatalogsPage() {
       );
     }
 
-    const labTests = rows as LabTestCatalogItem[];
+    const labTests = filteredRows as LabTestCatalogItem[];
     return (
       <table className="w-full min-w-[760px] text-left text-sm">
         <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
@@ -371,6 +414,7 @@ export default function PlatformCatalogsPage() {
                     onClick={() => {
                       setActiveKind(item.kind);
                       setMessage(null);
+                      setCatalogSearch("");
                     }}
                     className={`flex items-center justify-between border px-4 py-3 text-left transition ${
                       active
@@ -467,16 +511,33 @@ export default function PlatformCatalogsPage() {
         </div>
 
         <div className="border border-sky-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-cyan-400/10 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 border-b border-cyan-400/10 p-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <p className="font-semibold">{activeTab.label} Register</p>
               <p className="text-xs text-slate-500">
-                showing all {rows.length} rows
+                showing {filteredRows.length} of {rows.length} rows
               </p>
             </div>
-            <Badge className="rounded border-0 bg-sky-100 text-sky-800">
-              csv.sync
-            </Badge>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-[320px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={catalogSearch}
+                  onChange={(event) => setCatalogSearch(event.target.value)}
+                  className="h-11 rounded-md border-sky-200 bg-white pl-9"
+                  placeholder={
+                    activeKind === "medicines"
+                      ? "Search drugs"
+                      : activeKind === "lab-tests"
+                        ? "Search lab services"
+                        : "Search services"
+                  }
+                />
+              </div>
+              <Badge className="rounded border-0 bg-sky-100 text-sky-800">
+                csv.sync
+              </Badge>
+            </div>
           </div>
           <div className="max-h-[620px] overflow-auto">{renderRows()}</div>
         </div>

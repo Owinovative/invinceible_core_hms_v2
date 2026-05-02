@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminCommandCenter } from "@/components/dashboard/admin-command-center";
+import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
 import { SystemNavigatorAssistant } from "@/components/dashboard/system-navigator-assistant";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
@@ -105,20 +106,20 @@ export default function PlatformAdminControlPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-sky-200 bg-sky-50 p-4">
+          <div className="grid gap-3 border-y border-sky-200 bg-sky-50/70 p-4 sm:grid-cols-3">
+            <div className="border-l-2 border-sky-300 pl-3">
               <Activity className="mb-3 h-5 w-5 text-sky-700" />
               <p className="text-3xl font-bold text-slate-950">
                 {health?.healthScore ?? "--"}
               </p>
               <p className="text-xs text-slate-500">health score</p>
             </div>
-            <div className="border border-sky-200 bg-sky-50 p-4">
+            <div className="border-l-2 border-sky-300 pl-3">
               <ShieldCheck className="mb-3 h-5 w-5 text-sky-700" />
               <p className="text-3xl font-bold text-slate-950">{counts?.counts.total ?? 0}</p>
               <p className="text-xs text-slate-500">open alerts</p>
             </div>
-            <div className="border border-sky-200 bg-sky-50 p-4">
+            <div className="border-l-2 border-sky-300 pl-3">
               <Receipt className="mb-3 h-5 w-5 text-sky-700" />
               <p className="text-3xl font-bold text-slate-950">
                 {health?.summary.billingFailures ?? 0}
@@ -129,33 +130,37 @@ export default function PlatformAdminControlPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 border-y border-sky-200 bg-sky-50/70 p-4 md:grid-cols-2 xl:grid-cols-4">
         {controlSignals.map((item) => {
           const Icon = item.icon;
           return (
-            <Card key={item.title} className="rounded-lg border border-sky-200 bg-white">
-              <CardContent className="p-4">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <p className="font-semibold">{item.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {item.text}
-                </p>
-              </CardContent>
-            </Card>
+            <div key={item.title} className="flex items-start gap-3 border-l-2 border-sky-300 pl-3">
+              <Icon className="mt-1 h-5 w-5 shrink-0 text-sky-700" />
+              <div>
+                <p className="font-semibold text-slate-950">{item.title}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">{item.text}</p>
+              </div>
+            </div>
           );
         })}
       </section>
 
-      <SystemNavigatorAssistant
-        user={user}
-        scopeText={scopeText}
-        healthScore={health?.healthScore ?? "--"}
-        openAlerts={counts?.counts.total ?? 0}
-        activeAdmissions={health?.summary.activeAdmissions ?? 0}
-        pendingLabs={health?.summary.pendingLabQueue ?? 0}
-      />
+      <section className="space-y-6">
+        <ClinicalAiAssistant
+          title="Clinical AI"
+          defaultTask="GENERAL_DRAFT"
+          subtitle="Draft clinical text, discharge wording, reports, and patient instructions for staff review."
+        />
+
+        <SystemNavigatorAssistant
+          user={user}
+          scopeText={scopeText}
+          healthScore={health?.healthScore ?? "--"}
+          openAlerts={counts?.counts.total ?? 0}
+          activeAdmissions={health?.summary.activeAdmissions ?? 0}
+          pendingLabs={health?.summary.pendingLabQueue ?? 0}
+        />
+      </section>
 
       <AdminCommandCenter />
     </div>

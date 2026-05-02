@@ -19,14 +19,14 @@ export function PlatformShell({
   const { mobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-[#001a33] text-foreground">
+    <div className="clinical-shell-bg relative flex h-screen flex-col overflow-hidden text-foreground">
       <PlatformHeader />
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <PlatformSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto bg-[#001a33] p-4 md:p-6 lg:p-8">
+          <main className="clinical-workspace-bg flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             <div className="mx-auto max-w-[1600px]">{children}</div>
           </main>
         </div>
@@ -35,7 +35,7 @@ export function PlatformShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-[20rem] border-[#242424] bg-[#303030] p-0"
+          className="clinical-sidebar-bg w-[20rem] border-[#0b5f9e] p-0"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Platform navigation</SheetTitle>

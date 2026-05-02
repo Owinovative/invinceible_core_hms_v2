@@ -89,25 +89,25 @@ export default function LoginPageClient() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden bg-[#061a2f] bg-cover bg-center text-slate-950"
+      className="clinical-shell-bg relative min-h-screen overflow-hidden bg-cover bg-center text-slate-950"
       style={{
         backgroundImage:
           "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=2200&q=88')",
       }}
     >
-      <div className="absolute inset-0 bg-[#061a2f]/78" />
-      <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-sky-300/18 lg:block" />
+      <div className="absolute inset-0 bg-white/86" />
+      <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-sky-100/80 lg:block" />
 
       <div className="relative mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-8">
         <section className="hidden lg:block">
-          <div className="max-w-2xl space-y-7">
-            <AppLogo light />
+          <div className="max-w-2xl space-y-7 rounded-lg border border-sky-200 bg-white/82 p-8 shadow-[0_24px_70px_rgba(3,76,126,0.16)]">
+            <AppLogo />
             <BadgeLike />
             <div className="space-y-4">
-              <h1 className="text-5xl font-bold leading-[1.04] text-white">
+              <h1 className="text-5xl font-extrabold leading-[1.04] text-sky-950">
                 Secure clinical access for serious hospital work.
               </h1>
-              <p className="max-w-xl text-base leading-8 text-sky-50/82">
+              <p className="max-w-xl text-base font-medium leading-8 text-slate-700">
                 Sign in to manage patient flow, billing, pharmacy, laboratory,
                 admissions, reporting, and facility operations.
               </p>
@@ -117,10 +117,10 @@ export default function LoginPageClient() {
               {loginHighlights.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 border border-sky-300/25 bg-[#08243f]/88 px-4 py-3 shadow-xl"
+                  className="flex items-center gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 shadow-sm"
                 >
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-sky-300" />
-                  <span className="min-w-0 truncate text-sm font-semibold text-sky-50">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <span className="min-w-0 truncate text-sm font-semibold text-sky-950">
                     {item}
                   </span>
                 </div>
@@ -129,23 +129,23 @@ export default function LoginPageClient() {
           </div>
         </section>
 
-        <Card className="mx-auto w-full max-w-[500px] rounded-lg border border-sky-300/30 bg-white py-0 text-foreground shadow-2xl">
+        <Card className="mx-auto w-full max-w-[500px] rounded-lg border border-sky-200 bg-[#f8fdff] py-0 text-sky-950 shadow-[0_28px_80px_rgba(3,76,126,0.18)]">
           <CardContent className="relative p-7 md:p-9">
             <div className="mb-7 flex flex-col items-center text-center lg:hidden">
               <AppLogo />
             </div>
 
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-500">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-sky-200 bg-white text-sky-700 shadow-sm">
                 <ShieldCheck className="h-6 w-6" />
               </div>
-              <p className="text-xs font-semibold uppercase text-cyan-700 dark:text-cyan-300">
+              <p className="text-xs font-bold uppercase text-sky-700">
                 Invinceible Core HMS
               </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight">
+              <h2 className="mt-2 text-4xl font-extrabold tracking-tight text-sky-950">
                 Sign in
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm font-medium text-slate-600">
                 Authorized hospital staff only.
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function LoginPageClient() {
                         <div className="relative">
                           <User2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            className="h-12 rounded-md border-sky-200 bg-white pl-10 shadow-inner"
+                            className="h-12 rounded-md border-sky-200 bg-white pl-10 text-base font-medium shadow-inner"
                             placeholder="Enter username or email"
                             {...field}
                           />
@@ -187,7 +187,7 @@ export default function LoginPageClient() {
                           <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             type={showPassword ? "text" : "password"}
-                            className="h-12 rounded-md border-sky-200 bg-white pl-10 pr-12 shadow-inner"
+                            className="h-12 rounded-md border-sky-200 bg-white pl-10 pr-12 text-base font-medium shadow-inner"
                             placeholder="Enter password"
                             {...field}
                           />
@@ -221,7 +221,7 @@ export default function LoginPageClient() {
                 <div className="flex justify-end">
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-muted-foreground transition hover:text-cyan-500"
+                    className="text-sm font-semibold text-sky-700 transition hover:text-sky-900"
                   >
                     Forgot password?
                   </Link>
@@ -229,7 +229,7 @@ export default function LoginPageClient() {
 
                 <Button
                   type="submit"
-                  className="h-12 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                  className="h-12 w-full rounded-md bg-sky-700 text-base font-bold text-white shadow-[0_12px_30px_rgba(2,132,199,0.24)] hover:bg-sky-800"
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign in"}
@@ -238,8 +238,8 @@ export default function LoginPageClient() {
               </form>
             </Form>
 
-            <div className="mt-7 rounded-lg border border-sky-200 bg-sky-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
+            <div className="mt-7 rounded-lg border border-sky-200 bg-white p-4 shadow-sm">
+              <p className="mb-3 text-xs font-bold uppercase text-sky-800">
                 Need assistance?
               </p>
               <div className="grid gap-2">
@@ -252,7 +252,7 @@ export default function LoginPageClient() {
                     )}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-md border border-sky-200 bg-white px-3 py-2 text-sm transition hover:border-sky-400 hover:bg-sky-50"
+                    className="flex items-center justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm transition hover:border-sky-400 hover:bg-white"
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-semibold">
@@ -276,7 +276,7 @@ export default function LoginPageClient() {
 
 function BadgeLike() {
   return (
-    <div className="inline-flex items-center gap-2 border border-sky-300/25 bg-[#08243f]/88 px-3 py-1 text-xs font-semibold text-sky-100 shadow-xl">
+    <div className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-100 px-3 py-1 text-xs font-bold text-sky-800 shadow-sm">
       System access
     </div>
   );

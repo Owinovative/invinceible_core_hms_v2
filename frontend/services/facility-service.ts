@@ -23,7 +23,9 @@ export interface Facility {
   currency?: string | null;
   mpesaShortcode?: string | null;
   mpesaPaybill?: string | null;
+  mpesaAccountNumber?: string | null;
   mpesaTillNumber?: string | null;
+  mpesaPochiNumber?: string | null;
   isHeadOffice?: boolean;
   isDefault?: boolean;
   isActive?: boolean;
@@ -51,7 +53,9 @@ export interface CreateFacilityPayload {
   currency?: string;
   mpesaShortcode?: string;
   mpesaPaybill?: string;
+  mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
+  mpesaPochiNumber?: string;
   isHeadOffice?: boolean;
   isDefault?: boolean;
   isActive?: boolean;
@@ -79,7 +83,9 @@ export interface UpdateFacilityPayload {
   currency?: string;
   mpesaShortcode?: string;
   mpesaPaybill?: string;
+  mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
+  mpesaPochiNumber?: string;
   isHeadOffice?: boolean;
   isDefault?: boolean;
   isActive?: boolean;

@@ -274,8 +274,16 @@ export function FacilitiesTable() {
                                 label: "M-PESA Paybill",
                               },
                               {
+                                name: "mpesaAccountNumber",
+                                label: "M-PESA Account Number",
+                              },
+                              {
                                 name: "mpesaTillNumber",
                                 label: "M-PESA Till Number",
+                              },
+                              {
+                                name: "mpesaPochiNumber",
+                                label: "Pochi La Biashara",
                               },
                             ]}
                             initialValues={{
@@ -295,7 +303,11 @@ export function FacilitiesTable() {
                               licenseNumber: facility.licenseNumber ?? "",
                               mpesaShortcode: facility.mpesaShortcode ?? "",
                               mpesaPaybill: facility.mpesaPaybill ?? "",
+                              mpesaAccountNumber:
+                                facility.mpesaAccountNumber ?? "",
                               mpesaTillNumber: facility.mpesaTillNumber ?? "",
+                              mpesaPochiNumber:
+                                facility.mpesaPochiNumber ?? "",
                             }}
                             onSubmit={(values) =>
                               updateFacilityMutation.mutateAsync({
@@ -327,8 +339,14 @@ export function FacilitiesTable() {
                                   mpesaPaybill: optionalValue(
                                     values.mpesaPaybill,
                                   ),
+                                  mpesaAccountNumber: optionalValue(
+                                    values.mpesaAccountNumber,
+                                  ),
                                   mpesaTillNumber: optionalValue(
                                     values.mpesaTillNumber,
+                                  ),
+                                  mpesaPochiNumber: optionalValue(
+                                    values.mpesaPochiNumber,
                                   ),
                                 },
                               })

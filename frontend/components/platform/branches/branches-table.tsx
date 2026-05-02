@@ -259,8 +259,16 @@ export function BranchesTable() {
                                 label: "M-PESA Paybill",
                               },
                               {
+                                name: "mpesaAccountNumber",
+                                label: "M-PESA Account Number",
+                              },
+                              {
                                 name: "mpesaTillNumber",
                                 label: "M-PESA Till Number",
+                              },
+                              {
+                                name: "mpesaPochiNumber",
+                                label: "Pochi La Biashara",
                               },
                             ]}
                             initialValues={{
@@ -276,7 +284,11 @@ export function BranchesTable() {
                               currency: branch.currency ?? "",
                               mpesaShortcode: branch.mpesaShortcode ?? "",
                               mpesaPaybill: branch.mpesaPaybill ?? "",
+                              mpesaAccountNumber:
+                                branch.mpesaAccountNumber ?? "",
                               mpesaTillNumber: branch.mpesaTillNumber ?? "",
+                              mpesaPochiNumber:
+                                branch.mpesaPochiNumber ?? "",
                             }}
                             onSubmit={(values) =>
                               updateBranchMutation.mutateAsync({
@@ -298,8 +310,14 @@ export function BranchesTable() {
                                   mpesaPaybill: optionalValue(
                                     values.mpesaPaybill,
                                   ),
+                                  mpesaAccountNumber: optionalValue(
+                                    values.mpesaAccountNumber,
+                                  ),
                                   mpesaTillNumber: optionalValue(
                                     values.mpesaTillNumber,
+                                  ),
+                                  mpesaPochiNumber: optionalValue(
+                                    values.mpesaPochiNumber,
                                   ),
                                 },
                               })

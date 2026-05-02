@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type * as React from "react";
 import {
   Activity,
   ArrowRight,
@@ -26,7 +27,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { MetricCard } from "@/components/dashboard/metric-card";
 import { PriorityAlertsPanel } from "@/components/dashboard/priority-alerts-panel";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -507,50 +507,48 @@ export default function DashboardPage() {
 
       <AiAndSupportStrip />
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Health Score"
-          value={healthScore}
-          subtitle="Overall system status"
-          icon={Activity}
-          chip={String(status).toUpperCase()}
-          chipClassName={statusClass}
-          glowClassName="from-blue-500/20 to-cyan-500/10"
-          isLoading={isLoading}
-        />
-
-        <MetricCard
-          title="Critical Alerts"
-          value={health?.summary.unresolvedCriticalAlerts ?? 0}
-          subtitle="Need immediate review"
-          icon={ShieldAlert}
-          chip="Critical"
-          chipClassName="status-critical"
-          glowClassName="from-red-500/20 to-rose-500/10"
-          isLoading={isLoading}
-        />
-
-        <MetricCard
-          title="Pending Lab Queue"
-          value={health?.summary.pendingLabQueue ?? 0}
-          subtitle="Awaiting completion"
-          icon={FlaskConical}
-          chip="Active"
-          chipClassName="status-info"
-          glowClassName="from-cyan-500/20 to-sky-500/10"
-          isLoading={isLoading}
-        />
-
-        <MetricCard
-          title="Active Admissions"
-          value={health?.summary.activeAdmissions ?? 0}
-          subtitle="Current inpatient load"
-          icon={BedDouble}
-          chip="Live"
-          chipClassName="status-warning"
-          glowClassName="from-amber-500/20 to-orange-500/10"
-          isLoading={isLoading}
-        />
+      <section className="grid gap-3 border-y border-sky-200 bg-sky-50/70 px-4 py-4 md:grid-cols-4">
+        {[
+          ["Health Score", healthScore, Activity, String(status).toUpperCase()],
+          [
+            "Critical Alerts",
+            health?.summary.unresolvedCriticalAlerts ?? 0,
+            ShieldAlert,
+            "Need review",
+          ],
+          [
+            "Pending Lab Queue",
+            health?.summary.pendingLabQueue ?? 0,
+            FlaskConical,
+            "Awaiting completion",
+          ],
+          [
+            "Active Admissions",
+            health?.summary.activeAdmissions ?? 0,
+            BedDouble,
+            "Inpatient load",
+          ],
+        ].map(([label, value, Icon, hint]) => {
+          const SignalIcon = Icon as typeof Activity;
+          return (
+            <div key={String(label)} className="flex items-center gap-3 border-l-2 border-sky-300 px-3">
+              <SignalIcon className="h-5 w-5 text-sky-700" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  {label as string}
+                </p>
+                {isLoading ? (
+                  <Skeleton className="mt-2 h-7 w-20 rounded-md" />
+                ) : (
+                  <p className="mt-1 truncate text-2xl font-black text-sky-800">
+                    {value as React.ReactNode}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500">{hint as string}</p>
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {showHealthyEmptyState ? (

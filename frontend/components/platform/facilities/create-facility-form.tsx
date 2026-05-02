@@ -39,7 +39,9 @@ const facilitySchema = z.object({
   currency: z.string().optional(),
   mpesaShortcode: z.string().optional(),
   mpesaPaybill: z.string().optional(),
+  mpesaAccountNumber: z.string().optional(),
   mpesaTillNumber: z.string().optional(),
+  mpesaPochiNumber: z.string().optional(),
 });
 
 type FacilityFormValues = z.infer<typeof facilitySchema>;
@@ -71,7 +73,9 @@ export function CreateFacilityForm() {
       currency: "KES",
       mpesaShortcode: "",
       mpesaPaybill: "",
+      mpesaAccountNumber: "",
       mpesaTillNumber: "",
+      mpesaPochiNumber: "",
     },
   });
 
@@ -100,7 +104,9 @@ export function CreateFacilityForm() {
         currency: values.currency || undefined,
         mpesaShortcode: values.mpesaShortcode || undefined,
         mpesaPaybill: values.mpesaPaybill || undefined,
+        mpesaAccountNumber: values.mpesaAccountNumber || undefined,
         mpesaTillNumber: values.mpesaTillNumber || undefined,
+        mpesaPochiNumber: values.mpesaPochiNumber || undefined,
         isHeadOffice: false,
         isDefault: false,
         isActive: true,
@@ -129,7 +135,9 @@ export function CreateFacilityForm() {
         currency: "KES",
         mpesaShortcode: "",
         mpesaPaybill: "",
+        mpesaAccountNumber: "",
         mpesaTillNumber: "",
+        mpesaPochiNumber: "",
       });
     } catch {
       setSuccessMessage(null);
@@ -417,12 +425,40 @@ export function CreateFacilityForm() {
 
             <FormField
               control={form.control}
+              name="mpesaAccountNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>M-PESA Account Number</FormLabel>
+                  <FormControl>
+                    <Input className="h-11 rounded-xl" placeholder="Account shown on invoice" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="mpesaTillNumber"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>M-PESA Till Number</FormLabel>
                   <FormControl>
                     <Input className="h-11 rounded-xl" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="mpesaPochiNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pochi La Biashara</FormLabel>
+                  <FormControl>
+                    <Input className="h-11 rounded-xl" placeholder="Optional Pochi number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

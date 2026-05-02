@@ -103,12 +103,19 @@ export interface InvoiceRecord {
     website?: string | null;
     logoUrl?: string | null;
     mpesaPaybill?: string | null;
+    mpesaAccountNumber?: string | null;
     mpesaTillNumber?: string | null;
+    mpesaPochiNumber?: string | null;
     mpesaShortcode?: string | null;
   } | null;
   branch?: {
     id: number;
     name?: string;
+    mpesaPaybill?: string | null;
+    mpesaAccountNumber?: string | null;
+    mpesaTillNumber?: string | null;
+    mpesaPochiNumber?: string | null;
+    mpesaShortcode?: string | null;
   } | null;
   items?: InvoiceItemRecord[];
   payments?: PaymentRecord[];

@@ -78,6 +78,7 @@ export default function PharmacyPricingPage() {
 
   const [message, setMessage] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
+  const [medicinePickerSearch, setMedicinePickerSearch] = React.useState("");
   const [isDownloadingTemplate, setIsDownloadingTemplate] =
     React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -107,6 +108,27 @@ export default function PharmacyPricingPage() {
   const unmappedMedicines = medicines.filter(
     (medicine) => !stockMedicineIds.has(medicine.id),
   );
+
+  const filteredUnmappedMedicines = React.useMemo(() => {
+    const query = medicinePickerSearch.trim().toLowerCase();
+    if (!query) return unmappedMedicines.slice(0, 120);
+
+    return unmappedMedicines
+      .filter((medicine) =>
+        [
+          medicine.name,
+          medicine.code,
+          medicine.dosageForm,
+          medicine.strength,
+          medicine.manufacturer,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 120);
+  }, [medicinePickerSearch, unmappedMedicines]);
 
   const filteredStock = branchStock.filter((item) => {
     const query = search.trim().toLowerCase();
@@ -595,6 +617,15 @@ export default function PharmacyPricingPage() {
                 <label className="mb-2 block text-sm font-medium">
                   Medicine
                 </label>
+                <Input
+                  value={medicinePickerSearch}
+                  onChange={(event) =>
+                    setMedicinePickerSearch(event.target.value)
+                  }
+                  className="mb-2 h-12 rounded-xl"
+                  placeholder="Search drug name, code, form, or strength"
+                  disabled={!selectedBranchId}
+                />
                 <select
                   value={selectedMedicineId}
                   onChange={(event) =>
@@ -604,7 +635,7 @@ export default function PharmacyPricingPage() {
                   disabled={!selectedBranchId}
                 >
                   <option value="">Select medicine</option>
-                  {unmappedMedicines.map((medicine) => (
+                  {filteredUnmappedMedicines.map((medicine) => (
                     <option key={medicine.id} value={String(medicine.id)}>
                       {medicineLabel(medicine)}
                     </option>

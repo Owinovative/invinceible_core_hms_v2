@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import PDFDocument from 'pdfkit';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientService } from '../patient/patient.service';
 import { AppointmentService } from '../appointment/appointment.service';
@@ -26,15 +27,10 @@ import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
 import { OpenPatientInvoiceDto } from './dto/open-patient-invoice.dto';
 import {
-  addCompactKeyValueGrid,
-  addCompactTable,
-  addSectionTitle,
-  createHospitalPdfBuffer,
   drawVerificationBarcode,
-  formatPdfDate,
   formatPdfMoney,
+  loadLogoBuffer,
   patientName,
-  staffName,
 } from '../common/pdf/hospital-pdf';
 
 type TariffCsvRow = Record<string, string>;
@@ -2101,165 +2097,432 @@ export class BillingService {
     const printableItems = (invoice.items ?? []).filter(
       (item) => item.isRemoved !== true,
     );
-    const payments = invoice.payments ?? [];
     const verificationCode = this.buildInvoiceVerificationCode(invoice);
 
-    return createHospitalPdfBuffer(
-      {
-        title: 'INVOICE',
-        subtitle: invoice.invoiceNumber,
-        reference: invoice.statusCode,
-        verificationCode,
-        facility: invoice.facility,
-        branch: invoice.branch,
-      },
-      (doc) => {
-        addSectionTitle(doc, 'Invoice details');
-        addCompactKeyValueGrid(doc, [
-          { label: 'Patient', value: patientName(invoice.patient) },
-          { label: 'Patient number', value: invoice.patient?.patientNumber },
-          { label: 'Phone', value: invoice.patient?.phonePrimary },
-          { label: 'Invoice number', value: invoice.invoiceNumber },
-          { label: 'VAR code', value: verificationCode },
-          { label: 'Issued at', value: formatPdfDate(invoice.issuedAt) },
-          { label: 'Branch', value: invoice.branch?.name },
-          { label: 'Created by', value: staffName(invoice.createdBy) },
-          { label: 'Status', value: invoice.statusCode },
-        ], 3);
-
-        addSectionTitle(doc, 'Invoice lines');
-        addCompactTable(
-          doc,
-          [
-            {
-              header: 'Date',
-              width: 58,
-              render: (item) => formatPdfDate(item.createdAt),
-            },
-            {
-              header: 'Ref',
-              width: 46,
-              render: (item) => `L${String(item.id).padStart(4, '0')}`,
-            },
-            {
-              header: 'Item',
-              width: 202,
-              render: (item) => item.description,
-            },
-            { header: 'Qty', width: 32, render: (item) => item.quantity },
-            {
-              header: 'Unit',
-              width: 64,
-              render: (item) => formatPdfMoney(item.unitPrice, currency),
-            },
-            {
-              header: 'Disc',
-              width: 42,
-              render: () => formatPdfMoney(0, currency),
-            },
-            {
-              header: 'Total',
-              width: 55,
-              render: (item) => formatPdfMoney(item.lineTotal, currency),
-            },
-          ],
-          printableItems,
-          'No active invoice lines found.',
-        );
-
-        addSectionTitle(doc, 'Totals');
-        addCompactKeyValueGrid(doc, [
-          {
-            label: 'Subtotal',
-            value: formatPdfMoney(invoice.subtotal, currency),
-          },
-          {
-            label: 'Discount',
-            value: formatPdfMoney(invoice.discountAmount, currency),
-          },
-          { label: 'Tax', value: formatPdfMoney(invoice.taxAmount, currency) },
-          {
-            label: 'Total',
-            value: formatPdfMoney(invoice.totalAmount, currency),
-          },
-          {
-            label: 'Paid',
-            value: formatPdfMoney(invoice.paidAmount, currency),
-          },
-          {
-            label: 'Balance',
-            value: formatPdfMoney(invoice.balanceAmount, currency),
-          },
-        ], 3);
-
-        if (payments.length > 0) {
-          addSectionTitle(doc, 'Payments');
-          addCompactTable(
-            doc,
-            [
-              {
-                header: 'Receipt',
-                width: 125,
-                render: (item) => item.receiptNumber,
-              },
-              {
-                header: 'Method',
-                width: 86,
-                render: (item) => item.paymentMethod,
-              },
-              {
-                header: 'Amount',
-                width: 92,
-                render: (item) => formatPdfMoney(item.amount, currency),
-              },
-              { header: 'Status', width: 78, render: (item) => item.statusCode },
-              {
-                header: 'Paid at',
-                width: 118,
-                render: (item) => formatPdfDate(item.paidAt),
-              },
-            ],
-            payments.slice(0, 5),
-            'No payments recorded yet.',
-          );
-        }
-
-        if (
-          invoice.notes ||
-          invoice.facility?.mpesaPaybill ||
-          invoice.facility?.mpesaTillNumber
-        ) {
-          addSectionTitle(doc, 'Notes');
-          addCompactKeyValueGrid(doc, [
-            { label: 'Invoice notes', value: invoice.notes },
-            { label: 'M-PESA Paybill', value: invoice.facility?.mpesaPaybill },
-            { label: 'M-PESA Till', value: invoice.facility?.mpesaTillNumber },
-          ], 3);
-        }
-
-        const footerY = doc.y + 8;
-        if (footerY < doc.page.height - doc.page.margins.bottom - 78) {
-          doc
-            .fillColor('#475569')
-            .font('Helvetica')
-            .fontSize(7.5)
-            .text(
-              'This invoice is valid only with the VAR code above. Keep the original receipt for payment reconciliation.',
-              doc.page.margins.left,
-              footerY,
-              { width: 330 },
-            );
-          drawVerificationBarcode(
-            doc,
-            verificationCode,
-            doc.page.width - doc.page.margins.right - 142,
-            footerY - 4,
-            142,
-            34,
-          );
-        }
-      },
+    return this.createCollectionInvoicePdf(
+      invoice,
+      printableItems,
+      verificationCode,
+      currency,
     );
+  }
+
+  private async createCollectionInvoicePdf(
+    invoice: any,
+    printableItems: any[],
+    verificationCode: string,
+    currency: string,
+  ) {
+    const logoBuffer = await loadLogoBuffer(invoice.facility?.logoUrl);
+    const paymentLines = this.invoicePaymentLines(invoice);
+
+    return new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 18,
+        bufferPages: true,
+        info: {
+          Title: `Invoice ${invoice.invoiceNumber}`,
+          Producer: 'Invinceible Core HMS',
+        },
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
+      const width = right - left;
+      const rowHeight = 22;
+
+      const drawHeader = () => {
+        doc.rect(left, 18, width, 162).fill('#e9e9e9');
+        doc
+          .fillColor('#8b8b8b')
+          .font('Times-Bold')
+          .fontSize(21)
+          .text(
+            (invoice.facility?.name || 'Hospital Facility').toUpperCase(),
+            left + 10,
+            23,
+            { width: width - 20 },
+          );
+
+        if (logoBuffer) {
+          try {
+            doc.image(logoBuffer, left + 12, 62, { fit: [62, 62] });
+          } catch {
+            this.drawInvoiceLogoPlaceholder(doc, left + 12, 62);
+          }
+        } else {
+          this.drawInvoiceLogoPlaceholder(doc, left + 12, 62);
+        }
+
+        doc
+          .fillColor('#6b7280')
+          .font('Helvetica')
+          .fontSize(10)
+          .text('Email:', left + 86, 64, { width: 45 })
+          .fillColor('#8ec641')
+          .font('Helvetica-Oblique')
+          .text(invoice.facility?.email || '-', left + 130, 64, {
+            width: 210,
+          })
+          .fillColor('#6b7280')
+          .font('Helvetica')
+          .text('Tel:', left + 86, 83, { width: 45 })
+          .fillColor('#8ec641')
+          .font('Helvetica-Oblique')
+          .text(
+            [invoice.facility?.phone, invoice.facility?.altPhone]
+              .filter(Boolean)
+              .join('/') || '-',
+            left + 130,
+            83,
+            { width: 210 },
+          );
+
+        doc
+          .fillColor('#7b7b7b')
+          .font('Times-Roman')
+          .fontSize(22)
+          .text('INVOICE', right - 105, 70, { width: 98, align: 'right' });
+        drawVerificationBarcode(doc, verificationCode, right - 102, 112, 96, 24);
+        doc
+          .fillColor('#7b7b7b')
+          .font('Helvetica-Oblique')
+          .fontSize(9)
+          .text('COLLECTION', right - 97, 139, { width: 95, align: 'right' })
+          .font('Times-Roman')
+          .fontSize(18)
+          .text('Collection', right - 105, 157, {
+            width: 100,
+            align: 'right',
+          });
+
+        const patient = invoice.patient;
+        const admittedAt =
+          invoice.admission?.admittedAt ||
+          invoice.appointment?.scheduledAt ||
+          invoice.issuedAt;
+        const details = [
+          ['Patient\'s ID:', invoice.invoiceNumber],
+          ['M/S:', patientName(patient).toUpperCase()],
+          ['Tel', patient?.phonePrimary || '-'],
+          ['DateOfAdmission', this.shortInvoiceDate(admittedAt)],
+        ];
+        let y = 116;
+        details.forEach(([label, value]) => {
+          doc
+            .fillColor('#6b7280')
+            .font('Helvetica')
+            .fontSize(9.5)
+            .text(label, left + 10, y, { width: 96 })
+            .fillColor('#111827')
+            .font('Helvetica-Bold')
+            .text(String(value || '-'), left + 108, y, { width: 260 });
+          y += 16;
+        });
+
+        doc.y = 184;
+      };
+
+      const drawTableHeader = () => {
+        const columns = this.invoicePrintColumns();
+        const headerY = doc.y;
+        doc
+          .fillColor('#6b7280')
+          .font('Times-Roman')
+          .fontSize(9)
+          .text('Qty', left + 2, headerY)
+          .text('Unit', left + 38, headerY)
+          .text('Item', left + 122, headerY)
+          .text('Unitprice', left + 268, headerY)
+          .text('TotalPrice', left + 326, headerY)
+          .text('Vat%', left + 394, headerY)
+          .text('Disc', left + 432, headerY)
+          .text('V A T', left + 470, headerY)
+          .text('NetTotal', left + 520, headerY);
+        doc
+          .moveTo(left, headerY + 13)
+          .lineTo(right, headerY + 13)
+          .lineWidth(1.8)
+          .strokeColor('#b8e169')
+          .stroke();
+        doc.y = headerY + 17;
+        return columns;
+      };
+
+      drawHeader();
+      let columns = drawTableHeader();
+
+      printableItems.forEach((item, index) => {
+        if (doc.y + rowHeight > doc.page.height - 128) {
+          doc.addPage();
+          doc.y = 24;
+          columns = drawTableHeader();
+        }
+
+        const y = doc.y;
+        const quantity = Number(item.quantity || 0);
+        const unitText =
+          (item.billingService?.category || item.sourceModule || '').toUpperCase() ||
+          'EACH';
+
+        doc
+          .rect(left, y, width, rowHeight)
+          .fill(index % 2 === 0 ? '#e7e7e7' : '#ffffff');
+        doc
+          .moveTo(left, y + rowHeight)
+          .lineTo(right, y + rowHeight)
+          .dash(6, { space: 6 })
+          .lineWidth(0.8)
+          .strokeColor('#bdbdbd')
+          .stroke()
+          .undash();
+
+        const values = [
+          String(quantity),
+          unitText,
+          item.description,
+          this.compactMoney(item.unitPrice, currency),
+          String(Number(item.lineTotal || 0)),
+          '0',
+          '0',
+          '0',
+          String(Number(item.lineTotal || 0)),
+        ];
+        columns.forEach((column, columnIndex) => {
+          doc
+            .fillColor(columnIndex === 8 ? '#111827' : '#374151')
+            .font(columnIndex === 8 ? 'Helvetica-Bold' : 'Helvetica')
+            .fontSize(8)
+            .text(values[columnIndex], column.x, y + 4, {
+              width: column.width,
+              align: column.align,
+              ellipsis: true,
+            });
+        });
+        doc
+          .fillColor('#374151')
+          .font('Helvetica')
+          .fontSize(7)
+          .text(this.shortInvoiceDate(item.createdAt), right - 52, y + 1, {
+            width: 48,
+            align: 'right',
+          });
+        doc.y = y + rowHeight;
+      });
+
+      const footerMin = 142;
+      if (doc.y + footerMin > doc.page.height - 30) {
+        doc.addPage();
+        doc.y = 24;
+      }
+
+      const totalsY = doc.y + 8;
+      doc
+        .fillColor('#6b7280')
+        .font('Helvetica')
+        .fontSize(8)
+        .text('SHAPayable', left + 25, totalsY)
+        .text('VAT', left + 142, totalsY)
+        .text('Cash', left + 218, totalsY)
+        .text('Paybill', left + 292, totalsY)
+        .text('Amount', left + 368, totalsY)
+        .text('This Invoice', right - 96, totalsY);
+
+      const boxY = totalsY + 14;
+      [left + 8, left + 82, left + 156, left + 230, left + 304].forEach((x) =>
+        doc.rect(x, boxY, 72, 18).strokeColor('#a3a3a3').stroke(),
+      );
+      doc
+        .rect(right - 185, boxY, 178, 18)
+        .strokeColor('#a3a3a3')
+        .stroke()
+        .fillColor('#111827')
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .text(String(Number(invoice.totalAmount || 0)), right - 85, boxY + 3, {
+          width: 78,
+          align: 'right',
+        });
+
+      const totalRows = [
+        ['Subtotal', invoice.subtotal],
+        ['VAT', invoice.taxAmount],
+        ['Discount', invoice.discountAmount],
+        ['Grand Total', invoice.totalAmount],
+      ];
+      totalRows.forEach(([label, value], index) => {
+        const rowY = boxY + 23 + index * 20;
+        doc
+          .fillColor('#6b7280')
+          .font('Helvetica')
+          .fontSize(9)
+          .text(String(label), right - 255, rowY + 4, { width: 85 });
+        doc.rect(right - 185, rowY, 178, 18).strokeColor('#a3a3a3').stroke();
+        doc
+          .fillColor('#111827')
+          .font('Helvetica-Bold')
+          .fontSize(9)
+          .text(String(Number(value || 0)), right - 180, rowY + 4, {
+            width: 166,
+          });
+      });
+
+      doc
+        .fillColor('#6b7280')
+        .font('Helvetica')
+        .fontSize(9)
+        .text(`Items        ${printableItems.length}`, left + 8, boxY + 88);
+
+      const footerY = doc.page.height - 116;
+      doc
+        .fillColor('#6b7280')
+        .font('Helvetica')
+        .fontSize(8)
+        .text(
+          'Note: Cold chain items cannot be returned for refund or any other reason',
+          left + 4,
+          footerY,
+          { width: 390 },
+        );
+      this.drawQrPlaceholder(doc, left + 8, footerY + 18);
+      doc
+        .fillColor('#7b5c2d')
+        .font('Helvetica')
+        .fontSize(8);
+      paymentLines.slice(0, 5).forEach((line, index) => {
+        doc.text(line, left + 66, footerY + 17 + index * 13, {
+          width: 260,
+        });
+      });
+      doc
+        .fillColor('#6b7280')
+        .text('Served by', left + 4, footerY + 72, { width: 75 })
+        .fillColor('#111827')
+        .font('Helvetica-Bold')
+        .text(this.timeOnly(new Date()), left + 122, footerY + 72, {
+          width: 65,
+        });
+
+      doc
+        .fillColor('#7b7b7b')
+        .font('Helvetica-Bold')
+        .fontSize(7)
+        .text('SYSTEM GENERATED BY INVINCEIBLE CORE HMS', right - 190, footerY + 34, {
+          width: 182,
+          align: 'left',
+        })
+        .font('Helvetica')
+        .text('Official hospital invoice generated from approved billing lines.', right - 190, footerY + 52, {
+          width: 182,
+        });
+
+      const range = doc.bufferedPageRange();
+      for (let pageIndex = 0; pageIndex < range.count; pageIndex += 1) {
+        doc.switchToPage(range.start + pageIndex);
+        doc
+          .fillColor('#111827')
+          .font('Helvetica')
+          .fontSize(8)
+          .text(
+            `Page ${pageIndex + 1} of ${range.count}`,
+            doc.page.width / 2 - 35,
+            doc.page.height - 52,
+            { width: 70, align: 'center' },
+          );
+      }
+
+      doc.end();
+    });
+  }
+
+  private invoicePrintColumns() {
+    const left = 20;
+    return [
+      { x: left + 2, width: 34, align: 'left' as const },
+      { x: left + 40, width: 76, align: 'left' as const },
+      { x: left + 122, width: 138, align: 'left' as const },
+      { x: left + 268, width: 56, align: 'left' as const },
+      { x: left + 326, width: 58, align: 'left' as const },
+      { x: left + 394, width: 34, align: 'left' as const },
+      { x: left + 432, width: 34, align: 'left' as const },
+      { x: left + 470, width: 38, align: 'left' as const },
+      { x: left + 512, width: 54, align: 'right' as const },
+    ];
+  }
+
+  private drawInvoiceLogoPlaceholder(
+    doc: PDFKit.PDFDocument,
+    x: number,
+    y: number,
+  ) {
+    doc.circle(x + 31, y + 31, 31).fill('#bfeaf4');
+    doc
+      .fillColor('#ffffff')
+      .font('Helvetica-Bold')
+      .fontSize(34)
+      .text('+', x + 18, y + 10, { width: 28, align: 'center' });
+  }
+
+  private drawQrPlaceholder(doc: PDFKit.PDFDocument, x: number, y: number) {
+    const size = 58;
+    doc.rect(x, y, size, size).fill('#ffffff');
+    for (let row = 0; row < 9; row += 1) {
+      for (let col = 0; col < 9; col += 1) {
+        if ((row * 7 + col * 5 + row + col) % 3 !== 0) {
+          doc.rect(x + col * 6, y + row * 6, 4, 4).fill('#111827');
+        }
+      }
+    }
+  }
+
+  private invoicePaymentLines(invoice: any) {
+    const facility = invoice.facility ?? {};
+    const branch = invoice.branch ?? {};
+    const paybill = branch.mpesaPaybill || facility.mpesaPaybill;
+    const account = branch.mpesaAccountNumber || facility.mpesaAccountNumber;
+    const till = branch.mpesaTillNumber || facility.mpesaTillNumber;
+    const pochi = branch.mpesaPochiNumber || facility.mpesaPochiNumber;
+    const lines = paybill || till || pochi ? ['Pay by Mpesa'] : [];
+
+    if (paybill) {
+      lines.push(
+        `Paybill:${paybill}${account ? ` Account:${account}` : ''}`,
+      );
+    }
+    if (till) lines.push(`Till:${till}`);
+    if (pochi) lines.push(`Pochi La Biashara:${pochi}`);
+    lines.push('Thanks for visiting us!!');
+    return lines;
+  }
+
+  private shortInvoiceDate(value?: string | Date | null) {
+    if (!value) return '-';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: '2-digit',
+    }).format(date).replace(/ /g, '-');
+  }
+
+  private timeOnly(value: Date) {
+    return new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(value);
+  }
+
+  private compactMoney(value?: number | null, currency = 'KES') {
+    return formatPdfMoney(value, currency).replace(/\s/g, '');
   }
 
   async createCashPayment(dto: CreateCashPaymentDto) {

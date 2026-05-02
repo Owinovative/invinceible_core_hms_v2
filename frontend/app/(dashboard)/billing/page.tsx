@@ -318,62 +318,32 @@ export default function BillingPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Invoices</p>
-              <p className="mt-2 text-2xl font-bold">
-                {dashboardData?.counts?.totalInvoices ?? 0}
-              </p>
+      <section className="grid gap-3 border-y border-sky-200 bg-sky-50/70 px-4 py-4 md:grid-cols-4">
+        {[
+          ["Invoices", dashboardData?.counts?.totalInvoices ?? 0, FileText],
+          ["Pending", dashboardData?.counts?.pendingInvoices ?? 0, Receipt],
+          ["Paid", dashboardData?.counts?.paidInvoices ?? 0, Wallet],
+          [
+            "Outstanding",
+            formatMoney(dashboardData?.sums?.balanceAmount ?? 0),
+            CreditCard,
+          ],
+        ].map(([label, value, Icon]) => {
+          const MetricIcon = Icon as typeof FileText;
+          return (
+            <div key={String(label)} className="flex items-center gap-3 border-l-2 border-sky-300 px-3">
+              <MetricIcon className="h-5 w-5 text-sky-700" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  {label as string}
+                </p>
+                <p className="mt-1 text-2xl font-black text-sky-800">
+                  {value as React.ReactNode}
+                </p>
+              </div>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <FileText className="h-6 w-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="mt-2 text-2xl font-bold">
-                {dashboardData?.counts?.pendingInvoices ?? 0}
-              </p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <Receipt className="h-6 w-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Paid</p>
-              <p className="mt-2 text-2xl font-bold">
-                {dashboardData?.counts?.paidInvoices ?? 0}
-              </p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <Wallet className="h-6 w-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Outstanding</p>
-              <p className="mt-2 text-2xl font-bold">
-                {formatMoney(dashboardData?.sums?.balanceAmount ?? 0)}
-              </p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <CreditCard className="h-6 w-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+          );
+        })}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">

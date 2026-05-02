@@ -77,8 +77,18 @@ export class CreateBranchDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(80)
+  mpesaAccountNumber?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(50)
   mpesaTillNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  mpesaPochiNumber?: string;
 
   @IsOptional()
   @IsBoolean()
