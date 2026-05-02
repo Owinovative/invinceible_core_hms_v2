@@ -25,6 +25,10 @@ export interface Branch {
   mpesaAccountNumber?: string | null;
   mpesaTillNumber?: string | null;
   mpesaPochiNumber?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapLocationLabel?: string | null;
+  googleMapsUrl?: string | null;
   isDefault?: boolean;
   isActive?: boolean;
   createdAt?: string;
@@ -49,6 +53,10 @@ export interface CreateBranchPayload {
   mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
   mpesaPochiNumber?: string;
+  latitude?: number;
+  longitude?: number;
+  mapLocationLabel?: string;
+  googleMapsUrl?: string;
   isDefault?: boolean;
   isActive?: boolean;
 }
@@ -71,6 +79,10 @@ export interface UpdateBranchPayload {
   mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
   mpesaPochiNumber?: string;
+  latitude?: number;
+  longitude?: number;
+  mapLocationLabel?: string;
+  googleMapsUrl?: string;
   isDefault?: boolean;
   isActive?: boolean;
 }

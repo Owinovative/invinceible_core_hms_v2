@@ -46,6 +46,12 @@ const facilitySchema = z.object({
   mpesaAccountNumber: z.string().optional(),
   mpesaTillNumber: z.string().optional(),
   mpesaPochiNumber: z.string().optional(),
+  showCashOnInvoice: z.boolean().optional(),
+  showPaybillOnInvoice: z.boolean().optional(),
+  showTillOnInvoice: z.boolean().optional(),
+  showPochiOnInvoice: z.boolean().optional(),
+  shaFidCode: z.string().optional(),
+  shaClaimStartNumber: z.string().optional(),
 });
 
 type FacilityFormValues = z.infer<typeof facilitySchema>;
@@ -84,6 +90,12 @@ export function CreateFacilityForm() {
       mpesaAccountNumber: "",
       mpesaTillNumber: "",
       mpesaPochiNumber: "",
+      showCashOnInvoice: true,
+      showPaybillOnInvoice: true,
+      showTillOnInvoice: true,
+      showPochiOnInvoice: true,
+      shaFidCode: "",
+      shaClaimStartNumber: "1",
     },
   });
 
@@ -121,6 +133,13 @@ export function CreateFacilityForm() {
         mpesaAccountNumber: values.mpesaAccountNumber || undefined,
         mpesaTillNumber: values.mpesaTillNumber || undefined,
         mpesaPochiNumber: values.mpesaPochiNumber || undefined,
+        showCashOnInvoice: values.showCashOnInvoice ?? true,
+        showPaybillOnInvoice: values.showPaybillOnInvoice ?? true,
+        showTillOnInvoice: values.showTillOnInvoice ?? true,
+        showPochiOnInvoice: values.showPochiOnInvoice ?? true,
+        shaFidCode: values.shaFidCode || undefined,
+        shaClaimStartNumber: Number(values.shaClaimStartNumber || 1),
+        shaClaimNextNumber: Number(values.shaClaimStartNumber || 1),
         isHeadOffice: false,
         isDefault: false,
         isActive: true,
@@ -156,6 +175,12 @@ export function CreateFacilityForm() {
         mpesaAccountNumber: "",
         mpesaTillNumber: "",
         mpesaPochiNumber: "",
+        showCashOnInvoice: true,
+        showPaybillOnInvoice: true,
+        showTillOnInvoice: true,
+        showPochiOnInvoice: true,
+        shaFidCode: "",
+        shaClaimStartNumber: "1",
       });
     } catch {
       setSuccessMessage(null);
@@ -175,6 +200,32 @@ export function CreateFacilityForm() {
         shouldDirty: true,
       });
     });
+  };
+
+  const handleLogoUpload = (file?: File | null) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result : "";
+      if (value) {
+        form.setValue("logoUrl", value, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const openMapsPicker = () => {
+    const latitude = form.getValues("latitude");
+    const longitude = form.getValues("longitude");
+    const url =
+      latitude && longitude
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : "https://www.google.com/maps";
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -389,11 +440,30 @@ export function CreateFacilityForm() {
               control={form.control}
               name="logoUrl"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo URL</FormLabel>
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Facility Logo</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="https://..." {...field} />
+                    <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                      <Input
+                        className="h-11 rounded-xl"
+                        placeholder="Logo data is stored after upload"
+                        {...field}
+                      />
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="h-11 rounded-xl"
+                        onChange={(event) =>
+                          handleLogoUpload(event.target.files?.[0])
+                        }
+                      />
+                    </div>
                   </FormControl>
+                  <FormDescription>
+                    Upload the facility logo as an image. It is used on
+                    invoices, receipts, medical reports, and discharge
+                    summaries.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -490,6 +560,15 @@ export function CreateFacilityForm() {
                   <LocateFixed className="mr-2 h-4 w-4" />
                   Use current location
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={openMapsPicker}
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Open Google Maps
+                </Button>
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -578,6 +657,75 @@ export function CreateFacilityForm() {
                 </FormItem>
               )}
             />
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <p className="font-semibold">Invoice payment options</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Only selected options are printed on invoices and receipts.
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-4">
+                {[
+                  ["showCashOnInvoice", "Cash"],
+                  ["showPaybillOnInvoice", "Paybill"],
+                  ["showTillOnInvoice", "Till"],
+                  ["showPochiOnInvoice", "Pochi"],
+                ].map(([name, label]) => (
+                  <FormField
+                    key={name}
+                    control={form.control}
+                    name={name as keyof FacilityFormValues}
+                    render={({ field }) => (
+                      <label className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(field.value)}
+                          onChange={(event) =>
+                            field.onChange(event.target.checked)
+                          }
+                        />
+                        {label}
+                      </label>
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <p className="font-semibold">SHA claim settings</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                FID and claim numbering are used when SHA claim records are
+                generated for the facility.
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="shaFidCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SHA FID Code</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="FID..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="shaClaimStartNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Starting Claim Number</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" className="h-11 rounded-xl" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <div className="md:col-span-2 space-y-3 pt-2">
               <FormDescription>

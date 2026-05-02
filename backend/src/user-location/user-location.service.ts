@@ -567,6 +567,7 @@ export class UserLocationService {
   }
 
   private sessionId(user: RequestUser) {
+    if (user.sessionId) return user.sessionId;
     return `u:${user.userId}:sv:${user.sessionVersion ?? 0}`;
   }
 

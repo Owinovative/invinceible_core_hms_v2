@@ -17,7 +17,10 @@ import {
 import Link from "next/link";
 
 import { useInvoiceById } from "@/hooks/use-invoice-by-id";
-import { downloadInvoicePdf } from "@/services/billing-service";
+import {
+  downloadInvoicePdf,
+  downloadPaymentReceiptPdf,
+} from "@/services/billing-service";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -578,6 +581,22 @@ export default function InvoiceDetailPage() {
 
                           <div className="text-sm text-muted-foreground print-muted">
                             {formatDate(payment.paidAt)}
+                            {payment.statusCode === "COMPLETED" ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 rounded-xl print:hidden"
+                                onClick={() =>
+                                  void downloadPaymentReceiptPdf(
+                                    payment.id,
+                                    payment.receiptNumber,
+                                  )
+                                }
+                              >
+                                Download receipt
+                              </Button>
+                            ) : null}
                           </div>
                         </div>
                       </div>

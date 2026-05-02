@@ -15,6 +15,10 @@ export class UpdateInvoiceItemDto {
   unitPrice?: number;
 
   @IsOptional()
+  @IsNumber()
+  discountPercent?: number;
+
+  @IsOptional()
   @IsString()
   notes?: string;
 

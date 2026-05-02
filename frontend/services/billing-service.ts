@@ -16,6 +16,8 @@ export interface InvoiceItemRecord {
   description: string;
   quantity: number;
   unitPrice: number;
+  discountPercent?: number;
+  discountAmount?: number;
   lineTotal: number;
   statusCode: string;
   notes?: string | null;
@@ -110,6 +112,11 @@ export interface InvoiceRecord {
     mpesaTillNumber?: string | null;
     mpesaPochiNumber?: string | null;
     mpesaShortcode?: string | null;
+    showCashOnInvoice?: boolean;
+    showPaybillOnInvoice?: boolean;
+    showTillOnInvoice?: boolean;
+    showPochiOnInvoice?: boolean;
+    shaFidCode?: string | null;
   } | null;
   branch?: {
     id: number;
@@ -250,6 +257,7 @@ export interface UpdateInvoiceItemPayload {
   description?: string;
   quantity?: number;
   unitPrice?: number;
+  discountPercent?: number;
   notes?: string;
   statusCode?: string;
   updatedByStaffId?: number;
@@ -265,6 +273,7 @@ export interface AddInvoiceItemPayload {
   description: string;
   quantity?: number;
   unitPrice?: number;
+  discountPercent?: number;
   notes?: string;
   statusCode?: string;
   updatedByStaffId?: number;
@@ -553,5 +562,12 @@ export function downloadInvoicePdf(id: number, invoiceNumber?: string) {
   return apiDownload(
     `/billing/invoices/${id}/pdf`,
     `${invoiceNumber || `invoice-${id}`}.pdf`,
+  );
+}
+
+export function downloadPaymentReceiptPdf(id: number, receiptNumber?: string) {
+  return apiDownload(
+    `/billing/payments/${id}/receipt.pdf`,
+    `${receiptNumber || `receipt-${id}`}.pdf`,
   );
 }

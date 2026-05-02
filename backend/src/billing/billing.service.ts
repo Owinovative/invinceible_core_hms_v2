@@ -310,6 +310,44 @@ export class BillingService {
       .padStart(4, '0')}`;
   }
 
+  private invoiceVerificationUrl(invoice: any, verificationCode: string) {
+    const baseUrl =
+      process.env.FRONTEND_PUBLIC_URL ||
+      process.env.FRONTEND_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3001';
+    const url = new URL('/invoice-verify', baseUrl);
+    url.searchParams.set('invoice', invoice.invoiceNumber);
+    url.searchParams.set('code', verificationCode);
+    url.searchParams.set('facility', invoice.facility?.name ?? '');
+    url.searchParams.set('patient', patientName(invoice.patient));
+    url.searchParams.set('total', String(Number(invoice.totalAmount ?? 0)));
+    return url.toString();
+  }
+
+  private calculateLineTotals(
+    quantity: number,
+    unitPrice: number,
+    discountPercent?: number | null,
+  ) {
+    const safeQuantity = Math.max(0, Number(quantity || 0));
+    const safePrice = Math.max(0, Number(unitPrice || 0));
+    const safeDiscountPercent = Math.min(
+      Math.max(Number(discountPercent ?? 0), 0),
+      100,
+    );
+    const grossTotal = safeQuantity * safePrice;
+    const discountAmount = Number(
+      ((grossTotal * safeDiscountPercent) / 100).toFixed(2),
+    );
+
+    return {
+      discountPercent: safeDiscountPercent,
+      discountAmount,
+      lineTotal: Number((grossTotal - discountAmount).toFixed(2)),
+    };
+  }
+
   private normalizeTariffCategory(category: string) {
     return category.trim().toUpperCase();
   }
@@ -1057,6 +1095,8 @@ export class BillingService {
       return this.getInvoiceById(invoice.id);
     }
 
+    const autoLine = this.calculateLineTotals(params.quantity, params.unitPrice);
+
     await this.prisma.invoiceItem.create({
       data: {
         invoiceId: invoice.id,
@@ -1064,7 +1104,9 @@ export class BillingService {
         description: params.description,
         quantity: params.quantity,
         unitPrice: params.unitPrice,
-        lineTotal: params.quantity * params.unitPrice,
+        discountPercent: autoLine.discountPercent,
+        discountAmount: autoLine.discountAmount,
+        lineTotal: autoLine.lineTotal,
         statusCode: 'BILLED',
         notes: params.notes,
         sourceModule: params.sourceModule,
@@ -1255,6 +1297,12 @@ export class BillingService {
       throw new BadRequestException('Invoice line price cannot be negative');
     }
 
+    const line = this.calculateLineTotals(
+      quantity,
+      resolvedUnitPrice,
+      dto.discountPercent,
+    );
+
     const item = await this.prisma.invoiceItem.create({
       data: {
         invoiceId: invoice.id,
@@ -1262,7 +1310,9 @@ export class BillingService {
         description,
         quantity,
         unitPrice: resolvedUnitPrice,
-        lineTotal: quantity * resolvedUnitPrice,
+        discountPercent: line.discountPercent,
+        discountAmount: line.discountAmount,
+        lineTotal: line.lineTotal,
         statusCode: dto.statusCode ?? 'BILLED',
         notes: dto.notes,
         sourceModule,
@@ -1319,6 +1369,11 @@ export class BillingService {
 
     const quantity = dto.quantity ?? item.quantity;
     const unitPrice = dto.unitPrice ?? item.unitPrice;
+    const line = this.calculateLineTotals(
+      quantity,
+      unitPrice,
+      dto.discountPercent ?? item.discountPercent,
+    );
 
     await this.prisma.invoiceItem.update({
       where: { id },
@@ -1326,7 +1381,9 @@ export class BillingService {
         description: dto.description ?? item.description,
         quantity,
         unitPrice,
-        lineTotal: quantity * unitPrice,
+        discountPercent: line.discountPercent,
+        discountAmount: line.discountAmount,
+        lineTotal: line.lineTotal,
         notes: dto.notes ?? item.notes,
         statusCode: dto.statusCode ?? item.statusCode,
         updatedByStaffId: user.staffId ?? undefined,
@@ -1812,6 +1869,8 @@ export class BillingService {
       description: string;
       quantity: number;
       unitPrice: number;
+      discountPercent: number;
+      discountAmount: number;
       lineTotal: number;
       statusCode: string;
       notes?: string;
@@ -1837,7 +1896,12 @@ export class BillingService {
       }
 
       const quantity = item.quantity ?? 1;
-      const lineTotal = quantity * resolvedUnitPrice;
+      const line = this.calculateLineTotals(
+        quantity,
+        resolvedUnitPrice,
+        item.discountPercent,
+      );
+      const lineTotal = line.lineTotal;
       subtotal += lineTotal;
 
       preparedItems.push({
@@ -1845,6 +1909,8 @@ export class BillingService {
         description: item.description,
         quantity,
         unitPrice: resolvedUnitPrice,
+        discountPercent: line.discountPercent,
+        discountAmount: line.discountAmount,
         lineTotal,
         statusCode: 'BILLED',
         notes: item.notes,
@@ -2107,6 +2173,161 @@ export class BillingService {
     );
   }
 
+  async getPaymentReceiptPdf(id: number, user: RequestUser) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: {
+        facility: true,
+        branch: true,
+        invoice: {
+          include: {
+            patient: true,
+            facility: true,
+            branch: true,
+          },
+        },
+        receivedBy: true,
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment with id ${id} not found`);
+    }
+
+    this.scopeService.assertBranchAccess(
+      user,
+      payment.facilityId,
+      payment.branchId,
+    );
+
+    const currency =
+      payment.facility?.currency || payment.branch?.currency || 'KES';
+    const logoBuffer = await loadLogoBuffer(payment.facility?.logoUrl);
+    const verificationCode = this.buildInvoiceVerificationCode(payment.invoice);
+    const qrBuffer = await QRCode.toBuffer(
+      this.invoiceVerificationUrl(payment.invoice, verificationCode),
+      {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        scale: 4,
+      },
+    );
+
+    return new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A5',
+        margin: 22,
+        info: {
+          Title: `Receipt ${payment.receiptNumber}`,
+          Producer: 'Invinceible Core HMS',
+        },
+      });
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const left = doc.page.margins.left;
+      const right = doc.page.width - doc.page.margins.right;
+      const width = right - left;
+
+      doc.rect(left, 22, width, 82).fill('#eef7ff');
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, left + 12, 36, { fit: [48, 48] });
+        } catch {
+          this.drawInvoiceLogoPlaceholder(doc, left + 12, 36);
+        }
+      } else {
+        this.drawInvoiceLogoPlaceholder(doc, left + 12, 36);
+      }
+
+      doc
+        .fillColor('#0b2f56')
+        .font('Helvetica-Bold')
+        .fontSize(15)
+        .text((payment.facility?.name || 'Hospital Facility').toUpperCase(), left + 72, 34, {
+          width: width - 170,
+        })
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor('#475569')
+        .text(
+          [payment.facility?.email, payment.facility?.phone, payment.facility?.town]
+            .filter(Boolean)
+            .join('  |  ') || '-',
+          left + 72,
+          58,
+          { width: width - 170 },
+        );
+
+      doc
+        .fillColor('#0b2f56')
+        .font('Helvetica-Bold')
+        .fontSize(16)
+        .text('PAYMENT RECEIPT', right - 118, 42, {
+          width: 112,
+          align: 'right',
+        });
+
+      doc.image(qrBuffer, right - 62, 112, { fit: [54, 54] });
+
+      const rows = [
+        ['Receipt No.', payment.receiptNumber],
+        ['Invoice No.', payment.invoice?.invoiceNumber ?? '-'],
+        ['Patient', patientName(payment.invoice?.patient)],
+        ['Method', payment.paymentMethod],
+        ['Reference', payment.mpesaReceiptNumber || payment.transactionRef || '-'],
+        ['Paid At', payment.paidAt ? new Date(payment.paidAt).toLocaleString('en-GB') : '-'],
+        ['Received By', payment.receivedBy ? `${payment.receivedBy.firstName} ${payment.receivedBy.lastName}` : '-'],
+      ];
+
+      let y = 118;
+      rows.forEach(([label, value]) => {
+        doc
+          .fillColor('#64748b')
+          .font('Helvetica')
+          .fontSize(9)
+          .text(label, left + 4, y, { width: 88 })
+          .fillColor('#0f172a')
+          .font('Helvetica-Bold')
+          .text(String(value || '-'), left + 98, y, { width: width - 172 });
+        y += 17;
+      });
+
+      doc
+        .roundedRect(left, y + 12, width, 46, 5)
+        .fill('#f8fafc')
+        .strokeColor('#bfdbfe')
+        .stroke();
+      doc
+        .fillColor('#64748b')
+        .font('Helvetica')
+        .fontSize(10)
+        .text('Amount Received', left + 14, y + 25, { width: 150 })
+        .fillColor('#0b2f56')
+        .font('Helvetica-Bold')
+        .fontSize(18)
+        .text(formatPdfMoney(payment.amount, currency), right - 185, y + 20, {
+          width: 168,
+          align: 'right',
+        });
+
+      doc
+        .fillColor('#475569')
+        .font('Helvetica')
+        .fontSize(8)
+        .text(
+          'This receipt confirms payment recorded against the invoice above. Keep this copy for reconciliation.',
+          left + 4,
+          y + 78,
+          { width },
+        );
+
+      doc.end();
+    });
+  }
+
   private async createCollectionInvoicePdf(
     invoice: any,
     printableItems: any[],
@@ -2115,24 +2336,7 @@ export class BillingService {
   ) {
     const logoBuffer = await loadLogoBuffer(invoice.facility?.logoUrl);
     const paymentLines = this.invoicePaymentLines(invoice);
-    const qrPayload = JSON.stringify({
-      type: 'invoice',
-      invoiceNumber: invoice.invoiceNumber,
-      verificationCode,
-      facility: invoice.facility?.name,
-      patient: {
-        number: invoice.patient?.patientNumber,
-        name: patientName(invoice.patient),
-      },
-      total: invoice.totalAmount,
-      issuedAt: invoice.issuedAt,
-      items: printableItems.map((item) => ({
-        description: item.description,
-        quantity: item.quantity,
-        amount: item.lineTotal,
-        date: item.createdAt,
-      })),
-    });
+    const qrPayload = this.invoiceVerificationUrl(invoice, verificationCode);
     const qrBuffer = await QRCode.toBuffer(qrPayload, {
       errorCorrectionLevel: 'M',
       margin: 1,
@@ -2322,7 +2526,7 @@ export class BillingService {
         doc.y = y + rowHeight;
       });
 
-      const footerMin = 142;
+      const footerMin = 210;
       if (doc.y + footerMin > doc.page.height - 30) {
         doc.addPage();
         doc.y = 24;
@@ -2359,33 +2563,43 @@ export class BillingService {
         .fontSize(9)
         .text(`Items        ${printableItems.length}`, left + 8, boxY + 88);
 
-      const footerY = doc.page.height - 116;
+      const footerY = boxY + 104;
       doc
-        .fillColor('#6b7280')
-        .font('Helvetica')
+        .fillColor('#374151')
+        .font('Helvetica-Bold')
         .fontSize(8)
         .text(
-          'Note: Cold chain items cannot be returned for refund or any other reason',
+          'Payment instructions',
           left + 4,
           footerY,
           { width: 390 },
         );
-      doc.image(qrBuffer, left + 8, footerY + 18, { fit: [58, 58] });
       doc
-        .fillColor('#7b5c2d')
+        .fillColor('#6b7280')
+        .font('Helvetica')
+        .fontSize(7.5)
+        .text(
+          'This invoice was generated from approved billing records. Quote the invoice number or scan the QR code when confirming payment.',
+          left + 4,
+          footerY + 12,
+          { width: 355 },
+        );
+      doc.image(qrBuffer, left + 8, footerY + 34, { fit: [54, 54] });
+      doc
+        .fillColor('#111827')
         .font('Helvetica')
         .fontSize(8);
       paymentLines.slice(0, 5).forEach((line, index) => {
-        doc.text(line, left + 66, footerY + 17 + index * 13, {
+        doc.text(line, left + 66, footerY + 35 + index * 12, {
           width: 260,
         });
       });
       doc
         .fillColor('#6b7280')
-        .text('Served by', left + 4, footerY + 72, { width: 75 })
+        .text('Served by cashier', left + 4, footerY + 94, { width: 105 })
         .fillColor('#111827')
         .font('Helvetica-Bold')
-        .text(this.timeOnly(new Date()), left + 122, footerY + 72, {
+        .text(this.timeOnly(new Date()), left + 122, footerY + 94, {
           width: 65,
         });
 
@@ -2393,12 +2607,12 @@ export class BillingService {
         .fillColor('#7b7b7b')
         .font('Helvetica-Bold')
         .fontSize(7)
-        .text('SYSTEM GENERATED BY INVINCEIBLE CORE HMS', right - 190, footerY + 34, {
+        .text('INVINCEIBLE CORE HMS', right - 190, footerY + 44, {
           width: 182,
           align: 'left',
         })
         .font('Helvetica')
-        .text('Official hospital invoice generated from approved billing lines.', right - 190, footerY + 52, {
+        .text('Official invoice copy for patient billing and facility reconciliation.', right - 190, footerY + 58, {
           width: 182,
         });
 
@@ -2465,16 +2679,23 @@ export class BillingService {
     const account = branch.mpesaAccountNumber || facility.mpesaAccountNumber;
     const till = branch.mpesaTillNumber || facility.mpesaTillNumber;
     const pochi = branch.mpesaPochiNumber || facility.mpesaPochiNumber;
-    const lines = paybill || till || pochi ? ['Pay by Mpesa'] : [];
+    const showCash = facility.showCashOnInvoice !== false;
+    const showPaybill = facility.showPaybillOnInvoice !== false;
+    const showTill = facility.showTillOnInvoice !== false;
+    const showPochi = facility.showPochiOnInvoice !== false;
+    const hasMpesa =
+      (showPaybill && paybill) || (showTill && till) || (showPochi && pochi);
+    const lines = hasMpesa ? ['Pay by M-PESA'] : [];
 
-    if (paybill) {
+    if (showPaybill && paybill) {
       lines.push(
         `Paybill:${paybill}${account ? ` Account:${account}` : ''}`,
       );
     }
-    if (till) lines.push(`Till:${till}`);
-    if (pochi) lines.push(`Pochi La Biashara:${pochi}`);
-    lines.push('Thanks for visiting us!!');
+    if (showTill && till) lines.push(`Till:${till}`);
+    if (showPochi && pochi) lines.push(`Pochi La Biashara:${pochi}`);
+    if (showCash) lines.push('Cash payments are receipted at the cashier desk.');
+    lines.push('Thank you for visiting.');
     return lines;
   }
 

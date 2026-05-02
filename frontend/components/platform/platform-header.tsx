@@ -58,9 +58,18 @@ export function PlatformHeader() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white font-semibold text-[#005a9c]">
-              {initials}
-            </div>
+            {user?.staffPassportPhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.staffPassportPhotoUrl}
+                alt=""
+                className="h-10 w-10 shrink-0 rounded-full border-2 border-white bg-white object-cover"
+              />
+            ) : (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white font-semibold text-[#005a9c]">
+                {initials}
+              </div>
+            )}
 
             <Button
               variant="ghost"

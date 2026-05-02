@@ -12,7 +12,7 @@ import { getMe, loginUser } from "@/services/auth-service";
 import { markUserLocationLogout } from "@/services/user-location-service";
 import type { AuthUser } from "@/types/auth";
 
-const AUTO_LOGOUT_MS = 10 * 60 * 1000;
+const AUTO_LOGOUT_MS = 20 * 60 * 1000;
 const AUTO_LOGOUT_WARNING_MS = 60 * 1000;
 const ACTIVITY_EVENTS = [
   "click",
@@ -190,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <div className="fixed bottom-5 right-5 z-[80] w-[min(24rem,calc(100vw-2rem))] rounded-lg border border-amber-300/25 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur">
           <p className="font-semibold">Session almost inactive</p>
           <p className="mt-1 text-sm text-white/70">
-            For patient privacy, this portal signs out after 10 minutes without
+            For patient privacy, this portal signs out after 20 minutes without
             activity.
           </p>
           <div className="mt-4 flex gap-2">
