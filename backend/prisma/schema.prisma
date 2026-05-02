@@ -26,6 +26,10 @@ model Facility {
   taxPin               String?               @db.VarChar(100)
   licenseNumber        String?               @db.VarChar(100)
   logoUrl              String?               @db.VarChar(500)
+  latitude             Float?
+  longitude            Float?
+  mapLocationLabel     String?               @db.VarChar(255)
+  googleMapsUrl        String?               @db.VarChar(500)
   timezone             String?               @db.VarChar(100)
   currency             String?               @db.VarChar(20)
   mpesaShortcode       String?               @db.VarChar(50)
@@ -61,6 +65,7 @@ model Facility {
   dispenses            Dispense[]
   serviceTariffs       ServiceTariff[]
 
+  @@index([latitude, longitude])
   @@map("facilities")
 }
 
@@ -211,6 +216,11 @@ model Staff {
   phone        String?  @db.VarChar(30)
   gender       String?  @db.VarChar(20)
   designation  String?  @db.VarChar(150)
+  nationalIdNumber String? @db.VarChar(80)
+  nationalIdImageUrl String? @db.LongText
+  passportPhotoUrl String? @db.LongText
+  clinicianRegistrationNumber String? @db.VarChar(120)
+  clinicianBoard String? @db.VarChar(160)
   isClinician  Boolean  @default(false)
   isPrescriber Boolean  @default(false)
   canLogin     Boolean  @default(true)
@@ -257,6 +267,8 @@ model Staff {
   @@index([branchId])
   @@index([departmentId])
   @@index([roleId])
+  @@index([nationalIdNumber])
+  @@index([clinicianBoard])
   @@map("staff_members")
 }
 
@@ -522,12 +534,17 @@ model LabResult {
   id          Int          @id @default(autoincrement())
   resultValue String       @db.Text
   remarks     String?      @db.Text
+  attachmentFileName String? @db.VarChar(255)
+  attachmentMimeType String? @db.VarChar(120)
+  attachmentDataUrl  String? @db.LongText
   recordedBy  Int?
   recordedAt  DateTime     @default(now())
   orderItemId Int
   orderItem   LabOrderItem @relation(fields: [orderItemId], references: [id])
 
   @@index([orderItemId])
+  @@index([recordedAt])
+  @@index([recordedBy])
   @@map("lab_results")
 }
 

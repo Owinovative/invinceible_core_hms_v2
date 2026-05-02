@@ -12,6 +12,18 @@ export class CreateLabResultDto {
   remarks?: string;
 
   @IsOptional()
+  @IsString()
+  attachmentFileName?: string;
+
+  @IsOptional()
+  @IsString()
+  attachmentMimeType?: string;
+
+  @IsOptional()
+  @IsString()
+  attachmentDataUrl?: string;
+
+  @IsOptional()
   @IsInt()
   recordedBy?: number;
 }

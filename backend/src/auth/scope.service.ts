@@ -89,6 +89,7 @@ export class ScopeService {
         facilityId: x.branch.facilityId,
       })),
       staffId: dbUser.staff?.id ?? null,
+      staffPassportPhotoUrl: dbUser.staff?.passportPhotoUrl ?? null,
     };
   }
 

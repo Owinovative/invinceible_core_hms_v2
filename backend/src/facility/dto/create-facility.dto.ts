@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsEmail,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -90,6 +91,22 @@ export class CreateFacilityDto {
   @IsString()
   @MaxLength(500)
   logoUrl?: string;
+
+  @IsNumber()
+  latitude: number;
+
+  @IsNumber()
+  longitude: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  mapLocationLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  googleMapsUrl?: string;
 
   @IsOptional()
   @IsString()

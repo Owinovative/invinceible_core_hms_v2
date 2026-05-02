@@ -5,7 +5,9 @@ import * as React from "react";
 import {
   CheckCircle2,
   ClipboardCheck,
+  FileUp,
   FlaskConical,
+  Paperclip,
   Loader2,
   TestTube2,
 } from "lucide-react";
@@ -55,6 +57,59 @@ function orderProgress(items: LabOrderItem[] = []) {
   return { done, total: items.length };
 }
 
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+}
+
+async function readCompactResultAttachment(file: File) {
+  if (file.type.startsWith("image/")) {
+    const dataUrl = await readFileAsDataUrl(file);
+    const image = await loadImage(dataUrl);
+    const maxSide = 1400;
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Unable to prepare image attachment.");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    return {
+      attachmentFileName: file.name.replace(/\.[^.]+$/, ".jpg"),
+      attachmentMimeType: "image/jpeg",
+      attachmentDataUrl: canvas.toDataURL("image/jpeg", 0.78),
+    };
+  }
+
+  if (file.type === "application/pdf") {
+    if (file.size > 3 * 1024 * 1024) {
+      throw new Error("PDF result must be 3MB or smaller.");
+    }
+
+    return {
+      attachmentFileName: file.name,
+      attachmentMimeType: file.type,
+      attachmentDataUrl: await readFileAsDataUrl(file),
+    };
+  }
+
+  throw new Error("Upload a PDF or image result file.");
+}
+
 
 export default function LabPage() {
   const { facilityName, selectedBranchName } = useScope();
@@ -99,6 +154,12 @@ export default function LabPage() {
   const [activeItemId, setActiveItemId] = React.useState<number | null>(null);
   const [resultValue, setResultValue] = React.useState("");
   const [remarks, setRemarks] = React.useState("");
+  const [attachment, setAttachment] = React.useState<{
+    attachmentFileName: string;
+    attachmentMimeType: string;
+    attachmentDataUrl: string;
+  } | null>(null);
+  const [attachmentBusy, setAttachmentBusy] = React.useState(false);
 
 
   React.useEffect(() => {
@@ -116,11 +177,33 @@ export default function LabPage() {
     setActiveItemId(firstPending?.id ?? null);
     setResultValue("");
     setRemarks("");
+    setAttachment(null);
   }, [selectedOrder?.id, selectedOrder?.items]);
 
 
   const activeItem =
     selectedOrder?.items?.find((item) => item.id === activeItemId) ?? null;
+
+  const handleAttachmentUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setAttachmentBusy(true);
+      setMessage(null);
+      setAttachment(await readCompactResultAttachment(file));
+    } catch (error) {
+      setAttachment(null);
+      setMessage(
+        error instanceof Error ? error.message : "Unable to prepare attachment.",
+      );
+    } finally {
+      setAttachmentBusy(false);
+      event.target.value = "";
+    }
+  };
 
 
   const handleSaveResult = async () => {
@@ -137,6 +220,9 @@ export default function LabPage() {
       orderItemId: activeItem.id,
       resultValue: resultValue.trim(),
       remarks: remarks.trim() || undefined,
+      attachmentFileName: attachment?.attachmentFileName,
+      attachmentMimeType: attachment?.attachmentMimeType,
+      attachmentDataUrl: attachment?.attachmentDataUrl,
       recordedBy: user?.staffId ? Number(user.staffId) : undefined,
     });
 
@@ -147,6 +233,7 @@ export default function LabPage() {
 
     setResultValue("");
     setRemarks("");
+    setAttachment(null);
     setActiveItemId(nextPending?.id ?? activeItem.id);
     setMessage("Lab result recorded successfully.");
   };
@@ -428,9 +515,22 @@ export default function LabPage() {
                               Status: {item.status}
                             </p>
                             {latestResult ? (
-                              <p className="mt-2 text-xs text-emerald-300">
-                                Latest Result: {latestResult.resultValue}
-                              </p>
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-emerald-300">
+                                  Latest Result: {latestResult.resultValue}
+                                </p>
+                                {latestResult.attachmentDataUrl ? (
+                                  <a
+                                    href={latestResult.attachmentDataUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-300 underline underline-offset-4"
+                                  >
+                                    <Paperclip className="h-3 w-3" />
+                                    View attached result
+                                  </a>
+                                ) : null}
+                              </div>
                             ) : null}
                           </div>
 
@@ -490,6 +590,27 @@ export default function LabPage() {
                         )}
                       </p>
                     </div>
+
+                    {(
+                      results.find((result) => result.orderItemId === activeItem.id) ??
+                      activeItem.results?.[0]
+                    )?.attachmentDataUrl ? (
+                      <a
+                        href={
+                          (
+                            results.find(
+                              (result) => result.orderItemId === activeItem.id,
+                            ) ?? activeItem.results?.[0]
+                          )?.attachmentDataUrl || "#"
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 underline underline-offset-4"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        Open uploaded result file
+                      </a>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-4 rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
@@ -520,6 +641,42 @@ export default function LabPage() {
                         className="min-h-[100px] rounded-2xl"
                         placeholder="Additional remarks"
                       />
+                    </div>
+
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <label className="mb-2 block text-sm font-medium">
+                        Result Attachment
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={handleAttachmentUpload}
+                        className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-cyan-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-cyan-700"
+                      />
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <FileUp className="h-4 w-4" />
+                        Images are compressed before saving. PDFs are accepted up to 3MB.
+                      </div>
+                      {attachmentBusy ? (
+                        <p className="mt-2 text-xs text-cyan-300">
+                          Preparing compact file...
+                        </p>
+                      ) : attachment ? (
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-sm">
+                          <span className="truncate">
+                            {attachment.attachmentFileName}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-xl"
+                            onClick={() => setAttachment(null)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
 
                     <Button

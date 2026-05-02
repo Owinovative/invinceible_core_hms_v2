@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { useCreateClinicalAiDraft } from "@/hooks/use-ai-assistant";
 import { useFacilities } from "@/hooks/use-facilities";
+import { usePatients } from "@/hooks/use-patients";
 import { useScope } from "@/providers/scope-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { QrCodeImage } from "@/components/shared/qr-code-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +38,7 @@ export default function MedicalRecordsPage() {
   const { user } = useAuth();
   const { facilityId, facilityName, selectedBranchName } = useScope();
   const { data: facilitiesData = [] } = useFacilities();
+  const { data: patientsData = [] } = usePatients();
   const aiMutation = useCreateClinicalAiDraft();
 
   const facility = Array.isArray(facilitiesData)
@@ -43,6 +46,11 @@ export default function MedicalRecordsPage() {
     : undefined;
 
   const [reportTitle, setReportTitle] = React.useState("Medical Report");
+  const [documentType, setDocumentType] = React.useState<
+    "medical" | "discharge"
+  >("medical");
+  const [patientSearch, setPatientSearch] = React.useState("");
+  const [selectedPatientId, setSelectedPatientId] = React.useState("");
   const [patientName, setPatientName] = React.useState("");
   const [patientNumber, setPatientNumber] = React.useState("");
   const [reportDate, setReportDate] = React.useState(todayDate());
@@ -58,6 +66,51 @@ export default function MedicalRecordsPage() {
   const [designation, setDesignation] = React.useState("");
   const [signatureDataUrl, setSignatureDataUrl] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
+  const patients = Array.isArray(patientsData) ? patientsData : [];
+  const filteredPatients = React.useMemo(() => {
+    const query = patientSearch.trim().toLowerCase();
+    if (!query) return patients.slice(0, 80);
+
+    return patients
+      .filter((patient) =>
+        [
+          patient.patientNumber,
+          patient.firstName,
+          patient.middleName,
+          patient.lastName,
+          patient.phonePrimary,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .slice(0, 80);
+  }, [patientSearch, patients]);
+
+  React.useEffect(() => {
+    const patient = patients.find((item) => String(item.id) === selectedPatientId);
+    if (!patient) return;
+
+    setPatientName(
+      [patient.firstName, patient.middleName, patient.lastName]
+        .filter(Boolean)
+        .join(" "),
+    );
+    setPatientNumber(patient.patientNumber || "");
+  }, [patients, selectedPatientId]);
+
+  const qrPayload = JSON.stringify({
+    type: documentType === "discharge" ? "discharge-summary" : "medical-report",
+    title: reportTitle,
+    facility: facility?.name || facilityName,
+    patient: { name: patientName, number: patientNumber },
+    date: reportDate,
+    clinicalNotes,
+    impression,
+    recommendation,
+    signedBy: signatureName,
+  });
 
   const handleSignatureUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -152,6 +205,27 @@ export default function MedicalRecordsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold">
+                Document type
+              </label>
+              <select
+                value={documentType}
+                onChange={(event) => {
+                  const value = event.target.value as "medical" | "discharge";
+                  setDocumentType(value);
+                  setReportTitle(
+                    value === "discharge"
+                      ? "Discharge Summary"
+                      : "Medical Report",
+                  );
+                }}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="medical">Medical Report</option>
+                <option value="discharge">Discharge Summary</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
                 Report title
               </label>
               <Input
@@ -170,6 +244,37 @@ export default function MedicalRecordsPage() {
                 onChange={(event) => setReportDate(event.target.value)}
                 className="h-11 rounded-md"
               />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
+                Search patient
+              </label>
+              <Input
+                value={patientSearch}
+                onChange={(event) => setPatientSearch(event.target.value)}
+                className="h-11 rounded-md"
+                placeholder="Search name, patient number, or phone"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
+                Select patient
+              </label>
+              <select
+                value={selectedPatientId}
+                onChange={(event) => setSelectedPatientId(event.target.value)}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Choose patient</option>
+                {filteredPatients.map((patient) => (
+                  <option key={patient.id} value={String(patient.id)}>
+                    {patient.patientNumber} /{" "}
+                    {[patient.firstName, patient.middleName, patient.lastName]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold">
@@ -311,8 +416,11 @@ export default function MedicalRecordsPage() {
             </header>
 
             <section className="medical-report-title">
-              <h3>{reportTitle || "Medical Report"}</h3>
-              <p>{displayDate(reportDate)}</p>
+              <div>
+                <h3>{reportTitle || "Medical Report"}</h3>
+                <p>{displayDate(reportDate)}</p>
+              </div>
+              <QrCodeImage value={qrPayload} className="medical-report-qr" />
             </section>
 
             <section className="medical-report-patient">

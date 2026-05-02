@@ -1,11 +1,37 @@
 "use client";
 
-import { Building2 } from "lucide-react";
+import * as React from "react";
+import { Building2, MapPin } from "lucide-react";
+import { useFacilities } from "@/hooks/use-facilities";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CreateFacilityForm } from "@/components/platform/facilities/create-facility-form";
 import { FacilitiesTable } from "@/components/platform/facilities/facilities-table";
 
 export default function FacilitiesPage() {
+  const { data } = useFacilities();
+  const facilities = Array.isArray(data) ? data : [];
+  const mappedFacilities = facilities.filter(
+    (facility) => facility.latitude && facility.longitude,
+  );
+  const [activeFacilityId, setActiveFacilityId] = React.useState<number | null>(
+    null,
+  );
+  const activeFacility =
+    mappedFacilities.find((facility) => facility.id === activeFacilityId) ??
+    mappedFacilities[0] ??
+    null;
+
+  React.useEffect(() => {
+    if (!activeFacilityId && mappedFacilities[0]) {
+      setActiveFacilityId(mappedFacilities[0].id);
+    }
+  }, [activeFacilityId, mappedFacilities]);
+
+  const mapUrl = activeFacility
+    ? `https://maps.google.com/maps?q=${activeFacility.latitude},${activeFacility.longitude}&z=15&output=embed`
+    : "";
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
@@ -35,6 +61,64 @@ export default function FacilitiesPage() {
       </section>
 
       <CreateFacilityForm />
+      <section className="grid gap-4 rounded-[1.4rem] border bg-white p-5 shadow-sm xl:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
+            Facility map
+          </Badge>
+          <h2 className="mt-3 text-2xl font-bold text-slate-950">
+            Mapped Facilities
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Super admins can confirm every registered facility has real
+            coordinates before go-live.
+          </p>
+
+          <div className="mt-4 max-h-[360px] space-y-2 overflow-auto pr-2">
+            {mappedFacilities.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+                No facility coordinates have been recorded yet.
+              </div>
+            ) : (
+              mappedFacilities.map((facility) => (
+                <Button
+                  key={facility.id}
+                  type="button"
+                  variant={activeFacility?.id === facility.id ? "default" : "outline"}
+                  className="h-auto w-full justify-start rounded-xl py-3 text-left"
+                  onClick={() => setActiveFacilityId(facility.id)}
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">
+                      {facility.name}
+                    </span>
+                    <span className="block truncate text-xs opacity-80">
+                      {facility.mapLocationLabel ||
+                        `${facility.latitude}, ${facility.longitude}`}
+                    </span>
+                  </span>
+                </Button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="min-h-[360px] overflow-hidden rounded-xl border bg-sky-50">
+          {mapUrl ? (
+            <iframe
+              title="Mapped facility location"
+              src={mapUrl}
+              className="h-[420px] w-full border-0"
+              loading="lazy"
+            />
+          ) : (
+            <div className="grid h-[360px] place-items-center text-sm text-muted-foreground">
+              Select a mapped facility.
+            </div>
+          )}
+        </div>
+      </section>
       <FacilitiesTable />
     </div>
   );

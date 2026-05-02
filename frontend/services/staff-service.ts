@@ -40,6 +40,11 @@ export interface StaffItem {
   phone?: string | null;
   gender?: string | null;
   designation?: string | null;
+  nationalIdNumber?: string | null;
+  nationalIdImageUrl?: string | null;
+  passportPhotoUrl?: string | null;
+  clinicianRegistrationNumber?: string | null;
+  clinicianBoard?: string | null;
   isClinician?: boolean;
   isPrescriber?: boolean;
   canLogin?: boolean;
@@ -66,6 +71,11 @@ export interface CreateStaffPayload {
   phone?: string;
   gender?: string;
   designation?: string;
+  nationalIdNumber?: string;
+  nationalIdImageUrl?: string;
+  passportPhotoUrl?: string;
+  clinicianRegistrationNumber?: string;
+  clinicianBoard?: string;
   isClinician?: boolean;
   isPrescriber?: boolean;
   canLogin?: boolean;
@@ -85,6 +95,11 @@ export interface UpdateStaffPayload {
   phone?: string;
   gender?: string;
   designation?: string;
+  nationalIdNumber?: string;
+  nationalIdImageUrl?: string;
+  passportPhotoUrl?: string;
+  clinicianRegistrationNumber?: string;
+  clinicianBoard?: string;
   isClinician?: boolean;
   isPrescriber?: boolean;
   canLogin?: boolean;

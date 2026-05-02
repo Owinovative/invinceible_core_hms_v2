@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 
 function normalizeOrigin(origin: string) {
@@ -46,6 +47,8 @@ async function bootstrap() {
 
   app.getHttpAdapter().getInstance().disable('x-powered-by');
   app.enableShutdownHooks();
+  app.use(json({ limit: '4mb' }));
+  app.use(urlencoded({ extended: true, limit: '4mb' }));
 
   app.enableCors({
     origin: (origin, callback) => {

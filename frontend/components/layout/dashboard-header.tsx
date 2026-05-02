@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +20,6 @@ import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 import { AppLogo } from "@/components/shared/app-logo";
 
 export function DashboardHeader() {
-  const { theme, setTheme } = useTheme();
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
   const {
@@ -123,19 +121,6 @@ export function DashboardHeader() {
           </div>
 
           <Button
-            variant="outline"
-            size="icon"
-            className="rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd]"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
-          </Button>
-
-          <Button
             asChild
             variant="outline"
             size="icon"
@@ -163,8 +148,17 @@ export function DashboardHeader() {
               </p>
             </div>
 
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-sm font-bold text-[#005a9c]">
-              {initials}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white text-sm font-bold text-[#005a9c]">
+              {user?.staffPassportPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.staffPassportPhotoUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initials
+              )}
             </div>
 
             <Button

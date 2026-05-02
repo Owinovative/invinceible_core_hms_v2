@@ -15,6 +15,7 @@ export function useRestockBranchMedicine() {
       payload: {
         quantityToAdd: number;
         reorderLevel?: number;
+        buyingPrice?: number;
         unitPrice?: number;
       };
     }) => restockBranchMedicine(stockId, payload),
