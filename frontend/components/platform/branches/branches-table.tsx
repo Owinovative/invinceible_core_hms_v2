@@ -23,6 +23,11 @@ function optionalValue(value: string) {
   return value.trim() || undefined;
 }
 
+function optionalNumber(value: string) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : undefined;
+}
+
 export function BranchesTable() {
   const { data, isLoading } = useBranches();
   const { data: facilitiesData } = useFacilities();
@@ -270,6 +275,17 @@ export function BranchesTable() {
                                 name: "mpesaPochiNumber",
                                 label: "Pochi La Biashara",
                               },
+                              { name: "latitude", label: "Latitude" },
+                              { name: "longitude", label: "Longitude" },
+                              {
+                                name: "mapLocationLabel",
+                                label: "Location Label",
+                              },
+                              {
+                                name: "googleMapsUrl",
+                                label: "Google Maps URL",
+                                className: "md:col-span-2",
+                              },
                             ]}
                             initialValues={{
                               facilityId: String(branch.facilityId),
@@ -289,6 +305,19 @@ export function BranchesTable() {
                               mpesaTillNumber: branch.mpesaTillNumber ?? "",
                               mpesaPochiNumber:
                                 branch.mpesaPochiNumber ?? "",
+                              latitude:
+                                branch.latitude !== null &&
+                                branch.latitude !== undefined
+                                  ? String(branch.latitude)
+                                  : "",
+                              longitude:
+                                branch.longitude !== null &&
+                                branch.longitude !== undefined
+                                  ? String(branch.longitude)
+                                  : "",
+                              mapLocationLabel:
+                                branch.mapLocationLabel ?? "",
+                              googleMapsUrl: branch.googleMapsUrl ?? "",
                             }}
                             onSubmit={(values) =>
                               updateBranchMutation.mutateAsync({
@@ -318,6 +347,14 @@ export function BranchesTable() {
                                   ),
                                   mpesaPochiNumber: optionalValue(
                                     values.mpesaPochiNumber,
+                                  ),
+                                  latitude: optionalNumber(values.latitude),
+                                  longitude: optionalNumber(values.longitude),
+                                  mapLocationLabel: optionalValue(
+                                    values.mapLocationLabel,
+                                  ),
+                                  googleMapsUrl: optionalValue(
+                                    values.googleMapsUrl,
                                   ),
                                 },
                               })

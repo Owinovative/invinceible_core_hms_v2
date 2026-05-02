@@ -34,6 +34,7 @@ import { OperationalModuleModule } from './operational-module/operational-module
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { MasterCatalogModule } from './master-catalog/master-catalog.module';
 import { UserLocationModule } from './user-location/user-location.module';
+import { ShaClaimsModule } from './sha-claims/sha-claims.module';
 import { validateEnvironment } from './config/env.validation';
 import { AuditInterceptor } from './audit-log/audit.interceptor';
 import { UserLocationInterceptor } from './user-location/user-location.interceptor';
@@ -75,6 +76,7 @@ import { UserLocationInterceptor } from './user-location/user-location.intercept
     AiAssistantModule,
     MasterCatalogModule,
     UserLocationModule,
+    ShaClaimsModule,
   ],
   controllers: [AppController],
   providers: [

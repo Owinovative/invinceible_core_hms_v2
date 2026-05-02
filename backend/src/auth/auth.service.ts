@@ -16,6 +16,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserLocationService } from '../user-location/user-location.service';
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const MAX_ACTIVE_USER_SESSIONS = 2;
 
 type LoginAuditMeta = {
   ipAddress?: string;
@@ -196,28 +197,58 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
-    const updatedSession = await this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         failedLoginAttempts: 0,
         lockedAt: null,
         lockReason: null,
         lastLoginAt: new Date(),
-        sessionVersion: {
-          increment: 1,
-        },
       },
       select: {
         sessionVersion: true,
       },
     });
+    const sessionId = crypto.randomUUID();
+
+    await this.prisma.userSession.create({
+      data: {
+        id: sessionId,
+        userId: user.id,
+        ipAddress: auditMeta?.ipAddress,
+        userAgent: auditMeta?.userAgent,
+      },
+    });
+
+    const activeSessions = await this.prisma.userSession.findMany({
+      where: {
+        userId: user.id,
+        revokedAt: null,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { id: true },
+    });
+    const sessionsToRevoke = activeSessions
+      .slice(MAX_ACTIVE_USER_SESSIONS)
+      .map((session) => session.id);
+
+    if (sessionsToRevoke.length) {
+      await this.prisma.userSession.updateMany({
+        where: { id: { in: sessionsToRevoke } },
+        data: {
+          revokedAt: new Date(),
+          revokeReason: `Account limited to ${MAX_ACTIVE_USER_SESSIONS} active devices`,
+        },
+      });
+    }
 
     const payload = {
       sub: user.id,
       username: user.username,
       roleId: user.roleId,
       roleCode: user.role?.code,
-      sessionVersion: updatedSession.sessionVersion,
+      sessionVersion: updatedUser.sessionVersion,
+      sessionId,
     };
 
     const scopedUser = await this.scopeService.enrichRequestUser({
@@ -225,7 +256,8 @@ export class AuthService {
       username: user.username,
       roleId: user.roleId,
       roleCode: user.role?.code ?? null,
-      sessionVersion: updatedSession.sessionVersion,
+      sessionVersion: updatedUser.sessionVersion,
+      sessionId,
     });
 
     await this.recordLoginAudit({
@@ -234,7 +266,10 @@ export class AuthService {
       user,
       meta: auditMeta,
       afterData: {
-        sessionVersion: updatedSession.sessionVersion,
+        sessionVersion: updatedUser.sessionVersion,
+        sessionId,
+        activeSessionLimit: MAX_ACTIVE_USER_SESSIONS,
+        revokedSessions: sessionsToRevoke.length,
         roleCode: user.role?.code ?? null,
       },
     });

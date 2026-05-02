@@ -204,6 +204,22 @@ export class BillingController {
     return this.billingService.createCashPayment(dto);
   }
 
+  @Get('payments/:id/receipt.pdf')
+  async downloadPaymentReceiptPdf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+    @Res() response: Response,
+  ) {
+    const pdf = await this.billingService.getPaymentReceiptPdf(id, user);
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="receipt-${id}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    response.end(pdf);
+  }
+
   @Post('payments/mpesa/request')
   createMpesaPaymentRequest(@Body() dto: CreateMpesaPaymentRequestDto) {
     return this.billingService.createMpesaPaymentRequest(dto);

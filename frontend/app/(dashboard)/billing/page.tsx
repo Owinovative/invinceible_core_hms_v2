@@ -37,7 +37,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { InvoiceItemRecord } from "@/services/billing-service";
+import {
+  downloadPaymentReceiptPdf,
+  type InvoiceItemRecord,
+} from "@/services/billing-service";
 
 function formatMoney(value?: number | null) {
   return new Intl.NumberFormat(undefined, {
@@ -156,6 +159,7 @@ export default function BillingPage() {
   const [editDescription, setEditDescription] = React.useState("");
   const [editQuantity, setEditQuantity] = React.useState("");
   const [editUnitPrice, setEditUnitPrice] = React.useState("");
+  const [editDiscountPercent, setEditDiscountPercent] = React.useState("");
   const [editNotes, setEditNotes] = React.useState("");
   const [removeReason, setRemoveReason] = React.useState("");
 
@@ -171,6 +175,7 @@ export default function BillingPage() {
     setEditDescription(item.description || "");
     setEditQuantity(String(item.quantity ?? 1));
     setEditUnitPrice(String(item.unitPrice ?? 0));
+    setEditDiscountPercent(String(item.discountPercent ?? 0));
     setEditNotes(item.notes || "");
     setRemoveReason("");
     setMessage(null);
@@ -185,6 +190,7 @@ export default function BillingPage() {
         description: editDescription,
         quantity: Number(editQuantity || 1),
         unitPrice: Number(editUnitPrice || 0),
+        discountPercent: Number(editDiscountPercent || 0),
         notes: editNotes || undefined,
       },
     });
@@ -803,7 +809,7 @@ export default function BillingPage() {
                         />
                       </div>
 
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-4 md:grid-cols-3">
                         <div>
                           <label className="mb-2 block text-sm font-medium">
                             Quantity
@@ -824,6 +830,22 @@ export default function BillingPage() {
                             type="number"
                             value={editUnitPrice}
                             onChange={(e) => setEditUnitPrice(e.target.value)}
+                            className="h-12 rounded-2xl"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm font-medium">
+                            Discount %
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={editDiscountPercent}
+                            onChange={(e) =>
+                              setEditDiscountPercent(e.target.value)
+                            }
                             className="h-12 rounded-2xl"
                           />
                         </div>
@@ -996,6 +1018,23 @@ export default function BillingPage() {
                         <p className="mt-1 text-sm text-muted-foreground">
                           Paid At: {formatDate(payment.paidAt)}
                         </p>
+                        {payment.statusCode === "COMPLETED" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 rounded-xl"
+                            onClick={() =>
+                              void downloadPaymentReceiptPdf(
+                                payment.id,
+                                payment.receiptNumber,
+                              )
+                            }
+                          >
+                            <Receipt className="mr-2 h-4 w-4" />
+                            Download receipt
+                          </Button>
+                        ) : null}
                       </div>
                     ))
                   )}

@@ -117,6 +117,7 @@ const navSections = [
         href: "/revenue-integrity",
         icon: CreditCard,
       },
+      { title: "SHA Claims", href: "/sha-claims", icon: FileCheck2 },
       { title: "Insurance", href: "/insurance", icon: Banknote },
     ],
   },

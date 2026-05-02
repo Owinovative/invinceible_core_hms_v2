@@ -51,8 +51,32 @@ export class ScopeService {
       dbUser.sessionVersion !== user.sessionVersion
     ) {
       throw new UnauthorizedException(
-        'This account has signed in on another device. Please sign in again.',
+        'This session is no longer valid. Please sign in again.',
       );
+    }
+
+    if (user.sessionId) {
+      const session = await this.prisma.userSession.findUnique({
+        where: { id: user.sessionId },
+        select: {
+          id: true,
+          userId: true,
+          revokedAt: true,
+        },
+      });
+
+      if (!session || session.userId !== dbUser.id || session.revokedAt) {
+        throw new UnauthorizedException(
+          'This account is already active on two newer devices. Please sign in again.',
+        );
+      }
+
+      void this.prisma.userSession
+        .update({
+          where: { id: session.id },
+          data: { lastSeenAt: new Date() },
+        })
+        .catch(() => undefined);
     }
 
     const isSuperAdmin = dbUser.role?.code === 'SUPER_ADMIN';
@@ -76,6 +100,7 @@ export class ScopeService {
       roleId: dbUser.roleId,
       roleCode: dbUser.role?.code ?? null,
       sessionVersion: dbUser.sessionVersion,
+      sessionId: user.sessionId ?? null,
       homeFacilityId: effectiveFacilityId,
       homeFacilityName: effectiveFacility?.name ?? null,
       homeBranchId: effectiveBranchId,

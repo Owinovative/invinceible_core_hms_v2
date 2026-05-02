@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsEmail,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -89,6 +90,24 @@ export class CreateBranchDto {
   @IsString()
   @MaxLength(80)
   mpesaPochiNumber?: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  mapLocationLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  googleMapsUrl?: string;
 
   @IsOptional()
   @IsBoolean()

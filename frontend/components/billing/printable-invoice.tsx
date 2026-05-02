@@ -46,21 +46,31 @@ function paymentLines(invoice: InvoiceRecord) {
     invoice.branch?.mpesaTillNumber || invoice.facility?.mpesaTillNumber;
   const pochi =
     invoice.branch?.mpesaPochiNumber || invoice.facility?.mpesaPochiNumber;
-  const lines = paybill || till || pochi ? ["Pay by Mpesa"] : [];
+  const showCash = invoice.facility?.showCashOnInvoice !== false;
+  const showPaybill = invoice.facility?.showPaybillOnInvoice !== false;
+  const showTill = invoice.facility?.showTillOnInvoice !== false;
+  const showPochi = invoice.facility?.showPochiOnInvoice !== false;
+  const hasMpesa =
+    (showPaybill && paybill) || (showTill && till) || (showPochi && pochi);
+  const lines = hasMpesa ? ["Pay by M-PESA"] : [];
 
-  if (paybill) {
+  if (showPaybill && paybill) {
     lines.push(`Paybill:${paybill}${account ? ` Account:${account}` : ""}`);
   }
 
-  if (till) {
+  if (showTill && till) {
     lines.push(`Till:${till}`);
   }
 
-  if (pochi) {
+  if (showPochi && pochi) {
     lines.push(`Pochi La Biashara:${pochi}`);
   }
 
-  lines.push("Thanks for visiting us!!");
+  if (showCash) {
+    lines.push("Cash payments are receipted at the cashier desk.");
+  }
+
+  lines.push("Thank you for visiting.");
   return lines;
 }
 
@@ -78,24 +88,10 @@ export function PrintableInvoice({ invoice }: { invoice: InvoiceRecord }) {
   const verificationCode =
     invoice.verificationCode ||
     `${invoice.invoiceNumber}-${String(invoice.id).padStart(6, "0")}`;
-  const qrPayload = JSON.stringify({
-    type: "invoice",
-    invoiceNumber: invoice.invoiceNumber,
-    verificationCode,
-    facility: invoice.facility?.name,
-    patient: {
-      number: invoice.patient?.patientNumber,
-      name: patientName(invoice.patient),
-    },
-    total: invoice.totalAmount,
-    issuedAt: invoice.issuedAt,
-    items: items.map((item) => ({
-      description: item.description,
-      quantity: item.quantity,
-      amount: item.lineTotal,
-      date: item.createdAt,
-    })),
-  });
+  const qrPayload =
+    typeof window === "undefined"
+      ? `/invoice-verify?invoice=${encodeURIComponent(invoice.invoiceNumber)}&code=${encodeURIComponent(verificationCode)}`
+      : `${window.location.origin}/invoice-verify?invoice=${encodeURIComponent(invoice.invoiceNumber)}&code=${encodeURIComponent(verificationCode)}&facility=${encodeURIComponent(invoice.facility?.name || "")}&patient=${encodeURIComponent(patientName(invoice.patient))}&total=${encodeURIComponent(String(invoice.totalAmount || 0))}`;
 
   return (
     <div className="invoice-paper invoice-premium-paper">
@@ -150,6 +146,7 @@ export function PrintableInvoice({ invoice }: { invoice: InvoiceRecord }) {
             <th>Item</th>
             <th>Unit</th>
             <th>Qty</th>
+            <th className="text-right">Disc</th>
             <th className="text-right">Price</th>
             <th className="text-right">Total</th>
           </tr>
@@ -161,6 +158,7 @@ export function PrintableInvoice({ invoice }: { invoice: InvoiceRecord }) {
               <td>{item.description}</td>
               <td>{itemUnit(item)}</td>
               <td>{item.quantity}</td>
+              <td>{Number(item.discountPercent || 0)}%</td>
               <td>{compactMoney(item.unitPrice)}</td>
               <td>{compactMoney(item.lineTotal)}</td>
             </tr>

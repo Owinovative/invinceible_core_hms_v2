@@ -30,7 +30,7 @@ export type EditRecordField = {
   name: string;
   label: string;
   placeholder?: string;
-  type?: "text" | "email" | "select";
+  type?: "text" | "email" | "select" | "fileDataUrl";
   options?: EditRecordOption[];
   className?: string;
   disabled?: boolean;
@@ -75,6 +75,17 @@ export function EditRecordDialog({
       [name]: value,
     }));
   }, []);
+
+  const handleFileUpload = (name: string, file?: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateValue(name, reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -127,6 +138,36 @@ export function EditRecordDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                ) : field.type === "fileDataUrl" ? (
+                  <div className="space-y-2">
+                    {values[field.name]?.startsWith("data:image/") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={values[field.name]}
+                        alt=""
+                        className="h-16 w-16 rounded-full border object-cover"
+                      />
+                    ) : null}
+                    <Input
+                      id={field.name}
+                      type="file"
+                      accept="image/*"
+                      disabled={field.disabled || isPending}
+                      className="h-11 rounded-xl"
+                      onChange={(event) =>
+                        handleFileUpload(field.name, event.target.files?.[0])
+                      }
+                    />
+                    <Input
+                      value={values[field.name] ?? ""}
+                      placeholder={field.placeholder}
+                      disabled={field.disabled || isPending}
+                      className="h-11 rounded-xl"
+                      onChange={(event) =>
+                        updateValue(field.name, event.target.value)
+                      }
+                    />
+                  </div>
                 ) : (
                   <Input
                     id={field.name}

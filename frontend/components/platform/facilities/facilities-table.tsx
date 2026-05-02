@@ -286,7 +286,12 @@ export function FacilitiesTable() {
                                 type: "email",
                               },
                               { name: "website", label: "Website" },
-                              { name: "logoUrl", label: "Logo URL/Data" },
+                              {
+                                name: "logoUrl",
+                                label: "Facility Logo",
+                                type: "fileDataUrl",
+                                className: "md:col-span-2",
+                              },
                               {
                                 name: "address",
                                 label: "Physical Address",
@@ -334,6 +339,51 @@ export function FacilitiesTable() {
                                 name: "mpesaPochiNumber",
                                 label: "Pochi La Biashara",
                               },
+                              {
+                                name: "showCashOnInvoice",
+                                label: "Show Cash On Invoice",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              {
+                                name: "showPaybillOnInvoice",
+                                label: "Show Paybill On Invoice",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              {
+                                name: "showTillOnInvoice",
+                                label: "Show Till On Invoice",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              {
+                                name: "showPochiOnInvoice",
+                                label: "Show Pochi On Invoice",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              { name: "shaFidCode", label: "SHA FID Code" },
+                              {
+                                name: "shaClaimStartNumber",
+                                label: "SHA Claim Start",
+                              },
+                              {
+                                name: "shaClaimNextNumber",
+                                label: "SHA Next Claim Number",
+                              },
                             ]}
                             initialValues={{
                               name: facility.name ?? "",
@@ -371,6 +421,25 @@ export function FacilitiesTable() {
                               mpesaTillNumber: facility.mpesaTillNumber ?? "",
                               mpesaPochiNumber:
                                 facility.mpesaPochiNumber ?? "",
+                              showCashOnInvoice: String(
+                                facility.showCashOnInvoice ?? true,
+                              ),
+                              showPaybillOnInvoice: String(
+                                facility.showPaybillOnInvoice ?? true,
+                              ),
+                              showTillOnInvoice: String(
+                                facility.showTillOnInvoice ?? true,
+                              ),
+                              showPochiOnInvoice: String(
+                                facility.showPochiOnInvoice ?? true,
+                              ),
+                              shaFidCode: facility.shaFidCode ?? "",
+                              shaClaimStartNumber: String(
+                                facility.shaClaimStartNumber ?? 1,
+                              ),
+                              shaClaimNextNumber: String(
+                                facility.shaClaimNextNumber ?? 1,
+                              ),
                             }}
                             onSubmit={(values) =>
                               updateFacilityMutation.mutateAsync({
@@ -419,6 +488,23 @@ export function FacilitiesTable() {
                                   ),
                                   mpesaPochiNumber: optionalValue(
                                     values.mpesaPochiNumber,
+                                  ),
+                                  showCashOnInvoice:
+                                    values.showCashOnInvoice !== "false",
+                                  showPaybillOnInvoice:
+                                    values.showPaybillOnInvoice !== "false",
+                                  showTillOnInvoice:
+                                    values.showTillOnInvoice !== "false",
+                                  showPochiOnInvoice:
+                                    values.showPochiOnInvoice !== "false",
+                                  shaFidCode: optionalValue(
+                                    values.shaFidCode,
+                                  ),
+                                  shaClaimStartNumber: optionalNumber(
+                                    values.shaClaimStartNumber,
+                                  ),
+                                  shaClaimNextNumber: optionalNumber(
+                                    values.shaClaimNextNumber,
                                   ),
                                 },
                               })

@@ -4,6 +4,7 @@ export interface RequestUser {
   roleId: number;
   roleCode?: string | null;
   sessionVersion?: number | null;
+  sessionId?: string | null;
 
   homeFacilityId?: number | null;
   homeFacilityName?: string | null;

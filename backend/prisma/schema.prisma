@@ -25,7 +25,7 @@ model Facility {
   registrationNo       String?               @db.VarChar(100)
   taxPin               String?               @db.VarChar(100)
   licenseNumber        String?               @db.VarChar(100)
-  logoUrl              String?               @db.VarChar(500)
+  logoUrl              String?               @db.LongText
   latitude             Float?
   longitude            Float?
   mapLocationLabel     String?               @db.VarChar(255)
@@ -37,6 +37,13 @@ model Facility {
   mpesaAccountNumber   String?               @db.VarChar(80)
   mpesaTillNumber      String?               @db.VarChar(50)
   mpesaPochiNumber     String?               @db.VarChar(80)
+  showCashOnInvoice    Boolean               @default(true)
+  showPaybillOnInvoice Boolean               @default(true)
+  showTillOnInvoice    Boolean               @default(true)
+  showPochiOnInvoice   Boolean               @default(true)
+  shaFidCode           String?               @db.VarChar(120)
+  shaClaimStartNumber  Int                   @default(1)
+  shaClaimNextNumber   Int                   @default(1)
   isHeadOffice         Boolean               @default(false)
   isDefault            Boolean               @default(false)
   isActive             Boolean               @default(true)
@@ -64,6 +71,7 @@ model Facility {
   branchMedicineStocks BranchMedicineStock[]
   dispenses            Dispense[]
   serviceTariffs       ServiceTariff[]
+  shaClaims            ShaClaim[]
 
   @@index([latitude, longitude])
   @@map("facilities")
@@ -88,6 +96,10 @@ model Branch {
   mpesaAccountNumber   String?               @db.VarChar(80)
   mpesaTillNumber      String?               @db.VarChar(50)
   mpesaPochiNumber     String?               @db.VarChar(80)
+  latitude             Float?
+  longitude            Float?
+  mapLocationLabel     String?               @db.VarChar(255)
+  googleMapsUrl        String?               @db.VarChar(500)
   isDefault            Boolean               @default(false)
   isActive             Boolean               @default(true)
   createdAt            DateTime              @default(now())
@@ -113,8 +125,10 @@ model Branch {
   branchMedicineStocks BranchMedicineStock[]
   dispenses            Dispense[]
   serviceTariffs       ServiceTariff[]
+  shaClaims            ShaClaim[]
 
   @@index([facilityId])
+  @@index([latitude, longitude])
   @@map("branches")
 }
 
@@ -173,6 +187,7 @@ model User {
   auditLogs                      AuditLog[]           @relation("AuditActorUser")
   locationProfiles               UserLocationProfile[]
   locationEvents                 UserLocationEvent[]
+  sessions                       UserSession[]
   notifications                  Notification[]       @relation("NotificationTargetUser")
   resolvedNotifications          Notification[]       @relation("NotificationResolvedByUser")
   staff                          Staff?
@@ -247,6 +262,7 @@ model Staff {
   receivedPayments      Payment[]             @relation("PaymentReceivedByStaff")
   prescriptions         Prescription[]        @relation("PrescribedByStaff")
   dispenses             Dispense[]            @relation("DispensedByStaff")
+  shaClaims             ShaClaim[]            @relation("ShaClaimCreatedBy")
 
   branch     Branch?     @relation(fields: [branchId], references: [id])
   department Department? @relation(fields: [departmentId], references: [id])
@@ -294,6 +310,7 @@ model Patient {
   appointments   Appointment[]
   consultations  Consultation[]
   invoices       Invoice[]
+  shaClaims      ShaClaim[]
   labOrders      LabOrder[]
   facility       Facility       @relation(fields: [facilityId], references: [id])
   prescriptions  Prescription[]
@@ -971,6 +988,7 @@ model Invoice {
   facility         Facility      @relation(fields: [facilityId], references: [id])
   patient          Patient       @relation(fields: [patientId], references: [id])
   payments         Payment[]
+  shaClaims        ShaClaim[]
 
   @@index([facilityId])
   @@index([branchId])
@@ -988,6 +1006,8 @@ model InvoiceItem {
   description String @db.VarChar(255)
   quantity    Int    @default(1)
   unitPrice   Float  @default(0)
+  discountPercent Float @default(0)
+  discountAmount  Float @default(0)
   lineTotal   Float  @default(0)
   statusCode  String @default("BILLED") @db.VarChar(50)
 
@@ -1052,6 +1072,64 @@ model Payment {
   @@index([statusCode])
   @@index([paymentMethod])
   @@map("payments")
+}
+
+model UserSession {
+  id           String    @id @db.VarChar(120)
+  userId       Int
+  ipAddress    String?   @db.VarChar(100)
+  userAgent    String?   @db.Text
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  revokedAt    DateTime?
+  revokeReason String?   @db.VarChar(255)
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, revokedAt])
+  @@index([lastSeenAt])
+  @@map("user_sessions")
+}
+
+model ShaClaim {
+  id                 Int       @id @default(autoincrement())
+  claimNumber        String    @unique @db.VarChar(80)
+  statusCode         String    @default("DRAFT") @db.VarChar(50)
+  fidCode            String?   @db.VarChar(120)
+  memberNumber       String?   @db.VarChar(120)
+  diagnosisCode      String?   @db.VarChar(80)
+  diagnosisText      String?   @db.VarChar(255)
+  servicePeriodStart DateTime?
+  servicePeriodEnd   DateTime?
+  claimedAmount      Float     @default(0)
+  approvedAmount     Float     @default(0)
+  paidAmount         Float     @default(0)
+  rejectedAmount     Float     @default(0)
+  rejectionReason    String?   @db.Text
+  submittedAt        DateTime?
+  approvedAt         DateTime?
+  paidAt             DateTime?
+  notes              String?   @db.Text
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  facilityId         Int
+  branchId           Int?
+  patientId          Int
+  invoiceId          Int?
+  createdByStaffId   Int?
+  facility           Facility  @relation(fields: [facilityId], references: [id])
+  branch             Branch?   @relation(fields: [branchId], references: [id])
+  patient            Patient   @relation(fields: [patientId], references: [id])
+  invoice            Invoice?  @relation(fields: [invoiceId], references: [id])
+  createdBy          Staff?    @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
+
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([patientId])
+  @@index([invoiceId])
+  @@index([statusCode])
+  @@index([createdAt])
+  @@map("sha_claims")
 }
 
 model AuditLog {

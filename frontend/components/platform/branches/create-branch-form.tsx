@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { GitBranch, Save } from "lucide-react";
+import { GitBranch, LocateFixed, MapPin, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,6 +43,10 @@ const branchSchema = z.object({
   mpesaAccountNumber: z.string().optional(),
   mpesaTillNumber: z.string().optional(),
   mpesaPochiNumber: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  mapLocationLabel: z.string().optional(),
+  googleMapsUrl: z.string().optional(),
 });
 
 type BranchFormValues = z.infer<typeof branchSchema>;
@@ -74,6 +78,10 @@ export function CreateBranchForm() {
       mpesaAccountNumber: "",
       mpesaTillNumber: "",
       mpesaPochiNumber: "",
+      latitude: "",
+      longitude: "",
+      mapLocationLabel: "",
+      googleMapsUrl: "",
     },
   });
 
@@ -99,6 +107,14 @@ export function CreateBranchForm() {
         mpesaAccountNumber: values.mpesaAccountNumber || undefined,
         mpesaTillNumber: values.mpesaTillNumber || undefined,
         mpesaPochiNumber: values.mpesaPochiNumber || undefined,
+        latitude: values.latitude ? Number(values.latitude) : undefined,
+        longitude: values.longitude ? Number(values.longitude) : undefined,
+        mapLocationLabel: values.mapLocationLabel || undefined,
+        googleMapsUrl:
+          values.googleMapsUrl ||
+          (values.latitude && values.longitude
+            ? `https://www.google.com/maps?q=${values.latitude},${values.longitude}`
+            : undefined),
         isActive: true,
       });
 
@@ -122,11 +138,41 @@ export function CreateBranchForm() {
         mpesaAccountNumber: "",
         mpesaTillNumber: "",
         mpesaPochiNumber: "",
+        latitude: "",
+        longitude: "",
+        mapLocationLabel: "",
+        googleMapsUrl: "",
       });
     } catch {
       setSuccessMessage(null);
       setCreatedCode(null);
     }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latitude = String(Number(position.coords.latitude.toFixed(7)));
+      const longitude = String(Number(position.coords.longitude.toFixed(7)));
+      form.setValue("latitude", latitude, { shouldDirty: true });
+      form.setValue("longitude", longitude, { shouldDirty: true });
+      form.setValue("googleMapsUrl", `https://www.google.com/maps?q=${latitude},${longitude}`, {
+        shouldDirty: true,
+      });
+    });
+  };
+
+  const openMapsPicker = () => {
+    const latitude = form.getValues("latitude");
+    const longitude = form.getValues("longitude");
+    window.open(
+      latitude && longitude
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : "https://www.google.com/maps",
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   return (
@@ -383,6 +429,96 @@ export function CreateBranchForm() {
                 </FormItem>
               )}
             />
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="flex items-center gap-2 font-semibold">
+                    <MapPin className="h-4 w-4 text-sky-700" />
+                    Branch map location
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Attach branch coordinates for maps, audit context, and
+                    facility visibility.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={useCurrentLocation}
+                  >
+                    <LocateFixed className="mr-2 h-4 w-4" />
+                    Current location
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={openMapsPicker}
+                  >
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Open Maps
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Latitude</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Longitude</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mapLocationLabel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location Label</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="googleMapsUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Google Maps URL</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createBranchMutation.isError ? (

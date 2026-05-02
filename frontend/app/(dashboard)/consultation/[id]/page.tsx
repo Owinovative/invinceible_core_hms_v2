@@ -58,6 +58,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
+import { searchDiagnoses } from "@/lib/diagnosis-catalog";
 
 
 function formatDate(value?: string | null) {
@@ -146,7 +147,6 @@ export default function ConsultationDetailPage() {
     [latestLabResults],
   );
 
-
   const activeAdmissions = React.useMemo(
     () => (Array.isArray(activeAdmissionsData) ? activeAdmissionsData : []),
     [activeAdmissionsData],
@@ -180,9 +180,14 @@ export default function ConsultationDetailPage() {
   const [historyOfPresenting, setHistoryOfPresenting] = React.useState("");
   const [examinationFindings, setExaminationFindings] = React.useState("");
   const [diagnosis, setDiagnosis] = React.useState("");
+  const [diagnosisSearch, setDiagnosisSearch] = React.useState("");
   const [treatmentPlan, setTreatmentPlan] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
+  const diagnosisMatches = React.useMemo(
+    () => searchDiagnoses(diagnosisSearch),
+    [diagnosisSearch],
+  );
 
 
   const [prescriptionNotes, setPrescriptionNotes] = React.useState("");
@@ -928,6 +933,35 @@ export default function ConsultationDetailPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-medium">Diagnosis</label>
+                    <Input
+                      value={diagnosisSearch}
+                      onChange={(e) => setDiagnosisSearch(e.target.value)}
+                      className="mb-2 h-11 rounded-2xl"
+                      placeholder="Search diagnosis code or name"
+                    />
+                    {diagnosisSearch ? (
+                      <div className="mb-2 max-h-44 overflow-y-auto rounded-2xl border border-white/10 bg-background">
+                        {diagnosisMatches.map((item) => (
+                          <button
+                            key={item.code}
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm hover:bg-sky-500/10"
+                            onClick={() => {
+                              const next = `${item.code} - ${item.label}`;
+                              setDiagnosis((current) =>
+                                current.trim()
+                                  ? `${current.trim()}\n${next}`
+                                  : next,
+                              );
+                              setDiagnosisSearch("");
+                            }}
+                          >
+                            <span className="font-semibold">{item.code}</span>{" "}
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <Textarea
                       value={diagnosis}
                       onChange={(e) => setDiagnosis(e.target.value)}
@@ -1627,11 +1661,24 @@ export default function ConsultationDetailPage() {
                         ) : (
                           order.items?.map((item) => {
                             const itemResult =
+                              item.results?.[0] ??
                               latestLabResultsList.find(
                                 (result) => result.orderItemId === item.id,
                               ) ??
-                              item.results?.[0] ??
                               null;
+                            const attachmentUrl =
+                              itemResult?.attachmentDataUrl || "";
+                            const isPdfAttachment =
+                              attachmentUrl.startsWith(
+                                "data:application/pdf",
+                              ) ||
+                              itemResult?.attachmentMimeType ===
+                                "application/pdf";
+                            const isImageAttachment =
+                              attachmentUrl.startsWith("data:image/") ||
+                              itemResult?.attachmentMimeType?.startsWith(
+                                "image/",
+                              );
 
 
                             return (
@@ -1687,16 +1734,49 @@ export default function ConsultationDetailPage() {
                                       : "—"}
                                   </p>
 
-                                  {itemResult?.attachmentDataUrl ? (
-                                    <a
-                                      href={itemResult.attachmentDataUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 underline underline-offset-4"
-                                    >
-                                      <Paperclip className="h-4 w-4" />
-                                      Open attached lab result
-                                    </a>
+                                  {attachmentUrl ? (
+                                    <div className="mt-4 rounded-[1rem] border border-cyan-500/20 bg-cyan-500/5 p-3">
+                                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                        <p className="text-sm font-semibold">
+                                          Attached lab file
+                                        </p>
+                                        <a
+                                          href={attachmentUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 underline underline-offset-4"
+                                        >
+                                          <Paperclip className="h-4 w-4" />
+                                          Open full view
+                                        </a>
+                                      </div>
+                                      {isPdfAttachment ? (
+                                        <iframe
+                                          src={attachmentUrl}
+                                          title={
+                                            itemResult?.attachmentFileName ||
+                                            "Lab result PDF"
+                                          }
+                                          className="h-[420px] w-full rounded-xl border border-white/10 bg-white"
+                                        />
+                                      ) : null}
+                                      {isImageAttachment ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={attachmentUrl}
+                                          alt={
+                                            itemResult?.attachmentFileName ||
+                                            "Lab result"
+                                          }
+                                          className="max-h-[520px] w-full rounded-xl border border-white/10 object-contain"
+                                        />
+                                      ) : null}
+                                      {!isPdfAttachment && !isImageAttachment ? (
+                                        <p className="text-sm text-muted-foreground">
+                                          This file type opens in a new tab.
+                                        </p>
+                                      ) : null}
+                                    </div>
                                   ) : null}
                                 </div>
                               </div>

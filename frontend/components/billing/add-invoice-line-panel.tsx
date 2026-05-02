@@ -92,6 +92,7 @@ export function AddInvoiceLinePanel({
   const [description, setDescription] = React.useState("");
   const [quantity, setQuantity] = React.useState("1");
   const [unitPrice, setUnitPrice] = React.useState("");
+  const [discountPercent, setDiscountPercent] = React.useState("0");
   const [chargedAt, setChargedAt] = React.useState(todayKey());
   const [notes, setNotes] = React.useState("");
 
@@ -101,6 +102,7 @@ export function AddInvoiceLinePanel({
     setDescription("");
     setQuantity("1");
     setUnitPrice("");
+    setDiscountPercent("0");
     setNotes("");
   }, [chargeType]);
 
@@ -223,6 +225,7 @@ export function AddInvoiceLinePanel({
         description: description.trim(),
         quantity: Number(quantity || 1),
         unitPrice: unitPrice.trim() ? Number(unitPrice) : undefined,
+        discountPercent: Number(discountPercent || 0),
         chargedAt,
         notes: notes.trim() || undefined,
         updatedByStaffId: currentStaffId,
@@ -233,6 +236,7 @@ export function AddInvoiceLinePanel({
     setDescription("");
     setQuantity("1");
     setUnitPrice("");
+    setDiscountPercent("0");
     setChargedAt(todayKey());
     setNotes("");
     onMessage?.("Invoice line added successfully.");
@@ -360,7 +364,7 @@ export function AddInvoiceLinePanel({
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label className="mb-2 block text-sm font-medium">Quantity</label>
           <Input
@@ -379,6 +383,18 @@ export function AddInvoiceLinePanel({
             onChange={(event) => setUnitPrice(event.target.value)}
             className="h-12 rounded-2xl"
             placeholder="Resolved from tariff or branch stock"
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium">Discount %</label>
+          <Input
+            type="number"
+            min="0"
+            max="100"
+            value={discountPercent}
+            onChange={(event) => setDiscountPercent(event.target.value)}
+            className="h-12 rounded-2xl"
+            placeholder="0"
           />
         </div>
       </div>

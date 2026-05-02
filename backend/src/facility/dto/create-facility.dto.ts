@@ -89,7 +89,6 @@ export class CreateFacilityDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(500)
   logoUrl?: string;
 
   @IsNumber()
@@ -142,6 +141,35 @@ export class CreateFacilityDto {
   @IsString()
   @MaxLength(80)
   mpesaPochiNumber?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showCashOnInvoice?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showPaybillOnInvoice?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showTillOnInvoice?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showPochiOnInvoice?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  shaFidCode?: string;
+
+  @IsOptional()
+  @IsNumber()
+  shaClaimStartNumber?: number;
+
+  @IsOptional()
+  @IsNumber()
+  shaClaimNextNumber?: number;
 
   @IsOptional()
   @IsBoolean()
