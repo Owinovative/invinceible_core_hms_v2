@@ -13,18 +13,18 @@ const steps = [
 
 export default function WorkflowPage() {
   return (
-    <main className="min-h-screen bg-[#f5fbff] text-slate-900">
+    <main className="min-h-screen bg-[#eef8ff] text-slate-900">
       <PublicSiteHeader />
       <section className="border-b border-sky-200 bg-white text-slate-950">
-        <div className="mx-auto grid max-w-[1180px] gap-8 px-5 py-12 md:px-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div>
+        <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1500px] gap-8 px-5 py-8 md:px-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
+          <div className="space-y-5">
             <p className="text-sm font-semibold uppercase text-sky-700">
               System workflow
             </p>
-            <h1 className="mt-2 text-4xl font-bold leading-tight md:text-5xl">
+            <h1 className="max-w-2xl text-4xl font-bold leading-tight md:text-6xl">
               The hospital flow is built around the patient visit.
             </h1>
-            <p className="mt-4 text-base leading-8 text-slate-600">
+            <p className="max-w-2xl text-base leading-8 text-slate-600">
               The system connects front desk, doctors, lab, pharmacy, IPD,
               billing, and reports so work does not disappear between desks.
             </p>
@@ -35,25 +35,43 @@ export default function WorkflowPage() {
               </Link>
             </Button>
           </div>
-          <div
-            className="min-h-[320px] border border-sky-200 bg-cover bg-center"
-            style={{
-              backgroundImage:
-                "url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1600&q=86')",
-            }}
-          />
+          <div className="grid gap-4 md:grid-cols-[1.25fr_0.75fr]">
+            <div
+              className="min-h-[520px] border border-sky-200 bg-cover bg-center shadow-xl"
+              style={{
+                backgroundImage:
+                  "url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1800&q=86')",
+              }}
+            />
+            <div className="grid gap-4">
+              <div
+                className="min-h-[250px] border border-sky-200 bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=900&q=86')",
+                }}
+              />
+              <div
+                className="min-h-[250px] border border-sky-200 bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=86')",
+                }}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] px-5 py-12 md:px-8 md:py-16">
-        <div className="space-y-3">
+      <section className="mx-auto max-w-[1500px] px-5 py-8 md:px-8">
+        <div className="grid gap-3 xl:grid-cols-5">
           {steps.map(([number, area, detail]) => (
             <div
               key={number}
-              className="grid gap-4 border border-sky-200 bg-white p-5 shadow-sm md:grid-cols-[70px_180px_1fr] md:items-start"
+              className="border border-sky-200 bg-white p-5 shadow-sm"
             >
               <p className="text-2xl font-bold text-sky-700">{number}</p>
-              <p className="font-semibold text-slate-950">{area}</p>
+              <p className="mt-4 font-semibold text-slate-950">{area}</p>
               <p className="text-sm leading-6 text-slate-600">{detail}</p>
             </div>
           ))}

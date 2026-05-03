@@ -48,6 +48,7 @@ export interface InvoiceItemRecord {
 export interface PaymentRecord {
   id: number;
   receiptNumber: string;
+  invoiceId: number;
   amount: number;
   paymentMethod: string;
   statusCode: string;
@@ -547,6 +548,12 @@ export interface MpesaPaymentRequestResponse {
   };
 }
 
+export interface MpesaPaymentStatusResponse {
+  message: string;
+  payment: PaymentRecord;
+  daraja?: Record<string, unknown> | null;
+}
+
 export async function createMpesaPaymentRequest(
   payload: CreateMpesaPaymentRequestPayload,
 ) {
@@ -555,6 +562,15 @@ export async function createMpesaPaymentRequest(
     {
       method: "POST",
       body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function checkMpesaPaymentStatus(checkoutRequestId: string) {
+  return apiFetch<MpesaPaymentStatusResponse>(
+    `/billing/payments/mpesa/status/${encodeURIComponent(checkoutRequestId)}`,
+    {
+      method: "GET",
     },
   );
 }

@@ -8,9 +8,14 @@ export function useCreateCashPayment() {
 
   return useMutation({
     mutationFn: createCashPayment,
-    onSuccess: () => {
+    onSuccess: (payment) => {
       queryClient.invalidateQueries({ queryKey: ["billing-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing-dashboard"] });
+      if (payment.invoiceId) {
+        queryClient.invalidateQueries({
+          queryKey: ["billing-invoice", payment.invoiceId],
+        });
+      }
     },
   });
 }

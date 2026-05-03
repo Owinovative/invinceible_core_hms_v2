@@ -171,7 +171,8 @@ export class AiAssistantService {
               {
                 text: [
                   'Read the national identification card image for staff onboarding.',
-                  'Return strict JSON only with keys: fullName, nationalIdNumber, confidence, notes.',
+                  'Return strict JSON only with keys: fullName, firstName, middleName, lastName, nationalIdNumber, confidence, notes.',
+                  'For Kenyan IDs, nationalIdNumber is the visible ID/serial identity number, not a date, phone number, district, or birth year.',
                   'Do not invent values. Use null when text is unreadable.',
                   'confidence must be a number from 0 to 1.',
                 ].join('\n'),
@@ -226,18 +227,10 @@ export class AiAssistantService {
       }
 
       const parsed = this.parseJsonObject(output);
+      const identity = this.normalizeIdentityResult(parsed, output);
+
       return {
-        fullName:
-          typeof parsed.fullName === 'string' ? parsed.fullName.trim() : null,
-        nationalIdNumber:
-          typeof parsed.nationalIdNumber === 'string'
-            ? parsed.nationalIdNumber.trim()
-            : null,
-        confidence:
-          typeof parsed.confidence === 'number'
-            ? Math.max(0, Math.min(1, parsed.confidence))
-            : 0,
-        notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+        ...identity,
         model: this.model,
         generatedAt: new Date().toISOString(),
       };
@@ -364,6 +357,107 @@ export class AiAssistantService {
         'Gemini identity response was not valid JSON.',
       );
     }
+  }
+
+  private normalizeIdentityResult(
+    parsed: Record<string, unknown>,
+    rawOutput: string,
+  ) {
+    const fullName = this.stringFromAny(
+      parsed.fullName,
+      parsed.name,
+      parsed.names,
+      parsed.legalName,
+    );
+    const explicitFirstName = this.stringFromAny(parsed.firstName, parsed.givenName);
+    const explicitMiddleName = this.stringFromAny(parsed.middleName);
+    const explicitLastName = this.stringFromAny(
+      parsed.lastName,
+      parsed.surname,
+      parsed.familyName,
+    );
+    const split = this.splitIdentityName(
+      [explicitFirstName, explicitMiddleName, explicitLastName]
+        .filter(Boolean)
+        .join(' ') || fullName,
+    );
+    const nationalIdNumber =
+      this.cleanIdentityNumber(
+        this.stringFromAny(
+          parsed.nationalIdNumber,
+          parsed.idNumber,
+          parsed.identityNumber,
+          parsed.cardNumber,
+          parsed.serialNumber,
+        ),
+      ) ?? this.extractIdentityNumberFromText(rawOutput);
+    const confidenceValue = Number(parsed.confidence);
+    const confidence = Number.isFinite(confidenceValue)
+      ? Math.max(0, Math.min(1, confidenceValue))
+      : nationalIdNumber || fullName
+        ? 0.55
+        : 0;
+
+    return {
+      fullName: fullName || split.fullName || null,
+      firstName: explicitFirstName || split.firstName || null,
+      middleName: explicitMiddleName || split.middleName || null,
+      lastName: explicitLastName || split.lastName || null,
+      nationalIdNumber: nationalIdNumber ?? null,
+      confidence,
+      notes: this.stringFromAny(parsed.notes) || '',
+    };
+  }
+
+  private stringFromAny(...values: unknown[]) {
+    for (const value of values) {
+      if (typeof value === 'string' && value.trim()) return value.trim();
+      if (Array.isArray(value)) {
+        const text = value
+          .filter((item) => typeof item === 'string' && item.trim())
+          .join(' ')
+          .trim();
+        if (text) return text;
+      }
+    }
+
+    return null;
+  }
+
+  private splitIdentityName(value?: string | null) {
+    const parts = String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean);
+
+    return {
+      fullName: parts.join(' ') || null,
+      firstName: parts[0] ?? null,
+      middleName: parts.length > 2 ? parts.slice(1, -1).join(' ') : null,
+      lastName:
+        parts.length > 1
+          ? parts.length > 2
+            ? parts[parts.length - 1]
+            : parts.slice(1).join(' ')
+          : null,
+    };
+  }
+
+  private cleanIdentityNumber(value?: string | null) {
+    if (!value) return null;
+    const digits = value.replace(/\D/g, '');
+    if (digits.length >= 5 && digits.length <= 12) return digits;
+    return null;
+  }
+
+  private extractIdentityNumberFromText(value: string) {
+    const matches = value.match(/\b\d{5,12}\b/g) ?? [];
+    return (
+      matches.find((match) => !/^(19|20)\d{2}$/.test(match)) ??
+      matches[0] ??
+      null
+    );
   }
 
   private geminiEndpoint() {

@@ -13,6 +13,7 @@ export class ApiError extends Error {
 
 type RequestOptions = RequestInit & {
   token?: string;
+  timeoutMs?: number;
 };
 
 function getStoredToken() {
@@ -33,7 +34,7 @@ export async function apiFetch<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { token, headers, ...rest } = options;
+  const { token, headers, timeoutMs = 25000, signal, ...rest } = options;
 
   const resolvedToken = token ?? getStoredToken();
 
@@ -45,6 +46,14 @@ export async function apiFetch<T>(
   }
 
   let response: Response;
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    signal.addEventListener("abort", abortFromCaller, { once: true });
+  }
 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -55,12 +64,23 @@ export async function apiFetch<T>(
         ...(headers || {}),
       },
       cache: "no-store",
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(
+        "The hospital server took too long to respond. Please retry, and check Railway if this continues.",
+        0,
+      );
+    }
+
     throw new ApiError(
       "Unable to reach the hospital server. Verify the Railway backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
       0,
     );
+  } finally {
+    globalThis.clearTimeout(timeout);
+    signal?.removeEventListener("abort", abortFromCaller);
   }
 
   if (!response.ok) {
@@ -113,6 +133,8 @@ export async function apiDownload(path: string, fileName: string) {
   }
 
   let response: Response;
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), 30000);
 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -120,12 +142,22 @@ export async function apiDownload(path: string, fileName: string) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       cache: "no-store",
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(
+        "The hospital server took too long to prepare the download. Please retry.",
+        0,
+      );
+    }
+
     throw new ApiError(
       "Unable to reach the hospital server. Verify the Railway backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
       0,
     );
+  } finally {
+    globalThis.clearTimeout(timeout);
   }
 
   if (!response.ok) {

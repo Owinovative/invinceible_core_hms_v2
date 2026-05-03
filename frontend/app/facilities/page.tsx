@@ -19,10 +19,10 @@ const facilityCards = [
 
 export default function FacilitiesPage() {
   return (
-    <main className="min-h-screen bg-sky-50 text-slate-900 dark:bg-sky-950">
+    <main className="min-h-screen bg-[#eef8ff] text-slate-900">
       <PublicSiteHeader />
       <section className="border-b border-sky-200 bg-white">
-        <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-14 md:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1500px] gap-8 px-5 py-8 md:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div className="space-y-5">
             <p className="text-sm font-semibold uppercase text-sky-700">
               Facilities
@@ -42,19 +42,35 @@ export default function FacilitiesPage() {
               </Link>
             </Button>
           </div>
-          <div className="border border-sky-200 bg-sky-100 p-3 shadow-xl">
+          <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
             <div
-              className="min-h-[360px] border border-white bg-cover bg-center"
+              className="min-h-[540px] border border-sky-200 bg-cover bg-center shadow-xl"
               style={{
                 backgroundImage:
                   "url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1600&q=86')",
               }}
             />
+            <div className="grid gap-4">
+              <div
+                className="min-h-[260px] border border-sky-200 bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=900&q=86')",
+                }}
+              />
+              <div
+                className="min-h-[260px] border border-sky-200 bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=900&q=86')",
+                }}
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-[1240px] gap-5 px-5 py-12 md:grid-cols-4 md:px-8 md:py-16">
+      <section className="mx-auto grid max-w-[1500px] gap-5 px-5 py-8 md:grid-cols-4 md:px-8">
         {facilityCards.map((item) => {
           const Icon = item.icon;
           return (
@@ -69,7 +85,7 @@ export default function FacilitiesPage() {
         })}
       </section>
 
-      <section className="mx-auto max-w-[1240px] px-5 pb-14 md:px-8 md:pb-16">
+      <section className="mx-auto max-w-[1500px] px-5 pb-10 md:px-8">
         <div className="overflow-hidden border border-sky-200 bg-white shadow-sm">
           {directoryRows.map(([label, detail]) => (
             <div

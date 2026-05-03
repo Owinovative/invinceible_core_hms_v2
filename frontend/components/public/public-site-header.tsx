@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export function PublicSiteHeader() {
   return (
     <header className="border-b border-sky-200 bg-white">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-5 py-4 md:px-8">
+      <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-5 py-5 md:px-8">
         <Link href="/" aria-label="Invinceible Core HMS home">
           <AppLogo />
         </Link>

@@ -8,5 +8,7 @@ export function useInvoiceById(id?: number | null) {
     queryKey: ["billing-invoice", id],
     queryFn: () => getInvoiceById(Number(id)),
     enabled: !!id,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 }

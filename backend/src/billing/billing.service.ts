@@ -46,6 +46,17 @@ type MpesaStkResponse = {
   errorMessage?: string;
 };
 
+type MpesaQueryResponse = {
+  MerchantRequestID?: string;
+  CheckoutRequestID?: string;
+  ResponseCode?: string;
+  ResponseDescription?: string;
+  ResultCode?: string;
+  ResultDesc?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
 type MpesaConfig = {
   consumerKey?: string;
   consumerSecret?: string;
@@ -283,6 +294,8 @@ function readTariffBoolean(row: TariffCsvRow, aliases: string[]) {
 
 @Injectable()
 export class BillingService {
+  private readonly mpesaRequestLocks = new Map<string, Promise<void>>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly patientService: PatientService,
@@ -2421,9 +2434,8 @@ export class BillingService {
 
     return new Promise<Buffer>((resolve, reject) => {
       const doc = new PDFDocument({
-        size: 'A4',
-        margin: 18,
-        bufferPages: true,
+        size: [842, 500],
+        margin: 28,
         info: {
           Title: `Invoice ${invoice.invoiceNumber}`,
           Producer: 'Invinceible Core HMS',
@@ -2438,115 +2450,133 @@ export class BillingService {
       const left = doc.page.margins.left;
       const right = doc.page.width - doc.page.margins.right;
       const width = right - left;
-      const rowHeight = 22;
+      const rowHeight = 17;
+      const patient = invoice.patient;
+      const facilityName = (
+        invoice.facility?.name || 'Hospital Facility'
+      ).toUpperCase();
+      const facilityContact =
+        [invoice.facility?.email, invoice.facility?.phone]
+          .filter(Boolean)
+          .join(' | ') || '-';
+      const facilityAddress =
+        [invoice.facility?.address, invoice.facility?.town, invoice.facility?.county]
+          .filter(Boolean)
+          .join(', ') || '-';
+      const admittedAt =
+        invoice.admission?.admittedAt ||
+        invoice.appointment?.scheduledAt ||
+        invoice.issuedAt;
 
       const drawHeader = () => {
-        doc.rect(left, 18, width, 142).fill('#f1f5f9');
+        doc.rect(left - 4, 20, width + 8, 112).fill('#ffffff');
         doc
-          .fillColor('#8b8b8b')
+          .fillColor('#0b2f56')
           .font('Times-Bold')
-          .fontSize(21)
-          .text(
-            (invoice.facility?.name || 'Hospital Facility').toUpperCase(),
-            left + 10,
-            23,
-            { width: width - 20 },
-          );
+          .fontSize(19)
+          .text(facilityName, left + 68, 38, { width: width - 250 });
 
         if (logoBuffer) {
           try {
-            doc.image(logoBuffer, left + 12, 62, { fit: [62, 62] });
+            doc.image(logoBuffer, left + 8, 34, { fit: [48, 48] });
           } catch {
-            this.drawInvoiceLogoPlaceholder(doc, left + 12, 62);
+            this.drawInvoiceLogoPlaceholder(doc, left + 8, 34, 48);
           }
         } else {
-          this.drawInvoiceLogoPlaceholder(doc, left + 12, 62);
+          this.drawInvoiceLogoPlaceholder(doc, left + 8, 34, 48);
         }
 
         doc
-          .fillColor('#6b7280')
+          .fillColor('#0f172a')
           .font('Helvetica')
-          .fontSize(10)
-          .text('Email:', left + 86, 64, { width: 45 })
-          .fillColor('#8ec641')
-          .font('Helvetica-Oblique')
-          .text(invoice.facility?.email || '-', left + 130, 64, {
-            width: 210,
-          })
-          .fillColor('#6b7280')
-          .font('Helvetica')
-          .text('Tel:', left + 86, 83, { width: 45 })
-          .fillColor('#8ec641')
-          .font('Helvetica-Oblique')
-          .text(
-            [invoice.facility?.phone, invoice.facility?.altPhone]
-              .filter(Boolean)
-              .join('/') || '-',
-            left + 130,
-            83,
-            { width: 210 },
-          );
+          .fontSize(7.2)
+          .text(facilityContact, left + 68, 59, { width: width - 270 })
+          .fillColor('#334155')
+          .fontSize(7)
+          .text(facilityAddress, left + 68, 71, { width: width - 270 });
 
         doc
-          .fillColor('#7b7b7b')
+          .fillColor('#0b2f56')
           .font('Times-Roman')
-          .fontSize(22)
-          .text('INVOICE', right - 105, 70, { width: 98, align: 'right' });
-        doc.image(qrBuffer, right - 78, 103, { fit: [58, 58] });
+          .fontSize(24)
+          .text('INVOICE', right - 132, 42, { width: 128, align: 'right' });
+        doc.image(qrBuffer, right - 62, 72, { fit: [54, 54] });
         doc
-          .fillColor('#7b7b7b')
+          .fillColor('#64748b')
           .font('Helvetica')
-          .fontSize(7)
-          .text(verificationCode, right - 130, 164, {
-            width: 125,
+          .fontSize(6)
+          .text(verificationCode, right - 112, 128, {
+            width: 104,
             align: 'right',
           });
 
-        const patient = invoice.patient;
-        const admittedAt =
-          invoice.admission?.admittedAt ||
-          invoice.appointment?.scheduledAt ||
-          invoice.issuedAt;
+        doc
+          .moveTo(left, 140)
+          .lineTo(right, 140)
+          .lineWidth(1.4)
+          .strokeColor('#0284c7')
+          .stroke();
+
         const details = [
-          ['Patient\'s ID:', invoice.invoiceNumber],
-          ['M/S:', patientName(patient).toUpperCase()],
-          ['Tel', patient?.phonePrimary || '-'],
-          ['DateOfAdmission', this.shortInvoiceDate(admittedAt)],
-        ];
-        let y = 108;
-        details.forEach(([label, value]) => {
+          ['PATIENT', patientName(patient).toUpperCase(), patient?.patientNumber || invoice.invoiceNumber, left],
+          ['PHONE', patient?.phonePrimary || '-', '', left + 285],
+          ['INVOICE NO.', invoice.invoiceNumber, '', left + 455],
+          ['DATE', this.shortInvoiceDate(invoice.issuedAt), '', left + 620],
+        ] as const;
+
+        details.forEach(([label, value, small, x]) => {
           doc
-            .fillColor('#6b7280')
-            .font('Helvetica')
-            .fontSize(9.5)
-            .text(label, left + 10, y, { width: 96 })
-            .fillColor('#111827')
+            .fillColor('#0b5f9e')
             .font('Helvetica-Bold')
-            .text(String(value || '-'), left + 108, y, { width: 260 });
-          y += 16;
+            .fontSize(6.4)
+            .text(label, x, 148, { width: 135 })
+            .fillColor('#020617')
+            .fontSize(8.2)
+            .text(String(value || '-'), x, 158, {
+              width: x === left ? 250 : 150,
+              ellipsis: true,
+            });
+          if (small) {
+            doc
+              .fillColor('#64748b')
+              .font('Helvetica')
+              .fontSize(6.5)
+              .text(String(small), x, 169, { width: 220 });
+          }
         });
 
-        doc.y = 166;
+        doc.y = 184;
       };
 
       const drawTableHeader = () => {
-        const columns = this.invoicePrintColumns();
+        const columns = this.invoicePrintColumns(left, right);
         const headerY = doc.y;
+        doc.rect(left, headerY, width, 16).fill('#eaf6ff');
         doc
-          .fillColor('#6b7280')
-          .font('Times-Roman')
-          .fontSize(9)
-          .text('Date', left + 2, headerY)
-          .text('Item', left + 76, headerY)
-          .text('Unit', left + 294, headerY)
-          .text('Qty', left + 365, headerY)
-          .text('Price', left + 430, headerY)
-          .text('Total', left + 520, headerY);
+          .fillColor('#0b2f56')
+          .font('Helvetica-Bold')
+          .fontSize(7.2)
+          .text('DATE', columns[0].x, headerY + 5, { width: columns[0].width })
+          .text('ITEM', columns[1].x, headerY + 5, { width: columns[1].width })
+          .text('UNIT', columns[2].x, headerY + 5, { width: columns[2].width })
+          .text('QTY', columns[3].x, headerY + 5, { width: columns[3].width })
+          .text('DISC', columns[4].x, headerY + 5, {
+            width: columns[4].width,
+            align: 'right',
+          })
+          .text('PRICE', columns[5].x, headerY + 5, {
+            width: columns[5].width,
+            align: 'right',
+          })
+          .text('TOTAL', columns[6].x, headerY + 5, {
+            width: columns[6].width,
+            align: 'right',
+          });
         doc
-          .moveTo(left, headerY + 13)
-          .lineTo(right, headerY + 13)
-          .lineWidth(1.8)
-          .strokeColor('#b8e169')
+          .moveTo(left, headerY + 16)
+          .lineTo(right, headerY + 16)
+          .lineWidth(1)
+          .strokeColor('#7dd3fc')
           .stroke();
         doc.y = headerY + 17;
         return columns;
@@ -2556,9 +2586,9 @@ export class BillingService {
       let columns = drawTableHeader();
 
       printableItems.forEach((item, index) => {
-        if (doc.y + rowHeight > doc.page.height - 128) {
+        if (doc.y + rowHeight > doc.page.height - 96) {
           doc.addPage();
-          doc.y = 24;
+          drawHeader();
           columns = drawTableHeader();
         }
 
@@ -2570,13 +2600,13 @@ export class BillingService {
 
         doc
           .rect(left, y, width, rowHeight)
-          .fill(index % 2 === 0 ? '#e7e7e7' : '#ffffff');
+          .fill(index % 2 === 0 ? '#f8fafc' : '#ffffff');
         doc
           .moveTo(left, y + rowHeight)
           .lineTo(right, y + rowHeight)
-          .dash(6, { space: 6 })
-          .lineWidth(0.8)
-          .strokeColor('#bdbdbd')
+          .dash(4, { space: 5 })
+          .lineWidth(0.6)
+          .strokeColor('#cbd5e1')
           .stroke()
           .undash();
 
@@ -2585,15 +2615,16 @@ export class BillingService {
           item.description,
           unitText,
           String(quantity),
+          `${Number(item.discountPercent || 0)}%`,
           this.compactMoney(item.unitPrice, currency),
           this.compactMoney(item.lineTotal, currency),
         ];
         columns.forEach((column, columnIndex) => {
           doc
-            .fillColor(columnIndex === 5 ? '#111827' : '#374151')
-            .font(columnIndex === 5 ? 'Helvetica-Bold' : 'Helvetica')
-            .fontSize(8)
-            .text(values[columnIndex], column.x, y + 4, {
+            .fillColor(columnIndex === 6 ? '#020617' : '#334155')
+            .font(columnIndex === 6 ? 'Helvetica-Bold' : 'Helvetica')
+            .fontSize(7.3)
+            .text(values[columnIndex], column.x, y + 4.3, {
               width: column.width,
               align: column.align,
               ellipsis: true,
@@ -2602,13 +2633,16 @@ export class BillingService {
         doc.y = y + rowHeight;
       });
 
-      const footerMin = 210;
+      const footerMin = 82;
       if (doc.y + footerMin > doc.page.height - 30) {
         doc.addPage();
-        doc.y = 24;
+        drawHeader();
+        drawTableHeader();
       }
 
-      const boxY = doc.y + 12;
+      const boxY = doc.y + 10;
+      const totalsX = right - 240;
+      const totalsW = 238;
 
       const totalRows = [
         ['Subtotal', invoice.subtotal],
@@ -2617,109 +2651,64 @@ export class BillingService {
         ['Grand Total', invoice.totalAmount],
       ];
       totalRows.forEach(([label, value], index) => {
-        const rowY = boxY + index * 18;
+        const rowY = boxY + index * 17;
+        const isGrand = index === totalRows.length - 1;
         doc
-          .fillColor('#6b7280')
-          .font('Helvetica')
-          .fontSize(9)
-          .text(String(label), right - 255, rowY + 4, { width: 85 });
-        doc.rect(right - 185, rowY, 178, 18).strokeColor('#a3a3a3').stroke();
+          .rect(totalsX, rowY, totalsW, 17)
+          .fillAndStroke(isGrand ? '#dff3ff' : '#ffffff', '#cbd5e1');
         doc
-          .fillColor('#111827')
+          .fillColor('#0f172a')
+          .font(isGrand ? 'Helvetica-Bold' : 'Helvetica')
+          .fontSize(isGrand ? 8.6 : 7.5)
+          .text(String(label), totalsX + 8, rowY + 5, { width: 95 })
           .font('Helvetica-Bold')
-          .fontSize(9)
-          .text(String(Number(value || 0)), right - 180, rowY + 4, {
-            width: 166,
+          .text(this.compactMoney(Number(value || 0), currency), totalsX + 118, rowY + 5, {
+            width: totalsW - 126,
+            align: 'right',
           });
       });
 
       doc
-        .fillColor('#6b7280')
-        .font('Helvetica')
-        .fontSize(9)
-        .text(`Items        ${printableItems.length}`, left + 8, boxY + 88);
-
-      const footerY = boxY + 104;
-      doc
-        .fillColor('#374151')
+        .fillColor('#0b2f56')
         .font('Helvetica-Bold')
-        .fontSize(8)
-        .text(
-          'Payment instructions',
-          left + 4,
-          footerY,
-          { width: 390 },
-        );
-      doc
-        .fillColor('#6b7280')
+        .fontSize(6.8)
+        .text('PAYMENT', left, boxY + 2, { width: 95 })
+        .fillColor('#334155')
         .font('Helvetica')
-        .fontSize(7.5)
-        .text(
-          'This invoice was generated from approved billing records. Quote the invoice number or scan the QR code when confirming payment.',
-          left + 4,
-          footerY + 12,
-          { width: 355 },
-        );
-      doc.image(qrBuffer, left + 8, footerY + 34, { fit: [54, 54] });
-      doc
-        .fillColor('#111827')
-        .font('Helvetica')
-        .fontSize(8);
+        .fontSize(7);
       paymentLines.slice(0, 5).forEach((line, index) => {
-        doc.text(line, left + 66, footerY + 35 + index * 12, {
-          width: 260,
+        doc.text(line, left, boxY + 13 + index * 10, {
+          width: 360,
         });
       });
       doc
-        .fillColor('#6b7280')
-        .text('Served by cashier', left + 4, footerY + 94, { width: 105 })
-        .fillColor('#111827')
-        .font('Helvetica-Bold')
-        .text(this.timeOnly(new Date()), left + 122, footerY + 94, {
-          width: 65,
-        });
-
-      doc
-        .fillColor('#7b7b7b')
-        .font('Helvetica-Bold')
-        .fontSize(7)
-        .text('INVINCEIBLE CORE HMS', right - 190, footerY + 44, {
-          width: 182,
-          align: 'left',
-        })
+        .fillColor('#64748b')
         .font('Helvetica')
-        .text('Official invoice copy for patient billing and facility reconciliation.', right - 190, footerY + 58, {
-          width: 182,
+        .fontSize(6.8)
+        .text(`Served at ${this.timeOnly(new Date())}`, left, boxY + 66, {
+          width: 160,
+        })
+        .text(`Items ${printableItems.length}`, left, doc.page.height - 38, {
+          width: 160,
+        })
+        .text('Generated by Invinceible Core HMS', right - 230, doc.page.height - 38, {
+          width: 230,
+          align: 'right',
         });
-
-      const range = doc.bufferedPageRange();
-      for (let pageIndex = 0; pageIndex < range.count; pageIndex += 1) {
-        doc.switchToPage(range.start + pageIndex);
-        doc
-          .fillColor('#111827')
-          .font('Helvetica')
-          .fontSize(8)
-          .text(
-            `Page ${pageIndex + 1} of ${range.count}`,
-            doc.page.width / 2 - 35,
-            doc.page.height - 52,
-            { width: 70, align: 'center' },
-          );
-      }
 
       doc.end();
     });
   }
 
-  private invoicePrintColumns() {
-    const left = 20;
+  private invoicePrintColumns(left: number, right: number) {
     return [
-      { x: left + 2, width: 70, align: 'left' as const },
-      { x: left + 76, width: 214, align: 'left' as const },
-      { x: left + 294, width: 66, align: 'left' as const },
-      { x: left + 365, width: 38, align: 'left' as const },
-      { x: left + 420, width: 70, align: 'right' as const },
-      { x: left + 494, width: 72, align: 'right' as const },
+      { x: left + 4, width: 76, align: 'left' as const },
+      { x: left + 92, width: 322, align: 'left' as const },
+      { x: left + 420, width: 62, align: 'left' as const },
+      { x: left + 492, width: 34, align: 'left' as const },
+      { x: left + 538, width: 42, align: 'right' as const },
+      { x: left + 604, width: 68, align: 'right' as const },
+      { x: right - 84, width: 82, align: 'right' as const },
     ];
   }
 
@@ -2727,13 +2716,18 @@ export class BillingService {
     doc: PDFKit.PDFDocument,
     x: number,
     y: number,
+    size = 62,
   ) {
-    doc.circle(x + 31, y + 31, 31).fill('#bfeaf4');
+    const radius = size / 2;
+    doc.circle(x + radius, y + radius, radius).fill('#bfeaf4');
     doc
       .fillColor('#ffffff')
       .font('Helvetica-Bold')
-      .fontSize(34)
-      .text('+', x + 18, y + 10, { width: 28, align: 'center' });
+      .fontSize(size * 0.55)
+      .text('+', x + size * 0.28, y + size * 0.14, {
+        width: size * 0.46,
+        align: 'center',
+      });
   }
 
   private drawQrPlaceholder(doc: PDFKit.PDFDocument, x: number, y: number) {
@@ -2795,8 +2789,8 @@ export class BillingService {
     }).format(value);
   }
 
-  private compactMoney(value?: number | null, currency = 'KES') {
-    return formatPdfMoney(value, currency).replace(/\s/g, '');
+  private compactMoney(value?: number | null, _currency = 'KES') {
+    return `ksh${Number(value || 0).toFixed(1)}`;
   }
 
   private generateReceiptNumber(prefix = 'RCT') {
@@ -2825,20 +2819,32 @@ export class BillingService {
       : 'https://sandbox.safaricom.co.ke';
   }
 
+  private cleanMpesaNumber(value?: string | null) {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits || undefined;
+  }
+
   private resolveMpesaConfig(invoice: any): MpesaConfig {
     const facility = invoice.facility ?? {};
     const branch = invoice.branch ?? {};
+    const branchPaybill = this.cleanMpesaNumber(branch.mpesaPaybill);
+    const facilityPaybill = this.cleanMpesaNumber(facility.mpesaPaybill);
+    const branchTill = this.cleanMpesaNumber(branch.mpesaTillNumber);
+    const facilityTill = this.cleanMpesaNumber(facility.mpesaTillNumber);
+    const envShortcode = this.cleanMpesaNumber(process.env.MPESA_SHORTCODE);
     const shortcode =
-      branch.mpesaShortcode ||
-      facility.mpesaShortcode ||
-      branch.mpesaPaybill ||
-      facility.mpesaPaybill ||
-      branch.mpesaTillNumber ||
-      facility.mpesaTillNumber ||
-      process.env.MPESA_SHORTCODE;
-    const hasTill =
-      Boolean(branch.mpesaTillNumber || facility.mpesaTillNumber) &&
-      !Boolean(branch.mpesaPaybill || facility.mpesaPaybill);
+      this.cleanMpesaNumber(branch.mpesaShortcode) ||
+      this.cleanMpesaNumber(facility.mpesaShortcode) ||
+      branchPaybill ||
+      facilityPaybill ||
+      branchTill ||
+      facilityTill ||
+      envShortcode;
+    const usingTill =
+      Boolean(branchTill || facilityTill) && !Boolean(branchPaybill || facilityPaybill);
+    const transactionType =
+      process.env.MPESA_TRANSACTION_TYPE ||
+      (usingTill ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline');
 
     return {
       consumerKey: process.env.MPESA_CONSUMER_KEY,
@@ -2846,9 +2852,7 @@ export class BillingService {
       passkey: process.env.MPESA_PASSKEY,
       shortcode,
       callbackUrl: process.env.MPESA_CALLBACK_URL,
-      transactionType:
-        process.env.MPESA_TRANSACTION_TYPE ||
-        (hasTill ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline'),
+      transactionType,
       accountReference:
         branch.mpesaAccountNumber ||
         facility.mpesaAccountNumber ||
@@ -2903,11 +2907,23 @@ export class BillingService {
   }
 
   private mpesaTimestamp() {
-    const now = new Date();
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
-      now.getDate(),
-    )}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Nairobi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(new Date())
+      .reduce<Record<string, string>>((values, part) => {
+        if (part.type !== 'literal') values[part.type] = part.value;
+        return values;
+      }, {});
+
+    return `${parts.year}${parts.month}${parts.day}${parts.hour}${parts.minute}${parts.second}`;
   }
 
   private async sendDarajaStkPush(params: {
@@ -2962,6 +2978,49 @@ export class BillingService {
     }
 
     return { data, phoneNumber };
+  }
+
+  private async queryDarajaStkStatus(payment: any) {
+    if (!payment.checkoutRequestId) {
+      throw new BadRequestException('Payment has no M-PESA checkout request id');
+    }
+
+    const invoice = payment.invoice ?? (await this.getInvoiceById(payment.invoiceId));
+    const config = this.resolveMpesaConfig(invoice);
+    this.assertMpesaConfigured(config);
+    const token = await this.getMpesaAccessToken(config);
+    const timestamp = this.mpesaTimestamp();
+    const password = Buffer.from(
+      `${config.shortcode}${config.passkey}${timestamp}`,
+    ).toString('base64');
+
+    const response = await fetch(
+      `${this.getMpesaBaseUrl()}/mpesa/stkpushquery/v1/query`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          BusinessShortCode: config.shortcode,
+          Password: password,
+          Timestamp: timestamp,
+          CheckoutRequestID: payment.checkoutRequestId,
+        }),
+      },
+    );
+    const data = (await response.json().catch(() => ({}))) as MpesaQueryResponse;
+
+    if (!response.ok || data.errorCode) {
+      throw new BadRequestException(
+        data.errorMessage ||
+          data.ResponseDescription ||
+          'Unable to query M-PESA payment status',
+      );
+    }
+
+    return data;
   }
 
   private async findPendingMpesaPayment(
@@ -3072,16 +3131,62 @@ export class BillingService {
   async createMpesaPaymentRequest(dto: CreateMpesaPaymentRequestDto) {
     const invoice = await this.getInvoiceById(dto.invoiceId);
     const normalizedPhone = this.normalizeMpesaPhone(dto.phoneNumber);
+    const amount = Number(dto.amount || 0);
+    const lockKey = `${dto.invoiceId}:${normalizedPhone}:${amount.toFixed(2)}`;
+    const activeLock = this.mpesaRequestLocks.get(lockKey);
 
+    if (activeLock) {
+      await activeLock.catch(() => undefined);
+      const pending = await this.findPendingMpesaPayment(
+        dto.invoiceId,
+        normalizedPhone,
+        amount,
+      );
+
+      if (pending && !dto.forceResend) {
+        return {
+          message:
+            'A pending M-PESA STK Push already exists for this invoice, amount, and phone number. Use resend if the patient did not receive it.',
+          payment: pending,
+          duplicatePrevented: true,
+        };
+      }
+    }
+
+    let releaseLock: () => void = () => undefined;
+    const lock = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+    this.mpesaRequestLocks.set(lockKey, lock);
+
+    try {
+      return await this.createMpesaPaymentRequestLocked(
+        dto,
+        invoice,
+        normalizedPhone,
+        amount,
+      );
+    } finally {
+      releaseLock();
+      this.mpesaRequestLocks.delete(lockKey);
+    }
+  }
+
+  private async createMpesaPaymentRequestLocked(
+    dto: CreateMpesaPaymentRequestDto,
+    invoice: any,
+    normalizedPhone: string,
+    amount: number,
+  ) {
     if (dto.receivedByStaffId) {
       await this.staffService.findOne(dto.receivedByStaffId);
     }
 
-    if (dto.amount <= 0) {
+    if (amount <= 0) {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
-    if (dto.amount > invoice.balanceAmount) {
+    if (amount > invoice.balanceAmount) {
       throw new BadRequestException(
         `Payment exceeds outstanding balance of ${invoice.balanceAmount}`,
       );
@@ -3090,7 +3195,7 @@ export class BillingService {
     const pending = await this.findPendingMpesaPayment(
       dto.invoiceId,
       normalizedPhone,
-      dto.amount,
+      amount,
     );
 
     if (pending && !dto.forceResend) {
@@ -3113,7 +3218,7 @@ export class BillingService {
 
     const stk = await this.sendDarajaStkPush({
       invoice,
-      amount: dto.amount,
+      amount,
       phoneNumber: normalizedPhone,
     });
 
@@ -3123,7 +3228,7 @@ export class BillingService {
         branchId: invoice.branchId,
         receiptNumber,
         invoiceId: dto.invoiceId,
-        amount: dto.amount,
+        amount,
         paymentMethod: 'MPESA',
         statusCode: 'PENDING',
         phoneNumber: normalizedPhone,
@@ -3176,7 +3281,7 @@ export class BillingService {
       payment,
       stkRequest: {
         phoneNumber: normalizedPhone,
-        amount: dto.amount,
+        amount,
         checkoutRequestId: stk.data.CheckoutRequestID,
         merchantRequestId: stk.data.MerchantRequestID,
       },
@@ -3274,6 +3379,126 @@ export class BillingService {
         checkoutRequestId: stk.data.CheckoutRequestID,
         merchantRequestId: stk.data.MerchantRequestID,
       },
+    };
+  }
+
+  async getMpesaPaymentStatus(checkoutRequestId: string, user: RequestUser) {
+    const payment = await this.prisma.payment.findFirst({
+      where: {
+        checkoutRequestId,
+        paymentMethod: 'MPESA',
+      },
+      include: {
+        invoice: {
+          include: {
+            facility: true,
+            branch: true,
+            patient: true,
+            appointment: true,
+            admission: true,
+            items: true,
+            payments: true,
+          },
+        },
+        facility: true,
+        branch: true,
+        receivedBy: true,
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(
+        `M-PESA payment with checkoutRequestId ${checkoutRequestId} not found`,
+      );
+    }
+
+    this.scopeService.assertBranchAccess(
+      user,
+      payment.facilityId,
+      payment.branchId,
+    );
+
+    if (payment.statusCode !== 'PENDING') {
+      return {
+        message: `Payment is already ${payment.statusCode.toLowerCase()}.`,
+        payment,
+        daraja: null,
+      };
+    }
+
+    const daraja = await this.queryDarajaStkStatus(payment);
+    const resultCode = String(daraja.ResultCode ?? '');
+
+    if (resultCode === '0') {
+      const updated = await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          statusCode: 'COMPLETED',
+          confirmedAt: new Date(),
+          paidAt: new Date(),
+          transactionRef: payment.transactionRef || payment.checkoutRequestId,
+          callbackPayload: JSON.stringify({
+            previous: payment.callbackPayload,
+            statusQuery: daraja,
+            queriedAt: new Date().toISOString(),
+          }),
+        },
+        include: {
+          facility: true,
+          branch: true,
+          invoice: true,
+          receivedBy: true,
+        },
+      });
+
+      await this.recalculateInvoice(payment.invoiceId);
+
+      await this.auditLogService.create({
+        moduleName: 'BILLING',
+        actionName: 'QUERY_MPESA_PAYMENT_CONFIRMED',
+        entityType: 'PAYMENT',
+        entityId: String(payment.id),
+        description: `M-PESA payment confirmed by Daraja status query for invoice ${payment.invoiceId}`,
+        facilityId: payment.facilityId,
+        branchId: payment.branchId ?? undefined,
+        actorUserId: user.userId,
+        actorStaffId: user.staffId ?? undefined,
+        beforeData: JSON.stringify(payment),
+        afterData: JSON.stringify(updated),
+      });
+
+      return {
+        message: 'M-PESA payment confirmed by Daraja status query.',
+        payment: updated,
+        daraja,
+      };
+    }
+
+    if (resultCode && resultCode !== '0') {
+      const failed = await this.failMpesaPayment(
+        checkoutRequestId,
+        JSON.stringify({
+          previous: payment.callbackPayload,
+          statusQuery: daraja,
+          queriedAt: new Date().toISOString(),
+        }),
+      );
+
+      return {
+        message:
+          daraja.ResultDesc ||
+          'M-PESA payment was not completed according to Daraja.',
+        payment: failed,
+        daraja,
+      };
+    }
+
+    return {
+      message:
+        daraja.ResponseDescription ||
+        'M-PESA request is still pending. Wait for the phone prompt or resend if needed.',
+      payment,
+      daraja,
     };
   }
 

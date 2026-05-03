@@ -89,6 +89,9 @@ export interface ClinicalAiDraftResponse {
 
 export interface IdentityOcrResponse {
   fullName?: string | null;
+  firstName?: string | null;
+  middleName?: string | null;
+  lastName?: string | null;
   nationalIdNumber?: string | null;
   confidence: number;
   notes?: string;
