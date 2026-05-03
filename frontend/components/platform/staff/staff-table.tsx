@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Power,
   Search,
+  Trash2,
   UserCog,
 } from "lucide-react";
 import { useStaff } from "@/hooks/use-staff";
@@ -15,6 +16,8 @@ import { useRoles } from "@/hooks/use-roles";
 import { useUsers } from "@/hooks/use-users";
 import { useUpdateStaff } from "@/hooks/use-update-staff";
 import { useUpdateStaffStatus } from "@/hooks/use-update-staff-status";
+import { useDeleteStaff } from "@/hooks/use-delete-staff";
+import { useAuth } from "@/providers/auth-provider";
 import type { StaffItem } from "@/services/staff-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -38,6 +41,8 @@ export function StaffTable() {
   const { data: usersData } = useUsers();
   const updateStaffMutation = useUpdateStaff();
   const updateStaffStatusMutation = useUpdateStaffStatus();
+  const deleteStaffMutation = useDeleteStaff();
+  const { user: currentUser } = useAuth();
 
   const items = React.useMemo<StaffItem[]>(() => {
     return Array.isArray(data) ? data : [];
@@ -294,12 +299,14 @@ export function StaffTable() {
                               },
                               {
                                 name: "nationalIdImageUrl",
-                                label: "National ID Image URL/Data",
+                                label: "National ID Image",
+                                type: "fileDataUrl",
                                 className: "md:col-span-2",
                               },
                               {
                                 name: "passportPhotoUrl",
-                                label: "Passport Photo URL/Data",
+                                label: "Passport Photo",
+                                type: "fileDataUrl",
                                 className: "md:col-span-2",
                               },
                               {
@@ -479,6 +486,32 @@ export function StaffTable() {
                             {staff.isActive === false
                               ? "Reactivate"
                               : "Deactivate"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+                            disabled={
+                              deleteStaffMutation.isPending ||
+                              staff.isActive !== false ||
+                              currentUser?.staffId === staff.id ||
+                              currentUser?.id === staff.userId
+                            }
+                            onClick={async () => {
+                              if (
+                                !window.confirm(
+                                  `Delete inactive staff record ${fullName(
+                                    staff,
+                                  )}?`,
+                                )
+                              ) {
+                                return;
+                              }
+                              await deleteStaffMutation.mutateAsync(staff.id);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
                           </Button>
                         </div>
                       </td>

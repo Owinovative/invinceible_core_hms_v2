@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { BillingService } from './billing.service';
-import { BillingController } from './billing.controller';
+import {
+  BillingController,
+  BillingPublicController,
+  MpesaCallbackController,
+} from './billing.controller';
 import { PatientModule } from '../patient/patient.module';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { ConsultationModule } from '../consultation/consultation.module';
@@ -19,7 +23,7 @@ import { AuthModule } from '../auth/auth.module';
     NotificationModule,
     AuthModule,
   ],
-  controllers: [BillingController],
+  controllers: [BillingController, MpesaCallbackController, BillingPublicController],
   providers: [BillingService],
   exports: [BillingService],
 })

@@ -1,9 +1,10 @@
 import { IsInt, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCashPaymentDto {
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  receiptNumber: string;
+  receiptNumber?: string;
 
   @IsInt()
   invoiceId: number;

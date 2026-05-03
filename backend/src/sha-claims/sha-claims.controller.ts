@@ -6,9 +6,11 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Roles } from '../auth/roles.decorator';
@@ -30,6 +32,22 @@ export class ShaClaimsController {
   @Get('summary')
   getSummary(@CurrentUser() user: RequestUser) {
     return this.shaClaimsService.getSummary(user);
+  }
+
+  @Get(':id/pdf')
+  async downloadClaimPdf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+    @Res() response: Response,
+  ) {
+    const pdf = await this.shaClaimsService.getClaimPdf(id, user);
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="sha-claim-${id}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    response.end(pdf);
   }
 
   @Post()

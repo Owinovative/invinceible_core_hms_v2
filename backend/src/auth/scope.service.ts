@@ -115,6 +115,8 @@ export class ScopeService {
       })),
       staffId: dbUser.staff?.id ?? null,
       staffPassportPhotoUrl: dbUser.staff?.passportPhotoUrl ?? null,
+      pendingDeactivationAt: dbUser.pendingDeactivationAt ?? null,
+      pendingDeactivationReason: dbUser.pendingDeactivationReason ?? null,
     };
   }
 

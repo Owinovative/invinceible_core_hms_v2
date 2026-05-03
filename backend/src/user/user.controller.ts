@@ -16,6 +16,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -52,8 +54,9 @@ export class UserController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.userService.update(id, updateUserDto);
+    return this.userService.secureUpdate(id, updateUserDto, user);
   }
 
   @Patch(':id/reset-password')
@@ -65,7 +68,10 @@ export class UserController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.userService.secureRemove(id, user);
   }
 }

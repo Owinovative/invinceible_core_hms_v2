@@ -176,6 +176,9 @@ model User {
   failedLoginAttempts            Int                  @default(0)
   lockedAt                       DateTime?
   lockReason                     String?              @db.VarChar(255)
+  pendingDeactivationAt          DateTime?
+  pendingDeactivationRequestedById Int?
+  pendingDeactivationReason      String?              @db.VarChar(255)
   sessionVersion                 Int                  @default(0)
   canAccessAllBranchesInFacility Boolean              @default(false)
   lastLoginAt                    DateTime?
@@ -201,6 +204,7 @@ model User {
   @@index([homeFacilityId])
   @@index([homeBranchId])
   @@index([lockedAt])
+  @@index([pendingDeactivationAt])
   @@map("users")
 }
 
@@ -1071,6 +1075,8 @@ model Payment {
   @@index([receivedByStaffId])
   @@index([statusCode])
   @@index([paymentMethod])
+  @@index([checkoutRequestId])
+  @@index([phoneNumber])
   @@map("payments")
 }
 
@@ -1105,6 +1111,9 @@ model ShaClaim {
   paidAmount         Float     @default(0)
   rejectedAmount     Float     @default(0)
   rejectionReason    String?   @db.Text
+  patientSignatureUrl String?  @db.LongText
+  facilitySignatureUrl String? @db.LongText
+  rubberStampUrl     String?   @db.LongText
   submittedAt        DateTime?
   approvedAt         DateTime?
   paidAt             DateTime?

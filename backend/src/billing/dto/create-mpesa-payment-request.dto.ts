@@ -1,9 +1,17 @@
-import { IsInt, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateMpesaPaymentRequestDto {
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  receiptNumber: string;
+  receiptNumber?: string;
 
   @IsInt()
   invoiceId: number;
@@ -22,4 +30,8 @@ export class CreateMpesaPaymentRequestDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  forceResend?: boolean;
 }

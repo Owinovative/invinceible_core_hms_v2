@@ -1,7 +1,7 @@
 "use client";
 
 import { LogOut, Menu, Shield } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useAuth } from "@/providers/auth-provider";
@@ -10,6 +10,7 @@ import { AppLogo } from "@/components/shared/app-logo";
 export function PlatformHeader() {
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const initials = useMemo(() => {
     const source = user?.username || "U";
@@ -58,18 +59,22 @@ export function PlatformHeader() {
               </p>
             </div>
 
-            {user?.staffPassportPhotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.staffPassportPhotoUrl}
-                alt=""
-                className="h-10 w-10 shrink-0 rounded-full border-2 border-white bg-white object-cover"
-              />
-            ) : (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white font-semibold text-[#005a9c]">
-                {initials}
-              </div>
-            )}
+            <button
+              type="button"
+              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white font-semibold text-[#005a9c]"
+              onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
+            >
+              {user?.staffPassportPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.staffPassportPhotoUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{initials}</span>
+              )}
+            </button>
 
             <Button
               variant="ghost"
@@ -82,6 +87,19 @@ export function PlatformHeader() {
           </div>
         </div>
       </div>
+      {photoOpen && user?.staffPassportPhotoUrl ? (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/80 p-4"
+          onClick={() => setPhotoOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={user.staffPassportPhotoUrl}
+            alt=""
+            className="max-h-[86vh] max-w-[92vw] rounded-lg border-4 border-white bg-white object-contain shadow-2xl"
+          />
+        </div>
+      ) : null}
     </header>
   );
 }

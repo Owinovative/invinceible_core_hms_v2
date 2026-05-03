@@ -157,6 +157,33 @@ export class BillingController {
     response.end(pdf);
   }
 
+  @Get('invoices/verify/public')
+  verifyInvoicePublic(
+    @Query('invoice') invoiceNumber: string,
+    @Query('code') code: string,
+  ) {
+    return this.billingService.getVerifiedInvoice(invoiceNumber, code);
+  }
+
+  @Get('invoices/verify/public.pdf')
+  async downloadVerifiedInvoicePdf(
+    @Query('invoice') invoiceNumber: string,
+    @Query('code') code: string,
+    @Res() response: Response,
+  ) {
+    const pdf = await this.billingService.getVerifiedInvoicePdf(
+      invoiceNumber,
+      code,
+    );
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${invoiceNumber}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    response.end(pdf);
+  }
+
   @Get('invoices/:id')
   getInvoiceById(
     @Param('id', ParseIntPipe) id: number,
@@ -225,6 +252,14 @@ export class BillingController {
     return this.billingService.createMpesaPaymentRequest(dto);
   }
 
+  @Post('payments/:id/mpesa/resend')
+  resendMpesaPaymentRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.resendMpesaPaymentRequest(id, user);
+  }
+
   @Post('payments/mpesa/confirm')
   confirmMpesaPayment(@Body() dto: ConfirmMpesaPaymentDto) {
     return this.billingService.confirmMpesaPayment(dto);
@@ -257,5 +292,47 @@ export class BillingController {
     @Query('date') date?: string,
   ) {
     return this.billingService.getCashierClose(user, date);
+  }
+}
+
+@Controller('billing/payments/mpesa')
+export class MpesaCallbackController {
+  constructor(private readonly billingService: BillingService) {}
+
+  @Post('callback')
+  handleCallback(@Body() payload: unknown) {
+    return this.billingService.handleMpesaCallback(payload);
+  }
+}
+
+@Controller('billing-public')
+export class BillingPublicController {
+  constructor(private readonly billingService: BillingService) {}
+
+  @Get('invoices/verify')
+  verifyInvoice(
+    @Query('invoice') invoiceNumber: string,
+    @Query('code') code: string,
+  ) {
+    return this.billingService.getVerifiedInvoice(invoiceNumber, code);
+  }
+
+  @Get('invoices/verify.pdf')
+  async downloadInvoicePdf(
+    @Query('invoice') invoiceNumber: string,
+    @Query('code') code: string,
+    @Res() response: Response,
+  ) {
+    const pdf = await this.billingService.getVerifiedInvoicePdf(
+      invoiceNumber,
+      code,
+    );
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${invoiceNumber}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    response.end(pdf);
   }
 }

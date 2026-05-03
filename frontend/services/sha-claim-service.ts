@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch } from "@/lib/api";
 import type { Facility } from "@/services/facility-service";
 import type { Branch } from "@/services/branch-service";
 import type { InvoiceRecord } from "@/services/billing-service";
@@ -18,6 +18,9 @@ export interface ShaClaimRecord {
   paidAmount: number;
   rejectedAmount: number;
   rejectionReason?: string | null;
+  patientSignatureUrl?: string | null;
+  facilitySignatureUrl?: string | null;
+  rubberStampUrl?: string | null;
   notes?: string | null;
   createdAt?: string;
   facilityId: number;
@@ -59,6 +62,9 @@ export interface CreateShaClaimPayload {
   servicePeriodEnd?: string;
   claimedAmount?: number;
   notes?: string;
+  patientSignatureUrl?: string;
+  facilitySignatureUrl?: string;
+  rubberStampUrl?: string;
 }
 
 export interface UpdateShaClaimPayload {
@@ -76,6 +82,9 @@ export interface UpdateShaClaimPayload {
   rejectedAmount?: number;
   rejectionReason?: string | null;
   notes?: string | null;
+  patientSignatureUrl?: string | null;
+  facilitySignatureUrl?: string | null;
+  rubberStampUrl?: string | null;
 }
 
 export function getShaClaims() {
@@ -98,4 +107,11 @@ export function updateShaClaim(id: number, payload: UpdateShaClaimPayload) {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export function downloadShaClaimPdf(id: number, claimNumber?: string) {
+  return apiDownload(
+    `/sha-claims/${id}/pdf`,
+    `${claimNumber || `sha-claim-${id}`}.pdf`,
+  );
 }

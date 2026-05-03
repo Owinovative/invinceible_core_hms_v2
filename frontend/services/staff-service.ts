@@ -130,3 +130,9 @@ export async function updateStaff(id: number, payload: UpdateStaffPayload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function deleteStaff(id: number) {
+  return apiFetch<StaffItem>(`/staff/${id}`, {
+    method: "DELETE",
+  });
+}

@@ -25,6 +25,12 @@ export async function getMe() {
   });
 }
 
+export async function acceptOwnDeactivation() {
+  return apiFetch<{ message: string }>("/auth/accept-deactivation", {
+    method: "POST",
+  });
+}
+
 export async function forgotPassword(payload: { username: string }) {
   return apiFetch<{
     message: string;

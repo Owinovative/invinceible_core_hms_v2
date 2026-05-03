@@ -12,6 +12,7 @@ import { BranchService } from '../branch/branch.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
 export class UserService {
@@ -285,13 +286,18 @@ export class UserService {
       homeBranchId: updateUserDto.homeBranchId,
       canAccessAllBranchesInFacility:
         updateUserDto.canAccessAllBranchesInFacility,
-      isActive: updateUserDto.isActive,
     };
 
     if (updateUserDto.isActive === true) {
+      data.isActive = true;
       data.failedLoginAttempts = 0;
       data.lockedAt = null;
       data.lockReason = null;
+      data.pendingDeactivationAt = null;
+      data.pendingDeactivationRequestedById = null;
+      data.pendingDeactivationReason = null;
+    } else if (updateUserDto.isActive === false) {
+      data.isActive = false;
     }
 
     if (updateUserDto.password) {
@@ -361,10 +367,94 @@ export class UserService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const user = await this.findOne(id);
+
+    if (user.isActive) {
+      throw new BadRequestException(
+        'Active users cannot be deleted. Deactivate the user first.',
+      );
+    }
 
     return this.prisma.user.delete({
       where: { id },
     });
+  }
+
+  async secureUpdate(id: number, updateUserDto: UpdateUserDto, actor: RequestUser) {
+    const target = await this.findOne(id);
+
+    if (actor.userId === id && updateUserDto.isActive === false) {
+      throw new BadRequestException('You cannot deactivate your own account');
+    }
+
+    if (
+      updateUserDto.isActive === false &&
+      target.role?.code === 'SUPER_ADMIN'
+    ) {
+      return this.requestSuperAdminDeactivation(id, actor);
+    }
+
+    return this.update(id, updateUserDto);
+  }
+
+  async requestSuperAdminDeactivation(id: number, actor: RequestUser) {
+    const target = await this.findOne(id);
+
+    if (actor.userId === id) {
+      throw new BadRequestException('You cannot deactivate yourself');
+    }
+
+    if (target.role?.code !== 'SUPER_ADMIN') {
+      return this.update(id, { isActive: false });
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        pendingDeactivationAt: new Date(),
+        pendingDeactivationRequestedById: actor.userId,
+        pendingDeactivationReason:
+          'Super admin deactivation requires acceptance on next login',
+      },
+      include: {
+        role: true,
+        homeFacility: true,
+        homeBranch: true,
+        staff: true,
+        branchAccesses: {
+          include: {
+            facility: true,
+            branch: true,
+          },
+        },
+      },
+    });
+  }
+
+  async acceptOwnDeactivation(actor: RequestUser) {
+    const target = await this.findOne(actor.userId);
+
+    if (!target.pendingDeactivationAt) {
+      throw new BadRequestException('No pending deactivation request found');
+    }
+
+    return this.prisma.user.update({
+      where: { id: actor.userId },
+      data: {
+        isActive: false,
+        pendingDeactivationAt: null,
+        pendingDeactivationRequestedById: null,
+        pendingDeactivationReason: null,
+        sessionVersion: { increment: 1 },
+      },
+    });
+  }
+
+  async secureRemove(id: number, actor: RequestUser) {
+    if (actor.userId === id) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
+
+    return this.remove(id);
   }
 }
