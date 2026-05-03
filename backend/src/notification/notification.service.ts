@@ -118,6 +118,19 @@ export class NotificationService {
     );
   }
 
+  private sameBranch(
+    user: RequestUser,
+    facilityId?: number | null,
+    branchId?: number | null,
+  ) {
+    if (!this.sameFacility(user, facilityId) || !branchId) return false;
+    const allowed = new Set<number>([
+      ...(user.allowedBranchIds ?? []),
+      ...(user.homeBranchId ? [user.homeBranchId] : []),
+    ]);
+    return allowed.has(branchId);
+  }
+
   private async validateNotificationTarget(
     dto: CreateNotificationDto,
     user: RequestUser,
@@ -168,11 +181,13 @@ export class NotificationService {
           targetRole === 'SUPER_ADMIN' ||
           (this.isFacilityAdmin(targetRole) &&
             this.sameFacility(user, targetFacilityId)) ||
-          this.sameFacility(user, targetFacilityId);
+          (isFacilityAdmin
+            ? this.sameFacility(user, targetFacilityId)
+            : this.sameBranch(user, targetFacilityId, targetBranchId));
 
         if (!allowed) {
           throw new ForbiddenException(
-            'You can only notify super admin, your facility admins, or users in your facility.',
+            'You can only notify super admin, facility admins, or members of your branch.',
           );
         }
       }
@@ -184,9 +199,14 @@ export class NotificationService {
     if (dto.targetStaffId) {
       const targetStaff = await this.staffService.findOne(dto.targetStaffId);
 
-      if (!isSuperAdmin && !this.sameFacility(user, targetStaff.facilityId)) {
+      if (
+        !isSuperAdmin &&
+        !(isFacilityAdmin
+          ? this.sameFacility(user, targetStaff.facilityId)
+          : this.sameBranch(user, targetStaff.facilityId, targetStaff.branchId))
+      ) {
         throw new ForbiddenException(
-          'You can only notify staff in your facility.',
+          'You can only notify staff in your branch.',
         );
       }
 
@@ -225,6 +245,96 @@ export class NotificationService {
       },
       include: this.includeRelations(),
     });
+  }
+
+  async getRecipients(user: RequestUser) {
+    const isSuperAdmin = user.roleCode === 'SUPER_ADMIN';
+    const isFacilityAdmin = this.isFacilityAdmin(user.roleCode);
+
+    const users = await this.prisma.user.findMany({
+      where: isSuperAdmin
+        ? {}
+        : {
+            OR: [
+              { role: { code: 'SUPER_ADMIN' } },
+              { homeFacilityId: user.homeFacilityId ?? -1 },
+              { staff: { is: { facilityId: user.homeFacilityId ?? -1 } } },
+            ],
+          },
+      include: {
+        role: true,
+        staff: true,
+        homeBranch: true,
+        homeFacility: true,
+      },
+      orderBy: [{ username: 'asc' }],
+      take: 500,
+    });
+
+    const allowedUsers = users.filter((targetUser) => {
+      const targetFacilityId =
+        targetUser.homeFacilityId ?? targetUser.staff?.facilityId ?? null;
+      const targetBranchId =
+        targetUser.homeBranchId ?? targetUser.staff?.branchId ?? null;
+      const targetRole = targetUser.role?.code ?? null;
+
+      return (
+        isSuperAdmin ||
+        targetRole === 'SUPER_ADMIN' ||
+        (this.isFacilityAdmin(targetRole) &&
+          this.sameFacility(user, targetFacilityId)) ||
+        (isFacilityAdmin
+          ? this.sameFacility(user, targetFacilityId)
+          : this.sameBranch(user, targetFacilityId, targetBranchId))
+      );
+    });
+
+    const staff = await this.prisma.staff.findMany({
+      where: isSuperAdmin
+        ? {}
+        : isFacilityAdmin
+          ? { facilityId: user.homeFacilityId ?? -1 }
+          : {
+              facilityId: user.homeFacilityId ?? -1,
+              branchId: {
+                in: [
+                  ...(user.allowedBranchIds ?? []),
+                  ...(user.homeBranchId ? [user.homeBranchId] : []),
+                ],
+              },
+            },
+      include: {
+        role: true,
+        branch: true,
+        facility: true,
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      take: 500,
+    });
+
+    return {
+      canNotifySystem: isSuperAdmin,
+      canNotifyFacility: isFacilityAdmin,
+      users: allowedUsers.map((item) => ({
+        id: item.id,
+        username: item.username,
+        fullName: item.fullName,
+        roleCode: item.role?.code ?? null,
+        facilityId: item.homeFacilityId ?? item.staff?.facilityId ?? null,
+        branchId: item.homeBranchId ?? item.staff?.branchId ?? null,
+        photoUrl: item.staff?.passportPhotoUrl ?? null,
+      })),
+      staff: staff.map((item) => ({
+        id: item.id,
+        staffCode: item.staffCode,
+        firstName: item.firstName,
+        lastName: item.lastName,
+        designation: item.designation,
+        facilityId: item.facilityId,
+        branchId: item.branchId,
+        photoUrl: item.passportPhotoUrl,
+      })),
+    };
   }
 
   async findAll(query?: NotificationQueryDto) {

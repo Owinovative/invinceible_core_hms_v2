@@ -17,6 +17,12 @@ export function PublicSiteHeader() {
           <Link href="/facilities" className="hover:text-sky-800">
             Facilities
           </Link>
+          <Link href="/inspiration" className="hover:text-sky-800">
+            Inspiration
+          </Link>
+          <Link href="/reviews" className="hover:text-sky-800">
+            Reviews
+          </Link>
           <Link href="/creators" className="hover:text-sky-800">
             Creators
           </Link>

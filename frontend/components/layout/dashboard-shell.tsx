@@ -2,6 +2,7 @@
 
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
+import { FacilitySubscriptionBanner } from "@/components/layout/facility-subscription-banner";
 import { ShellStatusFooter } from "@/components/layout/shell-status-footer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useScope } from "@/providers/scope-provider";
@@ -19,6 +20,7 @@ export function DashboardShell({
   return (
     <div className="clinical-shell-bg relative flex h-screen flex-col overflow-hidden text-foreground">
       <DashboardHeader />
+      <FacilitySubscriptionBanner />
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <DashboardSidebar />

@@ -73,6 +73,9 @@ export default function ShaClaimsPage() {
   const [facilitySignatureUrl, setFacilitySignatureUrl] = React.useState("");
   const [rubberStampUrl, setRubberStampUrl] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
+  const [amountDrafts, setAmountDrafts] = React.useState<
+    Record<number, { claimedAmount: string; approvedAmount: string; paidAmount: string; rejectedAmount: string }>
+  >({});
 
   const patientMatches = React.useMemo(() => {
     const query = patientQuery.trim().toLowerCase();
@@ -142,6 +145,23 @@ export default function ShaClaimsPage() {
     await updateMutation.mutateAsync({ id, payload: { statusCode } });
   };
 
+  const saveClaimAmounts = async (claimId: number) => {
+    const claim = claims.find((item) => item.id === claimId);
+    const draft = amountDrafts[claimId];
+    if (!claim || !draft) return;
+
+    await updateMutation.mutateAsync({
+      id: claimId,
+      payload: {
+        claimedAmount: Number(draft.claimedAmount || claim.claimedAmount || 0),
+        approvedAmount: Number(draft.approvedAmount || claim.approvedAmount || 0),
+        paidAmount: Number(draft.paidAmount || claim.paidAmount || 0),
+        rejectedAmount: Number(draft.rejectedAmount || claim.rejectedAmount || 0),
+      },
+    });
+    setMessage(`SHA claim ${claim.claimNumber} amounts updated.`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -166,13 +186,15 @@ export default function ShaClaimsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-7">
         {[
           ["Claims", summary?.count ?? 0],
           ["Claimed", formatMoney(summary?.claimedAmount)],
+          ["Covered", formatMoney(summary?.coveredAmount)],
           ["Approved", formatMoney(summary?.approvedAmount)],
           ["Paid", formatMoney(summary?.paidAmount)],
           ["Rejected", formatMoney(summary?.rejectedAmount)],
+          ["Losses", formatMoney(summary?.lossAmount ?? summary?.rejectedAmount)],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-md border bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -378,13 +400,16 @@ export default function ShaClaimsPage() {
           </CardHeader>
           <CardContent>
             <div className="max-h-[620px] overflow-auto">
-              <table className="w-full min-w-[920px] text-sm">
+              <table className="w-full min-w-[1180px] text-sm">
                 <thead className="sticky top-0 bg-[#eef7ff] text-left">
                   <tr>
                     <th className="px-3 py-3">Claim</th>
                     <th className="px-3 py-3">Patient</th>
                     <th className="px-3 py-3">Diagnosis</th>
                     <th className="px-3 py-3 text-right">Claimed</th>
+                    <th className="px-3 py-3 text-right">Approved</th>
+                    <th className="px-3 py-3 text-right">Paid</th>
+                    <th className="px-3 py-3 text-right">Rejected</th>
                     <th className="px-3 py-3">Status</th>
                     <th className="px-3 py-3">Actions</th>
                   </tr>
@@ -411,7 +436,76 @@ export default function ShaClaimsPage() {
                         </p>
                       </td>
                       <td className="px-3 py-3 text-right font-semibold">
-                        {formatMoney(claim.claimedAmount)}
+                        <Input
+                          type="number"
+                          value={amountDrafts[claim.id]?.claimedAmount ?? String(claim.claimedAmount || 0)}
+                          onChange={(event) =>
+                            setAmountDrafts((current) => ({
+                              ...current,
+                              [claim.id]: {
+                                claimedAmount: event.target.value,
+                                approvedAmount: current[claim.id]?.approvedAmount ?? String(claim.approvedAmount || 0),
+                                paidAmount: current[claim.id]?.paidAmount ?? String(claim.paidAmount || 0),
+                                rejectedAmount: current[claim.id]?.rejectedAmount ?? String(claim.rejectedAmount || 0),
+                              },
+                            }))
+                          }
+                          className="h-9 rounded-md text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <Input
+                          type="number"
+                          value={amountDrafts[claim.id]?.approvedAmount ?? String(claim.approvedAmount || 0)}
+                          onChange={(event) =>
+                            setAmountDrafts((current) => ({
+                              ...current,
+                              [claim.id]: {
+                                claimedAmount: current[claim.id]?.claimedAmount ?? String(claim.claimedAmount || 0),
+                                approvedAmount: event.target.value,
+                                paidAmount: current[claim.id]?.paidAmount ?? String(claim.paidAmount || 0),
+                                rejectedAmount: current[claim.id]?.rejectedAmount ?? String(claim.rejectedAmount || 0),
+                              },
+                            }))
+                          }
+                          className="h-9 rounded-md text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <Input
+                          type="number"
+                          value={amountDrafts[claim.id]?.paidAmount ?? String(claim.paidAmount || 0)}
+                          onChange={(event) =>
+                            setAmountDrafts((current) => ({
+                              ...current,
+                              [claim.id]: {
+                                claimedAmount: current[claim.id]?.claimedAmount ?? String(claim.claimedAmount || 0),
+                                approvedAmount: current[claim.id]?.approvedAmount ?? String(claim.approvedAmount || 0),
+                                paidAmount: event.target.value,
+                                rejectedAmount: current[claim.id]?.rejectedAmount ?? String(claim.rejectedAmount || 0),
+                              },
+                            }))
+                          }
+                          className="h-9 rounded-md text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <Input
+                          type="number"
+                          value={amountDrafts[claim.id]?.rejectedAmount ?? String(claim.rejectedAmount || 0)}
+                          onChange={(event) =>
+                            setAmountDrafts((current) => ({
+                              ...current,
+                              [claim.id]: {
+                                claimedAmount: current[claim.id]?.claimedAmount ?? String(claim.claimedAmount || 0),
+                                approvedAmount: current[claim.id]?.approvedAmount ?? String(claim.approvedAmount || 0),
+                                paidAmount: current[claim.id]?.paidAmount ?? String(claim.paidAmount || 0),
+                                rejectedAmount: event.target.value,
+                              },
+                            }))
+                          }
+                          className="h-9 rounded-md text-right"
+                        />
                       </td>
                       <td className="px-3 py-3">
                         <Badge className="rounded-md bg-sky-100 text-sky-800">
@@ -443,6 +537,15 @@ export default function ShaClaimsPage() {
                               </option>
                             ))}
                           </select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-md"
+                            onClick={() => void saveClaimAmounts(claim.id)}
+                          >
+                            Save amounts
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"

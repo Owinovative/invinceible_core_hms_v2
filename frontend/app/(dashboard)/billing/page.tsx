@@ -72,6 +72,7 @@ function patientName(
 
 function statusTone(status?: string | null) {
   switch ((status || "").toUpperCase()) {
+    case "CLOSED":
     case "PAID":
       return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
     case "PARTIALLY_PAID":

@@ -46,6 +46,8 @@ export interface ShaClaimSummary {
   approvedAmount: number;
   paidAmount: number;
   rejectedAmount: number;
+  coveredAmount?: number;
+  lossAmount?: number;
   outstandingAmount: number;
   byStatus: Record<string, number>;
 }

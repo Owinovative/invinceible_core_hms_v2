@@ -43,6 +43,11 @@ export class NotificationController {
     return this.notificationService.getNotificationStats(user, query);
   }
 
+  @Get('recipients')
+  getRecipients(@CurrentUser() user: RequestUser) {
+    return this.notificationService.getRecipients(user);
+  }
+
   @Get('branch-alerts')
   getBranchAlerts(
     @Query('facilityId') facilityId: string | undefined,

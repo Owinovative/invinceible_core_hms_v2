@@ -44,6 +44,11 @@ model Facility {
   shaFidCode           String?               @db.VarChar(120)
   shaClaimStartNumber  Int                   @default(1)
   shaClaimNextNumber   Int                   @default(1)
+  subscriptionMonthlyFee Float                @default(5000)
+  subscriptionStartedAt  DateTime?
+  subscriptionPaidThrough DateTime?
+  subscriptionStatus     String              @default("ACTIVE") @db.VarChar(50)
+  subscriptionLockedAt   DateTime?
   isHeadOffice         Boolean               @default(false)
   isDefault            Boolean               @default(false)
   isActive             Boolean               @default(true)
@@ -72,6 +77,8 @@ model Facility {
   dispenses            Dispense[]
   serviceTariffs       ServiceTariff[]
   shaClaims            ShaClaim[]
+  userFeedback         UserFeedback[]
+  subscriptionPayments FacilitySubscriptionPayment[]
 
   @@index([latitude, longitude])
   @@map("facilities")
@@ -126,6 +133,7 @@ model Branch {
   dispenses            Dispense[]
   serviceTariffs       ServiceTariff[]
   shaClaims            ShaClaim[]
+  userFeedback         UserFeedback[]
 
   @@index([facilityId])
   @@index([latitude, longitude])
@@ -191,6 +199,9 @@ model User {
   locationProfiles               UserLocationProfile[]
   locationEvents                 UserLocationEvent[]
   sessions                       UserSession[]
+  reviews                        UserReview[]
+  createdFeedback                UserFeedback[]        @relation("FeedbackCreatedByUser")
+  repliedFeedback                UserFeedback[]        @relation("FeedbackRepliedByUser")
   notifications                  Notification[]       @relation("NotificationTargetUser")
   resolvedNotifications          Notification[]       @relation("NotificationResolvedByUser")
   staff                          Staff?
@@ -267,6 +278,7 @@ model Staff {
   prescriptions         Prescription[]        @relation("PrescribedByStaff")
   dispenses             Dispense[]            @relation("DispensedByStaff")
   shaClaims             ShaClaim[]            @relation("ShaClaimCreatedBy")
+  createdFeedback       UserFeedback[]        @relation("FeedbackCreatedByStaff")
 
   branch     Branch?     @relation(fields: [branchId], references: [id])
   department Department? @relation(fields: [departmentId], references: [id])
@@ -1063,10 +1075,12 @@ model Payment {
   facilityId         Int
   branchId           Int?
   invoiceId          Int
+  shaClaimId         Int?
   receivedByStaffId  Int?
   branch             Branch?   @relation(fields: [branchId], references: [id])
   facility           Facility  @relation(fields: [facilityId], references: [id])
   invoice            Invoice   @relation(fields: [invoiceId], references: [id])
+  shaClaim           ShaClaim?  @relation("ShaClaimPayments", fields: [shaClaimId], references: [id])
   receivedBy         Staff?    @relation("PaymentReceivedByStaff", fields: [receivedByStaffId], references: [id])
 
   @@index([facilityId])
@@ -1077,6 +1091,7 @@ model Payment {
   @@index([paymentMethod])
   @@index([checkoutRequestId])
   @@index([phoneNumber])
+  @@index([shaClaimId])
   @@map("payments")
 }
 
@@ -1094,6 +1109,21 @@ model UserSession {
   @@index([userId, revokedAt])
   @@index([lastSeenAt])
   @@map("user_sessions")
+}
+
+model UserReview {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  rating    Int
+  comment   String   @db.Text
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([rating])
+  @@index([isVisible, createdAt])
+  @@map("user_reviews")
 }
 
 model ShaClaim {
@@ -1131,6 +1161,7 @@ model ShaClaim {
   patient            Patient   @relation(fields: [patientId], references: [id])
   invoice            Invoice?  @relation(fields: [invoiceId], references: [id])
   createdBy          Staff?    @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
+  payments           Payment[] @relation("ShaClaimPayments")
 
   @@index([facilityId])
   @@index([branchId])
@@ -1139,6 +1170,61 @@ model ShaClaim {
   @@index([statusCode])
   @@index([createdAt])
   @@map("sha_claims")
+}
+
+model UserFeedback {
+  id               Int       @id @default(autoincrement())
+  subject          String    @db.VarChar(160)
+  message          String    @db.Text
+  isAnonymous      Boolean   @default(false)
+  statusCode       String    @default("OPEN") @db.VarChar(50)
+  replyText        String?   @db.Text
+  repliedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  facilityId       Int?
+  branchId         Int?
+  createdByUserId  Int?
+  createdByStaffId Int?
+  repliedByUserId  Int?
+  facility         Facility? @relation(fields: [facilityId], references: [id])
+  branch           Branch?   @relation(fields: [branchId], references: [id])
+  createdByUser    User?     @relation("FeedbackCreatedByUser", fields: [createdByUserId], references: [id])
+  createdByStaff   Staff?    @relation("FeedbackCreatedByStaff", fields: [createdByStaffId], references: [id])
+  repliedByUser    User?     @relation("FeedbackRepliedByUser", fields: [repliedByUserId], references: [id])
+
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([createdByUserId])
+  @@index([createdByStaffId])
+  @@index([repliedByUserId])
+  @@index([statusCode])
+  @@index([createdAt])
+  @@map("user_feedback")
+}
+
+model FacilitySubscriptionPayment {
+  id              Int      @id @default(autoincrement())
+  paymentNumber   String   @unique @db.VarChar(80)
+  facilityId      Int
+  amount          Float    @default(0)
+  monthlyFee      Float    @default(5000)
+  monthsCovered   Float    @default(0)
+  paidFrom        DateTime?
+  paidThrough     DateTime?
+  paymentMethod   String?  @db.VarChar(50)
+  reference       String?  @db.VarChar(120)
+  notes           String?  @db.Text
+  recordedByUserId Int?
+  paidAt          DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  facility        Facility @relation(fields: [facilityId], references: [id])
+
+  @@index([facilityId])
+  @@index([paidAt])
+  @@index([paidThrough])
+  @@map("facility_subscription_payments")
 }
 
 model AuditLog {

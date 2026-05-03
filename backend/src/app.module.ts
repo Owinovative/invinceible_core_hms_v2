@@ -35,9 +35,13 @@ import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { MasterCatalogModule } from './master-catalog/master-catalog.module';
 import { UserLocationModule } from './user-location/user-location.module';
 import { ShaClaimsModule } from './sha-claims/sha-claims.module';
+import { UserReviewModule } from './user-review/user-review.module';
+import { FeedbackModule } from './feedback/feedback.module';
+import { FacilitySubscriptionModule } from './facility-subscription/facility-subscription.module';
 import { validateEnvironment } from './config/env.validation';
 import { AuditInterceptor } from './audit-log/audit.interceptor';
 import { UserLocationInterceptor } from './user-location/user-location.interceptor';
+import { FacilitySubscriptionInterceptor } from './facility-subscription/facility-subscription.interceptor';
 
 @Module({
   imports: [
@@ -77,6 +81,9 @@ import { UserLocationInterceptor } from './user-location/user-location.intercept
     MasterCatalogModule,
     UserLocationModule,
     ShaClaimsModule,
+    UserReviewModule,
+    FeedbackModule,
+    FacilitySubscriptionModule,
   ],
   controllers: [AppController],
   providers: [
@@ -88,6 +95,10 @@ import { UserLocationInterceptor } from './user-location/user-location.intercept
     {
       provide: APP_INTERCEPTOR,
       useClass: UserLocationInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: FacilitySubscriptionInterceptor,
     },
   ],
 })

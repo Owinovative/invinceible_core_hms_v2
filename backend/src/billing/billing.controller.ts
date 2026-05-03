@@ -201,6 +201,14 @@ export class BillingController {
     return this.billingService.addInvoiceItem(id, dto, user);
   }
 
+  @Post('invoices/:id/close')
+  closeInvoice(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.closeInvoice(id, user);
+  }
+
   @Patch('invoice-items/:id')
   updateInvoiceItem(
     @Param('id', ParseIntPipe) id: number,
