@@ -1048,8 +1048,8 @@ export class BillingService {
     }
 
     if (balanceAmount <= 0 && totalAmount > 0) {
-      statusCode = 'PAID';
-      settledAt = new Date();
+      statusCode = 'CLOSED';
+      settledAt = invoice.settledAt ?? new Date();
     }
 
     if (totalAmount <= 0) {
@@ -1161,7 +1161,11 @@ export class BillingService {
   ) {
     const invoice = await this.getInvoiceByIdScoped(invoiceId, user);
 
-    if (['CANCELLED', 'VOID'].includes(invoice.statusCode?.toUpperCase())) {
+    if (
+      ['CLOSED', 'PAID', 'CANCELLED', 'VOID'].includes(
+        invoice.statusCode?.toUpperCase(),
+      )
+    ) {
       throw new BadRequestException(
         `Invoice ${invoice.invoiceNumber} is ${invoice.statusCode} and cannot receive new lines.`,
       );
@@ -1466,6 +1470,64 @@ export class BillingService {
     });
 
     return this.recalculateInvoiceTotalsFromItems(item.invoiceId);
+  }
+
+  async closeInvoice(id: number, user: RequestUser) {
+    const invoice = await this.getInvoiceByIdScoped(id, user);
+
+    if (invoice.totalAmount <= 0) {
+      throw new BadRequestException('Invoice has no billable amount to close.');
+    }
+
+    if (invoice.balanceAmount > 0) {
+      throw new BadRequestException(
+        `Invoice cannot be closed while ${invoice.balanceAmount} remains unpaid.`,
+      );
+    }
+
+    if (invoice.statusCode === 'CLOSED') {
+      return invoice;
+    }
+
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: {
+        statusCode: 'CLOSED',
+        settledAt: invoice.settledAt ?? new Date(),
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        appointment: true,
+        consultation: true,
+        admission: true,
+        createdBy: true,
+        items: {
+          include: {
+            billingService: true,
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        },
+        payments: true,
+      },
+    });
+
+    await this.auditLogService.create({
+      moduleName: 'BILLING',
+      actionName: 'CLOSE_INVOICE',
+      entityType: 'INVOICE',
+      entityId: String(id),
+      description: `Invoice ${invoice.invoiceNumber} closed`,
+      facilityId: invoice.facilityId,
+      branchId: invoice.branchId ?? undefined,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? undefined,
+      beforeData: JSON.stringify(invoice),
+      afterData: JSON.stringify(updated),
+    });
+
+    return updated;
   }
 
   async createBillingService(dto: CreateBillingServiceDto) {
@@ -3128,6 +3190,115 @@ export class BillingService {
     return payment;
   }
 
+  async applyShaCoveragePayment(params: {
+    shaClaimId: number;
+    claimNumber: string;
+    invoiceId: number;
+    amount: number;
+    statusCode?: string | null;
+    rejectionReason?: string | null;
+    receivedByStaffId?: number | null;
+  }) {
+    const invoice = await this.getInvoiceById(params.invoiceId);
+    const requestedAmount = Number(params.amount || 0);
+    const existing = await this.prisma.payment.findFirst({
+      where: {
+        shaClaimId: params.shaClaimId,
+        paymentMethod: 'SHA',
+      },
+    });
+
+    if (requestedAmount <= 0) {
+      if (existing && existing.statusCode !== 'FAILED') {
+        const failed = await this.prisma.payment.update({
+          where: { id: existing.id },
+          data: {
+            statusCode: 'FAILED',
+            notes: 'SHA coverage removed from the invoice.',
+          },
+        });
+        await this.recalculateInvoice(params.invoiceId);
+        return failed;
+      }
+
+      return existing;
+    }
+
+    const maximumAllowed =
+      invoice.balanceAmount +
+      (existing?.statusCode === 'COMPLETED' ? existing.amount : 0);
+
+    if (requestedAmount > maximumAllowed) {
+      throw new BadRequestException(
+        `SHA cover exceeds outstanding invoice balance of ${maximumAllowed}`,
+      );
+    }
+
+    const cancelled = params.statusCode === 'CANCELLED';
+    const now = new Date();
+    const notes =
+      params.statusCode === 'REJECTED'
+        ? `SHA claim rejected and recorded as facility loss. ${
+            params.rejectionReason || ''
+          }`.trim()
+        : `SHA cover for claim ${params.claimNumber}`;
+
+    const data = {
+      amount: requestedAmount,
+      paymentMethod: 'SHA',
+      statusCode: cancelled ? 'FAILED' : 'COMPLETED',
+      transactionRef: params.claimNumber,
+      paidAt: cancelled ? null : now,
+      confirmedAt: cancelled ? null : now,
+      receivedByStaffId: params.receivedByStaffId ?? null,
+      notes,
+    };
+
+    const payment = existing
+      ? await this.prisma.payment.update({
+          where: { id: existing.id },
+          data,
+          include: {
+            facility: true,
+            branch: true,
+            invoice: true,
+            receivedBy: true,
+          },
+        })
+      : await this.prisma.payment.create({
+          data: {
+            facilityId: invoice.facilityId,
+            branchId: invoice.branchId,
+            receiptNumber: this.generateReceiptNumber('SHA'),
+            invoiceId: params.invoiceId,
+            shaClaimId: params.shaClaimId,
+            ...data,
+          },
+          include: {
+            facility: true,
+            branch: true,
+            invoice: true,
+            receivedBy: true,
+          },
+        });
+
+    await this.recalculateInvoice(params.invoiceId);
+
+    await this.auditLogService.create({
+      moduleName: 'BILLING',
+      actionName: cancelled ? 'CANCEL_SHA_PAYMENT' : 'APPLY_SHA_PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: String(payment.id),
+      description: `SHA coverage ${payment.receiptNumber} linked to claim ${params.claimNumber}`,
+      facilityId: payment.facilityId,
+      branchId: payment.branchId ?? undefined,
+      actorStaffId: params.receivedByStaffId ?? undefined,
+      afterData: JSON.stringify(payment),
+    });
+
+    return payment;
+  }
+
   async createMpesaPaymentRequest(dto: CreateMpesaPaymentRequestDto) {
     const invoice = await this.getInvoiceById(dto.invoiceId);
     const normalizedPhone = this.normalizeMpesaPhone(dto.phoneNumber);
@@ -3824,7 +3995,7 @@ export class BillingService {
       where: { ...scope, statusCode: 'PARTIALLY_PAID' },
     });
     const paidInvoices = await this.prisma.invoice.count({
-      where: { ...scope, statusCode: 'PAID' },
+      where: { ...scope, statusCode: { in: ['PAID', 'CLOSED'] } },
     });
 
     const invoiceAggregates = await this.prisma.invoice.aggregate({
@@ -3851,7 +4022,7 @@ export class BillingService {
     };
   }
 
-  private async recalculateInvoice(invoiceId: number) {
+  async recalculateInvoice(invoiceId: number) {
     return this.recalculateInvoiceTotalsFromItems(invoiceId);
   }
 }

@@ -506,6 +506,12 @@ export async function addInvoiceItem(
   });
 }
 
+export async function closeInvoice(invoiceId: number) {
+  return apiFetch<InvoiceRecord>(`/billing/invoices/${invoiceId}/close`, {
+    method: "POST",
+  });
+}
+
 export async function removeInvoiceItem(
   id: number,
   payload: RemoveInvoiceItemPayload,

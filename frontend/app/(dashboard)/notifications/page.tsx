@@ -1,20 +1,103 @@
 "use client";
 
+import * as React from "react";
 import { Bell, CheckCircle2, CircleAlert, RadioTower } from "lucide-react";
+import { useCreateNotification } from "@/hooks/use-create-notification";
+import { useNotificationRecipients } from "@/hooks/use-notification-recipients";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useNotificationStats } from "@/hooks/use-notification-stats";
 import { NotificationsList } from "@/components/notifications/notifications-list";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { appSelectClass } from "@/lib/select-class";
+import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const { facilityId, facilityName, selectedBranchId, selectedBranchName } =
     useScope();
   const scope = { facilityId, branchId: selectedBranchId };
   const { data, isLoading } = useNotifications(scope);
   const { data: stats } = useNotificationStats(scope);
+  const { data: recipients } = useNotificationRecipients();
+  const createNotificationMutation = useCreateNotification();
+  const [recipient, setRecipient] = React.useState("");
+  const [title, setTitle] = React.useState("");
+  const [message, setMessage] = React.useState("");
+  const [notice, setNotice] = React.useState<string | null>(null);
 
   const notifications = data ?? [];
+  const roleCode = user?.roleCode ?? "";
+  const isSuperAdmin = roleCode === "SUPER_ADMIN";
+  const isFacilityAdmin = ["ADMIN", "FACILITY_ADMIN"].includes(roleCode);
+
+  const recipientOptions = React.useMemo(() => {
+    const rows: Array<{ value: string; label: string }> = [];
+    if (recipients?.canNotifySystem || isSuperAdmin) {
+      rows.push({ value: "system", label: "Everyone in the system" });
+    }
+    if ((recipients?.canNotifyFacility || isFacilityAdmin) && facilityId) {
+      rows.push({ value: "facility", label: "Everyone in this facility" });
+    }
+
+    (recipients?.users || []).forEach((item) => {
+      const targetRole = item.roleCode ?? "";
+      rows.push({
+        value: `user:${item.id}`,
+        label: `${item.fullName || item.username} (${targetRole || "USER"})`,
+      });
+    });
+
+    (recipients?.staff || []).forEach((item) => {
+      rows.push({
+        value: `staff:${item.id}`,
+        label: `${item.firstName} ${item.lastName} (${item.designation || item.staffCode})`,
+      });
+    });
+
+    return rows;
+  }, [facilityId, isFacilityAdmin, isSuperAdmin, recipients]);
+
+  const sendNotification = async () => {
+    setNotice(null);
+    const payload: {
+      title: string;
+      message: string;
+      notificationType: string;
+      severity: string;
+      moduleName: string;
+      facilityId?: number;
+      branchId?: number;
+      targetUserId?: number;
+      targetStaffId?: number;
+    } = {
+      title,
+      message,
+      notificationType: "USER_MESSAGE",
+      severity: "INFO",
+      moduleName: "MESSAGING",
+    };
+
+    if (recipient === "facility" && facilityId) {
+      payload.facilityId = facilityId;
+    } else if (recipient.startsWith("user:")) {
+      payload.targetUserId = Number(recipient.split(":")[1]);
+    } else if (recipient.startsWith("staff:")) {
+      payload.targetStaffId = Number(recipient.split(":")[1]);
+    } else if (recipient !== "system") {
+      setNotice("Choose a recipient first.");
+      return;
+    }
+
+    await createNotificationMutation.mutateAsync(payload);
+    setTitle("");
+    setMessage("");
+    setRecipient("");
+    setNotice("Notification sent.");
+  };
 
   return (
     <div className="space-y-6">
@@ -67,6 +150,53 @@ export default function NotificationsPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
+        <div className="grid gap-4 xl:grid-cols-[0.75fr_1.25fr_auto] xl:items-end">
+          <div>
+            <label className="mb-2 block text-sm font-medium">Recipient</label>
+            <select
+              value={recipient}
+              onChange={(event) => setRecipient(event.target.value)}
+              className={appSelectClass}
+            >
+              <option value="">Choose recipient</option>
+              {recipientOptions.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-4 md:grid-cols-[0.55fr_1fr]">
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="h-11 rounded-md"
+              placeholder="Title"
+            />
+            <Textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              className="min-h-[44px] rounded-md"
+              placeholder="Message"
+            />
+          </div>
+          <Button
+            className="h-11 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+            disabled={
+              createNotificationMutation.isPending ||
+              !recipient ||
+              title.trim().length < 3 ||
+              message.trim().length < 3
+            }
+            onClick={sendNotification}
+          >
+            Send
+          </Button>
+        </div>
+        {notice ? <p className="mt-3 text-sm text-sky-800">{notice}</p> : null}
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  CheckCircle2,
   CreditCard,
   Download,
   Loader2,
@@ -17,8 +18,10 @@ import { useAuth } from "@/providers/auth-provider";
 import { useInvoiceById } from "@/hooks/use-invoice-by-id";
 import { useCreateCashPayment } from "@/hooks/use-create-cash-payment";
 import { useCreateMpesaPaymentRequest } from "@/hooks/use-create-mpesa-payment-request";
+import { useCreateShaClaim } from "@/hooks/use-create-sha-claim";
 import { useResendMpesaPaymentRequest } from "@/hooks/use-resend-mpesa-payment-request";
 import { useCheckMpesaPaymentStatus } from "@/hooks/use-check-mpesa-payment-status";
+import { useCloseInvoice } from "@/hooks/use-close-invoice";
 import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { downloadInvoicePdf } from "@/services/billing-service";
@@ -56,8 +59,10 @@ export default function InvoiceDetailPage() {
   const { data: invoice, isLoading } = useInvoiceById(id);
   const createCashPaymentMutation = useCreateCashPayment();
   const createMpesaPaymentMutation = useCreateMpesaPaymentRequest();
+  const createShaClaimMutation = useCreateShaClaim();
   const resendMpesaPaymentMutation = useResendMpesaPaymentRequest();
   const checkMpesaPaymentStatusMutation = useCheckMpesaPaymentStatus();
+  const closeInvoiceMutation = useCloseInvoice();
   const updateInvoiceItemMutation = useUpdateInvoiceItem();
   const removeInvoiceItemMutation = useRemoveInvoiceItem();
 
@@ -68,6 +73,8 @@ export default function InvoiceDetailPage() {
 
   const [mpesaAmount, setMpesaAmount] = React.useState("");
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
+  const [shaAmount, setShaAmount] = React.useState("");
+  const [shaMemberNumber, setShaMemberNumber] = React.useState("");
 
   const [editItemId, setEditItemId] = React.useState<number | null>(null);
   const [editDescription, setEditDescription] = React.useState("");
@@ -78,16 +85,22 @@ export default function InvoiceDetailPage() {
 
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
+  const invoiceStatus = invoice?.statusCode?.toUpperCase() || "";
+  const isClosed = invoiceStatus === "CLOSED";
+  const isFullyPaid = !!invoice && invoice.totalAmount > 0 && invoice.balanceAmount <= 0;
 
   React.useEffect(() => {
     if (!invoice) return;
     if (!mpesaAmount && invoice.balanceAmount > 0) {
       setMpesaAmount(String(invoice.balanceAmount));
     }
+    if (!shaAmount && invoice.balanceAmount > 0) {
+      setShaAmount(String(invoice.balanceAmount));
+    }
     if (!mpesaPhoneNumber && invoice.patient?.phonePrimary) {
       setMpesaPhoneNumber(invoice.patient.phonePrimary);
     }
-  }, [invoice, mpesaAmount, mpesaPhoneNumber]);
+  }, [invoice, mpesaAmount, mpesaPhoneNumber, shaAmount]);
 
   const handleStartEdit = (item: (typeof items)[number]) => {
     setEditItemId(item.id);
@@ -162,6 +175,31 @@ export default function InvoiceDetailPage() {
     setMessage(result.message || "M-PESA STK Push request processed.");
   };
 
+  const handleShaCoverage = async () => {
+    if (!invoice) return;
+    const amount = Number(shaAmount || 0);
+    if (amount <= 0) {
+      setMessage("Enter a valid SHA cover amount.");
+      return;
+    }
+
+    const created = await createShaClaimMutation.mutateAsync({
+      facilityId: invoice.facilityId,
+      branchId: invoice.branchId ?? undefined,
+      patientId: invoice.patientId,
+      invoiceId: invoice.id,
+      claimedAmount: amount,
+      memberNumber: shaMemberNumber.trim() || undefined,
+      notes: "SHA payment cover created from invoice workspace.",
+    });
+
+    setMessage(
+      `SHA cover ${created.claimNumber} recorded. Patient balance has been recalculated.`,
+    );
+    setShaAmount("");
+    setShaMemberNumber("");
+  };
+
   const handleDownloadInvoicePdf = async () => {
     if (!invoice) return;
 
@@ -179,6 +217,13 @@ export default function InvoiceDetailPage() {
     } finally {
       setIsDownloadingPdf(false);
     }
+  };
+
+  const handleCloseInvoice = async () => {
+    if (!invoice) return;
+
+    const updated = await closeInvoiceMutation.mutateAsync(invoice.id);
+    setMessage(`Invoice ${updated.invoiceNumber} is closed.`);
   };
 
   return (
@@ -208,6 +253,20 @@ export default function InvoiceDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-3 print:hidden">
+            <Button
+              type="button"
+              variant={isClosed ? "default" : "outline"}
+              className="rounded-2xl"
+              onClick={handleCloseInvoice}
+              disabled={!invoice || !isFullyPaid || isClosed || closeInvoiceMutation.isPending}
+            >
+              {closeInvoiceMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+              )}
+              {isClosed ? "Invoice Closed" : "Close Invoice"}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -454,7 +513,7 @@ export default function InvoiceDetailPage() {
             </Card>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-2">
+          <section className="grid gap-6 xl:grid-cols-3">
             <Card className="rounded-[1.8rem] gradient-border panel-shadow">
               <CardHeader>
                 <CardTitle>Cash Payment</CardTitle>
@@ -518,6 +577,43 @@ export default function InvoiceDetailPage() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
                   Create M-PESA Request
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle>SHA Cover</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <p className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+                  SHA can cover the full bill or part of it. Any remaining
+                  balance stays open for cash, M-PESA, or another method.
+                </p>
+                <Input
+                  type="number"
+                  value={shaAmount}
+                  onChange={(e) => setShaAmount(e.target.value)}
+                  className="h-12 rounded-2xl"
+                  placeholder="SHA amount"
+                />
+                <Input
+                  value={shaMemberNumber}
+                  onChange={(e) => setShaMemberNumber(e.target.value)}
+                  className="h-12 rounded-2xl"
+                  placeholder="SHA member number"
+                />
+                <Button
+                  type="button"
+                  className="h-12 rounded-2xl"
+                  onClick={handleShaCoverage}
+                  disabled={createShaClaimMutation.isPending || isClosed}
+                >
+                  {createShaClaimMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Apply SHA Cover
                 </Button>
               </CardContent>
             </Card>

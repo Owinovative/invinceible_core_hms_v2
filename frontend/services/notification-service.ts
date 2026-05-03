@@ -86,6 +86,30 @@ export interface ResolveNotificationPayload {
   resolutionNote?: string;
 }
 
+export interface NotificationRecipients {
+  canNotifySystem: boolean;
+  canNotifyFacility: boolean;
+  users: Array<{
+    id: number;
+    username: string;
+    fullName?: string | null;
+    roleCode?: string | null;
+    facilityId?: number | null;
+    branchId?: number | null;
+    photoUrl?: string | null;
+  }>;
+  staff: Array<{
+    id: number;
+    staffCode?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    designation?: string | null;
+    facilityId?: number | null;
+    branchId?: number | null;
+    photoUrl?: string | null;
+  }>;
+}
+
 export type NotificationQueryParams = {
   facilityId?: number;
   branchId?: number;
@@ -131,6 +155,12 @@ export async function getNotificationStats(params?: NotificationQueryParams) {
       method: "GET",
     },
   );
+}
+
+export async function getNotificationRecipients() {
+  return apiFetch<NotificationRecipients>("/notifications/recipients", {
+    method: "GET",
+  });
 }
 
 export async function markNotificationsAsRead(

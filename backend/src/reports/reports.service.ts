@@ -324,7 +324,7 @@ export class ReportsService {
       }),
       this.prisma.invoice.count({ where: invoiceWhere }),
       this.prisma.invoice.count({
-        where: { ...invoiceWhere, statusCode: 'PAID' },
+        where: { ...invoiceWhere, statusCode: { in: ['PAID', 'CLOSED'] } },
       }),
       this.prisma.invoice.count({
         where: { ...invoiceWhere, statusCode: 'PENDING' },
@@ -718,7 +718,7 @@ export class ReportsService {
     });
 
     const paidInvoices = await this.prisma.invoice.count({
-      where: { ...where, statusCode: 'PAID' },
+      where: { ...where, statusCode: { in: ['PAID', 'CLOSED'] } },
     });
 
     const totals = await this.prisma.invoice.aggregate({

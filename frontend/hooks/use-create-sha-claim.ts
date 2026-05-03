@@ -14,6 +14,9 @@ export function useCreateShaClaim() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sha-claims"] });
       queryClient.invalidateQueries({ queryKey: ["sha-claim-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["billing-invoice"] });
+      queryClient.invalidateQueries({ queryKey: ["billing-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["billing-dashboard"] });
     },
   });
 }

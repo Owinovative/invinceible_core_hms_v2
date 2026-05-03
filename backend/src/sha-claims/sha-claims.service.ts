@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { BillingService } from '../billing/billing.service';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import {
@@ -20,6 +21,7 @@ const SHA_CLAIM_INCLUDE = {
   patient: true,
   invoice: true,
   createdBy: true,
+  payments: true,
 } satisfies Prisma.ShaClaimInclude;
 
 @Injectable()
@@ -28,7 +30,45 @@ export class ShaClaimsService {
     private readonly prisma: PrismaService,
     private readonly scopeService: ScopeService,
     private readonly auditLogService: AuditLogService,
+    private readonly billingService: BillingService,
   ) {}
+
+  private resolveCoverageAmount(claim: {
+    claimedAmount: number;
+    approvedAmount: number;
+    paidAmount: number;
+  }) {
+    return Number(
+      claim.paidAmount || claim.approvedAmount || claim.claimedAmount || 0,
+    );
+  }
+
+  private async syncClaimPayment(
+    claim: {
+      id: number;
+      claimNumber: string;
+      invoiceId: number | null;
+      claimedAmount: number;
+      approvedAmount: number;
+      paidAmount: number;
+      statusCode: string;
+      rejectionReason?: string | null;
+      createdByStaffId?: number | null;
+    },
+    user?: RequestUser,
+  ) {
+    if (!claim.invoiceId) return null;
+
+    return this.billingService.applyShaCoveragePayment({
+      shaClaimId: claim.id,
+      claimNumber: claim.claimNumber,
+      invoiceId: claim.invoiceId,
+      amount: this.resolveCoverageAmount(claim),
+      statusCode: claim.statusCode,
+      rejectionReason: claim.rejectionReason,
+      receivedByStaffId: user?.staffId ?? claim.createdByStaffId ?? null,
+    });
+  }
 
   async findAll(user: RequestUser) {
     const scope = this.scopeService.buildReadScope(user);
@@ -51,6 +91,12 @@ export class ShaClaimsService {
         approvedAmount: true,
         paidAmount: true,
         rejectedAmount: true,
+        payments: {
+          select: {
+            amount: true,
+            statusCode: true,
+          },
+        },
       },
     });
 
@@ -61,6 +107,9 @@ export class ShaClaimsService {
         acc.approvedAmount += claim.approvedAmount;
         acc.paidAmount += claim.paidAmount;
         acc.rejectedAmount += claim.rejectedAmount;
+        acc.coveredAmount += claim.payments
+          .filter((payment) => payment.statusCode === 'COMPLETED')
+          .reduce((sum, payment) => sum + payment.amount, 0);
         acc.byStatus[claim.statusCode] = (acc.byStatus[claim.statusCode] ?? 0) + 1;
         return acc;
       },
@@ -70,6 +119,7 @@ export class ShaClaimsService {
         approvedAmount: 0,
         paidAmount: 0,
         rejectedAmount: 0,
+        coveredAmount: 0,
         byStatus: {} as Record<string, number>,
       },
     );
@@ -77,6 +127,7 @@ export class ShaClaimsService {
     return {
       ...summary,
       outstandingAmount: Math.max(summary.approvedAmount - summary.paidAmount, 0),
+      lossAmount: summary.rejectedAmount,
     };
   }
 
@@ -156,6 +207,8 @@ export class ShaClaimsService {
       });
     });
 
+    await this.syncClaimPayment(claim, user);
+
     await this.auditLogService.create({
       moduleName: 'SHA',
       actionName: 'CREATE_SHA_CLAIM',
@@ -183,6 +236,10 @@ export class ShaClaimsService {
 
     const now = new Date();
     const nextStatus = dto.statusCode ?? claim.statusCode;
+    const rejectedAmount =
+      nextStatus === 'REJECTED'
+        ? (dto.rejectedAmount ?? dto.claimedAmount ?? claim.claimedAmount)
+        : dto.rejectedAmount;
     const data: Prisma.ShaClaimUpdateInput = {
       statusCode: nextStatus,
       branch: dto.branchId === undefined ? undefined : dto.branchId === null ? { disconnect: true } : { connect: { id: dto.branchId } },
@@ -195,7 +252,7 @@ export class ShaClaimsService {
       claimedAmount: dto.claimedAmount,
       approvedAmount: dto.approvedAmount,
       paidAmount: dto.paidAmount,
-      rejectedAmount: dto.rejectedAmount,
+      rejectedAmount,
       rejectionReason: dto.rejectionReason,
       notes: dto.notes,
       patientSignatureUrl: dto.patientSignatureUrl,
@@ -213,6 +270,8 @@ export class ShaClaimsService {
       data,
       include: SHA_CLAIM_INCLUDE,
     });
+
+    await this.syncClaimPayment(updated, user);
 
     await this.auditLogService.create({
       moduleName: 'SHA',

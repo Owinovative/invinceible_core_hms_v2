@@ -6,9 +6,11 @@ import {
   ClipboardCheck,
   FileText,
   FlaskConical,
+  HeartHandshake,
   Pill,
   ReceiptText,
   ShieldCheck,
+  Star,
   Stethoscope,
   Users,
 } from "lucide-react";
@@ -110,6 +112,12 @@ export default function HomePage() {
               </Link>
               <Link href="/facilities" className="hover:text-sky-200">
                 Facilities
+              </Link>
+              <Link href="/inspiration" className="hover:text-sky-200">
+                Inspiration
+              </Link>
+              <Link href="/reviews" className="hover:text-sky-200">
+                Reviews
               </Link>
               <Link href="/creators" className="hover:text-sky-200">
                 Creators
@@ -223,6 +231,68 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-sky-200 bg-[#f7fcff]">
+        <div className="mx-auto grid max-w-[1500px] gap-6 px-5 py-14 md:px-8 xl:grid-cols-[1.05fr_0.95fr]">
+          <Link
+            href="/inspiration"
+            className="group grid overflow-hidden border border-sky-200 bg-white shadow-xl md:grid-cols-[280px_1fr]"
+          >
+            <div
+              className="min-h-[360px] bg-cover bg-center"
+              style={{
+                backgroundImage:
+                  "url('/inspiration/rev-dr-nelson-mandela.png')",
+              }}
+            />
+            <div className="flex flex-col justify-center p-7">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+                <HeartHandshake className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-semibold uppercase text-sky-700">
+                System inspiration
+              </p>
+              <h2 className="mt-2 max-w-xl text-4xl font-bold leading-tight text-slate-950">
+                Rev. Dr Nelson Mandela
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
+                Director of St Francis Hillside Medicare KSM, sponsor of this
+                build, and the leadership force behind a system made for serious
+                hospital work.
+              </p>
+              <span className="mt-6 inline-flex items-center gap-2 font-semibold text-sky-700 group-hover:text-sky-900">
+                View inspiration page
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            href="/reviews"
+            className="group flex flex-col justify-between border border-sky-200 bg-[#eaf7ff] p-7 shadow-xl"
+          >
+            <div>
+              <div className="mb-5 flex h-12 w-12 items-center justify-center border border-sky-200 bg-white text-sky-700">
+                <Star className="h-5 w-5 fill-sky-600" />
+              </div>
+              <p className="text-sm font-semibold uppercase text-sky-700">
+                Staff ratings
+              </p>
+              <h2 className="mt-2 max-w-xl text-4xl font-bold leading-tight text-slate-950">
+                Reviews from people using the system.
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
+                Users can rate the HMS after five successful logins. One user,
+                one review, with name and photo shown where available.
+              </p>
+            </div>
+            <span className="mt-8 inline-flex items-center gap-2 font-semibold text-sky-700 group-hover:text-sky-900">
+              Open reviews page
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
         </div>
       </section>
 
