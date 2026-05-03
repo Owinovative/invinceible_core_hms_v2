@@ -8,9 +8,14 @@ export function useCreateMpesaPaymentRequest() {
 
   return useMutation({
     mutationFn: createMpesaPaymentRequest,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["billing-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["billing-dashboard"] });
+      if (result.payment?.invoiceId) {
+        queryClient.invalidateQueries({
+          queryKey: ["billing-invoice", result.payment.invoiceId],
+        });
+      }
     },
   });
 }

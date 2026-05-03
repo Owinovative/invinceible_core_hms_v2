@@ -13,7 +13,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            refetchOnWindowFocus: false,
+            staleTime: 15_000,
+            gcTime: 5 * 60_000,
+            refetchInterval: 45_000,
+            refetchIntervalInBackground: false,
+            refetchOnMount: true,
+            refetchOnReconnect: true,
+            refetchOnWindowFocus: true,
+            placeholderData: (previousData: unknown) => previousData,
             retry: 1,
           },
           mutations: {

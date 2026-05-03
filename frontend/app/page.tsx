@@ -100,7 +100,6 @@ export default function HomePage() {
         }}
       >
         <div className="absolute inset-0 bg-[#061a2f]/78" />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-sky-300/18" />
 
         <div className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col px-5 py-5 md:px-8">
           <header className="flex items-center justify-between gap-4 border border-sky-300/25 bg-[#08243f]/92 px-4 py-4 shadow-2xl">
@@ -299,7 +298,7 @@ export default function HomePage() {
       </section>
 
       <section className="bg-white">
-        <div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-16 md:px-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="mx-auto grid max-w-[1500px] gap-8 px-5 py-12 md:px-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="overflow-hidden border border-sky-200">
             {controlRows.map(([area, detail]) => (
               <div
@@ -312,7 +311,12 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="border border-sky-200 bg-[#f8fcff] p-6">
+          <div className="grid gap-4 border border-sky-200 bg-[#f8fcff] p-4 md:grid-cols-[230px_1fr]">
+            <div
+              className="min-h-[340px] border border-sky-200 bg-cover bg-center"
+              style={{ backgroundImage: "url('/creators/eng-otieno.png')" }}
+            />
+            <div className="p-2">
             <p className="text-sm font-semibold uppercase text-sky-700">
               Built by
             </p>
@@ -339,6 +343,7 @@ export default function HomePage() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
+            </div>
           </div>
         </div>
       </section>

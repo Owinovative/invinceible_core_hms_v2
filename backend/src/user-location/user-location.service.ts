@@ -50,9 +50,12 @@ type CaptureInput = {
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 14;
 const LIVE_WINDOW_MS = 1000 * 60 * 10;
+const REQUEST_CAPTURE_THROTTLE_MS = 1000 * 45;
 
 @Injectable()
 export class UserLocationService {
+  private readonly requestCaptureThrottle = new Map<string, number>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -272,6 +275,14 @@ export class UserLocationService {
       input.method ?? (input.req?.method ? input.req.method.toUpperCase() : null);
     const eventType = input.eventType ?? 'REQUEST';
     const sessionId = this.sessionId(input.user);
+
+    if (
+      eventType === 'REQUEST' &&
+      this.shouldThrottleRequestCapture(sessionId, route, method, now)
+    ) {
+      return;
+    }
+
     const device = this.parseUserAgent(userAgent);
     const geo = input.precise
       ? await this.mergePreciseGeo(ipAddress, input.precise)
@@ -569,6 +580,40 @@ export class UserLocationService {
   private sessionId(user: RequestUser) {
     if (user.sessionId) return user.sessionId;
     return `u:${user.userId}:sv:${user.sessionVersion ?? 0}`;
+  }
+
+  private shouldThrottleRequestCapture(
+    sessionId: string,
+    route: string | null,
+    method: string | null,
+    now: Date,
+  ) {
+    if (method && method !== 'GET') return false;
+
+    const cleanRoute = String(route ?? '')
+      .replace(/\?.*$/, '')
+      .slice(0, 180);
+    const key = `${sessionId}:${method ?? 'GET'}:${cleanRoute}`;
+    const currentTime = now.getTime();
+    const previousTime = this.requestCaptureThrottle.get(key);
+
+    if (
+      previousTime &&
+      currentTime - previousTime < REQUEST_CAPTURE_THROTTLE_MS
+    ) {
+      return true;
+    }
+
+    this.requestCaptureThrottle.set(key, currentTime);
+
+    if (this.requestCaptureThrottle.size > 3000) {
+      const cutoff = currentTime - REQUEST_CAPTURE_THROTTLE_MS * 4;
+      for (const [entryKey, timestamp] of this.requestCaptureThrottle) {
+        if (timestamp < cutoff) this.requestCaptureThrottle.delete(entryKey);
+      }
+    }
+
+    return false;
   }
 
   private routeFromRequest(req: RequestLike) {

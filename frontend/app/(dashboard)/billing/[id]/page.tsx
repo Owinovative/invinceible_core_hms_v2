@@ -8,6 +8,7 @@ import {
   CreditCard,
   Download,
   Loader2,
+  RefreshCw,
   Trash2,
   Save,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { useInvoiceById } from "@/hooks/use-invoice-by-id";
 import { useCreateCashPayment } from "@/hooks/use-create-cash-payment";
 import { useCreateMpesaPaymentRequest } from "@/hooks/use-create-mpesa-payment-request";
 import { useResendMpesaPaymentRequest } from "@/hooks/use-resend-mpesa-payment-request";
+import { useCheckMpesaPaymentStatus } from "@/hooks/use-check-mpesa-payment-status";
 import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { downloadInvoicePdf } from "@/services/billing-service";
@@ -55,6 +57,7 @@ export default function InvoiceDetailPage() {
   const createCashPaymentMutation = useCreateCashPayment();
   const createMpesaPaymentMutation = useCreateMpesaPaymentRequest();
   const resendMpesaPaymentMutation = useResendMpesaPaymentRequest();
+  const checkMpesaPaymentStatusMutation = useCheckMpesaPaymentStatus();
   const updateInvoiceItemMutation = useUpdateInvoiceItem();
   const removeInvoiceItemMutation = useRemoveInvoiceItem();
 
@@ -75,6 +78,16 @@ export default function InvoiceDetailPage() {
 
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
+
+  React.useEffect(() => {
+    if (!invoice) return;
+    if (!mpesaAmount && invoice.balanceAmount > 0) {
+      setMpesaAmount(String(invoice.balanceAmount));
+    }
+    if (!mpesaPhoneNumber && invoice.patient?.phonePrimary) {
+      setMpesaPhoneNumber(invoice.patient.phonePrimary);
+    }
+  }, [invoice, mpesaAmount, mpesaPhoneNumber]);
 
   const handleStartEdit = (item: (typeof items)[number]) => {
     setEditItemId(item.id);
@@ -541,24 +554,52 @@ export default function InvoiceDetailPage() {
                       </p>
                       {payment.paymentMethod === "MPESA" &&
                       payment.statusCode === "PENDING" ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="mt-3 rounded-xl"
-                          disabled={resendMpesaPaymentMutation.isPending}
-                          onClick={async () => {
-                            const result =
-                              await resendMpesaPaymentMutation.mutateAsync(
-                                payment.id,
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {payment.checkoutRequestId ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="rounded-xl"
+                              disabled={checkMpesaPaymentStatusMutation.isPending}
+                              onClick={async () => {
+                                if (!payment.checkoutRequestId) return;
+                                const result =
+                                  await checkMpesaPaymentStatusMutation.mutateAsync(
+                                    payment.checkoutRequestId,
+                                  );
+                                setMessage(
+                                  result.message || "M-PESA status checked.",
+                                );
+                              }}
+                            >
+                              {checkMpesaPaymentStatusMutation.isPending ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                              )}
+                              Check Status
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl"
+                            disabled={resendMpesaPaymentMutation.isPending}
+                            onClick={async () => {
+                              const result =
+                                await resendMpesaPaymentMutation.mutateAsync(
+                                  payment.id,
+                                );
+                              setMessage(
+                                result.message || "M-PESA STK Push resent.",
                               );
-                            setMessage(
-                              result.message || "M-PESA STK Push resent.",
-                            );
-                          }}
-                        >
-                          Resend STK Push
-                        </Button>
+                            }}
+                          >
+                            Resend STK Push
+                          </Button>
+                        </div>
                       ) : null}
                     </div>
                   ))

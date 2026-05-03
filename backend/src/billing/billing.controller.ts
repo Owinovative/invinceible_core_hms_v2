@@ -276,6 +276,14 @@ export class BillingController {
     );
   }
 
+  @Get('payments/mpesa/status/:checkoutRequestId')
+  getMpesaPaymentStatus(
+    @Param('checkoutRequestId') checkoutRequestId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.getMpesaPaymentStatus(checkoutRequestId, user);
+  }
+
   @Get('dashboard')
   getBillingDashboard(@CurrentUser() user: RequestUser) {
     return this.billingService.getBillingDashboard(user);

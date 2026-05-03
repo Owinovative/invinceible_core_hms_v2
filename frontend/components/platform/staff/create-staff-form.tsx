@@ -11,6 +11,7 @@ import { useFacilities } from "@/hooks/use-facilities";
 import { useBranches } from "@/hooks/use-branches";
 import { useUsers } from "@/hooks/use-users";
 import { useRoles } from "@/hooks/use-roles";
+import type { IdentityOcrResponse } from "@/services/ai-assistant-service";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -253,6 +254,13 @@ export function CreateStaffForm() {
       setOcrMessage(null);
       const value = await compactImageDataUrl(file, maxSide);
       form.setValue(field, value, { shouldDirty: true, shouldValidate: true });
+      if (field === "nationalIdImageUrl") {
+        void runIdentityRead(value).catch((error) => {
+          setOcrMessage(
+            error instanceof Error ? error.message : "Unable to read ID image.",
+          );
+        });
+      }
     } catch (error) {
       setOcrMessage(
         error instanceof Error ? error.message : "Unable to upload image.",
@@ -260,6 +268,63 @@ export function CreateStaffForm() {
     } finally {
       event.target.value = "";
     }
+  };
+
+  const applyIdentityResult = (result: IdentityOcrResponse) => {
+    if (result.nationalIdNumber) {
+      form.setValue("nationalIdNumber", result.nationalIdNumber, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+
+    const firstName = result.firstName?.trim();
+    const surname = [result.middleName, result.lastName]
+      .map((value) => value?.trim())
+      .filter(Boolean)
+      .join(" ");
+
+    if (firstName) {
+      form.setValue("firstName", firstName, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+
+    if (surname) {
+      form.setValue("lastName", surname, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      return;
+    }
+
+    if (result.fullName) {
+      const parts = result.fullName.split(/\s+/).filter(Boolean);
+      if (parts.length > 0) {
+        form.setValue("firstName", parts[0], {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (parts.length > 1) {
+        form.setValue("lastName", parts.slice(1).join(" "), {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+    }
+  };
+
+  const runIdentityRead = async (imageDataUrl: string) => {
+    setOcrMessage("Reading national ID with AI...");
+    const result = await readIdentityMutation.mutateAsync(imageDataUrl);
+    applyIdentityResult(result);
+    setOcrMessage(
+      `AI reading complete. Confidence ${Math.round(
+        (result.confidence || 0) * 100,
+      )}%. Please verify before saving.`,
+    );
   };
 
   const handleReadIdentity = async () => {
@@ -271,35 +336,7 @@ export function CreateStaffForm() {
     }
 
     try {
-      const result = await readIdentityMutation.mutateAsync(nationalIdImageUrl);
-      if (result.nationalIdNumber) {
-        form.setValue("nationalIdNumber", result.nationalIdNumber, {
-          shouldDirty: true,
-          shouldValidate: true,
-        });
-      }
-
-      if (result.fullName) {
-        const parts = result.fullName.split(/\s+/).filter(Boolean);
-        if (parts.length > 0) {
-          form.setValue("firstName", parts[0], {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        }
-        if (parts.length > 1) {
-          form.setValue("lastName", parts.slice(1).join(" "), {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-        }
-      }
-
-      setOcrMessage(
-        `AI reading complete. Confidence ${Math.round(
-          (result.confidence || 0) * 100,
-        )}%. Please verify before saving.`,
-      );
+      await runIdentityRead(nationalIdImageUrl);
     } catch (error) {
       setOcrMessage(
         error instanceof Error ? error.message : "Unable to read ID image.",

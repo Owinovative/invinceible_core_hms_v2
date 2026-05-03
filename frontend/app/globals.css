@@ -799,10 +799,10 @@ pre,
 }
 
 .invoice-premium-paper {
-  width: 210mm;
-  min-height: auto;
+  width: min(100%, 842px);
+  min-height: 500px;
   margin: 0 auto;
-  padding: 9mm 10mm 8mm;
+  padding: 28px 32px;
   border: 1px solid #d8e3ed;
   background: #ffffff;
   color: #0f172a;
@@ -849,9 +849,9 @@ pre,
 
 .invoice-premium-brand h2 {
   margin: 0;
-  color: #334155;
+  color: #0b2f56;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 23px;
+  font-size: 22px;
   line-height: 1.08;
   letter-spacing: 0;
 }
@@ -867,12 +867,12 @@ pre,
   display: grid;
   justify-items: end;
   gap: 4px;
-  color: #334155;
+  color: #0b2f56;
 }
 
 .invoice-premium-title strong {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 28px;
+  font-size: 27px;
   font-weight: 500;
 }
 
@@ -935,8 +935,8 @@ pre,
 }
 
 .invoice-premium-table thead {
-  background: #f1f5f9;
-  color: #334155;
+  background: #eaf6ff;
+  color: #0b2f56;
 }
 
 .invoice-premium-table th,
@@ -964,8 +964,10 @@ pre,
 
 .invoice-premium-table td:nth-child(5),
 .invoice-premium-table td:nth-child(6),
+.invoice-premium-table td:nth-child(7),
 .invoice-premium-table th:nth-child(5),
-.invoice-premium-table th:nth-child(6) {
+.invoice-premium-table th:nth-child(6),
+.invoice-premium-table th:nth-child(7) {
   text-align: right;
 }
 
@@ -1011,7 +1013,7 @@ pre,
 }
 
 .invoice-premium-totals .grand {
-  background: #e0f2fe;
+  background: #dff3ff;
   color: #0c4a6e;
   font-size: 13px;
   font-weight: 800;

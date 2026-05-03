@@ -45,6 +45,8 @@ export class UserLocationInterceptor implements NestInterceptor {
     const url = String(req.originalUrl ?? req.url ?? '');
     if (url.startsWith('/health')) return false;
     if (url.startsWith('/favicon')) return false;
+    if (url.startsWith('/user-locations/precise')) return false;
+    if (url.startsWith('/user-locations/platform')) return false;
 
     return true;
   }

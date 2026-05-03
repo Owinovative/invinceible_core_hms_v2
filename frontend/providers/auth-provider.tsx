@@ -50,6 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const warningTimerRef = React.useRef<number | null>(null);
   const logoutTimerRef = React.useRef<number | null>(null);
   const locationWatchRef = React.useRef<number | null>(null);
+  const locationRetryTimersRef = React.useRef<number[]>([]);
+  const lastPreciseLocationRef = React.useRef<{
+    latitude: number;
+    longitude: number;
+    accuracyMeters?: number;
+    sentAt: number;
+  } | null>(null);
 
   const clearAutoLogoutTimers = React.useCallback(() => {
     if (warningTimerRef.current) {
@@ -182,30 +189,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token || !user || !("geolocation" in navigator)) return;
 
     const sendPosition = (position: GeolocationPosition) => {
-      void recordPreciseUserLocation({
+      const next = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracyMeters: position.coords.accuracy,
+        sentAt: Date.now(),
+      };
+      const previous = lastPreciseLocationRef.current;
+      const movedEnough =
+        !previous ||
+        Math.abs(previous.latitude - next.latitude) > 0.00015 ||
+        Math.abs(previous.longitude - next.longitude) > 0.00015;
+      const accuracyImproved =
+        !previous ||
+        Number(next.accuracyMeters || 0) + 10 <
+          Number(previous.accuracyMeters || Number.POSITIVE_INFINITY);
+      const oldEnough = !previous || next.sentAt - previous.sentAt > 60_000;
+
+      if (!movedEnough && !accuracyImproved && !oldEnough) return;
+
+      lastPreciseLocationRef.current = next;
+
+      void recordPreciseUserLocation({
+        latitude: next.latitude,
+        longitude: next.longitude,
+        accuracyMeters: next.accuracyMeters,
       }).catch(() => undefined);
     };
 
-    navigator.geolocation.getCurrentPosition(sendPosition, () => undefined, {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
-    });
+    const requestLocation = (timeout = 15000, maximumAge = 0) => {
+      navigator.geolocation.getCurrentPosition(sendPosition, () => undefined, {
+        enableHighAccuracy: true,
+        timeout,
+        maximumAge,
+      });
+    };
+
+    requestLocation(12000, 0);
+    locationRetryTimersRef.current = [2500, 9000, 25000].map((delay) =>
+      window.setTimeout(() => requestLocation(15000, 5000), delay),
+    );
 
     locationWatchRef.current = navigator.geolocation.watchPosition(
       sendPosition,
       () => undefined,
       {
         enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 30000,
+        timeout: 25000,
+        maximumAge: 10000,
       },
     );
 
+    const handleFocus = () => requestLocation(10000, 10000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestLocation(10000, 10000);
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      locationRetryTimersRef.current.forEach((timer) =>
+        window.clearTimeout(timer),
+      );
+      locationRetryTimersRef.current = [];
       if (locationWatchRef.current !== null) {
         navigator.geolocation.clearWatch(locationWatchRef.current);
         locationWatchRef.current = null;
