@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
@@ -42,6 +42,10 @@ import { validateEnvironment } from './config/env.validation';
 import { AuditInterceptor } from './audit-log/audit.interceptor';
 import { UserLocationInterceptor } from './user-location/user-location.interceptor';
 import { FacilitySubscriptionInterceptor } from './facility-subscription/facility-subscription.interceptor';
+import { ResilienceModule } from './resilience/resilience.module';
+import { RateLimitMiddleware } from './resilience/rate-limit.middleware';
+import { RequestContextMiddleware } from './resilience/request-context.middleware';
+import { RequestLoggingMiddleware } from './resilience/request-logging.middleware';
 
 @Module({
   imports: [
@@ -49,6 +53,7 @@ import { FacilitySubscriptionInterceptor } from './facility-subscription/facilit
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    ResilienceModule,
     PrismaModule,
     FacilityModule,
     RoleModule,
@@ -102,4 +107,14 @@ import { FacilitySubscriptionInterceptor } from './facility-subscription/facilit
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(
+        RequestContextMiddleware,
+        RateLimitMiddleware,
+        RequestLoggingMiddleware,
+      )
+      .forRoutes('*');
+  }
+}

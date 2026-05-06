@@ -13,6 +13,7 @@ import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { BillingService } from '../billing/billing.service';
+import { CacheService } from '../resilience/cache.service';
 
 @Injectable()
 export class PharmacyService {
@@ -24,6 +25,7 @@ export class PharmacyService {
     private readonly notificationService: NotificationService,
     private readonly scopeService: ScopeService,
     private readonly billingService: BillingService,
+    private readonly cacheService: CacheService,
   ) {}
 
 
@@ -38,7 +40,7 @@ export class PharmacyService {
       throw new BadRequestException('Medicine code or name already exists');
     }
 
-    return this.prisma.medicine.create({
+    const medicine = await this.prisma.medicine.create({
       data: {
         code: createMedicineDto.code,
         name: createMedicineDto.name,
@@ -51,12 +53,22 @@ export class PharmacyService {
         isActive: createMedicineDto.isActive ?? true,
       },
     });
+
+    await this.cacheService.invalidatePattern(
+      this.cacheService.makeKey(['medicine-reference']) + '*',
+    );
+    return medicine;
   }
 
   getAllMedicines() {
-    return this.prisma.medicine.findMany({
-      orderBy: { id: 'asc' },
-    });
+    return this.cacheService.getOrSet(
+      this.cacheService.makeKey(['medicine-reference', 'all']),
+      Number(process.env.CACHE_REFERENCE_TTL_SECONDS ?? 300),
+      () =>
+        this.prisma.medicine.findMany({
+          orderBy: { id: 'asc' },
+        }),
+    );
   }
 
   async getMedicineById(id: number) {

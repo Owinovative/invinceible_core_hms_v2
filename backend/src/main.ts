@@ -44,11 +44,22 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const allowedOrigins = buildAllowedOrigins(configService);
+  const trustProxy =
+    String(configService.get<string>('TRUST_PROXY') || '').toLowerCase() ===
+    'true';
 
   app.getHttpAdapter().getInstance().disable('x-powered-by');
+  if (trustProxy) {
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  }
   app.enableShutdownHooks();
-  app.use(json({ limit: '4mb' }));
-  app.use(urlencoded({ extended: true, limit: '4mb' }));
+  app.use(json({ limit: configService.get<string>('BODY_LIMIT') || '4mb' }));
+  app.use(
+    urlencoded({
+      extended: true,
+      limit: configService.get<string>('BODY_LIMIT') || '4mb',
+    }),
+  );
 
   app.enableCors({
     origin: (origin, callback) => {

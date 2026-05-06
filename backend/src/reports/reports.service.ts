@@ -2,6 +2,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { CacheService } from '../resilience/cache.service';
 
 function escapeCsvCell(value: unknown) {
   const text =
@@ -26,7 +27,10 @@ function toCsv(rows: unknown[][]) {
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
   public applyUserScopeToFilter(
     user: RequestUser,
     filter?: ReportFilterDto,
@@ -133,6 +137,14 @@ export class ReportsService {
   }
 
   async getDashboardSummary(filter?: ReportFilterDto) {
+    return this.cacheService.getOrSet(
+      this.cacheService.makeKey(['reports', 'dashboard-summary', filter ?? {}]),
+      Number(process.env.CACHE_DASHBOARD_TTL_SECONDS ?? 30),
+      () => this.getDashboardSummaryUncached(filter),
+    );
+  }
+
+  private async getDashboardSummaryUncached(filter?: ReportFilterDto) {
     const patientWhere = {
       ...(filter?.facilityId ? { facilityId: filter.facilityId } : {}),
       ...(this.buildDateRange(filter)

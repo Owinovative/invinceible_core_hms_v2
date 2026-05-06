@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -30,8 +31,20 @@ export class PatientController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: RequestUser) {
+  findAll(@CurrentUser() user: RequestUser, @Query() query: any) {
+    if (query?.page || query?.pageSize || query?.search) {
+      return this.patientService.findPageScoped(user, query);
+    }
+
     return this.patientService.findAllScoped(user);
+  }
+
+  @Get('search/suggestions')
+  searchSuggestions(
+    @CurrentUser() user: RequestUser,
+    @Query('search') search = '',
+  ) {
+    return this.patientService.searchSuggestionsScoped(user, search);
   }
 
   @Get('number/:patientNumber')

@@ -12,18 +12,18 @@ import {
   computeFacilityAccessStatus,
   FACILITY_GRACE_DAYS,
 } from '../common/facility-access';
+import { CacheService } from '../resilience/cache.service';
 
 @Injectable()
 export class FacilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   private sanitizeFacility<T extends Record<string, any>>(facility: T) {
-    const {
-      mpesaConsumerKey,
-      mpesaConsumerSecret,
-      mpesaPasskey,
-      ...safe
-    } = facility;
+    const { mpesaConsumerKey, mpesaConsumerSecret, mpesaPasskey, ...safe } =
+      facility;
 
     return {
       ...safe,
@@ -55,7 +55,8 @@ export class FacilityService {
         : this.normalizeComplianceStatus(existing.complianceStatus);
     const activeAfter =
       dto.isActive !== undefined ? dto.isActive : existing.isActive;
-    const compliantAfter = activeAfter && this.isCompliantStatus(requestedStatus);
+    const compliantAfter =
+      activeAfter && this.isCompliantStatus(requestedStatus);
     const wasCompliant =
       existing.isActive !== false &&
       this.isCompliantStatus(existing.complianceStatus);
@@ -66,7 +67,9 @@ export class FacilityService {
         complianceReason: dto.complianceReason ?? null,
         complianceDeactivatedAt: null,
         complianceGraceEndsAt: null,
-        complianceReactivatedAt: wasCompliant ? existing.complianceReactivatedAt : now,
+        complianceReactivatedAt: wasCompliant
+          ? existing.complianceReactivatedAt
+          : now,
       };
     }
 
@@ -157,7 +160,8 @@ export class FacilityService {
 
   async create(dto: CreateFacilityDto) {
     const code = dto.code?.trim() || (await this.generateFacilityCode());
-    const branchCode = dto.branchCode?.trim() || (await this.generateBranchCode());
+    const branchCode =
+      dto.branchCode?.trim() || (await this.generateBranchCode());
 
     const existing = await this.prisma.facility.findFirst({
       where: {
@@ -166,7 +170,9 @@ export class FacilityService {
     });
 
     if (existing) {
-      throw new BadRequestException('Facility code or branch code already exists');
+      throw new BadRequestException(
+        'Facility code or branch code already exists',
+      );
     }
 
     if (dto.isDefault) {
@@ -175,7 +181,7 @@ export class FacilityService {
       });
     }
 
-    return this.prisma.facility.create({
+    const created = await this.prisma.facility.create({
       data: {
         code,
         branchCode,
@@ -223,19 +229,28 @@ export class FacilityService {
         isHeadOffice: dto.isHeadOffice ?? false,
         isDefault: dto.isDefault ?? false,
         isActive: dto.isActive ?? true,
-        complianceStatus: this.normalizeComplianceStatus(
-          dto.complianceStatus,
-        ),
+        complianceStatus: this.normalizeComplianceStatus(dto.complianceStatus),
         complianceReason: dto.complianceReason,
       },
-    }).then((facility) => this.sanitizeFacility(facility));
+    });
+    await this.cacheService.invalidatePattern(
+      this.cacheService.makeKey(['facility-list']) + '*',
+    );
+    return this.sanitizeFacility(created);
   }
 
   findAll() {
-    return this.prisma.facility.findMany({
-      orderBy: { id: 'asc' },
-    }).then((facilities) =>
-      facilities.map((facility) => this.sanitizeFacility(facility)),
+    return this.cacheService.getOrSet(
+      this.cacheService.makeKey(['facility-list', 'metadata']),
+      Number(process.env.CACHE_REFERENCE_TTL_SECONDS ?? 300),
+      () =>
+        this.prisma.facility
+          .findMany({
+            orderBy: { id: 'asc' },
+          })
+          .then((facilities) =>
+            facilities.map((facility) => this.sanitizeFacility(facility)),
+          ),
     );
   }
 
@@ -322,14 +337,16 @@ export class FacilityService {
 
     const complianceUpdate = this.buildComplianceUpdate(existing, dto);
     const secretData = {
-      ...(dto.mpesaConsumerKey ? { mpesaConsumerKey: dto.mpesaConsumerKey } : {}),
+      ...(dto.mpesaConsumerKey
+        ? { mpesaConsumerKey: dto.mpesaConsumerKey }
+        : {}),
       ...(dto.mpesaConsumerSecret
         ? { mpesaConsumerSecret: dto.mpesaConsumerSecret }
         : {}),
       ...(dto.mpesaPasskey ? { mpesaPasskey: dto.mpesaPasskey } : {}),
     };
 
-    return this.prisma.facility.update({
+    const updated = await this.prisma.facility.update({
       where: { id },
       data: {
         code: dto.code,
@@ -377,14 +394,22 @@ export class FacilityService {
         isDefault: dto.isDefault,
         isActive: dto.isActive,
       },
-    }).then((facility) => this.sanitizeFacility(facility));
+    });
+    await this.cacheService.invalidatePattern(
+      this.cacheService.makeKey(['facility-list']) + '*',
+    );
+    return this.sanitizeFacility(updated);
   }
 
   async remove(id: number) {
     await this.findRaw(id);
 
-    return this.prisma.facility.delete({
+    const removed = await this.prisma.facility.delete({
       where: { id },
     });
+    await this.cacheService.invalidatePattern(
+      this.cacheService.makeKey(['facility-list']) + '*',
+    );
+    return removed;
   }
 }

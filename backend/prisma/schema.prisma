@@ -347,6 +347,12 @@ model Patient {
   dispenses      Dispense[]
 
   @@index([facilityId])
+  @@index([phonePrimary])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([facilityId, patientNumber])
+  @@index([facilityId, phonePrimary])
+  @@index([facilityId, createdAt])
   @@map("patients")
 }
 
@@ -419,6 +425,11 @@ model Appointment {
   @@index([doctorId])
   @@index([clinicId])
   @@index([statusCode])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([appointmentDate])
+  @@index([facilityId, branchId, appointmentDate, statusCode])
+  @@index([doctorId, appointmentDate, statusCode])
   @@map("appointments")
 }
 
@@ -557,6 +568,10 @@ model LabOrder {
   @@index([appointmentId])
   @@index([admissionId])
   @@index([requestedByStaffId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([facilityId, branchId, status, createdAt])
   @@map("lab_orders")
 }
 
@@ -612,6 +627,10 @@ model Medicine {
   branchStocks      BranchMedicineStock[]
   dispenseItems     DispenseItem[]
 
+  @@index([name])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([updatedAt])
   @@map("medicines")
 }
 
@@ -643,6 +662,9 @@ model Prescription {
   @@index([patientId])
   @@index([prescribedByStaffId])
   @@index([statusCode])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([facilityId, branchId, statusCode, createdAt])
   @@map("prescriptions")
 }
 
@@ -814,6 +836,10 @@ model Admission {
   @@index([wardId])
   @@index([bedId])
   @@index([statusCode])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([admittedAt])
+  @@index([facilityId, branchId, statusCode, createdAt])
   @@map("admissions")
 }
 
@@ -1028,6 +1054,12 @@ model Invoice {
   @@index([admissionId])
   @@index([createdByStaffId])
   @@index([statusCode])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([issuedAt])
+  @@index([facilityId, branchId, statusCode])
+  @@index([facilityId, patientId])
+  @@index([facilityId, createdAt])
   @@map("invoices")
 }
 
@@ -1104,8 +1136,15 @@ model Payment {
   @@index([statusCode])
   @@index([paymentMethod])
   @@index([checkoutRequestId])
+  @@index([merchantRequestId])
+  @@index([mpesaReceiptNumber])
   @@index([phoneNumber])
   @@index([shaClaimId])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([requestedAt])
+  @@index([facilityId, branchId, statusCode])
+  @@index([invoiceId, statusCode])
   @@map("payments")
 }
 
@@ -1271,6 +1310,8 @@ model AuditLog {
   @@index([actorUserId])
   @@index([actorStaffId])
   @@index([createdAt])
+  @@index([facilityId, branchId, createdAt])
+  @@index([actorUserId, createdAt])
   @@map("audit_logs")
 }
 
@@ -1464,6 +1505,8 @@ model BranchMedicineStock {
   @@index([facilityId])
   @@index([branchId])
   @@index([medicineId])
+  @@index([createdAt])
+  @@index([updatedAt])
   @@map("branch_medicine_stocks")
 }
 
