@@ -8,89 +8,89 @@ datasource db {
 }
 
 model Facility {
-  id                   Int                   @id @default(autoincrement())
-  code                 String                @unique @db.VarChar(50)
-  branchCode           String?               @unique @db.VarChar(50)
-  name                 String                @db.VarChar(255)
-  facilityType         String?               @db.VarChar(100)
-  county               String?               @db.VarChar(120)
-  town                 String?               @db.VarChar(120)
-  country              String?               @db.VarChar(120)
-  phone                String?               @db.VarChar(50)
-  altPhone             String?               @db.VarChar(50)
-  email                String?               @db.VarChar(255)
-  website              String?               @db.VarChar(255)
-  address              String?               @db.VarChar(255)
-  postalAddress        String?               @db.VarChar(255)
-  registrationNo       String?               @db.VarChar(100)
-  taxPin               String?               @db.VarChar(100)
-  licenseNumber        String?               @db.VarChar(100)
-  logoUrl              String?               @db.LongText
-  latitude             Float?
-  longitude            Float?
-  mapLocationLabel     String?               @db.VarChar(255)
-  googleMapsUrl        String?               @db.VarChar(500)
-  timezone             String?               @db.VarChar(100)
-  currency             String?               @db.VarChar(20)
-  mpesaShortcode       String?               @db.VarChar(50)
-  mpesaPaybill         String?               @db.VarChar(50)
-  mpesaAccountNumber   String?               @db.VarChar(80)
-  mpesaTillNumber      String?               @db.VarChar(50)
-  mpesaPochiNumber     String?               @db.VarChar(80)
-  mpesaEnabled         Boolean               @default(false)
-  mpesaEnvironment     String?               @db.VarChar(30)
-  mpesaConsumerKey     String?               @db.LongText
-  mpesaConsumerSecret  String?               @db.LongText
-  mpesaPasskey         String?               @db.LongText
-  mpesaCallbackUrl     String?               @db.VarChar(500)
-  mpesaTransactionType String?               @db.VarChar(80)
-  showCashOnInvoice    Boolean               @default(true)
-  showPaybillOnInvoice Boolean               @default(true)
-  showTillOnInvoice    Boolean               @default(true)
-  showPochiOnInvoice   Boolean               @default(true)
-  shaFidCode           String?               @db.VarChar(120)
-  shaClaimStartNumber  Int                   @default(1)
-  shaClaimNextNumber   Int                   @default(1)
-  subscriptionMonthlyFee Float                @default(5000)
-  subscriptionStartedAt  DateTime?
+  id                      Int                           @id @default(autoincrement())
+  code                    String                        @unique @db.VarChar(50)
+  branchCode              String?                       @unique @db.VarChar(50)
+  name                    String                        @db.VarChar(255)
+  facilityType            String?                       @db.VarChar(100)
+  county                  String?                       @db.VarChar(120)
+  town                    String?                       @db.VarChar(120)
+  country                 String?                       @db.VarChar(120)
+  phone                   String?                       @db.VarChar(50)
+  altPhone                String?                       @db.VarChar(50)
+  email                   String?                       @db.VarChar(255)
+  website                 String?                       @db.VarChar(255)
+  address                 String?                       @db.VarChar(255)
+  postalAddress           String?                       @db.VarChar(255)
+  registrationNo          String?                       @db.VarChar(100)
+  taxPin                  String?                       @db.VarChar(100)
+  licenseNumber           String?                       @db.VarChar(100)
+  logoUrl                 String?                       @db.LongText
+  latitude                Float?
+  longitude               Float?
+  mapLocationLabel        String?                       @db.VarChar(255)
+  googleMapsUrl           String?                       @db.VarChar(500)
+  timezone                String?                       @db.VarChar(100)
+  currency                String?                       @db.VarChar(20)
+  mpesaShortcode          String?                       @db.VarChar(50)
+  mpesaPaybill            String?                       @db.VarChar(50)
+  mpesaAccountNumber      String?                       @db.VarChar(80)
+  mpesaTillNumber         String?                       @db.VarChar(50)
+  mpesaPochiNumber        String?                       @db.VarChar(80)
+  mpesaEnabled            Boolean                       @default(false)
+  mpesaEnvironment        String?                       @db.VarChar(30)
+  mpesaConsumerKey        String?                       @db.LongText
+  mpesaConsumerSecret     String?                       @db.LongText
+  mpesaPasskey            String?                       @db.LongText
+  mpesaCallbackUrl        String?                       @db.VarChar(500)
+  mpesaTransactionType    String?                       @db.VarChar(80)
+  showCashOnInvoice       Boolean                       @default(true)
+  showPaybillOnInvoice    Boolean                       @default(true)
+  showTillOnInvoice       Boolean                       @default(true)
+  showPochiOnInvoice      Boolean                       @default(true)
+  shaFidCode              String?                       @db.VarChar(120)
+  shaClaimStartNumber     Int                           @default(1)
+  shaClaimNextNumber      Int                           @default(1)
+  subscriptionMonthlyFee  Float                         @default(5000)
+  subscriptionStartedAt   DateTime?
   subscriptionPaidThrough DateTime?
-  subscriptionStatus     String              @default("ACTIVE") @db.VarChar(50)
-  subscriptionLockedAt   DateTime?
-  complianceStatus     String                @default("COMPLIANT") @db.VarChar(50)
-  complianceReason     String?               @db.Text
+  subscriptionStatus      String                        @default("ACTIVE") @db.VarChar(50)
+  subscriptionLockedAt    DateTime?
+  complianceStatus        String                        @default("COMPLIANT") @db.VarChar(50)
+  complianceReason        String?                       @db.Text
   complianceDeactivatedAt DateTime?
-  complianceGraceEndsAt DateTime?
+  complianceGraceEndsAt   DateTime?
   complianceReactivatedAt DateTime?
-  isHeadOffice         Boolean               @default(false)
-  isDefault            Boolean               @default(false)
-  isActive             Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  admissions           Admission[]
-  appointments         Appointment[]
-  triages              Triage[]
-  auditLogs            AuditLog[]
-  beds                 Bed[]
-  branches             Branch[]
-  clinics              Clinic[]
-  consultations        Consultation[]
-  departments          Department[]
-  invoices             Invoice[]
-  labOrders            LabOrder[]
-  notifications        Notification[]
-  patients             Patient[]
-  payments             Payment[]
-  prescriptions        Prescription[]
-  staff                Staff[]
-  userBranchAccesses   UserBranchAccess[]
-  homeUsers            User[]                @relation("UserHomeFacility")
-  wards                Ward[]
-  branchMedicineStocks BranchMedicineStock[]
-  dispenses            Dispense[]
-  serviceTariffs       ServiceTariff[]
-  shaClaims            ShaClaim[]
-  userFeedback         UserFeedback[]
-  subscriptionPayments FacilitySubscriptionPayment[]
+  isHeadOffice            Boolean                       @default(false)
+  isDefault               Boolean                       @default(false)
+  isActive                Boolean                       @default(true)
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+  admissions              Admission[]
+  appointments            Appointment[]
+  triages                 Triage[]
+  auditLogs               AuditLog[]
+  beds                    Bed[]
+  branches                Branch[]
+  clinics                 Clinic[]
+  consultations           Consultation[]
+  departments             Department[]
+  invoices                Invoice[]
+  labOrders               LabOrder[]
+  notifications           Notification[]
+  patients                Patient[]
+  payments                Payment[]
+  prescriptions           Prescription[]
+  staff                   Staff[]
+  userBranchAccesses      UserBranchAccess[]
+  homeUsers               User[]                        @relation("UserHomeFacility")
+  wards                   Ward[]
+  branchMedicineStocks    BranchMedicineStock[]
+  dispenses               Dispense[]
+  serviceTariffs          ServiceTariff[]
+  shaClaims               ShaClaim[]
+  userFeedback            UserFeedback[]
+  subscriptionPayments    FacilitySubscriptionPayment[]
 
   @@index([latitude, longitude])
   @@index([complianceStatus])
@@ -189,41 +189,42 @@ model Role {
 }
 
 model User {
-  id                             Int                  @id @default(autoincrement())
-  username                       String               @unique @db.VarChar(50)
-  email                          String?              @unique @db.VarChar(255)
-  passwordHash                   String               @db.VarChar(255)
-  fullName                       String?              @db.VarChar(150)
-  isActive                       Boolean              @default(true)
-  failedLoginAttempts            Int                  @default(0)
-  lockedAt                       DateTime?
-  lockReason                     String?              @db.VarChar(255)
-  pendingDeactivationAt          DateTime?
+  id                               Int                   @id @default(autoincrement())
+  username                         String                @unique @db.VarChar(50)
+  email                            String?               @unique @db.VarChar(255)
+  passwordHash                     String                @db.VarChar(255)
+  fullName                         String?               @db.VarChar(150)
+  isActive                         Boolean               @default(true)
+  failedLoginAttempts              Int                   @default(0)
+  lockedAt                         DateTime?
+  lockReason                       String?               @db.VarChar(255)
+  pendingDeactivationAt            DateTime?
   pendingDeactivationRequestedById Int?
-  pendingDeactivationReason      String?              @db.VarChar(255)
-  sessionVersion                 Int                  @default(0)
-  canAccessAllBranchesInFacility Boolean              @default(false)
-  lastLoginAt                    DateTime?
-  createdAt                      DateTime             @default(now())
-  updatedAt                      DateTime             @updatedAt
-  roleId                         Int
-  homeFacilityId                 Int?
-  homeBranchId                   Int?
-  auditLogs                      AuditLog[]           @relation("AuditActorUser")
-  locationProfiles               UserLocationProfile[]
-  locationEvents                 UserLocationEvent[]
-  sessions                       UserSession[]
-  reviews                        UserReview[]
-  createdFeedback                UserFeedback[]        @relation("FeedbackCreatedByUser")
-  repliedFeedback                UserFeedback[]        @relation("FeedbackRepliedByUser")
-  notifications                  Notification[]       @relation("NotificationTargetUser")
-  resolvedNotifications          Notification[]       @relation("NotificationResolvedByUser")
-  staff                          Staff?
-  branchAccesses                 UserBranchAccess[]
-  passwordResetTokens            PasswordResetToken[]
-  homeBranch                     Branch?              @relation(fields: [homeBranchId], references: [id])
-  homeFacility                   Facility?            @relation("UserHomeFacility", fields: [homeFacilityId], references: [id])
-  role                           Role                 @relation(fields: [roleId], references: [id])
+  pendingDeactivationReason        String?               @db.VarChar(255)
+  sessionVersion                   Int                   @default(0)
+  canAccessAllBranchesInFacility   Boolean               @default(false)
+  lastLoginAt                      DateTime?
+  createdAt                        DateTime              @default(now())
+  updatedAt                        DateTime              @updatedAt
+  roleId                           Int
+  homeFacilityId                   Int?
+  homeBranchId                     Int?
+  auditLogs                        AuditLog[]            @relation("AuditActorUser")
+  locationProfiles                 UserLocationProfile[]
+  locationEvents                   UserLocationEvent[]
+  sessions                         UserSession[]
+  reviews                          UserReview[]
+  createdFeedback                  UserFeedback[]        @relation("FeedbackCreatedByUser")
+  repliedFeedback                  UserFeedback[]        @relation("FeedbackRepliedByUser")
+  notifications                    Notification[]        @relation("NotificationTargetUser")
+  resolvedNotifications            Notification[]        @relation("NotificationResolvedByUser")
+  patientPortalProfile             Patient?              @relation("PatientPortalUser")
+  staff                            Staff?
+  branchAccesses                   UserBranchAccess[]
+  passwordResetTokens              PasswordResetToken[]
+  homeBranch                       Branch?               @relation(fields: [homeBranchId], references: [id])
+  homeFacility                     Facility?             @relation("UserHomeFacility", fields: [homeFacilityId], references: [id])
+  role                             Role                  @relation(fields: [roleId], references: [id])
 
   @@index([roleId])
   @@index([homeFacilityId])
@@ -252,30 +253,30 @@ model UserBranchAccess {
 }
 
 model Staff {
-  id           Int      @id @default(autoincrement())
-  staffCode    String   @unique @db.VarChar(50)
-  firstName    String   @db.VarChar(100)
-  lastName     String   @db.VarChar(100)
-  email        String?  @unique @db.VarChar(255)
-  phone        String?  @db.VarChar(30)
-  gender       String?  @db.VarChar(20)
-  designation  String?  @db.VarChar(150)
-  nationalIdNumber String? @db.VarChar(80)
-  nationalIdImageUrl String? @db.LongText
-  passportPhotoUrl String? @db.LongText
-  clinicianRegistrationNumber String? @db.VarChar(120)
-  clinicianBoard String? @db.VarChar(160)
-  isClinician  Boolean  @default(false)
-  isPrescriber Boolean  @default(false)
-  canLogin     Boolean  @default(true)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  facilityId   Int
-  branchId     Int?
-  departmentId Int?
-  roleId       Int
-  userId       Int?     @unique
+  id                          Int      @id @default(autoincrement())
+  staffCode                   String   @unique @db.VarChar(50)
+  firstName                   String   @db.VarChar(100)
+  lastName                    String   @db.VarChar(100)
+  email                       String?  @unique @db.VarChar(255)
+  phone                       String?  @db.VarChar(30)
+  gender                      String?  @db.VarChar(20)
+  designation                 String?  @db.VarChar(150)
+  nationalIdNumber            String?  @db.VarChar(80)
+  nationalIdImageUrl          String?  @db.LongText
+  passportPhotoUrl            String?  @db.LongText
+  clinicianRegistrationNumber String?  @db.VarChar(120)
+  clinicianBoard              String?  @db.VarChar(160)
+  isClinician                 Boolean  @default(false)
+  isPrescriber                Boolean  @default(false)
+  canLogin                    Boolean  @default(true)
+  isActive                    Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  facilityId                  Int
+  branchId                    Int?
+  departmentId                Int?
+  roleId                      Int
+  userId                      Int?     @unique
 
   admissions            Admission[]           @relation("AdmittedByStaff")
   appointments          Appointment[]         @relation("AppointmentDoctor")
@@ -335,6 +336,7 @@ model Patient {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   facilityId     Int
+  portalUserId   Int?           @unique
   admissions     Admission[]
   triages        Triage[]
   appointments   Appointment[]
@@ -343,6 +345,7 @@ model Patient {
   shaClaims      ShaClaim[]
   labOrders      LabOrder[]
   facility       Facility       @relation(fields: [facilityId], references: [id])
+  portalUser     User?          @relation("PatientPortalUser", fields: [portalUserId], references: [id])
   prescriptions  Prescription[]
   dispenses      Dispense[]
 
@@ -350,6 +353,7 @@ model Patient {
   @@index([phonePrimary])
   @@index([createdAt])
   @@index([updatedAt])
+  @@index([portalUserId])
   @@index([facilityId, patientNumber])
   @@index([facilityId, phonePrimary])
   @@index([facilityId, createdAt])
@@ -593,16 +597,16 @@ model LabOrderItem {
 }
 
 model LabResult {
-  id          Int          @id @default(autoincrement())
-  resultValue String       @db.Text
-  remarks     String?      @db.Text
-  attachmentFileName String? @db.VarChar(255)
-  attachmentMimeType String? @db.VarChar(120)
-  attachmentDataUrl  String? @db.LongText
-  recordedBy  Int?
-  recordedAt  DateTime     @default(now())
-  orderItemId Int
-  orderItem   LabOrderItem @relation(fields: [orderItemId], references: [id])
+  id                 Int          @id @default(autoincrement())
+  resultValue        String       @db.Text
+  remarks            String?      @db.Text
+  attachmentFileName String?      @db.VarChar(255)
+  attachmentMimeType String?      @db.VarChar(120)
+  attachmentDataUrl  String?      @db.LongText
+  recordedBy         Int?
+  recordedAt         DateTime     @default(now())
+  orderItemId        Int
+  orderItem          LabOrderItem @relation(fields: [orderItemId], references: [id])
 
   @@index([orderItemId])
   @@index([recordedAt])
@@ -1064,14 +1068,14 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          Int    @id @default(autoincrement())
-  description String @db.VarChar(255)
-  quantity    Int    @default(1)
-  unitPrice   Float  @default(0)
-  discountPercent Float @default(0)
-  discountAmount  Float @default(0)
-  lineTotal   Float  @default(0)
-  statusCode  String @default("BILLED") @db.VarChar(50)
+  id              Int    @id @default(autoincrement())
+  description     String @db.VarChar(255)
+  quantity        Int    @default(1)
+  unitPrice       Float  @default(0)
+  discountPercent Float  @default(0)
+  discountAmount  Float  @default(0)
+  lineTotal       Float  @default(0)
+  statusCode      String @default("BILLED") @db.VarChar(50)
 
   // Logical tracking fields for Billing Service
   isAutoGenerated  Boolean   @default(false)
@@ -1126,7 +1130,7 @@ model Payment {
   branch             Branch?   @relation(fields: [branchId], references: [id])
   facility           Facility  @relation(fields: [facilityId], references: [id])
   invoice            Invoice   @relation(fields: [invoiceId], references: [id])
-  shaClaim           ShaClaim?  @relation("ShaClaimPayments", fields: [shaClaimId], references: [id])
+  shaClaim           ShaClaim? @relation("ShaClaimPayments", fields: [shaClaimId], references: [id])
   receivedBy         Staff?    @relation("PaymentReceivedByStaff", fields: [receivedByStaffId], references: [id])
 
   @@index([facilityId])
@@ -1180,41 +1184,41 @@ model UserReview {
 }
 
 model ShaClaim {
-  id                 Int       @id @default(autoincrement())
-  claimNumber        String    @unique @db.VarChar(80)
-  statusCode         String    @default("DRAFT") @db.VarChar(50)
-  fidCode            String?   @db.VarChar(120)
-  memberNumber       String?   @db.VarChar(120)
-  diagnosisCode      String?   @db.VarChar(80)
-  diagnosisText      String?   @db.VarChar(255)
-  servicePeriodStart DateTime?
-  servicePeriodEnd   DateTime?
-  claimedAmount      Float     @default(0)
-  approvedAmount     Float     @default(0)
-  paidAmount         Float     @default(0)
-  rejectedAmount     Float     @default(0)
-  rejectionReason    String?   @db.Text
-  patientSignatureUrl String?  @db.LongText
-  facilitySignatureUrl String? @db.LongText
-  rubberStampUrl     String?   @db.LongText
-  submittedAt        DateTime?
-  approvedAt         DateTime?
-  paidAt             DateTime?
-  notes              String?   @db.Text
-  metadata           Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  facilityId         Int
-  branchId           Int?
-  patientId          Int
-  invoiceId          Int?
-  createdByStaffId   Int?
-  facility           Facility  @relation(fields: [facilityId], references: [id])
-  branch             Branch?   @relation(fields: [branchId], references: [id])
-  patient            Patient   @relation(fields: [patientId], references: [id])
-  invoice            Invoice?  @relation(fields: [invoiceId], references: [id])
-  createdBy          Staff?    @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
-  payments           Payment[] @relation("ShaClaimPayments")
+  id                   Int       @id @default(autoincrement())
+  claimNumber          String    @unique @db.VarChar(80)
+  statusCode           String    @default("DRAFT") @db.VarChar(50)
+  fidCode              String?   @db.VarChar(120)
+  memberNumber         String?   @db.VarChar(120)
+  diagnosisCode        String?   @db.VarChar(80)
+  diagnosisText        String?   @db.VarChar(255)
+  servicePeriodStart   DateTime?
+  servicePeriodEnd     DateTime?
+  claimedAmount        Float     @default(0)
+  approvedAmount       Float     @default(0)
+  paidAmount           Float     @default(0)
+  rejectedAmount       Float     @default(0)
+  rejectionReason      String?   @db.Text
+  patientSignatureUrl  String?   @db.LongText
+  facilitySignatureUrl String?   @db.LongText
+  rubberStampUrl       String?   @db.LongText
+  submittedAt          DateTime?
+  approvedAt           DateTime?
+  paidAt               DateTime?
+  notes                String?   @db.Text
+  metadata             Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  facilityId           Int
+  branchId             Int?
+  patientId            Int
+  invoiceId            Int?
+  createdByStaffId     Int?
+  facility             Facility  @relation(fields: [facilityId], references: [id])
+  branch               Branch?   @relation(fields: [branchId], references: [id])
+  patient              Patient   @relation(fields: [patientId], references: [id])
+  invoice              Invoice?  @relation(fields: [invoiceId], references: [id])
+  createdBy            Staff?    @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
+  payments             Payment[] @relation("ShaClaimPayments")
 
   @@index([facilityId])
   @@index([branchId])
@@ -1257,22 +1261,22 @@ model UserFeedback {
 }
 
 model FacilitySubscriptionPayment {
-  id              Int      @id @default(autoincrement())
-  paymentNumber   String   @unique @db.VarChar(80)
-  facilityId      Int
-  amount          Float    @default(0)
-  monthlyFee      Float    @default(5000)
-  monthsCovered   Float    @default(0)
-  paidFrom        DateTime?
-  paidThrough     DateTime?
-  paymentMethod   String?  @db.VarChar(50)
-  reference       String?  @db.VarChar(120)
-  notes           String?  @db.Text
+  id               Int       @id @default(autoincrement())
+  paymentNumber    String    @unique @db.VarChar(80)
+  facilityId       Int
+  amount           Float     @default(0)
+  monthlyFee       Float     @default(5000)
+  monthsCovered    Float     @default(0)
+  paidFrom         DateTime?
+  paidThrough      DateTime?
+  paymentMethod    String?   @db.VarChar(50)
+  reference        String?   @db.VarChar(120)
+  notes            String?   @db.Text
   recordedByUserId Int?
-  paidAt          DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  facility        Facility @relation(fields: [facilityId], references: [id])
+  paidAt           DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  facility         Facility  @relation(fields: [facilityId], references: [id])
 
   @@index([facilityId])
   @@index([paidAt])
@@ -1316,23 +1320,23 @@ model AuditLog {
 }
 
 model IpGeolocationCache {
-  id             Int      @id @default(autoincrement())
-  ipAddress      String   @unique @db.VarChar(100)
-  country        String?  @db.VarChar(120)
-  region         String?  @db.VarChar(120)
-  city           String?  @db.VarChar(120)
+  id             Int       @id @default(autoincrement())
+  ipAddress      String    @unique @db.VarChar(100)
+  country        String?   @db.VarChar(120)
+  region         String?   @db.VarChar(120)
+  city           String?   @db.VarChar(120)
   latitude       Float?
   longitude      Float?
-  isp            String?  @db.VarChar(255)
-  org            String?  @db.VarChar(255)
-  timezone       String?  @db.VarChar(120)
+  isp            String?   @db.VarChar(255)
+  org            String?   @db.VarChar(255)
+  timezone       String?   @db.VarChar(120)
   confidence     Float?
-  source         String?  @db.VarChar(80)
+  source         String?   @db.VarChar(80)
   rawResponse    Json?
-  lastLookedUpAt DateTime @default(now())
+  lastLookedUpAt DateTime  @default(now())
   expiresAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([expiresAt])
   @@index([country])
@@ -1341,37 +1345,37 @@ model IpGeolocationCache {
 }
 
 model UserLocationProfile {
-  id                Int      @id @default(autoincrement())
+  id                Int       @id @default(autoincrement())
   userId            Int?
-  sessionId         String   @unique @db.VarChar(120)
+  sessionId         String    @unique @db.VarChar(120)
   sessionVersion    Int?
-  isOnline          Boolean  @default(true)
+  isOnline          Boolean   @default(true)
   loginAt           DateTime?
-  lastSeenAt        DateTime @default(now())
+  lastSeenAt        DateTime  @default(now())
   loggedOutAt       DateTime?
-  lastRoute         String?  @db.VarChar(500)
-  lastMethod        String?  @db.VarChar(10)
+  lastRoute         String?   @db.VarChar(500)
+  lastMethod        String?   @db.VarChar(10)
   lastStatusCode    Int?
-  ipAddress         String?  @db.VarChar(100)
-  userAgent         String?  @db.Text
-  country           String?  @db.VarChar(120)
-  region            String?  @db.VarChar(120)
-  city              String?  @db.VarChar(120)
+  ipAddress         String?   @db.VarChar(100)
+  userAgent         String?   @db.Text
+  country           String?   @db.VarChar(120)
+  region            String?   @db.VarChar(120)
+  city              String?   @db.VarChar(120)
   latitude          Float?
   longitude         Float?
   accuracyMeters    Float?
-  isp               String?  @db.VarChar(255)
-  org               String?  @db.VarChar(255)
-  timezone          String?  @db.VarChar(120)
+  isp               String?   @db.VarChar(255)
+  org               String?   @db.VarChar(255)
+  timezone          String?   @db.VarChar(120)
   confidence        Float?
-  geolocationSource String?  @db.VarChar(80)
-  deviceType        String?  @db.VarChar(80)
-  browser           String?  @db.VarChar(120)
-  operatingSystem   String?  @db.VarChar(120)
-  eventCount        Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User?    @relation(fields: [userId], references: [id])
+  geolocationSource String?   @db.VarChar(80)
+  deviceType        String?   @db.VarChar(80)
+  browser           String?   @db.VarChar(120)
+  operatingSystem   String?   @db.VarChar(120)
+  eventCount        Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([isOnline, lastSeenAt])
@@ -1555,4 +1559,22 @@ model OperationalModuleRecord {
   @@index([priorityCode])
   @@index([createdAt])
   @@map("operational_module_records")
+}
+
+model DataOutboxEvent {
+  id          Int       @id @default(autoincrement())
+  eventType   String    @db.VarChar(120)
+  entityType  String    @db.VarChar(120)
+  entityId    String    @db.VarChar(120)
+  facilityId  Int?
+  branchId    Int?
+  payload     Json?
+  status      String    @default("PENDING") @db.VarChar(40)
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([facilityId, branchId, createdAt])
+  @@index([eventType])
+  @@map("data_outbox_events")
 }

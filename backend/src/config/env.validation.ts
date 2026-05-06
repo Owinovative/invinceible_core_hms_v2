@@ -69,5 +69,15 @@ export function validateEnvironment(
     LOG_LEVEL: config.LOG_LEVEL ?? 'info',
     REQUEST_TIMEOUT_MS: config.REQUEST_TIMEOUT_MS ?? '30000',
     BODY_LIMIT: config.BODY_LIMIT ?? '4mb',
+    PATIENT_PORTAL_ENABLED: config.PATIENT_PORTAL_ENABLED ?? 'false',
+    AI_ENABLED: config.AI_ENABLED ?? 'false',
+    SMS_ENABLED: config.SMS_ENABLED ?? 'false',
+    WHATSAPP_ENABLED: config.WHATSAPP_ENABLED ?? 'false',
+    SHA_ENABLED: config.SHA_ENABLED ?? 'true',
+    DATA_WAREHOUSE_ENABLED: config.DATA_WAREHOUSE_ENABLED ?? 'false',
+    CLINICAL_DECISION_SUPPORT_ENABLED:
+      config.CLINICAL_DECISION_SUPPORT_ENABLED ?? 'true',
+    MOBILE_OPTIMIZED_VIEWS_ENABLED:
+      config.MOBILE_OPTIMIZED_VIEWS_ENABLED ?? 'true',
   };
 }
