@@ -8,6 +8,11 @@ export interface FacilitySubscriptionStatus {
   statusCode: string;
   warningLevel: "CLEAR" | "YELLOW" | "RED" | "LOCKED";
   locked: boolean;
+  loginBlocked?: boolean;
+  loginBlockedAt?: string | null;
+  complianceWriteLocked?: boolean;
+  complianceGraceEndsAt?: string | null;
+  lockReason?: string | null;
   canDismiss: boolean;
   daysRemaining: number;
   secondsRemaining: number;

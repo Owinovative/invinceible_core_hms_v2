@@ -12,7 +12,10 @@ export function useDispensePrescription() {
     mutationFn: (id: number) => dispensePharmacyPrescription(id),
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-queue"] });
-      queryClient.invalidateQueries({ queryKey: ["prescription", id] });
+      queryClient.invalidateQueries({ queryKey: ["prescription-by-id", id] });
+      queryClient.invalidateQueries({ queryKey: ["branch-medicine-stocks"] });
+      queryClient.invalidateQueries({ queryKey: ["low-stock"] });
+      queryClient.invalidateQueries({ queryKey: ["billing-invoices"] });
     },
   });
 }

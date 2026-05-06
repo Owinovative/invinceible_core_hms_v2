@@ -510,7 +510,27 @@ async getPharmacyQueueScoped(user: RequestUser) {
     );
   }
 
-  for (const item of prescription.items) {
+  this.scopeService.assertBranchAccess(
+    user,
+    prescription.facilityId,
+    prescription.branchId,
+  );
+
+  const nonDispensableItemStatuses = ['DISPENSED', 'CANCELLED', 'DISPENSING'];
+  const itemsToDispense = prescription.items.filter(
+    (item) =>
+      !nonDispensableItemStatuses.includes(
+        (item.statusCode || '').toUpperCase(),
+      ),
+  );
+
+  if (itemsToDispense.length === 0) {
+    throw new BadRequestException(
+      'All prescription items have already been dispensed.',
+    );
+  }
+
+  for (const item of itemsToDispense) {
     const branchStock = await this.prisma.branchMedicineStock.findFirst({
       where: {
         facilityId: prescription.facilityId,
@@ -537,13 +557,10 @@ async getPharmacyQueueScoped(user: RequestUser) {
     }
   }
 
-  const latestDispense = await this.prisma.dispense.findFirst({
-    orderBy: { id: 'desc' },
-    select: { id: true },
-  });
-
-  const nextDispenseNumber = (latestDispense?.id ?? 0) + 1;
-  const dispenseNumber = `DSP-${String(nextDispenseNumber).padStart(6, '0')}`;
+  const temporaryDispenseNumber = `DSP-TMP-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)
+    .toUpperCase()}`;
 
   const lowStockChecks: Array<{
     stockId: number;
@@ -564,9 +581,9 @@ async getPharmacyQueueScoped(user: RequestUser) {
   }> = [];
 
   const result = await this.prisma.$transaction(async (tx) => {
-    const createdDispense = await tx.dispense.create({
+    let createdDispense = await tx.dispense.create({
       data: {
-        dispenseNumber,
+        dispenseNumber: temporaryDispenseNumber,
         prescriptionId: prescription.id,
         patientId: prescription.patientId,
         facilityId: prescription.facilityId,
@@ -577,7 +594,32 @@ async getPharmacyQueueScoped(user: RequestUser) {
       },
     });
 
-    for (const item of prescription.items) {
+    createdDispense = await tx.dispense.update({
+      where: { id: createdDispense.id },
+      data: {
+        dispenseNumber: `DSP-${String(createdDispense.id).padStart(6, '0')}`,
+      },
+    });
+
+    for (const item of itemsToDispense) {
+      const reservedItem = await tx.prescriptionItem.updateMany({
+        where: {
+          id: item.id,
+          statusCode: {
+            notIn: nonDispensableItemStatuses,
+          },
+        },
+        data: {
+          statusCode: 'DISPENSING',
+        },
+      });
+
+      if (reservedItem.count !== 1) {
+        throw new BadRequestException(
+          `Prescription item ${item.id} has already been dispensed or is being dispensed by another session.`,
+        );
+      }
+
       const branchStock = await tx.branchMedicineStock.findFirst({
         where: {
           facilityId: prescription.facilityId,
@@ -597,13 +639,28 @@ async getPharmacyQueueScoped(user: RequestUser) {
         );
       }
 
-      const updatedStock = await tx.branchMedicineStock.update({
-        where: { id: branchStock.id },
+      const reservedStock = await tx.branchMedicineStock.updateMany({
+        where: {
+          id: branchStock.id,
+          stockQuantity: {
+            gte: item.quantity,
+          },
+        },
         data: {
           stockQuantity: {
             decrement: item.quantity,
           },
         },
+      });
+
+      if (reservedStock.count !== 1) {
+        throw new BadRequestException(
+          `Insufficient branch stock for ${branchStock.medicine.name}. Another dispensing action may have used the stock first.`,
+        );
+      }
+
+      const updatedStock = await tx.branchMedicineStock.findUniqueOrThrow({
+        where: { id: branchStock.id },
         include: {
           medicine: true,
           branch: true,

@@ -10,6 +10,7 @@ import {
   PlayCircle,
   Plus,
   Save,
+  Search,
   ShieldCheck,
   Sparkles,
   StepForward,
@@ -122,6 +123,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
   const [message, setMessage] = React.useState<string | null>(null);
   const [queueFilter, setQueueFilter] = React.useState("active");
   const [queueDensity, setQueueDensity] = React.useState("comfortable");
+  const [queueSearch, setQueueSearch] = React.useState("");
 
   if (!moduleConfig) {
     return (
@@ -140,6 +142,22 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
       return ["COMPLETED", "CLOSED", "CANCELLED"].includes(record.statusCode);
     }
     return !["COMPLETED", "CLOSED", "CANCELLED"].includes(record.statusCode);
+  }).filter((record) => {
+    const query = queueSearch.trim().toLowerCase();
+    if (!query) return true;
+
+    return [
+      record.recordNumber,
+      record.title,
+      record.description,
+      record.workflowStage,
+      record.statusCode,
+      record.priorityCode,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
   });
   const queueHeightClass =
     queueDensity === "compact" ? "max-h-[520px]" : "max-h-[680px]";
@@ -444,7 +462,23 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                   <CardTitle>Live Work Queue</CardTitle>
                   <Sparkles className="h-5 w-5 text-cyan-500" />
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-[1fr_150px_150px]">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      Search
+                    </label>
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={queueSearch}
+                        onChange={(event) =>
+                          setQueueSearch(event.target.value)
+                        }
+                        className="h-12 rounded-xl pl-10"
+                        placeholder="Record, stage, status"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       Queue view

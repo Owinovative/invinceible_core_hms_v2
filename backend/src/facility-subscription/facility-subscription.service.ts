@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  addDays,
+  addMonths,
+  computeFacilityAccessStatus,
+} from '../common/facility-access';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecordFacilitySubscriptionPaymentDto } from './dto/record-facility-subscription-payment.dto';
 
 const MONTHLY_FEE = 5000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class FacilitySubscriptionService {
@@ -13,16 +17,6 @@ export class FacilitySubscriptionService {
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
   ) {}
-
-  private addDays(date: Date, days: number) {
-    return new Date(date.getTime() + days * DAY_MS);
-  }
-
-  private addMonths(date: Date, months: number) {
-    const copy = new Date(date);
-    copy.setMonth(copy.getMonth() + months);
-    return copy;
-  }
 
   private paymentNumber() {
     const dateKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -40,15 +34,22 @@ export class FacilitySubscriptionService {
     subscriptionPaidThrough?: Date | null;
     subscriptionStatus?: string | null;
     subscriptionLockedAt?: Date | null;
+    isActive?: boolean | null;
+    updatedAt?: Date | null;
+    complianceStatus?: string | null;
+    complianceReason?: string | null;
+    complianceDeactivatedAt?: Date | null;
+    complianceGraceEndsAt?: Date | null;
   }) {
     const now = new Date();
     const startedAt = facility.subscriptionStartedAt ?? facility.createdAt;
     const paidThrough =
-      facility.subscriptionPaidThrough ?? this.addMonths(startedAt, 1);
+      facility.subscriptionPaidThrough ?? addMonths(startedAt, 1);
     const monthlyFee = Number(facility.subscriptionMonthlyFee || MONTHLY_FEE);
     const secondsRemaining = Math.floor((paidThrough.getTime() - now.getTime()) / 1000);
     const daysRemaining = secondsRemaining / 86400;
     const locked = secondsRemaining <= 0 || facility.subscriptionStatus === 'LOCKED';
+    const accessStatus = computeFacilityAccessStatus(facility);
     const warningLevel = locked
       ? 'LOCKED'
       : daysRemaining <= 3
@@ -65,6 +66,11 @@ export class FacilitySubscriptionService {
       statusCode: locked ? 'LOCKED' : (facility.subscriptionStatus || 'ACTIVE'),
       warningLevel,
       locked,
+      loginBlocked: accessStatus.subscriptionLoginBlocked,
+      loginBlockedAt: accessStatus.subscriptionLoginBlockedAt,
+      complianceWriteLocked: accessStatus.complianceWriteLocked,
+      complianceGraceEndsAt: accessStatus.complianceGraceEndsAt,
+      lockReason: accessStatus.lockReason,
       canDismiss: warningLevel === 'YELLOW',
       daysRemaining: Math.max(daysRemaining, 0),
       secondsRemaining: Math.max(secondsRemaining, 0),
@@ -121,7 +127,7 @@ export class FacilitySubscriptionService {
       currentStatus.paidThrough.getTime() > Date.now()
         ? currentStatus.paidThrough
         : new Date();
-    const paidThrough = this.addDays(base, daysCovered);
+    const paidThrough = addDays(base, daysCovered);
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : new Date();
 
     const payment = await this.prisma.facilitySubscriptionPayment.create({

@@ -8,5 +8,7 @@ export function usePrescriptionById(id?: number | null) {
     queryKey: ["prescription-by-id", id],
     queryFn: () => getPharmacyPrescriptionById(id as number),
     enabled: !!id,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 }

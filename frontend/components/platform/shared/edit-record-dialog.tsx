@@ -30,7 +30,7 @@ export type EditRecordField = {
   name: string;
   label: string;
   placeholder?: string;
-  type?: "text" | "email" | "select" | "fileDataUrl";
+  type?: "text" | "email" | "password" | "select" | "fileDataUrl";
   options?: EditRecordOption[];
   className?: string;
   disabled?: boolean;

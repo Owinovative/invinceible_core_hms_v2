@@ -46,6 +46,13 @@ const facilitySchema = z.object({
   mpesaAccountNumber: z.string().optional(),
   mpesaTillNumber: z.string().optional(),
   mpesaPochiNumber: z.string().optional(),
+  mpesaEnabled: z.boolean().optional(),
+  mpesaEnvironment: z.string().optional(),
+  mpesaConsumerKey: z.string().optional(),
+  mpesaConsumerSecret: z.string().optional(),
+  mpesaPasskey: z.string().optional(),
+  mpesaCallbackUrl: z.string().optional(),
+  mpesaTransactionType: z.string().optional(),
   showCashOnInvoice: z.boolean().optional(),
   showPaybillOnInvoice: z.boolean().optional(),
   showTillOnInvoice: z.boolean().optional(),
@@ -90,6 +97,13 @@ export function CreateFacilityForm() {
       mpesaAccountNumber: "",
       mpesaTillNumber: "",
       mpesaPochiNumber: "",
+      mpesaEnabled: false,
+      mpesaEnvironment: "sandbox",
+      mpesaConsumerKey: "",
+      mpesaConsumerSecret: "",
+      mpesaPasskey: "",
+      mpesaCallbackUrl: "",
+      mpesaTransactionType: "",
       showCashOnInvoice: true,
       showPaybillOnInvoice: true,
       showTillOnInvoice: true,
@@ -133,6 +147,13 @@ export function CreateFacilityForm() {
         mpesaAccountNumber: values.mpesaAccountNumber || undefined,
         mpesaTillNumber: values.mpesaTillNumber || undefined,
         mpesaPochiNumber: values.mpesaPochiNumber || undefined,
+        mpesaEnabled: values.mpesaEnabled ?? false,
+        mpesaEnvironment: values.mpesaEnvironment || undefined,
+        mpesaConsumerKey: values.mpesaConsumerKey || undefined,
+        mpesaConsumerSecret: values.mpesaConsumerSecret || undefined,
+        mpesaPasskey: values.mpesaPasskey || undefined,
+        mpesaCallbackUrl: values.mpesaCallbackUrl || undefined,
+        mpesaTransactionType: values.mpesaTransactionType || undefined,
         showCashOnInvoice: values.showCashOnInvoice ?? true,
         showPaybillOnInvoice: values.showPaybillOnInvoice ?? true,
         showTillOnInvoice: values.showTillOnInvoice ?? true,
@@ -175,6 +196,13 @@ export function CreateFacilityForm() {
         mpesaAccountNumber: "",
         mpesaTillNumber: "",
         mpesaPochiNumber: "",
+        mpesaEnabled: false,
+        mpesaEnvironment: "sandbox",
+        mpesaConsumerKey: "",
+        mpesaConsumerSecret: "",
+        mpesaPasskey: "",
+        mpesaCallbackUrl: "",
+        mpesaTransactionType: "",
         showCashOnInvoice: true,
         showPaybillOnInvoice: true,
         showTillOnInvoice: true,
@@ -657,6 +685,108 @@ export function CreateFacilityForm() {
                 </FormItem>
               )}
             />
+
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <p className="font-semibold">Facility Daraja setup</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use these only when this facility has its own Safaricom app.
+                Empty credential fields fall back to Railway variables.
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="mpesaEnabled"
+                  render={({ field }) => (
+                    <label className="flex h-11 items-center gap-2 rounded-xl border bg-white px-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(field.value)}
+                        onChange={(event) => field.onChange(event.target.checked)}
+                      />
+                      Enable Daraja for this facility
+                    </label>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mpesaEnvironment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Environment</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="sandbox or production" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mpesaConsumerKey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Consumer Key</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" autoComplete="off" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mpesaConsumerSecret"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Consumer Secret</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mpesaPasskey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lipa na M-PESA Passkey</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mpesaTransactionType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transaction Type</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="CustomerPayBillOnline" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mpesaCallbackUrl"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Callback URL</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="https://backend.up.railway.app/billing/payments/mpesa/callback" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
               <p className="font-semibold">Invoice payment options</p>

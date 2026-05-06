@@ -14,6 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserLocationService } from '../user-location/user-location.service';
+import { computeFacilityAccessStatus } from '../common/facility-access';
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const MAX_ACTIVE_USER_SESSIONS = 2;
@@ -132,26 +133,6 @@ export class AuthService {
       throw new UnauthorizedException('User account is inactive');
     }
 
-    const isSuperAdmin = user.role?.code === 'SUPER_ADMIN';
-
-    if (
-      !isSuperAdmin &&
-      user.homeFacilityId &&
-      user.homeFacility &&
-      user.homeFacility.isActive === false
-    ) {
-      await this.recordLoginAudit({
-        actionName: 'LOGIN_FAILED',
-        username,
-        reason: 'FACILITY_INACTIVE',
-        user,
-        meta: auditMeta,
-      });
-      throw new UnauthorizedException(
-        'Your facility is inactive. Access is suspended.',
-      );
-    }
-
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatches) {
@@ -195,6 +176,31 @@ export class AuthService {
         afterData: { failedLoginAttempts },
       });
       throw new UnauthorizedException('Invalid username or password');
+    }
+
+    const isSuperAdmin = user.role?.code === 'SUPER_ADMIN';
+    const effectiveFacility = user.homeFacility ?? user.staff?.facility ?? null;
+    const facilityAccessStatus = effectiveFacility
+      ? computeFacilityAccessStatus(effectiveFacility)
+      : null;
+
+    if (!isSuperAdmin && facilityAccessStatus?.loginBlocked) {
+      await this.recordLoginAudit({
+        actionName: 'LOGIN_FAILED',
+        username,
+        reason: facilityAccessStatus.lockReason ?? 'FACILITY_ACCESS_BLOCKED',
+        user,
+        meta: auditMeta,
+        afterData: {
+          facilityAccessStatus,
+        },
+      });
+      throw new UnauthorizedException(
+        facilityAccessStatus.lockReason ===
+        'FACILITY_SUBSCRIPTION_GRACE_EXPIRED'
+          ? 'Facility subscription has been unpaid for more than 15 days. Access is blocked until payment is recorded by the platform.'
+          : 'Facility compliance grace has expired. Access is blocked until the platform reactivates the facility.',
+      );
     }
 
     const updatedUser = await this.prisma.user.update({

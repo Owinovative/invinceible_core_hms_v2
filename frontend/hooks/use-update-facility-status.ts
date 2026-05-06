@@ -8,7 +8,13 @@ export function useUpdateFacilityStatus() {
 
   return useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
-      updateFacility(id, { isActive }),
+      updateFacility(id, {
+        isActive,
+        complianceStatus: isActive ? "COMPLIANT" : "NON_COMPLIANT",
+        complianceReason: isActive
+          ? undefined
+          : "Facility deactivated by platform administration.",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["facilities"] });
     },

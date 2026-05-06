@@ -63,6 +63,7 @@ type MpesaConfig = {
   passkey?: string;
   shortcode?: string;
   callbackUrl?: string;
+  environment?: string;
   transactionType: string;
   accountReference: string;
 };
@@ -295,6 +296,10 @@ function readTariffBoolean(row: TariffCsvRow, aliases: string[]) {
 @Injectable()
 export class BillingService {
   private readonly mpesaRequestLocks = new Map<string, Promise<void>>();
+  private readonly mpesaTokenCache = new Map<
+    string,
+    { token: string; expiresAt: number }
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -2875,8 +2880,8 @@ export class BillingService {
     );
   }
 
-  private getMpesaBaseUrl() {
-    return process.env.MPESA_ENV === 'production'
+  private getMpesaBaseUrl(environment?: string | null) {
+    return (environment || process.env.MPESA_ENV) === 'production'
       ? 'https://api.safaricom.co.ke'
       : 'https://sandbox.safaricom.co.ke';
   }
@@ -2894,6 +2899,8 @@ export class BillingService {
     const branchTill = this.cleanMpesaNumber(branch.mpesaTillNumber);
     const facilityTill = this.cleanMpesaNumber(facility.mpesaTillNumber);
     const envShortcode = this.cleanMpesaNumber(process.env.MPESA_SHORTCODE);
+    const environment =
+      facility.mpesaEnvironment || branch.mpesaEnvironment || process.env.MPESA_ENV;
     const shortcode =
       this.cleanMpesaNumber(branch.mpesaShortcode) ||
       this.cleanMpesaNumber(facility.mpesaShortcode) ||
@@ -2905,15 +2912,19 @@ export class BillingService {
     const usingTill =
       Boolean(branchTill || facilityTill) && !Boolean(branchPaybill || facilityPaybill);
     const transactionType =
+      facility.mpesaTransactionType ||
+      branch.mpesaTransactionType ||
       process.env.MPESA_TRANSACTION_TYPE ||
       (usingTill ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline');
 
     return {
-      consumerKey: process.env.MPESA_CONSUMER_KEY,
-      consumerSecret: process.env.MPESA_CONSUMER_SECRET,
-      passkey: process.env.MPESA_PASSKEY,
+      consumerKey: facility.mpesaConsumerKey || process.env.MPESA_CONSUMER_KEY,
+      consumerSecret:
+        facility.mpesaConsumerSecret || process.env.MPESA_CONSUMER_SECRET,
+      passkey: facility.mpesaPasskey || process.env.MPESA_PASSKEY,
       shortcode,
-      callbackUrl: process.env.MPESA_CALLBACK_URL,
+      callbackUrl: facility.mpesaCallbackUrl || process.env.MPESA_CALLBACK_URL,
+      environment,
       transactionType,
       accountReference:
         branch.mpesaAccountNumber ||
@@ -2942,11 +2953,18 @@ export class BillingService {
 
   private async getMpesaAccessToken(config: MpesaConfig) {
     this.assertMpesaConfigured(config);
+    const cacheKey = `${config.environment || process.env.MPESA_ENV || 'sandbox'}:${config.consumerKey}`;
+    const cached = this.mpesaTokenCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now() + 60_000) {
+      return cached.token;
+    }
+
     const credentials = Buffer.from(
       `${config.consumerKey}:${config.consumerSecret}`,
     ).toString('base64');
     const response = await fetch(
-      `${this.getMpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`,
+      `${this.getMpesaBaseUrl(config.environment)}/oauth/v1/generate?grant_type=client_credentials`,
       {
         headers: {
           Authorization: `Basic ${credentials}`,
@@ -2956,6 +2974,7 @@ export class BillingService {
 
     const data = (await response.json().catch(() => ({}))) as {
       access_token?: string;
+      expires_in?: string | number;
       errorMessage?: string;
     };
 
@@ -2964,6 +2983,12 @@ export class BillingService {
         data.errorMessage || 'Unable to get M-PESA access token',
       );
     }
+
+    const expiresInSeconds = Number(data.expires_in || 3600);
+    this.mpesaTokenCache.set(cacheKey, {
+      token: data.access_token,
+      expiresAt: Date.now() + Math.max(300, expiresInSeconds - 60) * 1000,
+    });
 
     return data.access_token;
   }
@@ -3004,7 +3029,7 @@ export class BillingService {
     const phoneNumber = this.normalizeMpesaPhone(params.phoneNumber);
 
     const response = await fetch(
-      `${this.getMpesaBaseUrl()}/mpesa/stkpush/v1/processrequest`,
+      `${this.getMpesaBaseUrl(config.environment)}/mpesa/stkpush/v1/processrequest`,
       {
         method: 'POST',
         headers: {
@@ -3057,7 +3082,7 @@ export class BillingService {
     ).toString('base64');
 
     const response = await fetch(
-      `${this.getMpesaBaseUrl()}/mpesa/stkpushquery/v1/query`,
+      `${this.getMpesaBaseUrl(config.environment)}/mpesa/stkpushquery/v1/query`,
       {
         method: 'POST',
         headers: {
@@ -3299,8 +3324,18 @@ export class BillingService {
     return payment;
   }
 
-  async createMpesaPaymentRequest(dto: CreateMpesaPaymentRequestDto) {
+  async createMpesaPaymentRequest(
+    dto: CreateMpesaPaymentRequestDto,
+    user?: RequestUser,
+  ) {
     const invoice = await this.getInvoiceById(dto.invoiceId);
+    if (user) {
+      this.scopeService.assertBranchAccess(
+        user,
+        invoice.facilityId,
+        invoice.branchId,
+      );
+    }
     const normalizedPhone = this.normalizeMpesaPhone(dto.phoneNumber);
     const amount = Number(dto.amount || 0);
     const lockKey = `${dto.invoiceId}:${normalizedPhone}:${amount.toFixed(2)}`;
@@ -3750,6 +3785,10 @@ export class BillingService {
       throw new NotFoundException(
         `M-PESA payment with checkoutRequestId ${checkoutRequestId} not found`,
       );
+    }
+
+    if (payment.statusCode === 'COMPLETED') {
+      return payment;
     }
 
     const beforeData = JSON.stringify(payment);

@@ -144,6 +144,37 @@ export class CreateFacilityDto {
 
   @IsOptional()
   @IsBoolean()
+  mpesaEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  mpesaEnvironment?: string;
+
+  @IsOptional()
+  @IsString()
+  mpesaConsumerKey?: string;
+
+  @IsOptional()
+  @IsString()
+  mpesaConsumerSecret?: string;
+
+  @IsOptional()
+  @IsString()
+  mpesaPasskey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  mpesaCallbackUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  mpesaTransactionType?: string;
+
+  @IsOptional()
+  @IsBoolean()
   showCashOnInvoice?: boolean;
 
   @IsOptional()
@@ -170,6 +201,15 @@ export class CreateFacilityDto {
   @IsOptional()
   @IsNumber()
   shaClaimNextNumber?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  complianceStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  complianceReason?: string;
 
   @IsOptional()
   @IsBoolean()

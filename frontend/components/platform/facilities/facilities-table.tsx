@@ -264,6 +264,18 @@ export function FacilitiesTable() {
                               Head Office
                             </span>
                           ) : null}
+
+                          {facility.accessStatus?.complianceWriteLocked ? (
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                              Read-only grace
+                            </span>
+                          ) : null}
+
+                          {facility.accessStatus?.loginBlocked ? (
+                            <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-300">
+                              Login blocked
+                            </span>
+                          ) : null}
                         </div>
                       </td>
 
@@ -340,6 +352,48 @@ export function FacilitiesTable() {
                                 label: "Pochi La Biashara",
                               },
                               {
+                                name: "mpesaEnabled",
+                                label: "Daraja Enabled",
+                                type: "select",
+                                options: [
+                                  { label: "Yes", value: "true" },
+                                  { label: "No", value: "false" },
+                                ],
+                              },
+                              {
+                                name: "mpesaEnvironment",
+                                label: "Daraja Environment",
+                              },
+                              {
+                                name: "mpesaConsumerKey",
+                                label: facility.hasMpesaConsumerKey
+                                  ? "Consumer Key (saved, enter to replace)"
+                                  : "Consumer Key",
+                              },
+                              {
+                                name: "mpesaConsumerSecret",
+                                label: facility.hasMpesaConsumerSecret
+                                  ? "Consumer Secret (saved, enter to replace)"
+                                  : "Consumer Secret",
+                                type: "password",
+                              },
+                              {
+                                name: "mpesaPasskey",
+                                label: facility.hasMpesaPasskey
+                                  ? "Passkey (saved, enter to replace)"
+                                  : "Passkey",
+                                type: "password",
+                              },
+                              {
+                                name: "mpesaTransactionType",
+                                label: "Daraja Transaction Type",
+                              },
+                              {
+                                name: "mpesaCallbackUrl",
+                                label: "Daraja Callback URL",
+                                className: "md:col-span-2",
+                              },
+                              {
                                 name: "showCashOnInvoice",
                                 label: "Show Cash On Invoice",
                                 type: "select",
@@ -384,6 +438,21 @@ export function FacilitiesTable() {
                                 name: "shaClaimNextNumber",
                                 label: "SHA Next Claim Number",
                               },
+                              {
+                                name: "complianceStatus",
+                                label: "Compliance Status",
+                                type: "select",
+                                options: [
+                                  { label: "Compliant", value: "COMPLIANT" },
+                                  { label: "Non-compliant", value: "NON_COMPLIANT" },
+                                  { label: "Suspended", value: "SUSPENDED" },
+                                ],
+                              },
+                              {
+                                name: "complianceReason",
+                                label: "Compliance Reason",
+                                className: "md:col-span-2",
+                              },
                             ]}
                             initialValues={{
                               name: facility.name ?? "",
@@ -421,6 +490,18 @@ export function FacilitiesTable() {
                               mpesaTillNumber: facility.mpesaTillNumber ?? "",
                               mpesaPochiNumber:
                                 facility.mpesaPochiNumber ?? "",
+                              mpesaEnabled: String(
+                                facility.mpesaEnabled ?? false,
+                              ),
+                              mpesaEnvironment:
+                                facility.mpesaEnvironment ?? "sandbox",
+                              mpesaConsumerKey: "",
+                              mpesaConsumerSecret: "",
+                              mpesaPasskey: "",
+                              mpesaTransactionType:
+                                facility.mpesaTransactionType ?? "",
+                              mpesaCallbackUrl:
+                                facility.mpesaCallbackUrl ?? "",
                               showCashOnInvoice: String(
                                 facility.showCashOnInvoice ?? true,
                               ),
@@ -440,6 +521,10 @@ export function FacilitiesTable() {
                               shaClaimNextNumber: String(
                                 facility.shaClaimNextNumber ?? 1,
                               ),
+                              complianceStatus:
+                                facility.complianceStatus ?? "COMPLIANT",
+                              complianceReason:
+                                facility.complianceReason ?? "",
                             }}
                             onSubmit={(values) =>
                               updateFacilityMutation.mutateAsync({
@@ -489,6 +574,26 @@ export function FacilitiesTable() {
                                   mpesaPochiNumber: optionalValue(
                                     values.mpesaPochiNumber,
                                   ),
+                                  mpesaEnabled:
+                                    values.mpesaEnabled === "true",
+                                  mpesaEnvironment: optionalValue(
+                                    values.mpesaEnvironment,
+                                  ),
+                                  mpesaConsumerKey: optionalValue(
+                                    values.mpesaConsumerKey,
+                                  ),
+                                  mpesaConsumerSecret: optionalValue(
+                                    values.mpesaConsumerSecret,
+                                  ),
+                                  mpesaPasskey: optionalValue(
+                                    values.mpesaPasskey,
+                                  ),
+                                  mpesaTransactionType: optionalValue(
+                                    values.mpesaTransactionType,
+                                  ),
+                                  mpesaCallbackUrl: optionalValue(
+                                    values.mpesaCallbackUrl,
+                                  ),
                                   showCashOnInvoice:
                                     values.showCashOnInvoice !== "false",
                                   showPaybillOnInvoice:
@@ -505,6 +610,12 @@ export function FacilitiesTable() {
                                   ),
                                   shaClaimNextNumber: optionalNumber(
                                     values.shaClaimNextNumber,
+                                  ),
+                                  complianceStatus: optionalValue(
+                                    values.complianceStatus,
+                                  ),
+                                  complianceReason: optionalValue(
+                                    values.complianceReason,
                                   ),
                                 },
                               })

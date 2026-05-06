@@ -37,6 +37,13 @@ model Facility {
   mpesaAccountNumber   String?               @db.VarChar(80)
   mpesaTillNumber      String?               @db.VarChar(50)
   mpesaPochiNumber     String?               @db.VarChar(80)
+  mpesaEnabled         Boolean               @default(false)
+  mpesaEnvironment     String?               @db.VarChar(30)
+  mpesaConsumerKey     String?               @db.LongText
+  mpesaConsumerSecret  String?               @db.LongText
+  mpesaPasskey         String?               @db.LongText
+  mpesaCallbackUrl     String?               @db.VarChar(500)
+  mpesaTransactionType String?               @db.VarChar(80)
   showCashOnInvoice    Boolean               @default(true)
   showPaybillOnInvoice Boolean               @default(true)
   showTillOnInvoice    Boolean               @default(true)
@@ -49,6 +56,11 @@ model Facility {
   subscriptionPaidThrough DateTime?
   subscriptionStatus     String              @default("ACTIVE") @db.VarChar(50)
   subscriptionLockedAt   DateTime?
+  complianceStatus     String                @default("COMPLIANT") @db.VarChar(50)
+  complianceReason     String?               @db.Text
+  complianceDeactivatedAt DateTime?
+  complianceGraceEndsAt DateTime?
+  complianceReactivatedAt DateTime?
   isHeadOffice         Boolean               @default(false)
   isDefault            Boolean               @default(false)
   isActive             Boolean               @default(true)
@@ -81,6 +93,8 @@ model Facility {
   subscriptionPayments FacilitySubscriptionPayment[]
 
   @@index([latitude, longitude])
+  @@index([complianceStatus])
+  @@index([complianceGraceEndsAt])
   @@map("facilities")
 }
 

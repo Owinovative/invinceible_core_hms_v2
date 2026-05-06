@@ -256,8 +256,11 @@ export class BillingController {
   }
 
   @Post('payments/mpesa/request')
-  createMpesaPaymentRequest(@Body() dto: CreateMpesaPaymentRequestDto) {
-    return this.billingService.createMpesaPaymentRequest(dto);
+  createMpesaPaymentRequest(
+    @Body() dto: CreateMpesaPaymentRequestDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.createMpesaPaymentRequest(dto, user);
   }
 
   @Post('payments/:id/mpesa/resend')
