@@ -1,200 +1,240 @@
-# 🏥 Invinceible HMS
+# 🏥 Invinceible Core HMS
 
-A modern, full-stack Hospital Management System built for real-world clinical workflows.
+<p align="center">
+  <strong>A modern Hospital Management System for real clinical, billing, pharmacy, lab, IPD, and branch workflows.</strong>
+</p>
 
-Designed with scalability, performance, and real hospital operations in mind — from patient registration to triage, doctor consultation, inpatient (IPD) management, lab workflows, pharmacy, and billing.
-
----
-
-## 🚀 Why This Project?
-
-Most hospital systems are either:
-- outdated
-- overly complex
-- or not aligned with real clinical workflows
-
-**Invinceible HMS** is different.
-
-It is designed to mirror how hospitals actually work:
-
-➡️ Reception → Triage → Doctor → Lab → Pharmacy → IPD → Billing
+<p align="center">
+  <img alt="NestJS" src="https://img.shields.io/badge/Backend-NestJS-e0234e?style=for-the-badge&logo=nestjs&logoColor=white" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Frontend-Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/UI-React-61dafb?style=for-the-badge&logo=react&logoColor=111827" />
+  <img alt="Prisma" src="https://img.shields.io/badge/ORM-Prisma-2d3748?style=for-the-badge&logo=prisma&logoColor=white" />
+  <img alt="MySQL" src="https://img.shields.io/badge/Database-MySQL-4479a1?style=for-the-badge&logo=mysql&logoColor=white" />
+</p>
 
 ---
 
-## 📸 Screenshots
+## ✨ What It Does
 
-> Screenshots will be added here as the interface is polished.
+**Invinceible Core HMS** connects the main hospital departments into one working platform:
 
-A strong healthcare system should be easy to understand at a glance. This section is prepared for visual previews of the most important workflows.
-
-### 🧭 Main Dashboard
-
-![Invinceible HMS Dashboard](docs/screenshots/dashboard.png)
-
-### 🩺 Triage Workflow
-
-![Triage Workflow](docs/screenshots/triage.png)
-
-### 👨‍⚕️ Doctor Queue
-
-![Doctor Queue](docs/screenshots/doctor-queue.png)
-
-### 📋 Consultation Workspace
-
-![Consultation Workspace](docs/screenshots/consultation.png)
-
-### 🏥 IPD Admission Management
-
-![IPD Admission Management](docs/screenshots/ipd.png)
-
-### 🧪 Lab Workflow
-
-![Lab Workflow](docs/screenshots/lab.png)
-
----
-
-## ⚡ Core Features
-
-### 🧾 Patient Management
-- Patient registration & search
-- Visit tracking
-- Patient history overview
-
-### 🩺 Smart Triage System
-- Vital capture
-- Pain scoring
-- Priority classification (CRITICAL, EMERGENCY, URGENT, NORMAL)
-- Clinic & doctor routing
-
-### 👨‍⚕️ Doctor Queue
-- Priority-based queue (not just FIFO)
-- Sorted by severity + waiting time
-- Filter by doctor / clinic / status
-
-### 📋 Consultation Workspace
-- Full patient overview
-- Diagnosis & treatment plan
-- Prescriptions
-- Lab requests
-- Admission & discharge
-
-### 🏥 IPD (Inpatient Department)
-- Admission management
-- Bed allocation
-- Clinical notes
-- Lab integration
-- Discharge workflow
-
-### 🧪 Lab System
-- Lab order creation
-- Result entry
-- Real-time result updates
-
-### 💊 Pharmacy
-- Prescription handling
-- Medication dispensing
-- Stock tracking
-
-### 💰 Billing
-- Invoice generation
-- Payment tracking
-- Service billing
-
-### 🔐 Role-Based Access Control
-- Super Admin
-- Admin
-- Doctor
-- Nurse
-- Receptionist
-- Lab Technician
-- Pharmacist
-- And more
-
----
-
-## 🏗️ Tech Stack
-
-**Backend**
-- NestJS
-- Prisma ORM
-- MySQL
-
-**Frontend**
-- Next.js
-- React
-
----
-
-## 📂 Project Structure (Simplified)
-
+```text
+Reception → Triage → Doctor → Lab → Pharmacy → Billing → Payment → Reports
 ```
-/backend   → API (NestJS)
-/frontend  → UI (Next.js)
+
+It supports patient registration, triage, doctor consultation, lab orders and results, pharmacy dispensing, IPD/admissions, billing, invoices, receipts, SHA claims, M-Pesa/Daraja payments, branches, users, roles, audit logs, reports, and stock control.
+
+---
+
+## 🧩 Main Modules
+
+| Module | What it handles |
+| --- | --- |
+| 🧾 Patient Registration | Patient records, search, visit tracking, and history |
+| 🩺 Triage | Vitals, pain score, urgency level, clinic routing, and doctor routing |
+| 👨‍⚕️ Doctor Queue | Priority-based patient queue sorted by severity and waiting time |
+| 📋 Consultation | Diagnosis, notes, treatment plan, lab requests, prescriptions, and admission decisions |
+| 🧪 Lab | Lab orders, result entry, result updates, and clinical result flow |
+| 💊 Pharmacy | Prescription dispensing, stock checks, medicine alternatives, and stock movement |
+| 🏥 IPD / Admissions | Admissions, beds, inpatient notes, treatment entries, and discharge workflow |
+| 💰 Billing | Invoices, invoice items, discounts, payments, receipts, cashier close, and revenue tracking |
+| 📲 M-Pesa / Daraja | STK prompts, payment status checks, callback handling, and duplicate protection |
+| 🧾 SHA Claims | Claim creation, claim tracking, claim PDFs, and invoice coverage syncing |
+| 🏢 Branch Management | Branch operations, branch-level access, stock, users, and workflow organization |
+| 🔐 Roles & Access | Staff roles, branch access, protected routes, and controlled permissions |
+| 📊 Reports | Billing, pharmacy, lab, SHA, audit, and operational reports |
+| 🕵️ Audit Logs | Tracks important actions across users, payments, settings, and workflows |
+
+---
+
+## 🚦 Real Hospital Flow
+
+```text
+1. Reception registers or finds the patient
+2. Triage captures vitals and sets urgency
+3. Doctor sees the patient from the queue
+4. Doctor requests lab tests or prescribes medicine
+5. Lab enters and updates results
+6. Pharmacy dispenses medicine and updates stock
+7. Billing creates invoice and receives payment
+8. Cashier issues receipt
+9. Admin and management view reports
 ```
 
 ---
 
-## ⚙️ Getting Started
+## 🔐 Built for Controlled Access
 
-### 1. Clone the repo
+Each staff member works inside their role:
+
+- Reception handles patient entry and queues
+- Triage captures vitals and routes patients
+- Doctors handle consultations and clinical decisions
+- Lab handles test results
+- Pharmacy handles dispensing and stock
+- Cashier handles invoices and payments
+- Admin manages users, branches, settings, and reports
+
+The system is designed so users only access the workflows they are allowed to use.
+
+---
+
+## ⚡ Production Direction
+
+The system is being built with production hospital needs in mind:
+
+- Secure authentication and role-based access
+- Branch-aware workflows
+- M-Pesa/Daraja payment support
+- Payment duplicate protection
+- Audit tracking for critical actions
+- Stock-aware pharmacy workflows
+- Printable invoices and receipts
+- QR/public invoice verification
+- SHA claim support
+- Scalable backend architecture
+- Clean frontend workflow screens
+
+---
+
+## 🛠️ Tech Stack
+
+### Backend
+
+- **NestJS** — API framework
+- **Prisma** — database ORM
+- **MySQL** — database
+- **JWT Auth** — authentication
+- **PDFKit / QR tools** — documents and verification
+
+### Frontend
+
+- **Next.js** — app framework
+- **React** — user interface
+- **TypeScript** — safer code
+- **Tailwind-style UI components** — clean dashboard experience
+
+---
+
+## 📁 Project Structure
+
+```text
+invinceible_core_hms_v2/
+├── backend/       # NestJS API, Prisma, auth, billing, lab, pharmacy, IPD, users
+├── frontend/      # Next.js/React dashboard, platform pages, hospital workflows
+├── docs/          # Guides, setup notes, deployment notes, and architecture docs
+└── README.md      # Project overview
 ```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+```bash
 git clone https://github.com/Owinovative/invinceible_core_hms_v2.git
+cd invinceible_core_hms_v2
 ```
 
-### 2. Install dependencies
+### 2. Backend setup
 
-Backend:
-```
+```bash
 cd backend
 npm install
-```
-
-Frontend:
-```
-cd frontend
-npm install
-```
-
-### 3. Setup environment
-
-Create `.env` files for backend and frontend.
-
-### 4. Run the app
-
-Backend:
-```
+npm run prisma:generate
 npm run start:dev
 ```
 
-Frontend:
-```
+### 3. Frontend setup
+
+```bash
+cd frontend
+npm install
 npm run dev
+```
+
+### 4. Environment setup
+
+Create environment files for backend and frontend. Keep secrets out of GitHub.
+
+Backend examples:
+
+```env
+DATABASE_URL="mysql://USER:PASSWORD@HOST:PORT/DATABASE"
+JWT_SECRET="replace-with-a-strong-production-secret"
+JWT_EXPIRES_IN="1d"
+FRONTEND_URL="https://your-frontend-domain.com"
+```
+
+M-Pesa/Daraja credentials should be configured safely through facility/branch settings or secure environment configuration depending on deployment setup.
+
+---
+
+## 🧪 Useful Commands
+
+Backend:
+
+```bash
+npm run start:dev
+npm run build
+npm run start:prod
+npm run lint
+npm run test
+```
+
+Frontend:
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
 ```
 
 ---
 
-## 🌍 Vision
+## 📌 Current Product Focus
 
-To build a powerful, scalable, and modern hospital management platform that can be used in real healthcare environments globally.
+The platform is focused on:
+
+- Completing hospital department workflows end-to-end
+- Making billing and M-Pesa payments reliable
+- Keeping branch work organized
+- Improving speed, security, and auditability
+- Preparing for larger hospital usage
+- Making the UI clean, fast, and easy to operate
+
+---
+
+## 🧭 Roadmap
+
+- Advanced reporting and management dashboards
+- Stronger audit and permission controls
+- Patient portal foundation
+- SMS/WhatsApp notification workflows
+- Insurance/SHA workflow improvements
+- Offline/degraded-mode planning
+- Rust-powered heavy reporting engine foundation
+- Load testing and high-availability deployment guides
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome.
+Contributions should keep the system safe, scoped, and hospital-ready.
 
-- Fork the repo
-- Create a feature branch
-- Submit a pull request
+Recommended flow:
+
+```text
+create branch → make changes → open pull request → review → merge
+```
 
 ---
 
 ## ⭐ Support
 
-If you find this project useful:
-
-👉 Star the repo
-👉 Share it with others
+If this project is useful, star the repository and share it with people building better healthcare systems.
 
 ---
 
