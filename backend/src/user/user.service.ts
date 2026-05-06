@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminResetPasswordDto } from './dto/admin-reset-password.dto';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { assertStrongPassword } from '../auth/password-policy';
 
 @Injectable()
 export class UserService {
@@ -22,6 +24,87 @@ export class UserService {
     private readonly facilityService: FacilityService,
     private readonly branchService: BranchService,
   ) {}
+
+  private withoutSensitiveUserFields<T extends { passwordHash?: string }>(
+    user: T,
+  ) {
+    const { passwordHash: _passwordHash, ...safeUser } = user;
+    return safeUser;
+  }
+
+  private withoutSensitiveUsers<T extends { passwordHash?: string }>(
+    users: T[],
+  ) {
+    return users.map((user) => this.withoutSensitiveUserFields(user));
+  }
+
+  private canManagePlatformUsers(actor: RequestUser) {
+    return actor.roleCode === 'SUPER_ADMIN' || actor.roleCode === 'ADMIN';
+  }
+
+  private assertUserManagementScope(
+    actor: RequestUser,
+    target: {
+      role?: { code?: string | null } | null;
+      homeFacilityId?: number | null;
+      staff?: { facilityId?: number | null } | null;
+    },
+  ) {
+    if (this.canManagePlatformUsers(actor)) return;
+
+    const targetRole = target.role?.code;
+    if (targetRole === 'SUPER_ADMIN' || targetRole === 'ADMIN') {
+      throw new ForbiddenException('Facility admins cannot manage platform users');
+    }
+
+    const targetFacilityId =
+      target.homeFacilityId ?? target.staff?.facilityId ?? null;
+
+    if (!actor.homeFacilityId || targetFacilityId !== actor.homeFacilityId) {
+      throw new ForbiddenException('You cannot manage users outside your facility');
+    }
+  }
+
+  async secureCreate(createUserDto: CreateUserDto, actor: RequestUser) {
+    if (this.canManagePlatformUsers(actor)) {
+      return this.create(createUserDto);
+    }
+
+    const targetRole = await this.roleService.findOne(createUserDto.roleId);
+    if (targetRole.code === 'SUPER_ADMIN' || targetRole.code === 'ADMIN') {
+      throw new ForbiddenException('Facility admins cannot create platform users');
+    }
+
+    if (!actor.homeFacilityId) {
+      throw new ForbiddenException('User has no home facility assigned');
+    }
+
+    if (
+      createUserDto.homeFacilityId &&
+      createUserDto.homeFacilityId !== actor.homeFacilityId
+    ) {
+      throw new ForbiddenException('You cannot create users outside your facility');
+    }
+
+    if (createUserDto.homeBranchId) {
+      const allowedBranches = new Set([
+        ...(actor.homeBranchId ? [actor.homeBranchId] : []),
+        ...(actor.allowedBranchIds ?? []),
+      ]);
+
+      if (
+        !actor.canAccessAllBranchesInFacility &&
+        !allowedBranches.has(createUserDto.homeBranchId)
+      ) {
+        throw new ForbiddenException('You cannot assign this branch');
+      }
+    }
+
+    return this.create({
+      ...createUserDto,
+      homeFacilityId: actor.homeFacilityId,
+    });
+  }
 
   async create(createUserDto: CreateUserDto) {
     const existingByUsername = await this.prisma.user.findFirst({
@@ -63,9 +146,15 @@ export class UserService {
       }
     }
 
+    assertStrongPassword(createUserDto.password, {
+      username: createUserDto.username,
+      fullName: createUserDto.fullName,
+      minLength: Number(process.env.PASSWORD_MIN_LENGTH ?? 12),
+    });
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         username: createUserDto.username,
         email: createUserDto.email,
@@ -90,10 +179,23 @@ export class UserService {
         },
       },
     });
+
+    return this.withoutSensitiveUserFields(user);
   }
 
-  findAll() {
-    return this.prisma.user.findMany({
+  async findAll(actor?: RequestUser) {
+    const where: Prisma.UserWhereInput =
+      actor && !this.canManagePlatformUsers(actor)
+        ? {
+            OR: [
+              { homeFacilityId: actor.homeFacilityId ?? -1 },
+              { staff: { facilityId: actor.homeFacilityId ?? -1 } },
+            ],
+          }
+        : {};
+
+    const users = await this.prisma.user.findMany({
+      where,
       include: {
         role: true,
         homeFacility: true,
@@ -108,6 +210,8 @@ export class UserService {
       },
       orderBy: { id: 'desc' },
     });
+
+    return this.withoutSensitiveUsers(users);
   }
 
   async findOne(id: number) {
@@ -131,7 +235,7 @@ export class UserService {
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    return user;
+    return this.withoutSensitiveUserFields(user);
   }
 
   async findByUsername(username: string) {
@@ -155,6 +259,24 @@ export class UserService {
       throw new NotFoundException(`User with username ${username} not found`);
     }
 
+    return this.withoutSensitiveUserFields(user);
+  }
+
+  async findOneForActor(id: number, actor: RequestUser) {
+    const user = await this.findOne(id);
+    this.assertUserManagementScope(actor, user);
+    return user;
+  }
+
+  async findByUsernameForActor(username: string, actor: RequestUser) {
+    const user = await this.findByUsername(username);
+    this.assertUserManagementScope(actor, user);
+    return user;
+  }
+
+  async findByEmailForActor(email: string, actor: RequestUser) {
+    const user = await this.findByEmail(email);
+    this.assertUserManagementScope(actor, user);
     return user;
   }
 
@@ -179,7 +301,7 @@ export class UserService {
       throw new NotFoundException(`User with email ${email} not found`);
     }
 
-    return user;
+    return this.withoutSensitiveUserFields(user);
   }
 
   async findAuthUserByUsername(username: string) {
@@ -301,13 +423,18 @@ export class UserService {
     }
 
     if (updateUserDto.password) {
+      assertStrongPassword(updateUserDto.password, {
+        username: updateUserDto.username,
+        fullName: updateUserDto.fullName,
+        minLength: Number(process.env.PASSWORD_MIN_LENGTH ?? 12),
+      });
       data.passwordHash = await bcrypt.hash(updateUserDto.password, 10);
       data.sessionVersion = {
         increment: 1,
       };
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data,
       include: {
@@ -323,10 +450,18 @@ export class UserService {
         },
       },
     });
+
+    return this.withoutSensitiveUserFields(updated);
   }
 
   async adminResetPassword(id: number, dto: AdminResetPasswordDto) {
-    await this.findOne(id);
+    const user = await this.findOne(id);
+
+    assertStrongPassword(dto.newPassword, {
+      username: user.username,
+      fullName: user.fullName,
+      minLength: Number(process.env.PASSWORD_MIN_LENGTH ?? 12),
+    });
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
 
@@ -340,7 +475,7 @@ export class UserService {
       },
     });
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: {
         passwordHash,
@@ -364,6 +499,8 @@ export class UserService {
         },
       },
     });
+
+    return this.withoutSensitiveUserFields(updated);
   }
 
   async remove(id: number) {
@@ -375,13 +512,20 @@ export class UserService {
       );
     }
 
-    return this.prisma.user.delete({
+    const removed = await this.prisma.user.delete({
       where: { id },
     });
+
+    return this.withoutSensitiveUserFields(removed);
   }
 
-  async secureUpdate(id: number, updateUserDto: UpdateUserDto, actor: RequestUser) {
+  async secureUpdate(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    actor: RequestUser,
+  ) {
     const target = await this.findOne(id);
+    this.assertUserManagementScope(actor, target);
 
     if (actor.userId === id && updateUserDto.isActive === false) {
       throw new BadRequestException('You cannot deactivate your own account');
@@ -392,6 +536,17 @@ export class UserService {
       target.role?.code === 'SUPER_ADMIN'
     ) {
       return this.requestSuperAdminDeactivation(id, actor);
+    }
+
+    if (!this.canManagePlatformUsers(actor)) {
+      if (
+        updateUserDto.homeFacilityId &&
+        updateUserDto.homeFacilityId !== actor.homeFacilityId
+      ) {
+        throw new ForbiddenException('You cannot move users outside your facility');
+      }
+
+      updateUserDto.homeFacilityId = actor.homeFacilityId ?? undefined;
     }
 
     return this.update(id, updateUserDto);
@@ -408,7 +563,7 @@ export class UserService {
       return this.update(id, { isActive: false });
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: {
         pendingDeactivationAt: new Date(),
@@ -429,6 +584,8 @@ export class UserService {
         },
       },
     });
+
+    return this.withoutSensitiveUserFields(updated);
   }
 
   async acceptOwnDeactivation(actor: RequestUser) {
@@ -438,7 +595,7 @@ export class UserService {
       throw new BadRequestException('No pending deactivation request found');
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: actor.userId },
       data: {
         isActive: false,
@@ -448,12 +605,17 @@ export class UserService {
         sessionVersion: { increment: 1 },
       },
     });
+
+    return this.withoutSensitiveUserFields(updated);
   }
 
   async secureRemove(id: number, actor: RequestUser) {
     if (actor.userId === id) {
       throw new BadRequestException('You cannot delete your own account');
     }
+
+    const target = await this.findOne(id);
+    this.assertUserManagementScope(actor, target);
 
     return this.remove(id);
   }

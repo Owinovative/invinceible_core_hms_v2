@@ -1,8 +1,8 @@
 import { IsString, MaxLength, MinLength } from 'class-validator';
 
-export class AdminResetPasswordDto {
+export class StepUpDto {
   @IsString()
-  @MinLength(12)
+  @MinLength(6)
   @MaxLength(255)
-  newPassword: string;
+  password: string;
 }

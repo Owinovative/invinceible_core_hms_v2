@@ -13,8 +13,10 @@ import { ScopeService } from './scope.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { StepUpDto } from './dto/step-up.dto';
 import { UserLocationService } from '../user-location/user-location.service';
 import { computeFacilityAccessStatus } from '../common/facility-access';
+import { assertStrongPassword } from './password-policy';
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const MAX_ACTIVE_USER_SESSIONS = 2;
@@ -94,12 +96,27 @@ export class AuthService {
     }
   }
 
+  private async progressiveLoginDelay(failedAttempts: number) {
+    const maxDelay = Math.max(
+      0,
+      Number(
+        this.configService.get<string>('AUTH_FAILED_LOGIN_DELAY_MAX_MS') ??
+          '2500',
+      ),
+    );
+    if (maxDelay <= 0 || failedAttempts <= 0) return;
+
+    const delayMs = Math.min(maxDelay, failedAttempts * failedAttempts * 150);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
   async login(loginDto: LoginDto, auditMeta?: LoginAuditMeta) {
     const username = loginDto.username.trim();
     const password = loginDto.password.trim();
     const user = await this.userService.findAuthUserByUsername(username);
 
     if (!user) {
+      await this.progressiveLoginDelay(1);
       await this.recordLoginAudit({
         actionName: 'LOGIN_FAILED',
         username,
@@ -108,6 +125,8 @@ export class AuthService {
       });
       throw new UnauthorizedException('Invalid username or password');
     }
+
+    await this.progressiveLoginDelay(user.failedLoginAttempts ?? 0);
 
     if (!user.isActive) {
       if (user.lockedAt) {
@@ -409,6 +428,14 @@ export class AuthService {
       throw new BadRequestException('User account is inactive');
     }
 
+    assertStrongPassword(dto.newPassword, {
+      username: resetRecord.user.username,
+      fullName: resetRecord.user.fullName,
+      minLength: Number(
+        this.configService.get<string>('PASSWORD_MIN_LENGTH') ?? 12,
+      ),
+    });
+
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
     const usedAt = new Date();
 
@@ -454,5 +481,73 @@ export class AuthService {
       this.configService.get<string>('NODE_ENV') !== 'production' &&
       this.configService.get<string>('RETURN_DEV_RESET_TOKEN') === 'true'
     );
+  }
+
+  async createStepUpToken(
+    user: {
+      userId: number;
+      username?: string | null;
+      sessionId?: string | null;
+      roleCode?: string | null;
+    },
+    dto: StepUpDto,
+    auditMeta?: LoginAuditMeta,
+  ) {
+    const authUser = await this.userService.findAuthUserByUsername(
+      user.username ?? '',
+    );
+
+    if (!authUser || authUser.id !== user.userId || !authUser.isActive) {
+      throw new UnauthorizedException('Step-up verification failed');
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      authUser.passwordHash,
+    );
+
+    if (!passwordMatches) {
+      await this.recordLoginAudit({
+        actionName: 'LOGIN_FAILED',
+        username: user.username ?? String(user.userId),
+        reason: 'STEP_UP_BAD_PASSWORD',
+        user: authUser,
+        meta: auditMeta,
+      });
+      throw new UnauthorizedException('Step-up verification failed');
+    }
+
+    const ttlSeconds = Math.max(
+      60,
+      Number(this.configService.get<string>('STEP_UP_TTL_SECONDS') ?? 300),
+    );
+    const token = await this.jwtService.signAsync(
+      {
+        sub: user.userId,
+        username: user.username,
+        sessionId: user.sessionId,
+        roleCode: user.roleCode,
+        stepUp: true,
+        scope: 'dangerous-action',
+      },
+      { expiresIn: `${ttlSeconds}s` },
+    );
+
+    await this.recordLoginAudit({
+      actionName: 'LOGIN_SUCCESS',
+      username: user.username ?? String(user.userId),
+      reason: 'STEP_UP_VERIFIED',
+      user: authUser,
+      meta: auditMeta,
+      afterData: {
+        stepUp: true,
+        ttlSeconds,
+      },
+    });
+
+    return {
+      stepUpToken: token,
+      expiresInSeconds: ttlSeconds,
+    };
   }
 }

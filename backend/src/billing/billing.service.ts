@@ -2067,7 +2067,7 @@ export class BillingService {
     });
   }
 
-  async createInvoice(dto: CreateInvoiceDto) {
+  async createInvoice(dto: CreateInvoiceDto, user?: RequestUser) {
     let invoiceNumber = dto.invoiceNumber;
 
     if (invoiceNumber) {
@@ -2194,6 +2194,16 @@ export class BillingService {
       createdByStaff?.branchId ??
       null;
 
+    if (patient.facilityId !== facilityId) {
+      throw new BadRequestException(
+        'Invoice patient does not belong to the resolved facility',
+      );
+    }
+
+    if (user) {
+      this.scopeService.assertBranchAccess(user, facilityId, branchId);
+    }
+
     const invoice = await this.prisma.invoice.create({
       data: {
         facilityId,
@@ -2242,6 +2252,7 @@ export class BillingService {
       description: `Created invoice ${invoice.invoiceNumber} for patient ${invoice.patientId}`,
       facilityId: invoice.facilityId,
       branchId: invoice.branchId ?? undefined,
+      actorUserId: user?.userId,
       actorStaffId: dto.createdByStaffId,
       afterData: JSON.stringify(invoice),
     });
@@ -2280,9 +2291,14 @@ export class BillingService {
             billingService: true,
           },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 50,
         },
-        payments: true,
+        payments: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 30,
+        },
       },
+      take: 200,
       orderBy: { id: 'desc' },
     });
   }
@@ -2318,9 +2334,16 @@ export class BillingService {
     };
   }
 
-  async getPatientBillingByPatientNumber(patientNumber: string) {
-    const patient = await this.prisma.patient.findUnique({
-      where: { patientNumber },
+  async getPatientBillingByPatientNumber(
+    patientNumber: string,
+    user: RequestUser,
+  ) {
+    const scope = this.scopeService.buildReadScope(user);
+    const patient = await this.prisma.patient.findFirst({
+      where: {
+        patientNumber,
+        ...(scope.facilityId ? { facilityId: scope.facilityId } : {}),
+      },
       include: {
         facility: true,
       },
@@ -2334,6 +2357,7 @@ export class BillingService {
 
     const invoices = await this.prisma.invoice.findMany({
       where: {
+        ...scope,
         patientId: patient.id,
       },
       include: {
@@ -2347,9 +2371,14 @@ export class BillingService {
             billingService: true,
           },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 50,
         },
-        payments: true,
+        payments: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 30,
+        },
       },
+      take: 100,
       orderBy: { id: 'desc' },
     });
 
@@ -2396,9 +2425,14 @@ export class BillingService {
             billingService: true,
           },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 50,
         },
-        payments: true,
+        payments: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 30,
+        },
       },
+      take: 200,
       orderBy: { id: 'desc' },
     });
   }
@@ -3428,8 +3462,15 @@ export class BillingService {
     });
   }
 
-  async createCashPayment(dto: CreateCashPaymentDto) {
+  async createCashPayment(dto: CreateCashPaymentDto, user?: RequestUser) {
     const invoice = await this.getInvoiceById(dto.invoiceId);
+    if (user) {
+      this.scopeService.assertBranchAccess(
+        user,
+        invoice.facilityId,
+        invoice.branchId,
+      );
+    }
     const receiptNumber =
       dto.receiptNumber || this.generateReceiptNumber('CSH');
 
@@ -3487,6 +3528,7 @@ export class BillingService {
       description: `Cash payment received for invoice ${dto.invoiceId}`,
       facilityId: payment.facilityId,
       branchId: payment.branchId ?? undefined,
+      actorUserId: user?.userId,
       actorStaffId: dto.receivedByStaffId,
       afterData: JSON.stringify(payment),
     });
@@ -3719,6 +3761,7 @@ export class BillingService {
         invoice,
         normalizedPhone,
         amount,
+        user,
       );
     } finally {
       releaseLock();
@@ -3731,6 +3774,7 @@ export class BillingService {
     invoice: any,
     normalizedPhone: string,
     amount: number,
+    user?: RequestUser,
   ) {
     if (dto.receivedByStaffId) {
       await this.staffService.findOne(dto.receivedByStaffId);
@@ -3812,6 +3856,7 @@ export class BillingService {
       description: `M-PESA payment request initiated for invoice ${dto.invoiceId}`,
       facilityId: payment.facilityId,
       branchId: payment.branchId ?? undefined,
+      actorUserId: user?.userId,
       actorStaffId: dto.receivedByStaffId,
       afterData: JSON.stringify(payment),
     });
@@ -4053,6 +4098,7 @@ export class BillingService {
           statusQuery: daraja,
           queriedAt: new Date().toISOString(),
         }),
+        user,
       );
 
       return {
@@ -4073,7 +4119,11 @@ export class BillingService {
     };
   }
 
-  async confirmMpesaPayment(dto: ConfirmMpesaPaymentDto) {
+  async confirmMpesaPayment(
+    dto: ConfirmMpesaPaymentDto,
+    user?: RequestUser,
+    source: 'MANUAL' | 'CALLBACK' | 'STATUS_QUERY' = 'MANUAL',
+  ) {
     const payment = await this.prisma.payment.findFirst({
       where: {
         checkoutRequestId: dto.checkoutRequestId,
@@ -4087,11 +4137,41 @@ export class BillingService {
       );
     }
 
+    if (user) {
+      this.scopeService.assertBranchAccess(
+        user,
+        payment.facilityId,
+        payment.branchId,
+      );
+    }
+
     if (payment.statusCode === 'COMPLETED') {
       return {
         message: 'Payment already confirmed',
         payment,
       };
+    }
+
+    const mpesaReceiptNumber = dto.mpesaReceiptNumber?.trim() || undefined;
+    if (mpesaReceiptNumber) {
+      const duplicateReceipt = await this.prisma.payment.findFirst({
+        where: {
+          mpesaReceiptNumber,
+          NOT: { id: payment.id },
+        },
+        select: {
+          id: true,
+          receiptNumber: true,
+          invoiceId: true,
+          statusCode: true,
+        },
+      });
+
+      if (duplicateReceipt) {
+        throw new BadRequestException(
+          'This M-PESA receipt number is already attached to another payment',
+        );
+      }
     }
 
     const beforeData = JSON.stringify(payment);
@@ -4103,7 +4183,7 @@ export class BillingService {
         confirmedAt: new Date(),
         paidAt: new Date(),
         merchantRequestId: dto.merchantRequestId ?? payment.merchantRequestId,
-        mpesaReceiptNumber: dto.mpesaReceiptNumber,
+        mpesaReceiptNumber,
         transactionRef: dto.transactionRef,
         callbackPayload: dto.callbackPayload,
       },
@@ -4113,12 +4193,17 @@ export class BillingService {
 
     await this.auditLogService.create({
       moduleName: 'BILLING',
-      actionName: 'CONFIRM_MPESA_PAYMENT',
+      actionName:
+        source === 'CALLBACK'
+          ? 'CONFIRM_MPESA_PAYMENT_CALLBACK'
+          : 'CONFIRM_MPESA_PAYMENT',
       entityType: 'PAYMENT',
       entityId: String(payment.id),
-      description: `M-PESA payment confirmed for invoice ${payment.invoiceId}`,
+      description: `M-PESA payment confirmed for invoice ${payment.invoiceId} via ${source}`,
       facilityId: payment.facilityId,
       branchId: payment.branchId ?? undefined,
+      actorUserId: user?.userId,
+      actorStaffId: user?.staffId ?? undefined,
       beforeData,
       afterData: JSON.stringify(updatedPayment),
     });
@@ -4138,7 +4223,11 @@ export class BillingService {
     return this.getInvoiceById(payment.invoiceId);
   }
 
-  async failMpesaPayment(checkoutRequestId: string, callbackPayload?: string) {
+  async failMpesaPayment(
+    checkoutRequestId: string,
+    callbackPayload?: string,
+    user?: RequestUser,
+  ) {
     const payment = await this.prisma.payment.findFirst({
       where: {
         checkoutRequestId,
@@ -4149,6 +4238,14 @@ export class BillingService {
     if (!payment) {
       throw new NotFoundException(
         `M-PESA payment with checkoutRequestId ${checkoutRequestId} not found`,
+      );
+    }
+
+    if (user) {
+      this.scopeService.assertBranchAccess(
+        user,
+        payment.facilityId,
+        payment.branchId,
       );
     }
 
@@ -4174,6 +4271,8 @@ export class BillingService {
       description: `M-PESA payment failed for invoice ${payment.invoiceId}`,
       facilityId: payment.facilityId,
       branchId: payment.branchId ?? undefined,
+      actorUserId: user?.userId,
+      actorStaffId: user?.staffId ?? undefined,
       beforeData,
       afterData: JSON.stringify(failedPayment),
     });
@@ -4222,7 +4321,7 @@ export class BillingService {
       mpesaReceiptNumber: String(metadata.MpesaReceiptNumber || ''),
       transactionRef: String(metadata.MpesaReceiptNumber || checkoutRequestId),
       callbackPayload: JSON.stringify(payload),
-    });
+    }, undefined, 'CALLBACK');
 
     return { message: 'M-PESA callback confirmed' };
   }
