@@ -21,7 +21,7 @@ import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
-import { creatorContacts, getWhatsappLink } from "@/lib/creator-contacts";
+import { getWhatsappLink, supportContacts } from "@/lib/creator-contacts";
 import {
   Form,
   FormControl,
@@ -247,7 +247,7 @@ export default function LoginPageClient() {
                 Need assistance?
               </p>
               <div className="grid gap-2">
-                {creatorContacts.map((creator) => (
+                {supportContacts.map((creator) => (
                   <a
                     key={creator.name}
                     href={getWhatsappLink(

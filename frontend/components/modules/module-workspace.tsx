@@ -100,6 +100,13 @@ function getNextStage(workflow: string[], currentStage: string) {
   return workflow[currentIndex + 1] ?? currentStage;
 }
 
+function toDateTimeInputValue(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate(),
+  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function ModuleWorkspace({ slug }: { slug: string }) {
   const moduleConfig = getModuleBySlug(slug);
   const {
@@ -162,6 +169,24 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
   const queueHeightClass =
     queueDensity === "compact" ? "max-h-[520px]" : "max-h-[680px]";
   const recordPaddingClass = queueDensity === "compact" ? "p-3" : "p-4";
+
+  const handleApplyTemplate = (
+    template: NonNullable<typeof moduleConfig.quickTemplates>[number],
+  ) => {
+    setTitle(template.title);
+    setDescription(template.description);
+    setPriorityCode(template.priorityCode ?? "ROUTINE");
+
+    if (template.dueInHours) {
+      const dueDate = new Date();
+      dueDate.setHours(dueDate.getHours() + template.dueInHours);
+      setDueAt(toDateTimeInputValue(dueDate));
+    } else {
+      setDueAt("");
+    }
+
+    setMessage("Template loaded. Review the details, then save the record.");
+  };
 
   const handleCreate = async () => {
     setMessage(null);
@@ -432,6 +457,39 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
               </Button>
             </CardContent>
           </Card>
+
+          {moduleConfig.quickTemplates?.length ? (
+            <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-cyan-500" />
+                  Quick Starters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {moduleConfig.quickTemplates.map((template) => (
+                  <button
+                    key={template.title}
+                    type="button"
+                    onClick={() => handleApplyTemplate(template)}
+                    className="rounded-xl border border-sky-200 bg-background/75 p-4 text-left transition hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{template.title}</p>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                          {template.description}
+                        </p>
+                      </div>
+                      <Badge className={`shrink-0 border-0 ${priorityClass(template.priorityCode ?? "ROUTINE")}`}>
+                        {template.priorityCode ?? "ROUTINE"}
+                      </Badge>
+                    </div>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="rounded-[1.2rem] gradient-border panel-shadow">
             <CardHeader>

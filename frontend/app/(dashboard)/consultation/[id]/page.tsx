@@ -5,6 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
+  AlertTriangle,
   BedDouble,
   CheckCircle2,
   ClipboardList,
@@ -39,6 +40,7 @@ import { useLabResults } from "@/hooks/use-lab-results";
 
 
 import { useBranchPharmacyStock } from "@/hooks/use-branch-pharmacy-stock";
+import { useMedicineStockAlternatives } from "@/hooks/use-medicine-stock-alternatives";
 import { useCreatePrescription } from "@/hooks/use-create-prescription";
 import { useConsultationPrescriptions } from "@/hooks/use-consultation-prescriptions";
 import { usePatientPrescriptions } from "@/hooks/use-patient-prescriptions";
@@ -346,19 +348,50 @@ export default function ConsultationDetailPage() {
   }, [patientPrescriptions, consultationPrescriptionList]);
 
 
-  const availableStockItems = React.useMemo(() => {
+  const branchStockItems = React.useMemo(() => {
     const items = Array.isArray(branchStockData) ? branchStockData : [];
     return items.filter(
-      (item) => item.isActive && item.stockQuantity > 0 && item.medicine?.isActive !== false,
+      (item) => item.isActive && item.medicine?.isActive !== false,
     );
   }, [branchStockData]);
 
+  const selectedMedicineIdNumber = selectedMedicineId
+    ? Number(selectedMedicineId)
+    : null;
+
+  const selectedStockItem = React.useMemo(() => {
+    if (!selectedMedicineIdNumber) return null;
+
+    return (
+      branchStockItems.find(
+        (item) => item.medicineId === selectedMedicineIdNumber,
+      ) ?? null
+    );
+  }, [branchStockItems, selectedMedicineIdNumber]);
+
+  const selectedStockStatus = React.useMemo(() => {
+    if (!selectedMedicineIdNumber) return null;
+    const stockQuantity = Number(selectedStockItem?.stockQuantity ?? 0);
+    const reorderLevel = Number(selectedStockItem?.reorderLevel ?? 0);
+
+    if (stockQuantity <= 0) return "OUT_OF_STOCK";
+    if (reorderLevel > 0 && stockQuantity <= reorderLevel) return "LOW_STOCK";
+    return "IN_STOCK";
+  }, [selectedMedicineIdNumber, selectedStockItem]);
+
+  const {
+    data: medicineAlternativesData,
+    isLoading: alternativesLoading,
+  } = useMedicineStockAlternatives(branchIdForStock, selectedMedicineIdNumber);
+
+  const medicineAlternatives =
+    medicineAlternativesData?.alternatives ?? [];
 
   const filteredStockItems = React.useMemo(() => {
     const query = medicineSearch.trim().toLowerCase();
-    if (!query) return availableStockItems.slice(0, 120);
+    if (!query) return branchStockItems.slice(0, 140);
 
-    return availableStockItems
+    return branchStockItems
       .filter((item) =>
         [
           item.medicine?.name,
@@ -371,8 +404,8 @@ export default function ConsultationDetailPage() {
           .toLowerCase()
           .includes(query),
       )
-      .slice(0, 120);
-  }, [availableStockItems, medicineSearch]);
+      .slice(0, 140);
+  }, [branchStockItems, medicineSearch]);
 
 
   const labTests = React.useMemo(
@@ -524,6 +557,13 @@ export default function ConsultationDetailPage() {
 
     if (!selectedMedicineId) {
       setMessage("Please select a medicine.");
+      return;
+    }
+
+    if (selectedStockStatus === "OUT_OF_STOCK") {
+      setMessage(
+        "Selected medicine is out of stock in this branch. Choose an in-stock alternative or restock before prescribing.",
+      );
       return;
     }
 
@@ -1300,7 +1340,10 @@ export default function ConsultationDetailPage() {
                           <option key={item.id} value={String(item.medicineId)}>
                             {item.medicine?.name}
                             {item.medicine?.strength ? ` - ${item.medicine.strength}` : ""} (
-                            {item.stockQuantity} in stock)
+                            {item.stockQuantity > 0
+                              ? `${item.stockQuantity} in stock`
+                              : "out of stock"}
+                            )
                           </option>
                         ))}
                       </select>
@@ -1310,6 +1353,101 @@ export default function ConsultationDetailPage() {
                         </p>
                       ) : null}
                     </div>
+
+                    {selectedMedicineIdNumber ? (
+                      <div
+                        className={`rounded-[1.2rem] border p-4 ${
+                          selectedStockStatus === "OUT_OF_STOCK"
+                            ? "border-rose-500/20 bg-rose-500/10"
+                            : selectedStockStatus === "LOW_STOCK"
+                              ? "border-amber-500/20 bg-amber-500/10"
+                              : "border-emerald-500/20 bg-emerald-500/10"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold">
+                              {selectedStockItem?.medicine?.name ||
+                                "Selected medicine"}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              Stock: {selectedStockItem?.stockQuantity ?? 0} / Reorder:{" "}
+                              {selectedStockItem?.reorderLevel ?? 0} / Unit price:{" "}
+                              {selectedStockItem?.unitPrice ?? 0}
+                            </p>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Stock assistant checks this branch only. Final substitution
+                              remains a clinician decision.
+                            </p>
+                          </div>
+                          <Badge
+                            className={`w-fit rounded-full border px-3 py-1 ${
+                              selectedStockStatus === "OUT_OF_STOCK"
+                                ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
+                                : selectedStockStatus === "LOW_STOCK"
+                                  ? "border-amber-500/20 bg-amber-500/10 text-amber-300"
+                                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                            }`}
+                          >
+                            {selectedStockStatus}
+                          </Badge>
+                        </div>
+
+                        {selectedStockStatus === "OUT_OF_STOCK" ? (
+                          <div className="mt-4 rounded-[1rem] border border-white/10 bg-black/10 p-3">
+                            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                              <AlertTriangle className="h-4 w-4 text-amber-300" />
+                              AI stock assistant
+                            </div>
+                            {alternativesLoading ? (
+                              <p className="text-sm text-muted-foreground">
+                                Checking in-stock alternatives...
+                              </p>
+                            ) : medicineAlternatives.length ? (
+                              <div className="grid gap-2 md:grid-cols-2">
+                                {medicineAlternatives.slice(0, 4).map((item) => (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
+                                    onClick={() => {
+                                      setSelectedMedicineId(String(item.medicineId));
+                                      setMedicineSearch(item.medicine?.name || "");
+                                      setMessage(
+                                        `Selected in-stock alternative: ${item.medicine?.name}. Confirm dose and indication before saving.`,
+                                      );
+                                    }}
+                                  >
+                                    <p className="text-sm font-semibold">
+                                      {item.medicine?.name}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {[
+                                        item.medicine?.strength,
+                                        item.medicine?.dosageForm,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" / ") || "No form details"}
+                                    </p>
+                                    <p className="mt-2 text-xs text-emerald-300">
+                                      {item.stockQuantity} in stock
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {item.reasons.join(" | ")}
+                                    </p>
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No safe in-stock shortlist could be built from the
+                                available catalogue fields.
+                              </p>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
 
 
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1368,7 +1506,10 @@ export default function ConsultationDetailPage() {
                       type="button"
                       className="h-12 rounded-2xl"
                       onClick={handleAddPrescriptionItem}
-                      disabled={createPrescriptionItemMutation.isPending}
+                      disabled={
+                        createPrescriptionItemMutation.isPending ||
+                        selectedStockStatus === "OUT_OF_STOCK"
+                      }
                     >
                       {createPrescriptionItemMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

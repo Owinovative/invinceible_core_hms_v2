@@ -72,13 +72,10 @@ export class PharmacyService {
   }
 
   async createPrescription(createPrescriptionDto: CreatePrescriptionDto) {
-    const latestPrescription = await this.prisma.prescription.findFirst({
-      orderBy: { id: 'desc' },
-      select: { id: true },
-    });
-
-    const nextNumber = (latestPrescription?.id ?? 0) + 1;
-    const generatedPrescriptionNumber = `RX-${String(nextNumber).padStart(6, '0')}`;
+    const temporaryPrescriptionNumber = `RX-TMP-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase()}`;
 
 
     const consultation = await this.consultationService.findOne(
@@ -109,11 +106,11 @@ export class PharmacyService {
       }
     }
 
-    return this.prisma.prescription.create({
+    const created = await this.prisma.prescription.create({
       data: {
         facilityId: consultation.facilityId,
         branchId: consultation.branchId,
-        prescriptionNumber: generatedPrescriptionNumber,
+        prescriptionNumber: temporaryPrescriptionNumber,
         consultationId: createPrescriptionDto.consultationId,
         patientId: createPrescriptionDto.patientId,
         prescribedByStaffId: createPrescriptionDto.prescribedByStaffId,
@@ -130,6 +127,25 @@ export class PharmacyService {
             statusCode: 'PRESCRIBED',
           })),
         },
+      },
+      include: {
+        facility: true,
+        branch: true,
+        consultation: true,
+        patient: true,
+        prescribedBy: true,
+        items: {
+          include: {
+            medicine: true,
+          },
+        },
+      },
+    });
+
+    return this.prisma.prescription.update({
+      where: { id: created.id },
+      data: {
+        prescriptionNumber: `RX-${String(created.id).padStart(6, '0')}`,
       },
       include: {
         facility: true,

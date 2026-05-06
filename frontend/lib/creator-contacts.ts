@@ -19,6 +19,10 @@ export const creatorContacts = [
   },
 ] as const;
 
+export const supportContacts = creatorContacts.filter((creator) =>
+  creator.name.includes("Otieno"),
+);
+
 export function getWhatsappLink(whatsappNumber: string, message: string) {
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
