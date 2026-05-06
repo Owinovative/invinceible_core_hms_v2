@@ -13,6 +13,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { BillingService } from './billing.service';
+import { FacilityMpesaBillingService } from './facility-mpesa-billing.service';
 import { CreateBillingServiceDto } from './dto/create-billing-service.dto';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateCashPaymentDto } from './dto/create-cash-payment.dto';
@@ -34,7 +35,10 @@ import { RolesGuard } from '../auth/roles.guard';
 @Controller('billing')
 @UseGuards(AuthGuard('jwt'))
 export class BillingController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly facilityMpesaBillingService: FacilityMpesaBillingService,
+  ) {}
 
   @Post('services')
   @UseGuards(RolesGuard)
@@ -260,7 +264,7 @@ export class BillingController {
     @Body() dto: CreateMpesaPaymentRequestDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.billingService.createMpesaPaymentRequest(dto, user);
+    return this.facilityMpesaBillingService.createMpesaPaymentRequest(dto, user);
   }
 
   @Post('payments/:id/mpesa/resend')
@@ -268,12 +272,12 @@ export class BillingController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.billingService.resendMpesaPaymentRequest(id, user);
+    return this.facilityMpesaBillingService.resendMpesaPaymentRequest(id, user);
   }
 
   @Post('payments/mpesa/confirm')
   confirmMpesaPayment(@Body() dto: ConfirmMpesaPaymentDto) {
-    return this.billingService.confirmMpesaPayment(dto);
+    return this.facilityMpesaBillingService.confirmMpesaPayment(dto);
   }
 
   @Patch('payments/mpesa/fail/:checkoutRequestId')
@@ -281,7 +285,7 @@ export class BillingController {
     @Param('checkoutRequestId') checkoutRequestId: string,
     @Body() body: { callbackPayload?: string },
   ) {
-    return this.billingService.failMpesaPayment(
+    return this.facilityMpesaBillingService.failMpesaPayment(
       checkoutRequestId,
       body?.callbackPayload,
     );
@@ -292,7 +296,10 @@ export class BillingController {
     @Param('checkoutRequestId') checkoutRequestId: string,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.billingService.getMpesaPaymentStatus(checkoutRequestId, user);
+    return this.facilityMpesaBillingService.getMpesaPaymentStatus(
+      checkoutRequestId,
+      user,
+    );
   }
 
   @Get('dashboard')
@@ -316,11 +323,13 @@ export class BillingController {
 
 @Controller('billing/payments/mpesa')
 export class MpesaCallbackController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly facilityMpesaBillingService: FacilityMpesaBillingService,
+  ) {}
 
   @Post('callback')
   handleCallback(@Body() payload: unknown) {
-    return this.billingService.handleMpesaCallback(payload);
+    return this.facilityMpesaBillingService.handleMpesaCallback(payload);
   }
 }
 
