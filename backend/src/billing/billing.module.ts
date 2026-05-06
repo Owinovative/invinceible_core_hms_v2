@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BillingService } from './billing.service';
+import { FacilityMpesaBillingService } from './facility-mpesa-billing.service';
 import {
   BillingController,
   BillingPublicController,
@@ -24,7 +25,7 @@ import { AuthModule } from '../auth/auth.module';
     AuthModule,
   ],
   controllers: [BillingController, MpesaCallbackController, BillingPublicController],
-  providers: [BillingService],
-  exports: [BillingService],
+  providers: [BillingService, FacilityMpesaBillingService],
+  exports: [BillingService, FacilityMpesaBillingService],
 })
 export class BillingModule {}
