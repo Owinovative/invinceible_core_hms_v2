@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
-import { creatorContacts, getWhatsappLink } from "@/lib/creator-contacts";
+import { getWhatsappLink, supportContacts } from "@/lib/creator-contacts";
 
 const heroPhotos = [
   {
@@ -260,7 +260,7 @@ export default function HomePage() {
                   Built by Eng. Otieno Owino and Eng. Moikoyo Paul
                 </h2>
                 <div className="mt-5 grid gap-3">
-                  {creatorContacts.map((creator) => (
+                  {supportContacts.map((creator) => (
                     <a
                       key={creator.name}
                       href={getWhatsappLink(creator.whatsappNumber, creator.message)}

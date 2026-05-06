@@ -30,6 +30,22 @@ Each facility can now carry its own Daraja configuration from Platform > Facilit
 
 If a facility field is empty, the backend falls back to the Railway variables above. This lets one deployed backend support a default merchant account and also support facilities that have their own Safaricom app.
 
+## How the backend applies this as a developer flow
+
+The STK Push request is resolved from the invoice, not from the frontend form alone:
+
+1. The cashier opens an invoice and enters the phone number and amount.
+2. The backend loads the invoice, patient, facility, and branch.
+3. The backend selects Daraja credentials in this order:
+   - facility-specific Daraja credentials when the facility has them enabled;
+   - Railway environment variables when facility credentials are empty.
+4. The backend selects the payment shortcode/transaction type from the facility settings first, then Railway defaults.
+5. The backend creates one pending payment request with the invoice id, phone, amount, checkout request id, and merchant request id.
+6. Safaricom calls the Railway callback URL.
+7. The callback updates the pending payment, records the receipt/reference, and recalculates the invoice balance.
+
+Do not put Daraja secrets in Vercel or any frontend `.env` file. Only the Railway backend should know consumer keys, consumer secrets, and passkeys.
+
 ## App flow
 
 1. Open an invoice.
@@ -42,6 +58,38 @@ If a facility field is empty, the backend falls back to the Railway variables ab
 8. If the patient did not receive the prompt, use `Resend STK Push`.
 
 Duplicate sends for the same invoice, amount, and phone number are blocked while a recent request is pending.
+
+## Duplicate protection
+
+The backend blocks accidental double STK Pushes for the same invoice, phone number, and amount while a recent request is still pending. If the patient did not receive the prompt, use the explicit `Resend STK Push` action instead of pressing create repeatedly.
+
+## Railway deployment checklist
+
+1. Open the Railway backend service.
+2. Add the `MPESA_*` variables listed above.
+3. Deploy the backend.
+4. Run database migrations if Railway did not run them automatically:
+
+```bash
+npx prisma migrate deploy
+```
+
+5. In the Safaricom Daraja portal, set the callback URL to the public Railway backend URL.
+6. In Platform > Facilities, configure facility-specific payment settings where a facility has its own paybill, till, shortcode, or Daraja app.
+7. Test with one small sandbox invoice first, then move to production credentials.
+
+## Production notes
+
+For production:
+
+```env
+MPESA_ENV=production
+MPESA_TRANSACTION_TYPE=CustomerPayBillOnline
+```
+
+Use `CustomerPayBillOnline` for paybill payments and `CustomerBuyGoodsOnline` for till or buy-goods payments. The shortcode, passkey, callback URL, and transaction type must match the Safaricom app that owns the payment channel.
+
+If a facility has its own Daraja app, enter that facility's consumer key, consumer secret, passkey, shortcode, transaction type, and callback URL in the facility record. If it does not, leave those fields blank and the Railway defaults will handle the payment.
 
 ## Callback URL to set in Daraja
 

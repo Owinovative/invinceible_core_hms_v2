@@ -147,6 +147,51 @@ function readBoolean(row: CsvRow, aliases: string[]) {
   return ['true', 'yes', 'y', '1', 'active'].includes(raw.toLowerCase());
 }
 
+function normalizeText(value?: string | null) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function medicineTokens(value?: string | null) {
+  const stopWords = new Set([
+    'tab',
+    'tabs',
+    'tablet',
+    'tablets',
+    'cap',
+    'caps',
+    'capsule',
+    'capsules',
+    'syrup',
+    'suspension',
+    'injection',
+    'inj',
+    'cream',
+    'ointment',
+    'drops',
+    'mg',
+    'ml',
+    'g',
+  ]);
+
+  return normalizeText(value)
+    .split(' ')
+    .filter((token) => token.length >= 3 && !stopWords.has(token));
+}
+
+function stockStatus(stockQuantity?: number | null, reorderLevel?: number | null) {
+  const quantity = Number(stockQuantity || 0);
+  const reorder = Number(reorderLevel || 0);
+
+  if (quantity <= 0) return 'OUT_OF_STOCK';
+  if (reorder > 0 && quantity <= reorder) return 'LOW_STOCK';
+  return 'IN_STOCK';
+}
+
 @Injectable()
 export class PharmacyStockService {
   constructor(
@@ -626,6 +671,136 @@ export class PharmacyStockService {
       },
       orderBy: { id: 'asc' },
     });
+  }
+
+  async findMedicineAlternativesScoped(
+    branchId: number,
+    medicineId: number,
+    user: RequestUser,
+  ) {
+    const branch = await this.getScopedBranch(branchId, user);
+    const selectedMedicine = await this.prisma.medicine.findUnique({
+      where: { id: medicineId },
+    });
+
+    if (!selectedMedicine) {
+      throw new NotFoundException(`Medicine with id ${medicineId} not found`);
+    }
+
+    const [selectedStock, branchStocks] = await Promise.all([
+      this.prisma.branchMedicineStock.findUnique({
+        where: {
+          branchId_medicineId: {
+            branchId,
+            medicineId,
+          },
+        },
+        include: {
+          medicine: true,
+          branch: true,
+          facility: true,
+        },
+      }),
+      this.prisma.branchMedicineStock.findMany({
+        where: {
+          facilityId: branch.facilityId,
+          branchId,
+          isActive: true,
+          stockQuantity: { gt: 0 },
+          medicineId: { not: medicineId },
+          medicine: { isActive: true },
+        },
+        include: {
+          medicine: true,
+          branch: true,
+          facility: true,
+        },
+        orderBy: [{ stockQuantity: 'desc' }, { id: 'asc' }],
+        take: 250,
+      }),
+    ]);
+
+    const selectedTokens = new Set(medicineTokens(selectedMedicine.name));
+    const selectedForm = normalizeText(selectedMedicine.dosageForm);
+    const selectedStrength = normalizeText(selectedMedicine.strength);
+
+    const alternatives = branchStocks
+      .map((stock) => {
+        const candidateTokens = medicineTokens(stock.medicine?.name);
+        const sharedTokens = candidateTokens.filter((token) =>
+          selectedTokens.has(token),
+        );
+        const sameForm =
+          selectedForm &&
+          normalizeText(stock.medicine?.dosageForm) === selectedForm;
+        const sameStrength =
+          selectedStrength &&
+          normalizeText(stock.medicine?.strength) === selectedStrength;
+        const sameManufacturer =
+          selectedMedicine.manufacturer &&
+          normalizeText(stock.medicine?.manufacturer) ===
+            normalizeText(selectedMedicine.manufacturer);
+
+        const score =
+          sharedTokens.length * 18 +
+          (sameForm ? 28 : 0) +
+          (sameStrength ? 28 : 0) +
+          (sameManufacturer ? 6 : 0);
+
+        const reasons = [
+          sameForm ? 'Same dosage form' : null,
+          sameStrength ? 'Same strength' : null,
+          sharedTokens.length
+            ? `Name-family overlap: ${sharedTokens.slice(0, 4).join(', ')}`
+            : null,
+          sameManufacturer ? 'Same manufacturer' : null,
+        ].filter(Boolean);
+
+        return {
+          stock,
+          score,
+          reasons,
+        };
+      })
+      .filter((item) => item.score >= 28)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map((item) => ({
+        id: item.stock.id,
+        facilityId: item.stock.facilityId,
+        branchId: item.stock.branchId,
+        medicineId: item.stock.medicineId,
+        stockQuantity: item.stock.stockQuantity,
+        reorderLevel: item.stock.reorderLevel,
+        buyingPrice: item.stock.buyingPrice,
+        unitPrice: item.stock.unitPrice,
+        isActive: item.stock.isActive,
+        medicine: item.stock.medicine,
+        branch: item.stock.branch,
+        facility: item.stock.facility,
+        score: item.score,
+        reasons: item.reasons,
+        safetyNote:
+          'Stock assistant shortlist only. Clinician must confirm indication, contraindications, allergies, dose, and route before use.',
+      }));
+
+    return {
+      branch: {
+        id: branch.id,
+        name: branch.name,
+        facilityId: branch.facilityId,
+        facilityName: branch.facility?.name ?? null,
+      },
+      selectedMedicine,
+      selectedStock,
+      selectedStatus: stockStatus(
+        selectedStock?.stockQuantity,
+        selectedStock?.reorderLevel,
+      ),
+      alternatives,
+      safetyNotice:
+        'The system ranks in-stock medicines from the same branch using catalogue similarity. It does not guarantee therapeutic equivalence.',
+    };
   }
 
   async findOne(id: number) {

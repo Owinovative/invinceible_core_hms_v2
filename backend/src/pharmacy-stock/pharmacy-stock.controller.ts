@@ -68,6 +68,19 @@ export class PharmacyStockController {
     return this.pharmacyStockService.findByBranchScoped(branchId, user);
   }
 
+  @Get('branch/:branchId/medicine/:medicineId/alternatives')
+  findMedicineAlternatives(
+    @Param('branchId', ParseIntPipe) branchId: number,
+    @Param('medicineId', ParseIntPipe) medicineId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.findMedicineAlternativesScoped(
+      branchId,
+      medicineId,
+      user,
+    );
+  }
+
   @Get(':id')
   findOne(
     @Param('id', ParseIntPipe) id: number,

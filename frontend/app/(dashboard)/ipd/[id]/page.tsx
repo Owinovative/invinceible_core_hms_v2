@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  AlertTriangle,
   BadgeDollarSign,
   BedDouble,
   Bot,
@@ -15,6 +16,7 @@ import {
   FileText,
   Loader2,
   LogOut,
+  Pill,
   Plus,
   RefreshCw,
   Sparkles,
@@ -40,6 +42,8 @@ import { useBeds } from "@/hooks/use-beds";
 import { useAuth } from "@/providers/auth-provider";
 import { useCreateAdmissionLabOrder } from "@/hooks/use-create-admission-lab-order";
 import { useLabTests } from "@/hooks/use-lab-tests";
+import { useBranchPharmacyStock } from "@/hooks/use-branch-pharmacy-stock";
+import { useMedicineStockAlternatives } from "@/hooks/use-medicine-stock-alternatives";
 import { usePostAdmissionBedCharge } from "@/hooks/use-post-admission-bed-charge";
 import { useCreateClinicalAiDraft } from "@/hooks/use-ai-assistant";
 import {
@@ -128,6 +132,9 @@ export default function IpdDetailPage() {
   const createIpdDoctorReviewMutation = useCreateIpdDoctorReview();
   const createIpdDischargeSummaryMutation = useCreateIpdDischargeSummary();
   const { data: labTestsData } = useLabTests();
+  const admissionBranchId = data?.branchId ?? undefined;
+  const { data: treatmentBranchStockData, isLoading: treatmentStockLoading } =
+    useBranchPharmacyStock(admissionBranchId);
   const createAdmissionLabOrderMutation = useCreateAdmissionLabOrder();
   const postAdmissionBedChargeMutation = usePostAdmissionBedCharge(id);
   const createClinicalAiDraftMutation = useCreateClinicalAiDraft();
@@ -206,6 +213,10 @@ export default function IpdDetailPage() {
 
   const [treatmentType, setTreatmentType] = React.useState("");
   const [treatmentName, setTreatmentName] = React.useState("");
+  const [treatmentMedicineSearch, setTreatmentMedicineSearch] =
+    React.useState("");
+  const [selectedTreatmentMedicineId, setSelectedTreatmentMedicineId] =
+    React.useState("");
   const [dosage, setDosage] = React.useState("");
   const [route, setRoute] = React.useState("");
   const [frequency, setFrequency] = React.useState("");
@@ -261,6 +272,74 @@ export default function IpdDetailPage() {
     "Create a concise inpatient medical summary for clinician review using the documented admission, progress notes, vitals, treatments, and lab results.",
   );
   const [medicalSummaryDraft, setMedicalSummaryDraft] = React.useState("");
+
+  const treatmentBranchStockItems = React.useMemo(() => {
+    const items = Array.isArray(treatmentBranchStockData)
+      ? treatmentBranchStockData
+      : [];
+    return items.filter((item) => item.isActive !== false && item.medicine);
+  }, [treatmentBranchStockData]);
+
+  const selectedTreatmentMedicineIdNumber = selectedTreatmentMedicineId
+    ? Number(selectedTreatmentMedicineId)
+    : undefined;
+
+  const selectedTreatmentStockItem = selectedTreatmentMedicineIdNumber
+    ? treatmentBranchStockItems.find(
+        (item) => item.medicineId === selectedTreatmentMedicineIdNumber,
+      )
+    : undefined;
+
+  const selectedTreatmentStockStatus:
+    | "IN_STOCK"
+    | "LOW_STOCK"
+    | "OUT_OF_STOCK"
+    | null = selectedTreatmentStockItem
+    ? selectedTreatmentStockItem.stockQuantity <= 0
+      ? "OUT_OF_STOCK"
+      : selectedTreatmentStockItem.stockQuantity <=
+          selectedTreatmentStockItem.reorderLevel
+        ? "LOW_STOCK"
+        : "IN_STOCK"
+    : selectedTreatmentMedicineIdNumber && !treatmentStockLoading
+      ? "OUT_OF_STOCK"
+      : null;
+
+  const {
+    data: treatmentAlternativesData,
+    isLoading: treatmentAlternativesLoading,
+  } = useMedicineStockAlternatives(
+    admissionBranchId,
+    selectedTreatmentMedicineIdNumber,
+  );
+
+  const treatmentAlternatives = React.useMemo(
+    () => treatmentAlternativesData?.alternatives ?? [],
+    [treatmentAlternativesData],
+  );
+
+  const filteredTreatmentStockItems = React.useMemo(() => {
+    const query = treatmentMedicineSearch.trim().toLowerCase();
+    const matches = treatmentBranchStockItems.filter((item) => {
+      if (!query) return true;
+      const medicine = item.medicine;
+      return [
+        medicine?.code,
+        medicine?.name,
+        medicine?.dosageForm,
+        medicine?.strength,
+        medicine?.manufacturer,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+
+    return matches
+      .sort((left, right) => right.stockQuantity - left.stockQuantity)
+      .slice(0, 140);
+  }, [treatmentBranchStockItems, treatmentMedicineSearch]);
 
   React.useEffect(() => {
     if (!dischargeSummary) return;
@@ -501,8 +580,18 @@ export default function IpdDetailPage() {
 
     if (!data) return;
 
-    if (!treatmentName.trim()) {
+    const selectedTreatmentName =
+      selectedTreatmentStockItem?.medicine?.name?.trim() || treatmentName.trim();
+
+    if (!selectedTreatmentName) {
       setMessage("Please enter the treatment name.");
+      return;
+    }
+
+    if (selectedTreatmentStockStatus === "OUT_OF_STOCK") {
+      setMessage(
+        "Selected treatment medicine is out of stock in this branch. Choose an in-stock option or restock before charting it.",
+      );
       return;
     }
 
@@ -512,7 +601,7 @@ export default function IpdDetailPage() {
       admissionId: data.id,
       orderedByStaffId: currentStaffId,
       treatmentType: treatmentType || undefined,
-      treatmentName: treatmentName.trim(),
+      treatmentName: selectedTreatmentName,
       dosage: dosage || undefined,
       route: route || undefined,
       frequency: frequency || undefined,
@@ -523,6 +612,8 @@ export default function IpdDetailPage() {
 
     setTreatmentType("");
     setTreatmentName("");
+    setTreatmentMedicineSearch("");
+    setSelectedTreatmentMedicineId("");
     setDosage("");
     setRoute("");
     setFrequency("");
@@ -1633,12 +1724,65 @@ export default function IpdDetailPage() {
                     <label className="mb-2 block text-sm font-medium">
                       Treatment Name
                     </label>
-                    <Input
-                      value={treatmentName}
-                      onChange={(e) => setTreatmentName(e.target.value)}
-                      className="h-12 rounded-2xl"
-                      placeholder="Ceftriaxone"
-                    />
+                    <div className="space-y-2">
+                      <Input
+                        value={treatmentMedicineSearch}
+                        onChange={(e) =>
+                          setTreatmentMedicineSearch(e.target.value)
+                        }
+                        className="h-12 rounded-2xl"
+                        placeholder="Search branch medicine stock"
+                      />
+                      <select
+                        value={selectedTreatmentMedicineId}
+                        onChange={(event) => {
+                          const selectedId = event.target.value;
+                          const selectedItem = treatmentBranchStockItems.find(
+                            (item) => String(item.medicineId) === selectedId,
+                          );
+                          setSelectedTreatmentMedicineId(selectedId);
+                          setTreatmentName(
+                            selectedItem?.medicine?.name ?? treatmentName,
+                          );
+                        }}
+                        className={appSelectClass}
+                      >
+                        <option value="">
+                          {treatmentStockLoading
+                            ? "Loading branch stock..."
+                            : "Select stocked medicine or type below"}
+                        </option>
+                        {filteredTreatmentStockItems.map((item) => (
+                          <option
+                            key={item.id}
+                            value={String(item.medicineId)}
+                          >
+                            {[
+                              item.medicine?.name,
+                              item.medicine?.strength,
+                              item.medicine?.dosageForm,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}{" "}
+                            -{" "}
+                            {item.stockQuantity > 0
+                              ? `${item.stockQuantity} in stock`
+                              : "out of stock"}
+                          </option>
+                        ))}
+                      </select>
+                      <Input
+                        value={treatmentName}
+                        onChange={(e) => {
+                          setTreatmentName(e.target.value);
+                          if (!e.target.value.trim()) {
+                            setSelectedTreatmentMedicineId("");
+                          }
+                        }}
+                        className="h-12 rounded-2xl"
+                        placeholder="Free-text treatment if not a stocked medicine"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -1690,6 +1834,113 @@ export default function IpdDetailPage() {
                   </div>
                 </div>
 
+                {selectedTreatmentStockItem ? (
+                  <div
+                    className={`rounded-2xl border p-4 text-sm ${
+                      selectedTreatmentStockStatus === "OUT_OF_STOCK"
+                        ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
+                        : selectedTreatmentStockStatus === "LOW_STOCK"
+                          ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100"
+                          : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="font-semibold">
+                          {selectedTreatmentStockItem.medicine?.name}
+                        </p>
+                        <p className="mt-1">
+                          Current stock:{" "}
+                          <strong>{selectedTreatmentStockItem.stockQuantity}</strong>{" "}
+                          / reorder level:{" "}
+                          <strong>{selectedTreatmentStockItem.reorderLevel}</strong>
+                        </p>
+                        <p className="mt-1">
+                          Unit price: KES{" "}
+                          {Number(selectedTreatmentStockItem.unitPrice || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <Badge
+                        className={
+                          selectedTreatmentStockStatus === "OUT_OF_STOCK"
+                            ? "border-0 bg-rose-600 text-white"
+                            : selectedTreatmentStockStatus === "LOW_STOCK"
+                              ? "border-0 bg-amber-500 text-white"
+                              : "border-0 bg-emerald-600 text-white"
+                        }
+                      >
+                        {selectedTreatmentStockStatus?.replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+
+                    {selectedTreatmentStockStatus === "OUT_OF_STOCK" ? (
+                      <div className="mt-4 rounded-xl border border-rose-300/70 bg-white/80 p-3 dark:border-rose-500/25 dark:bg-background/45">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                          <div>
+                            <p className="font-semibold">AI stock assistant</p>
+                            <p className="mt-1 text-xs leading-5">
+                              The system can suggest stocked catalogue matches.
+                              Clinician must confirm dose, indication, allergy,
+                              and guideline fit before using any alternative.
+                            </p>
+                          </div>
+                        </div>
+
+                        {treatmentAlternativesLoading ? (
+                          <div className="mt-3 flex items-center gap-2 text-xs">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Checking stocked alternatives...
+                          </div>
+                        ) : treatmentAlternatives.length > 0 ? (
+                          <div className="mt-3 grid gap-2 md:grid-cols-2">
+                            {treatmentAlternatives.slice(0, 4).map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTreatmentMedicineId(
+                                    String(item.medicineId),
+                                  );
+                                  setTreatmentName(item.medicine?.name ?? "");
+                                  setTreatmentMedicineSearch(
+                                    item.medicine?.name ?? "",
+                                  );
+                                  setMessage(
+                                    "Stocked alternative selected. Confirm the clinical fit before saving the treatment entry.",
+                                  );
+                                }}
+                                className="rounded-xl border border-sky-200 bg-white p-3 text-left text-xs transition hover:border-sky-400 dark:bg-background/70"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <Pill className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
+                                  <div>
+                                    <p className="font-semibold">
+                                      {item.medicine?.name}
+                                    </p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      {item.stockQuantity} in stock /{" "}
+                                      {item.medicine?.strength || "strength not set"}
+                                    </p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      {item.reasons.join(", ")}
+                                    </p>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs">
+                            No safe stocked suggestion is available from the
+                            current branch catalogue.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Notes
@@ -1706,7 +1957,10 @@ export default function IpdDetailPage() {
                   type="button"
                   className="h-12 rounded-2xl"
                   onClick={handleCreateTreatmentEntry}
-                  disabled={createTreatmentEntryMutation.isPending}
+                  disabled={
+                    createTreatmentEntryMutation.isPending ||
+                    selectedTreatmentStockStatus === "OUT_OF_STOCK"
+                  }
                 >
                   {createTreatmentEntryMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

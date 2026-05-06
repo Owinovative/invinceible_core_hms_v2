@@ -34,6 +34,26 @@ export interface BranchMedicineStockItem {
   } | null;
 }
 
+export interface BranchMedicineAlternativeItem extends BranchMedicineStockItem {
+  score: number;
+  reasons: string[];
+  safetyNote: string;
+}
+
+export interface MedicineStockAlternativesResponse {
+  branch: {
+    id: number;
+    name: string;
+    facilityId: number;
+    facilityName?: string | null;
+  };
+  selectedMedicine: PharmacyStockMedicine;
+  selectedStock?: BranchMedicineStockItem | null;
+  selectedStatus: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
+  alternatives: BranchMedicineAlternativeItem[];
+  safetyNotice: string;
+}
+
 export interface LowStockSummaryItem {
   id: number;
   facilityId: number;
@@ -124,6 +144,18 @@ export interface BranchMedicinePricingImportResult {
 export async function getBranchPharmacyStock(branchId: number) {
   return apiFetch<BranchMedicineStockItem[]>(
     `/pharmacy-stock/branch/${branchId}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function getMedicineStockAlternatives(
+  branchId: number,
+  medicineId: number,
+) {
+  return apiFetch<MedicineStockAlternativesResponse>(
+    `/pharmacy-stock/branch/${branchId}/medicine/${medicineId}/alternatives`,
     {
       method: "GET",
     },

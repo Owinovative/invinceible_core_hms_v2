@@ -42,7 +42,7 @@ import { useModuleOperationsReport } from "@/hooks/use-module-operations-report"
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
 import { cn } from "@/lib/utils";
-import { creatorContacts, getWhatsappLink } from "@/lib/creator-contacts";
+import { getWhatsappLink, supportContacts } from "@/lib/creator-contacts";
 
 function SummaryCard({
   title,
@@ -239,7 +239,7 @@ function AiAndSupportStrip() {
           </div>
 
           <div className="grid gap-3">
-            {creatorContacts.map((creator) => (
+            {supportContacts.map((creator) => (
               <a
                 key={creator.name}
                 href={getWhatsappLink(creator.whatsappNumber, creator.message)}

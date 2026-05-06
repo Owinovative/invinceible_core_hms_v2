@@ -36,6 +36,12 @@ export type FacilityModule = {
   workflow: string[];
   records: string[];
   controls: string[];
+  quickTemplates?: Array<{
+    title: string;
+    description: string;
+    priorityCode?: "ROUTINE" | "URGENT" | "CRITICAL";
+    dueInHours?: number;
+  }>;
 };
 
 export const facilityModules: FacilityModule[] = [
@@ -49,6 +55,22 @@ export const facilityModules: FacilityModule[] = [
     workflow: ["Arrival capture", "Triage priority", "Resus bay allocation", "Doctor handover"],
     records: ["Trauma notes", "Emergency drugs", "Observation chart", "Disposition"],
     controls: ["Priority alerts", "Bed availability", "Critical stock", "Audit trail"],
+    quickTemplates: [
+      {
+        title: "Red-zone emergency arrival",
+        description:
+          "Capture arrival time, triage category, presenting complaint, resuscitation bay, responsible clinician, and handover status.",
+        priorityCode: "CRITICAL",
+        dueInHours: 1,
+      },
+      {
+        title: "Emergency transfer handover",
+        description:
+          "Prepare referral notes, stabilize patient, confirm receiving facility, ambulance readiness, and transfer documentation.",
+        priorityCode: "URGENT",
+        dueInHours: 2,
+      },
+    ],
   },
   {
     slug: "radiology",
@@ -60,6 +82,22 @@ export const facilityModules: FacilityModule[] = [
     workflow: ["Request", "Schedule", "Perform scan", "Report back"],
     records: ["X-ray", "Ultrasound", "CT/MRI", "Radiologist report"],
     controls: ["Turnaround time", "Result release", "Price tariff", "Image reference"],
+    quickTemplates: [
+      {
+        title: "Urgent imaging request",
+        description:
+          "Confirm patient, requested modality, clinical indication, pregnancy/contrast safety status, schedule, and reporting clinician.",
+        priorityCode: "URGENT",
+        dueInHours: 3,
+      },
+      {
+        title: "Radiology report release",
+        description:
+          "Attach report reference, verify signed result, notify requesting clinician, and confirm billing line is captured.",
+        priorityCode: "ROUTINE",
+        dueInHours: 6,
+      },
+    ],
   },
   {
     slug: "theatre",
@@ -71,6 +109,22 @@ export const facilityModules: FacilityModule[] = [
     workflow: ["Book case", "Pre-op clearance", "Theatre checklist", "Recovery handover"],
     records: ["Consent", "Anaesthesia", "Procedure note", "Implants and consumables"],
     controls: ["Theatre calendar", "Sterile stock", "Surgeon team", "Billing links"],
+    quickTemplates: [
+      {
+        title: "Surgery booking and clearance",
+        description:
+          "Record procedure, surgeon, anaesthesia plan, consent status, pre-op checklist, theatre date, and required consumables.",
+        priorityCode: "URGENT",
+        dueInHours: 8,
+      },
+      {
+        title: "Post-op recovery handover",
+        description:
+          "Document procedure note, recovery observations, complications, drugs used, implant/consumable charge capture, and ward handover.",
+        priorityCode: "ROUTINE",
+        dueInHours: 4,
+      },
+    ],
   },
   {
     slug: "maternity",
@@ -82,6 +136,22 @@ export const facilityModules: FacilityModule[] = [
     workflow: ["ANC booking", "Labour monitoring", "Delivery record", "Postnatal review"],
     records: ["Partograph", "Newborn notes", "Maternal vitals", "Discharge plan"],
     controls: ["High-risk flags", "Birth register", "Emergency theatre", "Referral status"],
+    quickTemplates: [
+      {
+        title: "High-risk maternity review",
+        description:
+          "Capture gestation, risk factors, vitals, foetal status, consultant plan, theatre readiness, and referral needs.",
+        priorityCode: "URGENT",
+        dueInHours: 2,
+      },
+      {
+        title: "Delivery and newborn record",
+        description:
+          "Record delivery time, mode, baby details, Apgar score, maternal status, drugs used, and postnatal review plan.",
+        priorityCode: "ROUTINE",
+        dueInHours: 6,
+      },
+    ],
   },
   {
     slug: "dental",
@@ -192,6 +262,22 @@ export const facilityModules: FacilityModule[] = [
     workflow: ["Verify cover", "Authorize", "Submit claim", "Reconcile"],
     records: ["Policy details", "Claim packet", "Rejection reason", "Approval note"],
     controls: ["Payer tariffs", "Claim status", "Documents", "Credit limits"],
+    quickTemplates: [
+      {
+        title: "Benefit verification and pre-auth",
+        description:
+          "Verify payer, policy number, patient eligibility, benefit limit, pre-authorization status, and required documents.",
+        priorityCode: "URGENT",
+        dueInHours: 4,
+      },
+      {
+        title: "Rejected claim follow-up",
+        description:
+          "Capture rejection reason, missing evidence, responsible officer, resubmission date, and expected recovery amount.",
+        priorityCode: "URGENT",
+        dueInHours: 24,
+      },
+    ],
   },
   {
     slug: "procurement",
@@ -203,6 +289,22 @@ export const facilityModules: FacilityModule[] = [
     workflow: ["Request", "Approve", "Order", "Receive"],
     records: ["Supplier quote", "Purchase order", "GRN", "Invoice match"],
     controls: ["Approval limits", "Lead time", "Stock impact", "Supplier score"],
+    quickTemplates: [
+      {
+        title: "Critical stock purchase request",
+        description:
+          "Record item, quantity, current stock, reorder level, preferred supplier, approval limit, and expected delivery date.",
+        priorityCode: "URGENT",
+        dueInHours: 12,
+      },
+      {
+        title: "Supplier delivery receiving",
+        description:
+          "Match purchase order, delivery note, batch/expiry, received quantity, invoice amount, and branch stock posting.",
+        priorityCode: "ROUTINE",
+        dueInHours: 24,
+      },
+    ],
   },
   {
     slug: "assets",

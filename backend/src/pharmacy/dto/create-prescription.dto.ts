@@ -1,5 +1,4 @@
 import {
-  ArrayMinSize,
   IsArray,
   IsInt,
   IsOptional,
@@ -52,7 +51,6 @@ export class CreatePrescriptionDto {
   notes?: string;
 
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => PrescriptionItemInputDto)
   items: PrescriptionItemInputDto[];
