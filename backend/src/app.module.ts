@@ -46,6 +46,11 @@ import { ResilienceModule } from './resilience/resilience.module';
 import { RateLimitMiddleware } from './resilience/rate-limit.middleware';
 import { RequestContextMiddleware } from './resilience/request-context.middleware';
 import { RequestLoggingMiddleware } from './resilience/request-logging.middleware';
+import { EnterpriseModule } from './enterprise/enterprise.module';
+import { ClinicalSafetyModule } from './clinical-safety/clinical-safety.module';
+import { PatientPortalModule } from './patient-portal/patient-portal.module';
+import { CommunicationModule } from './communication/communication.module';
+import { DataOutboxModule } from './data-outbox/data-outbox.module';
 
 @Module({
   imports: [
@@ -53,7 +58,12 @@ import { RequestLoggingMiddleware } from './resilience/request-logging.middlewar
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    EnterpriseModule,
     ResilienceModule,
+    ClinicalSafetyModule,
+    PatientPortalModule,
+    CommunicationModule,
+    DataOutboxModule,
     PrismaModule,
     FacilityModule,
     RoleModule,

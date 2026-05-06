@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FacilityService } from '../facility/facility.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
+import { PossibleDuplicatePatientDto } from './dto/possible-duplicate-patient.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import {
@@ -245,6 +246,79 @@ export class PatientService {
     );
   }
 
+  async findPossibleDuplicatesScoped(
+    user: RequestUser,
+    dto: PossibleDuplicatePatientDto,
+  ) {
+    const facilityId = dto.facilityId ?? user.homeFacilityId;
+    if (!facilityId) {
+      throw new BadRequestException('Facility is required for duplicate check');
+    }
+
+    this.scopeService.assertFacilityAccess(user, facilityId);
+
+    const firstName = dto.firstName?.trim();
+    const lastName = dto.lastName?.trim();
+    const phonePrimary = dto.phonePrimary?.trim();
+    const patientNumber = dto.patientNumber?.trim();
+    const email = dto.email?.trim();
+    const dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth) : null;
+
+    const or: any[] = [];
+    if (patientNumber) or.push({ patientNumber });
+    if (phonePrimary) or.push({ phonePrimary });
+    if (email) or.push({ email });
+    if (firstName && lastName) {
+      or.push({
+        firstName: { contains: firstName },
+        lastName: { contains: lastName },
+      });
+    }
+    if (dateOfBirth && Number.isFinite(dateOfBirth.getTime())) {
+      or.push({ dateOfBirth });
+    }
+
+    if (or.length === 0) {
+      return { candidates: [], checkedAt: new Date().toISOString() };
+    }
+
+    const candidates = await this.prisma.patient.findMany({
+      where: {
+        facilityId,
+        OR: or,
+      },
+      take: 15,
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        patientNumber: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        dateOfBirth: true,
+        phonePrimary: true,
+        email: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      candidates: candidates
+        .map((patient) => {
+          const result = scorePatientDuplicate(dto, patient);
+          return {
+            ...patient,
+            duplicateScore: result.score,
+            reasons: result.reasons,
+          };
+        })
+        .filter((patient) => patient.duplicateScore > 0)
+        .sort((a, b) => b.duplicateScore - a.duplicateScore),
+      checkedAt: new Date().toISOString(),
+      note: 'Duplicate warnings do not block emergency registration. Staff may continue with an audited override when required.',
+    };
+  }
+
   async findOne(id: number) {
     const patient = await this.prisma.patient.findUnique({
       where: { id },
@@ -365,4 +439,76 @@ export class PatientService {
 
     return this.remove(id);
   }
+}
+
+export function scorePatientDuplicate(
+  input: PossibleDuplicatePatientDto,
+  candidate: {
+    patientNumber?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    dateOfBirth?: Date | string | null;
+    phonePrimary?: string | null;
+    email?: string | null;
+  },
+) {
+  let score = 0;
+  const reasons: string[] = [];
+
+  if (sameText(input.patientNumber, candidate.patientNumber)) {
+    score += 60;
+    reasons.push('same patient number');
+  }
+
+  if (samePhone(input.phonePrimary, candidate.phonePrimary)) {
+    score += 35;
+    reasons.push('same phone number');
+  }
+
+  if (sameText(input.email, candidate.email)) {
+    score += 25;
+    reasons.push('same email');
+  }
+
+  if (sameText(input.firstName, candidate.firstName)) {
+    score += 12;
+    reasons.push('same first name');
+  }
+
+  if (sameText(input.lastName, candidate.lastName)) {
+    score += 12;
+    reasons.push('same last name');
+  }
+
+  if (sameDate(input.dateOfBirth, candidate.dateOfBirth)) {
+    score += 20;
+    reasons.push('same date of birth');
+  }
+
+  return {
+    score: Math.min(score, 100),
+    reasons,
+  };
+}
+
+function sameText(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  return left.trim().toLowerCase() === right.trim().toLowerCase();
+}
+
+function samePhone(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  const clean = (value: string) => value.replace(/\D/g, '').replace(/^254/, '0');
+  return clean(left) === clean(right);
+}
+
+function sameDate(left?: string | Date | null, right?: string | Date | null) {
+  if (!left || !right) return false;
+  const lDate = new Date(left);
+  const rDate = new Date(right);
+  if (!Number.isFinite(lDate.getTime()) || !Number.isFinite(rDate.getTime())) {
+    return false;
+  }
+
+  return lDate.toISOString().slice(0, 10) === rDate.toISOString().slice(0, 10);
 }

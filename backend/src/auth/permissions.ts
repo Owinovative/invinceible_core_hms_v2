@@ -1,0 +1,136 @@
+export const HMS_PERMISSIONS = [
+  'patient.read',
+  'patient.write',
+  'billing.read',
+  'billing.write',
+  'payment.collect',
+  'payment.manual_confirm',
+  'mpesa.settings.update',
+  'lab.order',
+  'lab.result.enter',
+  'lab.result.verify',
+  'pharmacy.dispense',
+  'stock.adjust',
+  'consultation.write',
+  'admission.manage',
+  'discharge.complete',
+  'reports.read',
+  'audit.read',
+  'users.manage',
+  'facility.manage',
+  'patient.portal.read',
+] as const;
+
+export type HmsPermission = (typeof HMS_PERMISSIONS)[number];
+
+export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
+  SUPER_ADMIN: [...HMS_PERMISSIONS],
+  ADMIN: [...HMS_PERMISSIONS],
+  FACILITY_ADMIN: [
+    'patient.read',
+    'patient.write',
+    'billing.read',
+    'billing.write',
+    'payment.collect',
+    'payment.manual_confirm',
+    'mpesa.settings.update',
+    'lab.order',
+    'lab.result.enter',
+    'lab.result.verify',
+    'pharmacy.dispense',
+    'stock.adjust',
+    'consultation.write',
+    'admission.manage',
+    'discharge.complete',
+    'reports.read',
+    'audit.read',
+    'users.manage',
+    'facility.manage',
+  ],
+  BRANCH_ADMIN: [
+    'patient.read',
+    'patient.write',
+    'billing.read',
+    'billing.write',
+    'payment.collect',
+    'payment.manual_confirm',
+    'lab.order',
+    'lab.result.enter',
+    'lab.result.verify',
+    'pharmacy.dispense',
+    'stock.adjust',
+    'consultation.write',
+    'admission.manage',
+    'discharge.complete',
+    'reports.read',
+    'audit.read',
+    'users.manage',
+  ],
+  RECEPTIONIST: ['patient.read', 'patient.write', 'billing.read'],
+  TRIAGE_NURSE: ['patient.read', 'consultation.write'],
+  NURSE: ['patient.read', 'consultation.write', 'admission.manage'],
+  IPD_NURSE: ['patient.read', 'consultation.write', 'admission.manage'],
+  WARD_MANAGER: [
+    'patient.read',
+    'consultation.write',
+    'admission.manage',
+    'discharge.complete',
+    'reports.read',
+  ],
+  DOCTOR: [
+    'patient.read',
+    'lab.order',
+    'consultation.write',
+    'discharge.complete',
+  ],
+  CLINICIAN: [
+    'patient.read',
+    'lab.order',
+    'consultation.write',
+    'discharge.complete',
+  ],
+  LAB_TECHNICIAN: ['patient.read', 'lab.result.enter'],
+  LAB_MANAGER: [
+    'patient.read',
+    'lab.result.enter',
+    'lab.result.verify',
+    'reports.read',
+  ],
+  PHARMACIST: ['patient.read', 'pharmacy.dispense', 'billing.read'],
+  PHARMACY_MANAGER: [
+    'patient.read',
+    'pharmacy.dispense',
+    'stock.adjust',
+    'billing.read',
+    'reports.read',
+  ],
+  CASHIER: ['patient.read', 'billing.read', 'payment.collect'],
+  BILLING_OFFICER: [
+    'patient.read',
+    'billing.read',
+    'billing.write',
+    'payment.collect',
+    'reports.read',
+  ],
+  INVENTORY_OFFICER: ['stock.adjust', 'reports.read'],
+  REPORTS_MANAGER: ['reports.read'],
+  AUDITOR: ['audit.read', 'reports.read'],
+  PATIENT: ['patient.portal.read'],
+};
+
+export function roleHasPermission(
+  roleCode: string | null | undefined,
+  permission: HmsPermission,
+) {
+  if (!roleCode) return false;
+  return Boolean(ROLE_PERMISSIONS[roleCode]?.includes(permission));
+}
+
+export function roleHasEveryPermission(
+  roleCode: string | null | undefined,
+  permissions: HmsPermission[],
+) {
+  return permissions.every((permission) =>
+    roleHasPermission(roleCode, permission),
+  );
+}
