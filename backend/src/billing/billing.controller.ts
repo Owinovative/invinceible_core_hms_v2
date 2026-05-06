@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -141,7 +142,11 @@ export class BillingController {
   }
 
   @Get('invoices')
-  getAllInvoices(@CurrentUser() user: RequestUser) {
+  getAllInvoices(@CurrentUser() user: RequestUser, @Query() query: any) {
+    if (query?.page || query?.pageSize || query?.search) {
+      return this.billingService.getInvoicesPageScoped(user, query);
+    }
+
     return this.billingService.getAllInvoicesScoped(user);
   }
 
@@ -263,6 +268,7 @@ export class BillingController {
   createMpesaPaymentRequest(
     @Body() dto: CreateMpesaPaymentRequestDto,
     @CurrentUser() user: RequestUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     return this.facilityMpesaBillingService.createMpesaPaymentRequest(dto, user);
   }

@@ -9,6 +9,12 @@ import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  paginatedResponse,
+  parsePagination,
+  type PaginationQuery,
+} from '../common/pagination/pagination';
+import { CacheService } from '../resilience/cache.service';
 
 @Injectable()
 export class PatientService {
@@ -16,6 +22,7 @@ export class PatientService {
     private readonly prisma: PrismaService,
     private readonly facilityService: FacilityService,
     private readonly scopeService: ScopeService,
+    private readonly cacheService: CacheService,
   ) {}
 
   private async generatePatientNumber(facilityId: number) {
@@ -133,6 +140,109 @@ export class PatientService {
       },
       orderBy: { id: 'desc' },
     });
+  }
+
+  async findPageScoped(user: RequestUser, query: PaginationQuery) {
+    const scope = this.scopeService.buildReadScope(user);
+    const pagination = parsePagination(query, {
+      defaultPageSize: 25,
+      maxPageSize: 100,
+      allowedSortFields: [
+        'id',
+        'createdAt',
+        'updatedAt',
+        'patientNumber',
+        'firstName',
+        'lastName',
+      ],
+      defaultSortBy: 'id',
+      defaultSortDirection: 'desc',
+    });
+    const where = {
+      facilityId: scope.facilityId,
+      ...(pagination.search
+        ? {
+            OR: [
+              { patientNumber: { contains: pagination.search } },
+              { firstName: { contains: pagination.search } },
+              { middleName: { contains: pagination.search } },
+              { lastName: { contains: pagination.search } },
+              { phonePrimary: { contains: pagination.search } },
+              { email: { contains: pagination.search } },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.patient.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: { [pagination.sortBy]: pagination.sortDirection },
+        select: {
+          id: true,
+          patientNumber: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+          gender: true,
+          dateOfBirth: true,
+          phonePrimary: true,
+          email: true,
+          facilityId: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          facility: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.patient.count({ where }),
+    ]);
+
+    return paginatedResponse(data, {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      total,
+    });
+  }
+
+  async searchSuggestionsScoped(user: RequestUser, search: string) {
+    const scope = this.scopeService.buildReadScope(user);
+    const query = search.trim();
+    if (query.length < 1) return [];
+
+    return this.cacheService.rememberScoped(
+      {
+        facilityId: scope.facilityId,
+        roleCode: user.roleCode,
+        extra: `patient-suggest:${query.toLowerCase()}`,
+      },
+      'patient-search-suggestions',
+      30,
+      () =>
+        this.prisma.patient.findMany({
+          where: {
+            facilityId: scope.facilityId,
+            OR: [
+              { patientNumber: { contains: query } },
+              { firstName: { contains: query } },
+              { lastName: { contains: query } },
+              { phonePrimary: { contains: query } },
+            ],
+          },
+          take: 20,
+          orderBy: { updatedAt: 'desc' },
+          select: {
+            id: true,
+            patientNumber: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            phonePrimary: true,
+          },
+        }),
+    );
   }
 
   async findOne(id: number) {

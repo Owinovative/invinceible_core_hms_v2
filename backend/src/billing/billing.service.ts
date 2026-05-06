@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import PDFDocument from 'pdfkit';
@@ -32,6 +33,13 @@ import {
   loadLogoBuffer,
   patientName,
 } from '../common/pdf/hospital-pdf';
+import {
+  paginatedResponse,
+  parsePagination,
+  type PaginationQuery,
+} from '../common/pagination/pagination';
+import { CacheService } from '../resilience/cache.service';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 
 type TariffCsvRow = Record<string, string>;
 type InvoiceChargeType = 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
@@ -300,6 +308,8 @@ export class BillingService {
     string,
     { token: string; expiresAt: number }
   >();
+  private mpesaActivePrompts = 0;
+  private readonly mpesaPromptQueue: Array<() => void> = [];
 
   constructor(
     private readonly prisma: PrismaService,
@@ -310,6 +320,8 @@ export class BillingService {
     private readonly auditLogService: AuditLogService,
     private readonly notificationService: NotificationService,
     private readonly scopeService: ScopeService,
+    private readonly cacheService: CacheService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
 
   private async generateInvoiceNumber() {
@@ -392,6 +404,137 @@ export class BillingService {
 
   private formatChargeDate(date: Date) {
     return date.toISOString().slice(0, 10);
+  }
+
+  private getDashboardTtlSeconds() {
+    return Number(process.env.CACHE_DASHBOARD_TTL_SECONDS ?? 30);
+  }
+
+  private getReferenceTtlSeconds() {
+    return Number(process.env.CACHE_REFERENCE_TTL_SECONDS ?? 300);
+  }
+
+  private invalidateTariffCache() {
+    return this.cacheService.invalidatePattern(
+      `${this.cacheService.makeKey(['scoped'])}*billing-service-tariffs*`,
+    );
+  }
+
+  private mpesaPromptLockSeconds() {
+    return Number(process.env.MPESA_PROMPT_LOCK_SECONDS ?? 90);
+  }
+
+  private mpesaRequestTimeoutMs() {
+    return Number(process.env.MPESA_REQUEST_TIMEOUT_MS ?? 15_000);
+  }
+
+  private async runWithMpesaPromptCapacity<T>(loader: () => Promise<T>) {
+    const maxConcurrent = Math.max(
+      1,
+      Number(process.env.MPESA_MAX_CONCURRENT_PROMPTS ?? 20),
+    );
+
+    if (this.mpesaActivePrompts >= maxConcurrent) {
+      await new Promise<void>((resolve, reject) => {
+        let queued: (() => void) | undefined;
+        const timer = setTimeout(() => {
+          const index = queued ? this.mpesaPromptQueue.indexOf(queued) : -1;
+          if (index >= 0) this.mpesaPromptQueue.splice(index, 1);
+          reject(
+            new ServiceUnavailableException(
+              'M-PESA is busy. Retry the prompt shortly.',
+            ),
+          );
+        }, 5_000);
+
+        queued = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        this.mpesaPromptQueue.push(queued);
+      });
+    }
+
+    this.mpesaActivePrompts += 1;
+    try {
+      return await loader();
+    } finally {
+      this.mpesaActivePrompts -= 1;
+      const next = this.mpesaPromptQueue.shift();
+      if (next) next();
+    }
+  }
+
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+    timeoutMs: number,
+  ) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ServiceUnavailableException(
+          'External payment provider timed out. Retry shortly.',
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async assertMpesaThrottle(params: {
+    facilityId: number;
+    branchId?: number | null;
+    phoneNumber: string;
+    userId?: number;
+    forceResend?: boolean;
+  }) {
+    if (params.forceResend) return;
+
+    const throttleSeconds = Math.min(30, this.mpesaPromptLockSeconds());
+    const phoneKey = this.cacheService.makeKey([
+      'mpesa',
+      'phone-throttle',
+      params.facilityId,
+      params.branchId ?? 'all',
+      params.phoneNumber,
+    ]);
+    const phoneAllowed = await this.cacheService.setIfAbsent(
+      phoneKey,
+      { createdAt: new Date().toISOString() },
+      throttleSeconds,
+    );
+
+    if (!phoneAllowed) {
+      throw new ServiceUnavailableException(
+        'Recent M-PESA prompt already sent to this phone for this facility. Retry shortly.',
+      );
+    }
+
+    if (!params.userId) return;
+
+    const userKey = this.cacheService.makeKey([
+      'mpesa',
+      'user-throttle',
+      params.facilityId,
+      params.userId,
+    ]);
+    const userAllowed = await this.cacheService.setIfAbsent(
+      userKey,
+      { createdAt: new Date().toISOString() },
+      throttleSeconds,
+    );
+
+    if (!userAllowed) {
+      throw new ServiceUnavailableException(
+        'You have sent an M-PESA prompt recently. Retry shortly.',
+      );
+    }
   }
 
   private parseChargeDate(value?: string) {
@@ -1133,7 +1276,10 @@ export class BillingService {
       return this.getInvoiceById(invoice.id);
     }
 
-    const autoLine = this.calculateLineTotals(params.quantity, params.unitPrice);
+    const autoLine = this.calculateLineTotals(
+      params.quantity,
+      params.unitPrice,
+    );
 
     await this.prisma.invoiceItem.create({
       data: {
@@ -1633,10 +1779,11 @@ export class BillingService {
       afterData: JSON.stringify(tariff),
     });
 
+    await this.invalidateTariffCache();
     return tariff;
   }
 
-  getServiceTariffs(user?: RequestUser) {
+  async getServiceTariffs(user?: RequestUser) {
     const where: Prisma.ServiceTariffWhereInput = {};
 
     if (user?.roleCode && user.roleCode !== 'SUPER_ADMIN') {
@@ -1664,18 +1811,29 @@ export class BillingService {
       }
     }
 
-    return this.prisma.serviceTariff.findMany({
-      where,
-      include: {
-        facility: true,
-        branch: true,
-        billingService: true,
-        labTest: true,
-        ward: true,
-        bed: true,
+    return this.cacheService.rememberScoped(
+      {
+        facilityId: user?.homeFacilityId ?? 'platform',
+        branchId: user?.homeBranchId ?? 'all',
+        roleCode: user?.roleCode ?? 'public',
+        extra: `service-tariffs:${(user?.allowedBranchIds ?? []).join(',')}:${user?.canAccessAllBranchesInFacility ? 'all' : 'limited'}`,
       },
-      orderBy: [{ category: 'asc' }, { name: 'asc' }],
-    });
+      'billing-service-tariffs',
+      this.getReferenceTtlSeconds(),
+      () =>
+        this.prisma.serviceTariff.findMany({
+          where,
+          include: {
+            facility: true,
+            branch: true,
+            billingService: true,
+            labTest: true,
+            ward: true,
+            bed: true,
+          },
+          orderBy: [{ category: 'asc' }, { name: 'asc' }],
+        }),
+    );
   }
 
   async updateServiceTariff(
@@ -1746,6 +1904,7 @@ export class BillingService {
       afterData: JSON.stringify(updated),
     });
 
+    await this.invalidateTariffCache();
     return updated;
   }
 
@@ -2244,6 +2403,80 @@ export class BillingService {
     });
   }
 
+  async getInvoicesPageScoped(user: RequestUser, query: PaginationQuery) {
+    const scope = this.scopeService.buildReadScope(user);
+    const pagination = parsePagination(query, {
+      defaultPageSize: 25,
+      maxPageSize: 100,
+      allowedSortFields: [
+        'id',
+        'createdAt',
+        'issuedAt',
+        'updatedAt',
+        'totalAmount',
+      ],
+      defaultSortBy: 'id',
+      defaultSortDirection: 'desc',
+    });
+    const search = pagination.search;
+    const where: Prisma.InvoiceWhereInput = {
+      ...scope,
+      ...(search
+        ? {
+            OR: [
+              { invoiceNumber: { contains: search } },
+              { patient: { patientNumber: { contains: search } } },
+              { patient: { firstName: { contains: search } } },
+              { patient: { lastName: { contains: search } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: { [pagination.sortBy]: pagination.sortDirection },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          patientId: true,
+          facilityId: true,
+          branchId: true,
+          statusCode: true,
+          totalAmount: true,
+          paidAmount: true,
+          balanceAmount: true,
+          issuedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          patient: {
+            select: {
+              id: true,
+              patientNumber: true,
+              firstName: true,
+              middleName: true,
+              lastName: true,
+              phonePrimary: true,
+            },
+          },
+          facility: { select: { id: true, name: true } },
+          branch: { select: { id: true, name: true } },
+          _count: { select: { items: true, payments: true } },
+        },
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+
+    return paginatedResponse(data, {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      total,
+    });
+  }
+
   async getInvoiceByIdScoped(id: number, user: RequestUser) {
     const invoice = await this.getInvoiceById(id);
 
@@ -2402,14 +2635,23 @@ export class BillingService {
         .fillColor('#0b2f56')
         .font('Helvetica-Bold')
         .fontSize(15)
-        .text((payment.facility?.name || 'Hospital Facility').toUpperCase(), left + 72, 34, {
-          width: width - 170,
-        })
+        .text(
+          (payment.facility?.name || 'Hospital Facility').toUpperCase(),
+          left + 72,
+          34,
+          {
+            width: width - 170,
+          },
+        )
         .font('Helvetica')
         .fontSize(8)
         .fillColor('#475569')
         .text(
-          [payment.facility?.email, payment.facility?.phone, payment.facility?.town]
+          [
+            payment.facility?.email,
+            payment.facility?.phone,
+            payment.facility?.town,
+          ]
             .filter(Boolean)
             .join('  |  ') || '-',
           left + 72,
@@ -2433,9 +2675,22 @@ export class BillingService {
         ['Invoice No.', payment.invoice?.invoiceNumber ?? '-'],
         ['Patient', patientName(payment.invoice?.patient)],
         ['Method', payment.paymentMethod],
-        ['Reference', payment.mpesaReceiptNumber || payment.transactionRef || '-'],
-        ['Paid At', payment.paidAt ? new Date(payment.paidAt).toLocaleString('en-GB') : '-'],
-        ['Received By', payment.receivedBy ? `${payment.receivedBy.firstName} ${payment.receivedBy.lastName}` : '-'],
+        [
+          'Reference',
+          payment.mpesaReceiptNumber || payment.transactionRef || '-',
+        ],
+        [
+          'Paid At',
+          payment.paidAt
+            ? new Date(payment.paidAt).toLocaleString('en-GB')
+            : '-',
+        ],
+        [
+          'Received By',
+          payment.receivedBy
+            ? `${payment.receivedBy.firstName} ${payment.receivedBy.lastName}`
+            : '-',
+        ],
       ];
 
       let y = 118;
@@ -2527,7 +2782,11 @@ export class BillingService {
           .filter(Boolean)
           .join(' | ') || '-';
       const facilityAddress =
-        [invoice.facility?.address, invoice.facility?.town, invoice.facility?.county]
+        [
+          invoice.facility?.address,
+          invoice.facility?.town,
+          invoice.facility?.county,
+        ]
           .filter(Boolean)
           .join(', ') || '-';
       const admittedAt =
@@ -2585,7 +2844,12 @@ export class BillingService {
           .stroke();
 
         const details = [
-          ['PATIENT', patientName(patient).toUpperCase(), patient?.patientNumber || invoice.invoiceNumber, left],
+          [
+            'PATIENT',
+            patientName(patient).toUpperCase(),
+            patient?.patientNumber || invoice.invoiceNumber,
+            left,
+          ],
           ['PHONE', patient?.phonePrimary || '-', '', left + 285],
           ['INVOICE NO.', invoice.invoiceNumber, '', left + 455],
           ['DATE', this.shortInvoiceDate(invoice.issuedAt), '', left + 620],
@@ -2662,8 +2926,11 @@ export class BillingService {
         const y = doc.y;
         const quantity = Number(item.quantity || 0);
         const unitText =
-          (item.billingService?.category || item.sourceModule || '').toUpperCase() ||
-          'EACH';
+          (
+            item.billingService?.category ||
+            item.sourceModule ||
+            ''
+          ).toUpperCase() || 'EACH';
 
         doc
           .rect(left, y, width, rowHeight)
@@ -2729,10 +2996,15 @@ export class BillingService {
           .fontSize(isGrand ? 8.6 : 7.5)
           .text(String(label), totalsX + 8, rowY + 5, { width: 95 })
           .font('Helvetica-Bold')
-          .text(this.compactMoney(Number(value || 0), currency), totalsX + 118, rowY + 5, {
-            width: totalsW - 126,
-            align: 'right',
-          });
+          .text(
+            this.compactMoney(Number(value || 0), currency),
+            totalsX + 118,
+            rowY + 5,
+            {
+              width: totalsW - 126,
+              align: 'right',
+            },
+          );
       });
 
       doc
@@ -2758,10 +3030,15 @@ export class BillingService {
         .text(`Items ${printableItems.length}`, left, doc.page.height - 38, {
           width: 160,
         })
-        .text('Generated by Invinceible Core HMS', right - 230, doc.page.height - 38, {
-          width: 230,
-          align: 'right',
-        });
+        .text(
+          'Generated by Invinceible Core HMS',
+          right - 230,
+          doc.page.height - 38,
+          {
+            width: 230,
+            align: 'right',
+          },
+        );
 
       doc.end();
     });
@@ -2825,13 +3102,12 @@ export class BillingService {
     const lines = hasMpesa ? ['Pay by M-PESA'] : [];
 
     if (showPaybill && paybill) {
-      lines.push(
-        `Paybill:${paybill}${account ? ` Account:${account}` : ''}`,
-      );
+      lines.push(`Paybill:${paybill}${account ? ` Account:${account}` : ''}`);
     }
     if (showTill && till) lines.push(`Till:${till}`);
     if (showPochi && pochi) lines.push(`Pochi La Biashara:${pochi}`);
-    if (showCash) lines.push('Cash payments are receipted at the cashier desk.');
+    if (showCash)
+      lines.push('Cash payments are receipted at the cashier desk.');
     lines.push('Thank you for visiting.');
     return lines;
   }
@@ -2844,7 +3120,9 @@ export class BillingService {
       day: '2-digit',
       month: 'short',
       year: '2-digit',
-    }).format(date).replace(/ /g, '-');
+    })
+      .format(date)
+      .replace(/ /g, '-');
   }
 
   private timeOnly(value: Date) {
@@ -2900,7 +3178,9 @@ export class BillingService {
     const facilityTill = this.cleanMpesaNumber(facility.mpesaTillNumber);
     const envShortcode = this.cleanMpesaNumber(process.env.MPESA_SHORTCODE);
     const environment =
-      facility.mpesaEnvironment || branch.mpesaEnvironment || process.env.MPESA_ENV;
+      facility.mpesaEnvironment ||
+      branch.mpesaEnvironment ||
+      process.env.MPESA_ENV;
     const shortcode =
       this.cleanMpesaNumber(branch.mpesaShortcode) ||
       this.cleanMpesaNumber(facility.mpesaShortcode) ||
@@ -2910,7 +3190,8 @@ export class BillingService {
       facilityTill ||
       envShortcode;
     const usingTill =
-      Boolean(branchTill || facilityTill) && !Boolean(branchPaybill || facilityPaybill);
+      Boolean(branchTill || facilityTill) &&
+      !(branchPaybill || facilityPaybill);
     const transactionType =
       facility.mpesaTransactionType ||
       branch.mpesaTransactionType ||
@@ -2963,13 +3244,14 @@ export class BillingService {
     const credentials = Buffer.from(
       `${config.consumerKey}:${config.consumerSecret}`,
     ).toString('base64');
-    const response = await fetch(
+    const response = await this.fetchWithTimeout(
       `${this.getMpesaBaseUrl(config.environment)}/oauth/v1/generate?grant_type=client_credentials`,
       {
         headers: {
           Authorization: `Basic ${credentials}`,
         },
       },
+      this.mpesaRequestTimeoutMs(),
     );
 
     const data = (await response.json().catch(() => ({}))) as {
@@ -3028,31 +3310,34 @@ export class BillingService {
     const amount = Math.max(1, Math.round(Number(params.amount || 0)));
     const phoneNumber = this.normalizeMpesaPhone(params.phoneNumber);
 
-    const response = await fetch(
-      `${this.getMpesaBaseUrl(config.environment)}/mpesa/stkpush/v1/processrequest`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+    const response = await this.runWithMpesaPromptCapacity(() =>
+      this.fetchWithTimeout(
+        `${this.getMpesaBaseUrl(config.environment)}/mpesa/stkpush/v1/processrequest`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            BusinessShortCode: config.shortcode,
+            Password: password,
+            Timestamp: timestamp,
+            TransactionType: config.transactionType,
+            Amount: amount,
+            PartyA: phoneNumber,
+            PartyB: config.shortcode,
+            PhoneNumber: phoneNumber,
+            CallBackURL: config.callbackUrl,
+            AccountReference: String(config.accountReference).slice(0, 12),
+            TransactionDesc: `Invoice ${params.invoice.invoiceNumber}`.slice(
+              0,
+              13,
+            ),
+          }),
         },
-        body: JSON.stringify({
-          BusinessShortCode: config.shortcode,
-          Password: password,
-          Timestamp: timestamp,
-          TransactionType: config.transactionType,
-          Amount: amount,
-          PartyA: phoneNumber,
-          PartyB: config.shortcode,
-          PhoneNumber: phoneNumber,
-          CallBackURL: config.callbackUrl,
-          AccountReference: String(config.accountReference).slice(0, 12),
-          TransactionDesc: `Invoice ${params.invoice.invoiceNumber}`.slice(
-            0,
-            13,
-          ),
-        }),
-      },
+        this.mpesaRequestTimeoutMs(),
+      ),
     );
     const data = (await response.json().catch(() => ({}))) as MpesaStkResponse;
 
@@ -3069,10 +3354,13 @@ export class BillingService {
 
   private async queryDarajaStkStatus(payment: any) {
     if (!payment.checkoutRequestId) {
-      throw new BadRequestException('Payment has no M-PESA checkout request id');
+      throw new BadRequestException(
+        'Payment has no M-PESA checkout request id',
+      );
     }
 
-    const invoice = payment.invoice ?? (await this.getInvoiceById(payment.invoiceId));
+    const invoice =
+      payment.invoice ?? (await this.getInvoiceById(payment.invoiceId));
     const config = this.resolveMpesaConfig(invoice);
     this.assertMpesaConfigured(config);
     const token = await this.getMpesaAccessToken(config);
@@ -3081,7 +3369,7 @@ export class BillingService {
       `${config.shortcode}${config.passkey}${timestamp}`,
     ).toString('base64');
 
-    const response = await fetch(
+    const response = await this.fetchWithTimeout(
       `${this.getMpesaBaseUrl(config.environment)}/mpesa/stkpushquery/v1/query`,
       {
         method: 'POST',
@@ -3096,8 +3384,11 @@ export class BillingService {
           CheckoutRequestID: payment.checkoutRequestId,
         }),
       },
+      this.mpesaRequestTimeoutMs(),
     );
-    const data = (await response.json().catch(() => ({}))) as MpesaQueryResponse;
+    const data = (await response
+      .json()
+      .catch(() => ({}))) as MpesaQueryResponse;
 
     if (!response.ok || data.errorCode) {
       throw new BadRequestException(
@@ -3139,7 +3430,8 @@ export class BillingService {
 
   async createCashPayment(dto: CreateCashPaymentDto) {
     const invoice = await this.getInvoiceById(dto.invoiceId);
-    const receiptNumber = dto.receiptNumber || this.generateReceiptNumber('CSH');
+    const receiptNumber =
+      dto.receiptNumber || this.generateReceiptNumber('CSH');
 
     const existing = await this.prisma.payment.findFirst({
       where: { receiptNumber },
@@ -3327,6 +3619,7 @@ export class BillingService {
   async createMpesaPaymentRequest(
     dto: CreateMpesaPaymentRequestDto,
     user?: RequestUser,
+    idempotencyKey?: string,
   ) {
     const invoice = await this.getInvoiceById(dto.invoiceId);
     if (user) {
@@ -3338,7 +3631,62 @@ export class BillingService {
     }
     const normalizedPhone = this.normalizeMpesaPhone(dto.phoneNumber);
     const amount = Number(dto.amount || 0);
+    await this.assertMpesaThrottle({
+      facilityId: invoice.facilityId,
+      branchId: invoice.branchId,
+      phoneNumber: normalizedPhone,
+      userId: user?.userId,
+      forceResend: dto.forceResend,
+    });
     const lockKey = `${dto.invoiceId}:${normalizedPhone}:${amount.toFixed(2)}`;
+    const promptLockKey = this.cacheService.makeKey([
+      'mpesa',
+      'prompt-lock',
+      invoice.facilityId,
+      invoice.branchId ?? 'all',
+      dto.invoiceId,
+      normalizedPhone,
+      amount.toFixed(2),
+      idempotencyKey || 'auto',
+    ]);
+
+    const lockAcquired = dto.forceResend
+      ? true
+      : await this.cacheService.setIfAbsent(
+          promptLockKey,
+          {
+            invoiceId: dto.invoiceId,
+            phoneNumber: normalizedPhone,
+            amount,
+            requestedAt: new Date().toISOString(),
+            userId: user?.userId ?? null,
+          },
+          this.mpesaPromptLockSeconds(),
+        );
+
+    if (!lockAcquired) {
+      this.safeLogger.warn('Blocked duplicate M-PESA prompt within lock window', {
+        invoiceId: dto.invoiceId,
+        facilityId: invoice.facilityId,
+        branchId: invoice.branchId,
+        userId: user?.userId ?? null,
+        lockSeconds: this.mpesaPromptLockSeconds(),
+      });
+      const pending = await this.findPendingMpesaPayment(
+        dto.invoiceId,
+        normalizedPhone,
+        amount,
+      );
+
+      return {
+        message:
+          'A recent M-PESA STK Push already exists for this invoice, amount, and phone number. Wait before resending.',
+        payment: pending,
+        duplicatePrevented: true,
+        retryAfterSeconds: this.mpesaPromptLockSeconds(),
+      };
+    }
+
     const activeLock = this.mpesaRequestLocks.get(lockKey);
 
     if (activeLock) {
@@ -3413,7 +3761,8 @@ export class BillingService {
       };
     }
 
-    const receiptNumber = dto.receiptNumber || this.generateReceiptNumber('MPESA');
+    const receiptNumber =
+      dto.receiptNumber || this.generateReceiptNumber('MPESA');
     const existing = await this.prisma.payment.findFirst({
       where: { receiptNumber },
     });
@@ -3515,7 +3864,8 @@ export class BillingService {
       },
     });
 
-    if (!payment) throw new NotFoundException(`Payment with id ${id} not found`);
+    if (!payment)
+      throw new NotFoundException(`Payment with id ${id} not found`);
     this.scopeService.assertBranchAccess(
       user,
       payment.facilityId,
@@ -3523,11 +3873,15 @@ export class BillingService {
     );
 
     if (payment.paymentMethod !== 'MPESA') {
-      throw new BadRequestException('Only M-PESA payment requests can be resent');
+      throw new BadRequestException(
+        'Only M-PESA payment requests can be resent',
+      );
     }
 
     if (payment.statusCode !== 'PENDING') {
-      throw new BadRequestException('Only pending M-PESA requests can be resent');
+      throw new BadRequestException(
+        'Only pending M-PESA requests can be resent',
+      );
     }
 
     if (!payment.phoneNumber) {
@@ -3632,7 +3986,18 @@ export class BillingService {
       };
     }
 
-    const daraja = await this.queryDarajaStkStatus(payment);
+    const statusCacheKey = this.cacheService.makeKey([
+      'mpesa',
+      'status',
+      payment.facilityId,
+      payment.branchId ?? 'all',
+      checkoutRequestId,
+    ]);
+    const daraja = await this.cacheService.getOrSet(
+      statusCacheKey,
+      Number(process.env.MPESA_STATUS_CACHE_SECONDS ?? 10),
+      () => this.queryDarajaStkStatus(payment),
+    );
     const resultCode = String(daraja.ResultCode ?? '');
 
     if (resultCode === '0') {
@@ -4026,39 +4391,62 @@ export class BillingService {
 
   async getBillingDashboard(user: RequestUser) {
     const scope = this.scopeService.buildReadScope(user);
-    const totalInvoices = await this.prisma.invoice.count({ where: scope });
-    const pendingInvoices = await this.prisma.invoice.count({
-      where: { ...scope, statusCode: 'PENDING' },
-    });
-    const partiallyPaidInvoices = await this.prisma.invoice.count({
-      where: { ...scope, statusCode: 'PARTIALLY_PAID' },
-    });
-    const paidInvoices = await this.prisma.invoice.count({
-      where: { ...scope, statusCode: { in: ['PAID', 'CLOSED'] } },
-    });
+    return this.cacheService.rememberScoped(
+      {
+        facilityId: user.homeFacilityId ?? 'platform',
+        branchId: user.homeBranchId ?? 'all',
+        roleCode: user.roleCode,
+        extra: `billing-dashboard:${JSON.stringify(scope)}`,
+      },
+      'billing-dashboard',
+      this.getDashboardTtlSeconds(),
+      async () => {
+        const [
+          totalInvoices,
+          pendingInvoices,
+          partiallyPaidInvoices,
+          paidInvoices,
+          invoiceAggregates,
+        ] = await Promise.all([
+          this.prisma.invoice.count({ where: scope }),
+          this.prisma.invoice.count({
+            where: { ...scope, statusCode: 'PENDING' },
+          }),
+          this.prisma.invoice.count({
+            where: { ...scope, statusCode: 'PARTIALLY_PAID' },
+          }),
+          this.prisma.invoice.count({
+            where: { ...scope, statusCode: { in: ['PAID', 'CLOSED'] } },
+          }),
+          this.prisma.invoice.aggregate({
+            where: scope,
+            _sum: {
+              totalAmount: true,
+              paidAmount: true,
+              balanceAmount: true,
+            },
+          }),
+        ]);
 
-    const invoiceAggregates = await this.prisma.invoice.aggregate({
-      where: scope,
-      _sum: {
-        totalAmount: true,
-        paidAmount: true,
-        balanceAmount: true,
+        return {
+          counts: {
+            totalInvoices,
+            pendingInvoices,
+            partiallyPaidInvoices,
+            paidInvoices,
+          },
+          sums: {
+            totalAmount: invoiceAggregates._sum.totalAmount ?? 0,
+            paidAmount: invoiceAggregates._sum.paidAmount ?? 0,
+            balanceAmount: invoiceAggregates._sum.balanceAmount ?? 0,
+          },
+          cacheMeta: {
+            ttlSeconds: this.getDashboardTtlSeconds(),
+            generatedAt: new Date().toISOString(),
+          },
+        };
       },
-    });
-
-    return {
-      counts: {
-        totalInvoices,
-        pendingInvoices,
-        partiallyPaidInvoices,
-        paidInvoices,
-      },
-      sums: {
-        totalAmount: invoiceAggregates._sum.totalAmount ?? 0,
-        paidAmount: invoiceAggregates._sum.paidAmount ?? 0,
-        balanceAmount: invoiceAggregates._sum.balanceAmount ?? 0,
-      },
-    };
+    );
   }
 
   async recalculateInvoice(invoiceId: number) {

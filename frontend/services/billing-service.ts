@@ -563,10 +563,22 @@ export interface MpesaPaymentStatusResponse {
 export async function createMpesaPaymentRequest(
   payload: CreateMpesaPaymentRequestPayload,
 ) {
+  const normalizedPhone = payload.phoneNumber.replace(/\D/g, "");
+  const idempotencyKey = [
+    "mpesa",
+    payload.invoiceId,
+    payload.amount,
+    normalizedPhone,
+    Math.floor(Date.now() / 60_000),
+  ].join(":");
+
   return apiFetch<MpesaPaymentRequestResponse>(
     "/billing/payments/mpesa/request",
     {
       method: "POST",
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+      },
       body: JSON.stringify(payload),
     },
   );
