@@ -6,6 +6,7 @@ import { useFacilities } from "@/hooks/use-facilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CreateFacilityForm } from "@/components/platform/facilities/create-facility-form";
+import { FacilityMpesaSettingsPanel } from "@/components/platform/facilities/facility-mpesa-settings-panel";
 import { FacilitiesTable } from "@/components/platform/facilities/facilities-table";
 
 export default function FacilitiesPage() {
@@ -53,7 +54,7 @@ export default function FacilitiesPage() {
                 Facilities
               </h1>
               <p className="text-muted-foreground">
-                Register and manage facilities across the platform.
+                Register facilities, configure locations, and manage per-facility M-Pesa Daraja settings.
               </p>
             </div>
           </div>
@@ -61,6 +62,7 @@ export default function FacilitiesPage() {
       </section>
 
       <CreateFacilityForm />
+      <FacilityMpesaSettingsPanel />
       <section className="grid gap-4 rounded-[1.4rem] border bg-white p-5 shadow-sm xl:grid-cols-[0.8fr_1.2fr]">
         <div>
           <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
