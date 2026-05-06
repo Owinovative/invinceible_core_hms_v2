@@ -9,6 +9,7 @@ import { UserModule } from '../user/user.module';
 import { ScopeService } from './scope.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UserLocationModule } from '../user-location/user-location.module';
+import { PermissionsGuard } from './permissions.guard';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { UserLocationModule } from '../user-location/user-location.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, ScopeService],
-  exports: [AuthService, ScopeService],
+  providers: [AuthService, JwtStrategy, ScopeService, PermissionsGuard],
+  exports: [AuthService, ScopeService, PermissionsGuard],
 })
 export class AuthModule {}

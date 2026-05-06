@@ -56,16 +56,23 @@ export class AiAssistantService {
   }
 
   getStatus() {
+    const enabled = this.isAiEnabled();
+
     return {
-      enabled: Boolean(this.apiKey),
+      enabled,
       provider: 'google-gemini',
       model: this.model,
+      externalCallsAllowed: enabled,
       safetyNotice: SAFETY_NOTICE,
       tasks: Object.values(ClinicalAiTask),
     };
   }
 
   async createClinicalDraft(dto: ClinicalAiRequestDto, user: RequestUser) {
+    this.assertAiAvailable(
+      'AI assistant is disabled. Set AI_ENABLED=true and GEMINI_API_KEY only after patient-data AI use has been approved.',
+    );
+
     if (!this.apiKey) {
       throw new ServiceUnavailableException(
         'AI assistant is not configured. Set GEMINI_API_KEY on the Railway backend environment.',
@@ -147,6 +154,10 @@ export class AiAssistantService {
   }
 
   async extractIdentity(dto: IdentityOcrRequestDto, user: RequestUser) {
+    this.assertAiAvailable(
+      'AI identity reading is disabled. Set AI_ENABLED=true and GEMINI_API_KEY only after staff onboarding AI use has been approved.',
+    );
+
     if (!this.apiKey) {
       throw new ServiceUnavailableException(
         'AI identity reading is not configured. Set GEMINI_API_KEY on the Railway backend environment.',
@@ -466,5 +477,16 @@ export class AiAssistantService {
       : `models/${this.model}`;
 
     return `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent`;
+  }
+
+  private isAiEnabled() {
+    const raw = this.configService.get<string>('AI_ENABLED') ?? 'false';
+    return ['true', '1', 'yes', 'on'].includes(raw.toLowerCase());
+  }
+
+  private assertAiAvailable(message: string) {
+    if (!this.isAiEnabled()) {
+      throw new ServiceUnavailableException(message);
+    }
   }
 }

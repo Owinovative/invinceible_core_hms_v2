@@ -12,6 +12,15 @@ type FacilityBranchScope = {
   branchId?: number | { in: number[] };
 };
 
+export type UserScope = {
+  isSuperAdmin: boolean;
+  roleCode: string | null;
+  facilityId: number | null;
+  branchId: number | null;
+  branchIds: number[];
+  canAccessAllBranchesInFacility: boolean;
+};
+
 @Injectable()
 export class ScopeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -166,6 +175,70 @@ export class ScopeService {
     };
 
     return scope;
+  }
+
+  getUserScope(user: RequestUser): UserScope {
+    const branchIds = new Set<number>();
+
+    if (user.homeBranchId) {
+      branchIds.add(user.homeBranchId);
+    }
+
+    for (const branchId of user.allowedBranchIds ?? []) {
+      branchIds.add(branchId);
+    }
+
+    return {
+      isSuperAdmin: user.roleCode === 'SUPER_ADMIN',
+      roleCode: user.roleCode ?? null,
+      facilityId: user.homeFacilityId ?? null,
+      branchId: user.homeBranchId ?? null,
+      branchIds: Array.from(branchIds),
+      canAccessAllBranchesInFacility:
+        user.roleCode === 'SUPER_ADMIN' ||
+        Boolean(user.canAccessAllBranchesInFacility),
+    };
+  }
+
+  buildFacilityScopeWhere(
+    user: RequestUser,
+    facilityField = 'facilityId',
+  ): Record<string, unknown> {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return {};
+    }
+
+    if (!user.homeFacilityId) {
+      throw new ForbiddenException('User has no home facility assigned');
+    }
+
+    return { [facilityField]: user.homeFacilityId };
+  }
+
+  buildBranchScopeWhere(
+    user: RequestUser,
+    facilityField = 'facilityId',
+    branchField = 'branchId',
+  ): Record<string, unknown> {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return {};
+    }
+
+    const facilityWhere = this.buildFacilityScopeWhere(user, facilityField);
+
+    if (user.canAccessAllBranchesInFacility) {
+      return facilityWhere;
+    }
+
+    const branchIds = this.getUserScope(user).branchIds;
+    if (branchIds.length === 0) {
+      throw new ForbiddenException('User has no allowed branch access');
+    }
+
+    return {
+      ...facilityWhere,
+      [branchField]: { in: branchIds },
+    };
   }
 
   assertFacilityAccess(user: RequestUser, facilityId: number) {

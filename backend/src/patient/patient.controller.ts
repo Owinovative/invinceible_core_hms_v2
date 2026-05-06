@@ -14,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { PatientService } from './patient.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
+import { PossibleDuplicatePatientDto } from './dto/possible-duplicate-patient.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
@@ -45,6 +46,14 @@ export class PatientController {
     @Query('search') search = '',
   ) {
     return this.patientService.searchSuggestionsScoped(user, search);
+  }
+
+  @Post('duplicate-check')
+  duplicateCheck(
+    @Body() dto: PossibleDuplicatePatientDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.patientService.findPossibleDuplicatesScoped(user, dto);
   }
 
   @Get('number/:patientNumber')
