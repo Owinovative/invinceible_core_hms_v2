@@ -178,8 +178,19 @@ export default function PlatformSubscriptionsPage() {
                         {facility.subscription.warningLevel}
                       </Badge>
                       <p className="mt-1 text-xs text-slate-500">
-                        {facility.subscription.locked ? "Data entry paused" : "Active"}
+                        {facility.subscription.loginBlocked
+                          ? "Facility logins blocked"
+                          : facility.subscription.locked
+                            ? "Data entry paused"
+                            : facility.subscription.complianceWriteLocked
+                              ? "Compliance read-only"
+                              : "Active"}
                       </p>
+                      {facility.subscription.lockReason ? (
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                          {facility.subscription.lockReason}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       {formatDate(facility.subscription.paidThrough)}

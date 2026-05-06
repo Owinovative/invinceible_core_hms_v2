@@ -7,5 +7,7 @@ export function usePharmacyQueue() {
   return useQuery({
     queryKey: ["pharmacy-queue"],
     queryFn: getPharmacyQueue,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 }

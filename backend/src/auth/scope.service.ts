@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestUser } from './interfaces/request-user.interface';
+import { computeFacilityAccessStatus } from '../common/facility-access';
 
 type FacilityBranchScope = {
   facilityId: number;
@@ -88,9 +89,16 @@ export class ScopeService {
       dbUser.homeBranchId ?? dbUser.staff?.branchId ?? null;
     const effectiveBranch = dbUser.homeBranch ?? dbUser.staff?.branch ?? null;
 
-    if (!isSuperAdmin && effectiveFacility?.isActive === false) {
-      throw new ForbiddenException(
-        'Your facility is inactive. Operational access is suspended.',
+    const facilityAccessStatus = effectiveFacility
+      ? computeFacilityAccessStatus(effectiveFacility)
+      : null;
+
+    if (!isSuperAdmin && facilityAccessStatus?.loginBlocked) {
+      throw new UnauthorizedException(
+        facilityAccessStatus.lockReason ===
+        'FACILITY_SUBSCRIPTION_GRACE_EXPIRED'
+          ? 'Facility subscription has been unpaid for more than 15 days. Access is blocked until payment is recorded by the platform.'
+          : 'Facility compliance grace has expired. Access is blocked until the platform reactivates the facility.',
       );
     }
 
@@ -103,6 +111,7 @@ export class ScopeService {
       sessionId: user.sessionId ?? null,
       homeFacilityId: effectiveFacilityId,
       homeFacilityName: effectiveFacility?.name ?? null,
+      facilityAccessStatus,
       homeBranchId: effectiveBranchId,
       homeBranchName: effectiveBranch?.name ?? null,
       canAccessAllBranchesInFacility: dbUser.canAccessAllBranchesInFacility,

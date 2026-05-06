@@ -3,81 +3,101 @@ import { PublicSiteHeader } from "@/components/public/public-site-header";
 import { Button } from "@/components/ui/button";
 import { creatorContacts, getWhatsappLink } from "@/lib/creator-contacts";
 
+const panels = [
+  {
+    label: "Backend",
+    icon: Database,
+    image: "/creators/eng-otieno.png",
+  },
+  {
+    label: "Frontend",
+    icon: LayoutTemplate,
+    image:
+      "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1000&q=88",
+  },
+  {
+    label: "Hospital work",
+    icon: Code2,
+    image:
+      "https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=1000&q=88",
+  },
+];
+
 export default function CreatorsPage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-slate-900">
+    <main className="min-h-screen bg-[#eef8ff] text-slate-950">
       <PublicSiteHeader />
-      <section className="border-b border-sky-200 bg-white text-slate-950">
-        <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1500px] gap-8 px-5 py-8 md:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <section className="border-b border-sky-200 bg-white">
+        <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1540px] gap-6 px-5 py-8 md:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
           <div className="space-y-5">
             <p className="text-sm font-semibold uppercase text-sky-700">
               System creators
             </p>
-            <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
-              Built by engineers who understand real operations.
+            <h1 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
+              Built by practical software engineers.
             </h1>
-            <p className="max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
-              Eng. Otieno Owino and Eng. Moikoyo Paul build practical
-              full-stack systems for hospitals, businesses, and teams that need
-              reliable daily tools.
+            <p className="max-w-xl text-base leading-8 text-slate-600">
+              Backend logic, frontend workflow, reporting, payments, and
+              hospital operations handled as one product.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-[0.86fr_1.14fr]">
-            <div
-              className="min-h-[540px] border border-sky-200 bg-cover bg-center shadow-xl"
-              style={{
-                backgroundImage: "url('/creators/eng-otieno.png')",
-              }}
-            />
-            <div className="grid content-stretch gap-4">
-              <div className="border border-sky-200 bg-[#f4fbff] p-6 shadow-sm">
-                <Database className="mb-4 h-7 w-7 text-sky-700" />
-                <p className="text-xl font-bold">Backend systems</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  APIs, databases, workflow rules, security, and operational
-                  logic.
-                </p>
-              </div>
-              <div className="border border-sky-200 bg-[#f4fbff] p-6 shadow-sm">
-                <LayoutTemplate className="mb-4 h-7 w-7 text-sky-700" />
-                <p className="text-xl font-bold">Frontend products</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Interfaces, dashboards, forms, reports, and user workflows.
-                </p>
-              </div>
-            </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {panels.map((panel) => {
+              const Icon = panel.icon;
+              return (
+                <div key={panel.label} className="border border-sky-200 bg-[#f7fcff] p-3 shadow-xl">
+                  <div
+                    className="h-[470px] bg-cover bg-center"
+                    style={{ backgroundImage: `url('${panel.image}')` }}
+                  />
+                  <div className="mt-3 flex items-center gap-2 text-sm font-bold text-sky-800">
+                    <Icon className="h-4 w-4" />
+                    {panel.label}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-[1500px] gap-5 px-5 py-8 md:px-8 lg:grid-cols-2">
+      <section className="mx-auto grid max-w-[1540px] gap-5 px-5 py-8 md:px-8 lg:grid-cols-2">
         {creatorContacts.map((creator) => (
-          <article key={creator.name} className="border border-sky-200 bg-white p-6 shadow-xl">
-            <div className="mb-5 flex h-14 w-14 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
-              <Code2 className="h-6 w-6" />
-            </div>
-            <h2 className="text-3xl font-bold text-slate-950">{creator.name}</h2>
-            <p className="mt-1 text-sm font-semibold text-sky-700">
-              {creator.role}
-            </p>
-            <p className="mt-4 text-sm leading-7 text-slate-600">
-              {creator.focus}
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <PhoneCall className="h-4 w-4 text-sky-700" />
-                {creator.phone}
+          <article key={creator.name} className="grid overflow-hidden border border-sky-200 bg-white shadow-xl md:grid-cols-[220px_1fr]">
+            <div
+              className="min-h-[280px] bg-cover bg-center"
+              style={{
+                backgroundImage:
+                  creator.name.includes("Otieno")
+                    ? "url('/creators/eng-otieno.png')"
+                    : "url('https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1000&q=88')",
+              }}
+            />
+            <div className="p-6">
+              <h2 className="text-3xl font-bold text-slate-950">{creator.name}</h2>
+              <p className="mt-1 text-sm font-semibold text-sky-700">
+                {creator.role}
+              </p>
+              <p className="mt-4 text-sm leading-7 text-slate-600">
+                {creator.focus}
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <PhoneCall className="h-4 w-4 text-sky-700" />
+                  {creator.phone}
+                </div>
+                <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+                  <a
+                    href={getWhatsappLink(creator.whatsappNumber, creator.message)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    WhatsApp
+                  </a>
+                </Button>
               </div>
-              <Button asChild className="rounded-md bg-sky-600 text-white hover:bg-sky-700">
-                <a
-                  href={getWhatsappLink(creator.whatsappNumber, creator.message)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp
-                </a>
-              </Button>
             </div>
           </article>
         ))}

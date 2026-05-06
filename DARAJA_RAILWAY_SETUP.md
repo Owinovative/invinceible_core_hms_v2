@@ -18,6 +18,18 @@ MPESA_TRANSACTION_TYPE=CustomerPayBillOnline
 
 Use `CustomerPayBillOnline` for Paybill and `CustomerBuyGoodsOnline` for Till or Buy Goods.
 
+## Facility-level setup
+
+Each facility can now carry its own Daraja configuration from Platform > Facilities:
+
+- M-PESA shortcode/paybill/till/account number
+- Daraja environment: `sandbox` or `production`
+- Consumer key, consumer secret, and Lipa na M-PESA passkey
+- Callback URL
+- Transaction type
+
+If a facility field is empty, the backend falls back to the Railway variables above. This lets one deployed backend support a default merchant account and also support facilities that have their own Safaricom app.
+
 ## App flow
 
 1. Open an invoice.
@@ -30,3 +42,13 @@ Use `CustomerPayBillOnline` for Paybill and `CustomerBuyGoodsOnline` for Till or
 8. If the patient did not receive the prompt, use `Resend STK Push`.
 
 Duplicate sends for the same invoice, amount, and phone number are blocked while a recent request is pending.
+
+## Callback URL to set in Daraja
+
+Use the public Railway backend URL:
+
+```text
+https://your-railway-domain.up.railway.app/billing/payments/mpesa/callback
+```
+
+The same path is used for global Railway variables and facility-specific callback URLs.

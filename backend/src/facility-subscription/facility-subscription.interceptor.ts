@@ -8,9 +8,9 @@ import {
 import { Observable, from, mergeMap } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { computeFacilityAccessStatus } from '../common/facility-access';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class FacilitySubscriptionInterceptor implements NestInterceptor {
@@ -22,12 +22,6 @@ export class FacilitySubscriptionInterceptor implements NestInterceptor {
     return from(this.ensureSubscriptionAccess(req)).pipe(
       mergeMap(() => next.handle()),
     );
-  }
-
-  private addMonths(date: Date, months: number) {
-    const copy = new Date(date);
-    copy.setMonth(copy.getMonth() + months);
-    return copy;
   }
 
   private shouldSkip(req: any) {
@@ -58,22 +52,29 @@ export class FacilitySubscriptionInterceptor implements NestInterceptor {
       select: {
         id: true,
         createdAt: true,
+        updatedAt: true,
+        isActive: true,
+        complianceStatus: true,
+        complianceReason: true,
+        complianceDeactivatedAt: true,
+        complianceGraceEndsAt: true,
         subscriptionStartedAt: true,
         subscriptionPaidThrough: true,
         subscriptionStatus: true,
+        subscriptionLockedAt: true,
       },
     });
 
     if (!facility) return;
 
-    const paidThrough =
-      facility.subscriptionPaidThrough ??
-      this.addMonths(facility.subscriptionStartedAt ?? facility.createdAt, 1);
-    const overdue = paidThrough.getTime() <= Date.now();
+    const accessStatus = computeFacilityAccessStatus(facility);
 
-    if (!overdue && facility.subscriptionStatus !== 'LOCKED') return;
+    if (!accessStatus.writeLocked) return;
 
-    if (facility.subscriptionStatus !== 'LOCKED') {
+    if (
+      accessStatus.subscriptionWriteLocked &&
+      facility.subscriptionStatus !== 'LOCKED'
+    ) {
       void this.prisma.facility
         .update({
           where: { id: facility.id },
@@ -83,6 +84,12 @@ export class FacilitySubscriptionInterceptor implements NestInterceptor {
           },
         })
         .catch(() => undefined);
+    }
+
+    if (accessStatus.complianceWriteLocked) {
+      throw new ForbiddenException(
+        'Facility is in compliance grace/read-only mode. Data entry is paused until the platform reactivates the facility.',
+      );
     }
 
     throw new ForbiddenException(

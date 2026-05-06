@@ -30,6 +30,13 @@ export interface Facility {
   mpesaAccountNumber?: string | null;
   mpesaTillNumber?: string | null;
   mpesaPochiNumber?: string | null;
+  mpesaEnabled?: boolean;
+  mpesaEnvironment?: string | null;
+  mpesaCallbackUrl?: string | null;
+  mpesaTransactionType?: string | null;
+  hasMpesaConsumerKey?: boolean;
+  hasMpesaConsumerSecret?: boolean;
+  hasMpesaPasskey?: boolean;
   showCashOnInvoice?: boolean;
   showPaybillOnInvoice?: boolean;
   showTillOnInvoice?: boolean;
@@ -37,6 +44,17 @@ export interface Facility {
   shaFidCode?: string | null;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
+  complianceStatus?: string | null;
+  complianceReason?: string | null;
+  complianceDeactivatedAt?: string | null;
+  complianceGraceEndsAt?: string | null;
+  complianceReactivatedAt?: string | null;
+  accessStatus?: {
+    complianceWriteLocked?: boolean;
+    subscriptionWriteLocked?: boolean;
+    loginBlocked?: boolean;
+    lockReason?: string | null;
+  };
   isHeadOffice?: boolean;
   isDefault?: boolean;
   isActive?: boolean;
@@ -71,6 +89,13 @@ export interface CreateFacilityPayload {
   mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
   mpesaPochiNumber?: string;
+  mpesaEnabled?: boolean;
+  mpesaEnvironment?: string;
+  mpesaConsumerKey?: string;
+  mpesaConsumerSecret?: string;
+  mpesaPasskey?: string;
+  mpesaCallbackUrl?: string;
+  mpesaTransactionType?: string;
   showCashOnInvoice?: boolean;
   showPaybillOnInvoice?: boolean;
   showTillOnInvoice?: boolean;
@@ -78,6 +103,8 @@ export interface CreateFacilityPayload {
   shaFidCode?: string;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
+  complianceStatus?: string;
+  complianceReason?: string;
   isHeadOffice?: boolean;
   isDefault?: boolean;
   isActive?: boolean;
@@ -112,6 +139,13 @@ export interface UpdateFacilityPayload {
   mpesaAccountNumber?: string;
   mpesaTillNumber?: string;
   mpesaPochiNumber?: string;
+  mpesaEnabled?: boolean;
+  mpesaEnvironment?: string;
+  mpesaConsumerKey?: string;
+  mpesaConsumerSecret?: string;
+  mpesaPasskey?: string;
+  mpesaCallbackUrl?: string;
+  mpesaTransactionType?: string;
   showCashOnInvoice?: boolean;
   showPaybillOnInvoice?: boolean;
   showTillOnInvoice?: boolean;
@@ -119,6 +153,8 @@ export interface UpdateFacilityPayload {
   shaFidCode?: string;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
+  complianceStatus?: string;
+  complianceReason?: string;
   isHeadOffice?: boolean;
   isDefault?: boolean;
   isActive?: boolean;

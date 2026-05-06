@@ -7,6 +7,7 @@ import {
   Loader2,
   PackageCheck,
   Pill,
+  Search,
 } from "lucide-react";
 
 import { useScope } from "@/providers/scope-provider";
@@ -17,6 +18,7 @@ import { useDispensePrescription } from "@/hooks/use-dispense-prescription";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type {
   PharmacyDispenseItem,
@@ -85,6 +87,8 @@ export default function PharmacyPage() {
   const [selectedPrescriptionId, setSelectedPrescriptionId] = React.useState<
     number | null
   >(null);
+  const [queueSearch, setQueueSearch] = React.useState("");
+  const [queueStatus, setQueueStatus] = React.useState("OPEN");
 
   React.useEffect(() => {
     if (!selectedPrescriptionId && queue.length > 0) {
@@ -92,8 +96,38 @@ export default function PharmacyPage() {
     }
   }, [queue, selectedPrescriptionId]);
 
+  const filteredQueue = React.useMemo(() => {
+    const query = queueSearch.trim().toLowerCase();
+
+    return queue.filter((item) => {
+      const status = (item.statusCode || "").toUpperCase();
+      if (queueStatus === "PRESCRIBED" && status !== "PRESCRIBED") {
+        return false;
+      }
+      if (queueStatus === "PARTIAL" && status !== "PARTIALLY_DISPENSED") {
+        return false;
+      }
+      if (!query) return true;
+
+      const haystack = [
+        item.prescriptionNumber,
+        item.patient?.patientNumber,
+        patientName(item.patient),
+        item.branch?.name,
+        item.items?.map((line) => line.medicine?.name).join(" "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [queue, queueSearch, queueStatus]);
+
   const selectedQueueItem =
-    queue.find((item) => item.id === selectedPrescriptionId) ?? null;
+    filteredQueue.find((item) => item.id === selectedPrescriptionId) ??
+    queue.find((item) => item.id === selectedPrescriptionId) ??
+    null;
 
   const { data: prescriptionDetail, isLoading: detailLoading } =
     usePrescriptionById(selectedPrescriptionId);
@@ -242,45 +276,76 @@ export default function PharmacyPage() {
                 No prescriptions are currently waiting in pharmacy queue.
               </div>
             ) : (
-              queue.map((item) => {
-                const active = selectedPrescriptionId === item.id;
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setSelectedPrescriptionId(item.id)}
-                    className={cn(
-                      "w-full rounded-[1.2rem] border p-4 text-left transition-all",
-                      active
-                        ? "border-cyan-400/40 bg-cyan-500/10"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
-                    )}
+              <>
+                <div className="grid gap-3 lg:grid-cols-[1fr_180px]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={queueSearch}
+                      onChange={(event) => setQueueSearch(event.target.value)}
+                      className="h-11 rounded-xl pl-10"
+                      placeholder="Search patient, prescription, branch, or medicine"
+                    />
+                  </div>
+                  <select
+                    value={queueStatus}
+                    onChange={(event) => setQueueStatus(event.target.value)}
+                    className="h-11 rounded-xl border bg-background px-3 text-sm"
                   >
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">
-                          {item.prescriptionNumber}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {patientName(item.patient)}
-                        </p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Prescribed: {formatDate(item.prescribedAt)}
-                        </p>
-                      </div>
+                    <option value="OPEN">All open</option>
+                    <option value="PRESCRIBED">Prescribed</option>
+                    <option value="PARTIAL">Partial</option>
+                  </select>
+                </div>
 
-                      <Badge
-                        className={`rounded-full border px-3 py-1 ${statusTone(
-                          item.statusCode,
-                        )}`}
-                      >
-                        {item.statusCode}
-                      </Badge>
-                    </div>
-                  </button>
-                );
-              })
+                {filteredQueue.length === 0 ? (
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                    No prescriptions match the current filter.
+                  </div>
+                ) : (
+                  <div className="max-h-[620px] space-y-3 overflow-auto pr-1">
+                    {filteredQueue.map((item) => {
+                      const active = selectedPrescriptionId === item.id;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSelectedPrescriptionId(item.id)}
+                          className={cn(
+                            "w-full rounded-[1.2rem] border p-4 text-left transition-all",
+                            active
+                              ? "border-cyan-400/40 bg-cyan-500/10"
+                              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                          )}
+                        >
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold">
+                                {item.prescriptionNumber}
+                              </p>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {patientName(item.patient)}
+                              </p>
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Prescribed: {formatDate(item.prescribedAt)}
+                              </p>
+                            </div>
+
+                            <Badge
+                              className={`rounded-full border px-3 py-1 ${statusTone(
+                                item.statusCode,
+                              )}`}
+                            >
+                              {item.statusCode}
+                            </Badge>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
