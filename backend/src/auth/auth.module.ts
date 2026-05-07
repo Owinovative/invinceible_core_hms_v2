@@ -39,6 +39,12 @@ import { StepUpGuard } from './step-up.guard';
     PermissionsGuard,
     StepUpGuard,
   ],
-  exports: [AuthService, ScopeService, PermissionsGuard, StepUpGuard],
+  exports: [
+    AuthService,
+    ScopeService,
+    PermissionsGuard,
+    StepUpGuard,
+    JwtModule,
+  ],
 })
 export class AuthModule {}
