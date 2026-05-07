@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import PDFDocument from 'pdfkit';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
@@ -9,6 +8,12 @@ import { BillingService } from '../billing/billing.service';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import {
+  addCompactDefinitionList,
+  addCompactParagraph,
+  addCompactTable,
+  addSectionTitle,
+  createHospitalPdfBuffer,
+  ensureRoom,
   formatPdfDate,
   formatPdfMoney,
   loadLogoBuffer,
@@ -299,335 +304,187 @@ export class ShaClaimsService {
     if (!claim) throw new NotFoundException(`SHA claim with id ${id} not found`);
     this.scopeService.assertBranchAccess(user, claim.facilityId, claim.branchId);
 
-    const [logoBuffer, patientSignature, facilitySignature, rubberStamp] =
+    const [patientSignature, facilitySignature, rubberStamp] =
       await Promise.all([
-        loadLogoBuffer(claim.facility?.logoUrl),
         loadLogoBuffer(claim.patientSignatureUrl),
         loadLogoBuffer(claim.facilitySignatureUrl),
         loadLogoBuffer(claim.rubberStampUrl),
       ]);
 
-    return new Promise<Buffer>((resolve, reject) => {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 24,
-        bufferPages: true,
-        info: {
-          Title: `SHA Claim ${claim.claimNumber}`,
-          Producer: 'Invinceible Core HMS',
-        },
-      });
-
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      const left = doc.page.margins.left;
-      const right = doc.page.width - doc.page.margins.right;
-      const width = right - left;
-      const patient = claim.patient;
-      const nameParts = {
-        lastName: patient?.lastName || '',
-        firstName: patient?.firstName || '',
-        middleName: patient?.middleName || '',
-      };
-      const serviceStart = claim.servicePeriodStart || claim.createdAt;
-      const serviceEnd = claim.servicePeriodEnd || claim.updatedAt;
-      const visitType = claim.invoice?.admissionId ? 'Inpatient' : 'Outpatient';
-      const currency = claim.facility?.currency || claim.branch?.currency || 'KES';
-      const providerLine = [
-        claim.facility?.address,
-        claim.facility?.town,
-        claim.facility?.county,
-      ]
+    const patient = claim.patient;
+    const serviceStart = claim.servicePeriodStart || claim.createdAt;
+    const serviceEnd = claim.servicePeriodEnd || claim.updatedAt;
+    const visitType = claim.invoice?.admissionId ? 'Inpatient' : 'Outpatient';
+    const currency = claim.facility?.currency || claim.branch?.currency || 'KES';
+    const providerLine =
+      [claim.facility?.address, claim.facility?.town, claim.facility?.county]
         .filter(Boolean)
-        .join(', ');
+        .join(', ') || claim.facility?.name;
 
-      const drawBox = (
-        x: number,
-        y: number,
-        boxWidth: number,
-        boxHeight: number,
-        title: string,
-      ) => {
-        doc.rect(x, y, boxWidth, boxHeight).strokeColor('#94a3b8').stroke();
-        doc
-          .rect(x, y, boxWidth, 18)
-          .fillAndStroke('#eaf6ff', '#94a3b8')
-          .fillColor('#0b5f9e')
-          .font('Helvetica-Bold')
-          .fontSize(8.5)
-          .text(title.toUpperCase(), x + 6, y + 5, { width: boxWidth - 12 });
-      };
+    return createHospitalPdfBuffer(
+      {
+        title: 'SHA Claim Form',
+        subtitle: claim.claimNumber,
+        reference: claim.statusCode,
+        verificationCode: claim.claimNumber,
+        facility: claim.facility,
+        branch: claim.branch,
+        compact: true,
+        qrPayload: `/sha-claims/${claim.id}/pdf`,
+      },
+      (doc) => {
+        addCompactParagraph(
+          doc,
+          'Claim filing reminder',
+          'Complete and verify all mandatory claim details before submission. This document is generated from facility, patient, invoice, diagnosis, and claim data recorded in the HMS.',
+        );
 
-      const line = (
-        label: string,
-        value: string | number | null | undefined,
-        x: number,
-        y: number,
-        valueWidth = 210,
-      ) => {
+        addSectionTitle(doc, 'Provider details');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'FID', value: claim.fidCode || claim.facility?.shaFidCode },
+            { label: 'Facility', value: claim.facility?.name },
+            { label: 'Branch', value: claim.branch?.name },
+            { label: 'Address', value: providerLine },
+          ],
+          2,
+        );
+
+        addSectionTitle(doc, 'Patient details');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'Patient', value: patientName(patient) },
+            { label: 'Patient No.', value: patient?.patientNumber },
+            { label: 'Member No.', value: claim.memberNumber },
+            { label: 'Phone', value: patient?.phonePrimary },
+            { label: 'Residence', value: patient?.occupation || providerLine },
+            { label: 'Relationship', value: 'Self' },
+          ],
+          3,
+        );
+
+        addSectionTitle(doc, 'Visit and diagnosis');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'Visit Type', value: visitType },
+            { label: 'Service Start', value: serviceStart },
+            { label: 'Service End', value: serviceEnd },
+            { label: 'OP/IP No.', value: patient?.patientNumber },
+            {
+              label: 'Clinician',
+              value: claim.createdBy
+                ? `${claim.createdBy.firstName || ''} ${claim.createdBy.lastName || ''} ${claim.createdBy.clinicianRegistrationNumber || ''}`.trim()
+                : '-',
+            },
+            { label: 'Diagnosis Code', value: claim.diagnosisCode },
+          ],
+          2,
+        );
+        addCompactParagraph(doc, 'Diagnosis', claim.diagnosisText);
+
+        addSectionTitle(doc, 'Claim benefit line');
+        addCompactTable(
+          doc,
+          [
+            { header: 'Admission', width: 78, render: () => formatPdfDate(serviceStart).split(',')[0] },
+            { header: 'Discharge', width: 78, render: () => formatPdfDate(serviceEnd).split(',')[0] },
+            { header: 'Code', width: 64, render: () => claim.diagnosisCode || 'SHA' },
+            { header: 'Description', width: 170, render: () => claim.diagnosisText || 'Claimed benefit' },
+            {
+              header: 'Bill',
+              width: 68,
+              render: () => formatPdfMoney(claim.invoice?.totalAmount ?? claim.claimedAmount, currency),
+            },
+            {
+              header: 'Claim',
+              width: 68,
+              render: () => formatPdfMoney(claim.claimedAmount, currency),
+            },
+          ],
+          [claim],
+          'No benefit lines recorded.',
+        );
+
+        addCompactParagraph(
+          doc,
+          'Additional information',
+          claim.notes ||
+            'No additional information was recorded for this claim.',
+        );
+
+        addSectionTitle(doc, "Patient declaration");
+        addCompactParagraph(
+          doc,
+          'Declaration',
+          'I certify that I received the treatment stated above and that the claim details are correct to the best of my knowledge.',
+        );
+        this.drawImageSignatureLine(
+          doc,
+          'Patient / authorised person signature',
+          patientSignature,
+          patientName(patient),
+        );
+
+        addSectionTitle(doc, 'Hospital declaration');
+        addCompactParagraph(
+          doc,
+          'Declaration',
+          `The facility certifies that the information recorded is true, accurate, and complete. Claim amount requested: ${formatPdfMoney(claim.claimedAmount, currency)}.`,
+        );
+        this.drawImageSignatureLine(doc, 'Facility stamp', rubberStamp);
+        this.drawImageSignatureLine(
+          doc,
+          'Facility authorised signature',
+          facilitySignature,
+          `Date: ${formatPdfDate(new Date()).split(',')[0]}`,
+        );
+      },
+    );
+  }
+
+  private drawImageSignatureLine(
+    doc: PDFKit.PDFDocument,
+    label: string,
+    image?: Buffer,
+    caption?: string,
+  ) {
+    ensureRoom(doc, 52);
+    const left = doc.page.margins.left;
+    const y = doc.y + 4;
+    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+    doc
+      .fillColor('#334155')
+      .font('Helvetica-Bold')
+      .fontSize(7.8)
+      .text(`${label}:`, left, y, { width: 180 });
+
+    if (image) {
+      try {
+        doc.image(image, left + 184, y - 4, { fit: [120, 36] });
+      } catch {
         doc
-          .fillColor('#334155')
-          .font('Helvetica-Bold')
-          .fontSize(8)
-          .text(label, x, y, { width: 145 })
-          .font('Helvetica')
-          .fillColor('#0f172a')
-          .text(String(value || '-').toUpperCase(), x + 145, y, {
-            width: valueWidth,
-          });
-        doc
-          .moveTo(x + 145, y + 11)
-          .lineTo(x + 145 + valueWidth, y + 11)
-          .lineWidth(0.5)
-          .strokeColor('#cbd5e1')
+          .moveTo(left + 184, y + 24)
+          .lineTo(left + 330, y + 24)
+          .strokeColor('#94a3b8')
           .stroke();
-      };
-
-      doc
-        .fillColor('#0f172a')
-        .font('Times-Bold')
-        .fontSize(13)
-        .text('REPUBLIC OF KENYA', left, 30, { width, align: 'center' })
-        .fontSize(10)
-        .text('SOCIAL HEALTH INSURANCE ACT, 2023', { align: 'center' })
-        .text('SOCIAL HEALTH INSURANCE REGULATIONS, 2024', {
-          align: 'center',
-        })
-        .fontSize(16)
-        .text('CLAIMS', { align: 'center' });
-
-      doc
-        .roundedRect(left, 92, width, 58, 3)
-        .fillAndStroke('#f8fafc', '#cbd5e1')
-        .fillColor('#0f172a')
-        .font('Helvetica-Bold')
-        .fontSize(8)
-        .text('IMPORTANT CLAIM FILING REMINDERS', left + 10, 100)
-        .font('Helvetica')
-        .fontSize(7.5)
-        .text(
-          'Use capital letters and tick the appropriate boxes. Submit this form with supporting documents within seven (7) days from discharge. All mandatory fields must be completed.',
-          left + 10,
-          114,
-          { width: width - 20, lineGap: 1.2 },
-        )
-        .font('Helvetica-Bold')
-        .text(
-          'PLEASE BE COMPREHENSIVE AND ACCURATE. ERRORS OR OMISSIONS MAY DELAY CLAIM PAYMENTS.',
-          left + 10,
-          136,
-          { width: width - 20 },
-        );
-
-      if (logoBuffer) {
-        try {
-          doc.image(logoBuffer, left, 34, { fit: [46, 46] });
-        } catch {
-          // Keep the statutory header clean if the uploaded logo cannot render.
-        }
       }
-
+    } else {
       doc
-        .font('Helvetica-Bold')
-        .fontSize(9.5)
-        .fillColor('#0f172a')
-        .text(`CLAIM NO: ${claim.claimNumber}`, right - 210, 158, {
-          width: 210,
-          align: 'right',
-        });
+        .moveTo(left + 184, y + 24)
+        .lineTo(left + 330, y + 24)
+        .strokeColor('#94a3b8')
+        .stroke();
+    }
 
-      let y = 180;
-      drawBox(left, y, width, 74, 'Part I - Health Care Providers Details');
-      line('1. Health Provider Identification Number:', claim.fidCode || claim.facility?.shaFidCode, left + 10, y + 28, width - 165);
-      line('2. Name of Health Care Provider/Facility:', claim.facility?.name, left + 10, y + 47, width - 165);
-      y += 86;
-
-      drawBox(left, y, width, 128, 'Part II - Patient Details');
-      line('Patient Last Name:', nameParts.lastName, left + 10, y + 28, 130);
-      line('First Name:', nameParts.firstName, left + 300, y + 28, 100);
-      line('Middle Name:', nameParts.middleName, left + 430, y + 28, 95);
-      line('3. Social Health Authority Number:', claim.memberNumber, left + 10, y + 50, width - 165);
-      line('4. Residence:', patient?.occupation || providerLine || claim.facility?.town, left + 10, y + 72, width - 165);
-      line('5. Other Health Insurance:', 'NO', left + 10, y + 94, 110);
-      line('6. Relationship to Principal:', 'SELF', left + 300, y + 94, 140);
-      y += 140;
-
-      drawBox(left, y, width, 190, 'Part III - Patient Visit Details');
-      line('7. Referral Information:', 'NO', left + 10, y + 28, 100);
-      line('Visit type:', visitType, left + 300, y + 28, 140);
-      line('Visit/Admission Date:', formatPdfDate(serviceStart), left + 10, y + 50, 150);
-      line('OP/IP No.:', patient?.patientNumber, left + 300, y + 50, 150);
-      line('Discharge Date:', formatPdfDate(serviceEnd), left + 10, y + 72, 150);
-      line(
-        'Rendering Physician Name and Registration No:',
-        claim.createdBy
-          ? `${claim.createdBy.firstName || ''} ${claim.createdBy.lastName || ''} ${claim.createdBy.clinicianRegistrationNumber || ''}`.trim()
-          : '-',
-        left + 10,
-        y + 94,
-        width - 165,
-      );
-      line('Type of Accommodation:', claim.invoice?.admissionId ? 'WARD / INPATIENT' : 'N/A', left + 10, y + 116, width - 165);
-      line('9. Patient Disposition upon discharge:', 'IMPROVED', left + 10, y + 138, width - 165);
-      line('10. Referred Institution / Reason:', 'N/A', left + 10, y + 160, width - 165);
-      y += 202;
-
-      drawBox(left, y, width, 64, 'Diagnosis');
-      line('11. Admission Diagnosis/es:', claim.diagnosisText, left + 10, y + 28, width - 165);
-      line('12. ICD-11 Code/s:', claim.diagnosisCode, left + 10, y + 47, width - 165);
-      y += 76;
-
-      drawBox(left, y, width, 96, '14. SHA Health Benefits');
-      const columns = [
-        ['Date of Admission', 0, 78],
-        ['Date of Discharge', 78, 78],
-        ['Case Code', 156, 72],
-        ['ICD 11 / Procedure Code', 228, 96],
-        ['Description', 324, 120],
-        ['Preauth No.', 444, 68],
-        ['Bill Amount', 512, 76],
-        ['Claim Amount', 588, 0],
-      ] as const;
-      const tableLeft = left + 8;
-      const tableWidth = width - 16;
-      const tableY = y + 26;
-      doc.rect(tableLeft, tableY, tableWidth, 18).fillAndStroke('#dbeafe', '#94a3b8');
-      columns.forEach(([label, offset, colWidth], index) => {
-        const actualWidth = index === columns.length - 1 ? tableWidth - offset : colWidth;
-        doc
-          .fillColor('#0b5f9e')
-          .font('Helvetica-Bold')
-          .fontSize(6.8)
-          .text(label, tableLeft + offset + 3, tableY + 4, {
-            width: actualWidth - 6,
-          });
-      });
-      doc.rect(tableLeft, tableY + 18, tableWidth, 30).strokeColor('#94a3b8').stroke();
-      const rowValues = [
-        formatPdfDate(serviceStart).split(',')[0],
-        formatPdfDate(serviceEnd).split(',')[0],
-        'SHA',
-        claim.diagnosisCode || '-',
-        claim.diagnosisText || 'Total',
-        '-',
-        formatPdfMoney(claim.invoice?.totalAmount ?? claim.claimedAmount, currency),
-        formatPdfMoney(claim.claimedAmount, currency),
-      ];
-      columns.forEach(([, offset, colWidth], index) => {
-        const actualWidth = index === columns.length - 1 ? tableWidth - offset : colWidth;
-        doc
-          .fillColor('#0f172a')
-          .font(index > 5 ? 'Helvetica-Bold' : 'Helvetica')
-          .fontSize(7)
-          .text(rowValues[index], tableLeft + offset + 3, tableY + 26, {
-            width: actualWidth - 6,
-          });
-      });
-      y += 108;
-
-      doc
-        .font('Helvetica')
-        .fontSize(7.5)
-        .fillColor('#334155')
-        .text(
-          'Any unforeseen circumstances or additional information that led to an increased length of stay for this admission:',
-          left,
-          y,
-        )
-        .font('Helvetica')
-        .fillColor('#0f172a')
-        .text(claim.notes || '_ '.repeat(120), left, y + 13, {
-          width,
-          lineGap: 1,
-        });
-      y += 46;
-
-      drawBox(left, y, width, 84, "Patient's / Authorised Person's Declaration");
-      doc
-        .font('Helvetica')
-        .fontSize(7.5)
-        .fillColor('#0f172a')
-        .text(
-          'I certify that I have received the above treatment, and that the above information is correct. I understand that it is an offence to falsify information to obtain any benefit under the SHI Act 2023.',
-          left + 10,
-          y + 24,
-          { width: width - 20 },
-        );
-      line('Names (Majina):', patientName(patient), left + 10, y + 50, 210);
-      line('Date (Tarehe):', formatPdfDate(new Date()).split(',')[0], left + 360, y + 50, 120);
-      doc.text('Signature (Sahihi):', left + 10, y + 68, { width: 120 });
-      if (patientSignature) {
-        try {
-          doc.image(patientSignature, left + 118, y + 58, { fit: [105, 28] });
-        } catch {
-          doc.text('____________________', left + 118, y + 68);
-        }
-      } else {
-        doc.text('____________________', left + 118, y + 68);
-      }
-      y += 96;
-
-      drawBox(left, y, width, 104, 'E. Hospital Declaration');
-      doc
-        .font('Helvetica')
-        .fontSize(7.4)
-        .fillColor('#0f172a')
-        .text(
-          `This is to certify that to the best of my knowledge, the information contained above and any attachments provided is true, accurate, and complete. Please arrange to pay the hospital the sum of ${formatPdfMoney(claim.claimedAmount, currency)} being the claim amount for services rendered.`,
-          left + 10,
-          y + 24,
-          { width: width - 20, lineGap: 1 },
-        );
-      doc.text('Facility stamp', left + 10, y + 62);
-      if (rubberStamp) {
-        try {
-          doc.image(rubberStamp, left + 88, y + 50, { fit: [100, 42] });
-        } catch {
-          doc.rect(left + 88, y + 50, 100, 42).strokeColor('#94a3b8').stroke();
-        }
-      } else {
-        doc.rect(left + 88, y + 50, 100, 42).strokeColor('#94a3b8').stroke();
-      }
-      doc.text('Signature:', left + 230, y + 69);
-      if (facilitySignature) {
-        try {
-          doc.image(facilitySignature, left + 292, y + 57, { fit: [105, 28] });
-        } catch {
-          doc.text('________________________', left + 292, y + 69);
-        }
-      } else {
-        doc.text('________________________', left + 292, y + 69);
-      }
-      doc.text(`Date: ${formatPdfDate(new Date()).split(',')[0]}`, left + 420, y + 69);
-      y += 116;
-
-      drawBox(left, y, width, 54, 'F. For Official Use Only');
-      line('SHA Receiving Officer Name:', '', left + 10, y + 28, 170);
-      line('Date:', '', left + 360, y + 28, 120);
-
-      const range = doc.bufferedPageRange();
-      for (let pageIndex = 0; pageIndex < range.count; pageIndex += 1) {
-        doc.switchToPage(range.start + pageIndex);
-        doc
-          .font('Helvetica')
-          .fontSize(6.8)
-          .fillColor('#64748b')
-          .text(
-            'Notice: Any person/institution who knowingly files a false, incomplete, or misleading claim may be guilty of medical fraud punishable under law.',
-            left,
-            doc.page.height - 40,
-            { width: width - 100 },
-          )
-          .text(`Page ${pageIndex + 1} of ${range.count}`, right - 80, doc.page.height - 40, {
-            width: 80,
-            align: 'right',
-          });
-      }
-
-      doc.end();
-    });
+    doc
+      .fillColor('#475569')
+      .font('Helvetica')
+      .fontSize(7.5)
+      .text(caption || '', left + 342, y + 8, { width: width - 342 });
+    doc.y = y + 42;
   }
 }

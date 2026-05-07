@@ -194,7 +194,6 @@ export function addCompactDefinitionList(
 
   for (let index = 0; index < items.length; index += columns) {
     const row = items.slice(index, index + columns);
-    const y = doc.y;
     const heights = row.map((item) => {
       const labelWidth = Math.min(82, columnWidth * 0.42);
       doc.font('Helvetica').fontSize(8);
@@ -209,6 +208,7 @@ export function addCompactDefinitionList(
     const height = Math.max(18, ...heights);
 
     ensureRoom(doc, height + 3);
+    const y = doc.y;
 
     row.forEach((item, offset) => {
       const x = doc.page.margins.left + offset * (columnWidth + columnGap);
@@ -246,40 +246,7 @@ export function addCompactKeyValueGrid(
   items: PdfKeyValue[],
   columns = 3,
 ) {
-  const pageWidth =
-    doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const columnGap = 8;
-  const columnWidth = (pageWidth - columnGap * (columns - 1)) / columns;
-
-  for (let index = 0; index < items.length; index += columns) {
-    const row = items.slice(index, index + columns);
-    const y = doc.y;
-    const height = 30;
-
-    ensureRoom(doc, height + 5);
-
-    row.forEach((item, offset) => {
-      const x = doc.page.margins.left + offset * (columnWidth + columnGap);
-      doc.rect(x, y, columnWidth, height).fillAndStroke('#ffffff', '#e2e8f0');
-      doc
-        .fillColor('#64748b')
-        .font('Helvetica-Bold')
-        .fontSize(6.8)
-        .text(item.label.toUpperCase(), x + 7, y + 6, {
-          width: columnWidth - 14,
-        });
-      doc
-        .fillColor('#0f172a')
-        .font('Helvetica')
-        .fontSize(8.3)
-        .text(textOrDash(item.value), x + 7, y + 17, {
-          width: columnWidth - 14,
-          ellipsis: true,
-        });
-    });
-
-    doc.y = y + height + 5;
-  }
+  return addCompactDefinitionList(doc, items, columns);
 }
 
 export function addMiniKeyValueGrid(
@@ -297,29 +264,30 @@ export function addParagraph(
 ) {
   const text = textOrDash(value);
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const height = doc.heightOfString(text, { width: width - 24 }) + 42;
+  const bodyHeight = doc.heightOfString(text, {
+    width,
+    lineGap: 1.4,
+  });
+  const height = Math.max(31, bodyHeight + 18);
 
-  ensureRoom(doc, Math.max(height, 58));
+  ensureRoom(doc, height + 6);
   const y = doc.y;
   doc
-    .roundedRect(doc.page.margins.left, y, width, Math.max(height, 58), 4)
-    .fillAndStroke('#ffffff', '#e2e8f0');
-  doc
-    .fillColor('#64748b')
+    .fillColor('#0f172a')
     .font('Helvetica-Bold')
-    .fontSize(8)
-    .text(label.toUpperCase(), doc.page.margins.left + 12, y + 10, {
-      width: width - 24,
+    .fontSize(8.5)
+    .text(`${label}:`, doc.page.margins.left, y, {
+      width,
     });
   doc
     .fillColor('#0f172a')
     .font('Helvetica')
-    .fontSize(10)
-    .text(text, doc.page.margins.left + 12, y + 27, {
-      width: width - 24,
-      lineGap: 2,
+    .fontSize(9)
+    .text(text, doc.page.margins.left, y + 12, {
+      width,
+      lineGap: 1.4,
     });
-  doc.y = y + Math.max(height, 58) + 8;
+  doc.y = y + height + 3;
 }
 
 export function addCompactParagraph(
@@ -330,33 +298,29 @@ export function addCompactParagraph(
   const text = textOrDash(value);
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const bodyHeight = doc.heightOfString(text, {
-    width: width - 18,
+    width,
     lineGap: 1,
   });
-  const height = Math.max(34, bodyHeight + 23);
+  const height = Math.max(24, bodyHeight + 16);
 
   ensureRoom(doc, height + 5);
   const y = doc.y;
-  doc.rect(doc.page.margins.left, y, width, height).fillAndStroke(
-    '#ffffff',
-    '#e2e8f0',
-  );
   doc
-    .fillColor('#075985')
+    .fillColor('#0f172a')
     .font('Helvetica-Bold')
-    .fontSize(7.2)
-    .text(label.toUpperCase(), doc.page.margins.left + 9, y + 7, {
-      width: width - 18,
+    .fontSize(7.8)
+    .text(`${label}:`, doc.page.margins.left, y, {
+      width,
     });
   doc
     .fillColor('#0f172a')
     .font('Helvetica')
-    .fontSize(8.2)
-    .text(text, doc.page.margins.left + 9, y + 18, {
-      width: width - 18,
+    .fontSize(8.4)
+    .text(text, doc.page.margins.left, y + 10, {
+      width,
       lineGap: 1,
     });
-  doc.y = y + height + 5;
+  doc.y = y + height + 2;
 }
 
 export function addTable<T>(
@@ -371,20 +335,20 @@ export function addTable<T>(
   ensureRoom(doc, 34);
   let y = doc.y;
 
-  doc.rect(startX, y, tableWidth, 24).fillAndStroke('#0f766e', '#0f766e');
+  doc.rect(startX, y, tableWidth, 22).fillAndStroke('#f1f5f9', '#cbd5e1');
   let x = startX;
   columns.forEach((column) => {
     doc
-      .fillColor('#ffffff')
+      .fillColor('#0f172a')
       .font('Helvetica-Bold')
       .fontSize(8)
-      .text(column.header, x + 6, y + 8, {
+      .text(column.header, x + 6, y + 7, {
         width: column.width - 12,
       });
     x += column.width;
   });
 
-  doc.y = y + 24;
+  doc.y = y + 22;
 
   if (rows.length === 0) {
     ensureRoom(doc, 36);
@@ -454,20 +418,20 @@ export function addCompactTable<T>(
   ensureRoom(doc, 28);
   let y = doc.y;
 
-  doc.rect(startX, y, tableWidth, 18).fillAndStroke('#0f766e', '#0f766e');
+  doc.rect(startX, y, tableWidth, 17).fillAndStroke('#f1f5f9', '#cbd5e1');
   let x = startX;
   columns.forEach((column) => {
     doc
-      .fillColor('#ffffff')
+      .fillColor('#0f172a')
       .font('Helvetica-Bold')
       .fontSize(7.2)
-      .text(column.header, x + 4, y + 6, {
+      .text(column.header, x + 4, y + 5.5, {
         width: column.width - 8,
       });
     x += column.width;
   });
 
-  doc.y = y + 18;
+  doc.y = y + 17;
 
   if (rows.length === 0) {
     ensureRoom(doc, 28);
@@ -576,7 +540,7 @@ export function ensureRoom(doc: PDFKit.PDFDocument, requiredHeight: number) {
 
   if (doc.y + requiredHeight > bottom) {
     doc.addPage();
-    doc.y = 48;
+    doc.y = doc.page.margins.top;
   }
 }
 
@@ -589,10 +553,11 @@ function drawLetterhead(
   const left = doc.page.margins.left;
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const compact = options.compact === true;
-  const top = compact ? 26 : 34;
-  const height = compact ? 74 : 92;
-  const logoSize = compact ? 36 : 48;
-  const titleX = compact ? left + 322 : left + 330;
+  const top = compact ? 28 : 34;
+  const height = compact ? 58 : 72;
+  const logoSize = compact ? 32 : 40;
+  const titleWidth = compact ? 148 : 170;
+  const titleX = doc.page.width - doc.page.margins.right - titleWidth;
   const facilityName = options.facility?.name || 'Hospital Facility';
   const branchLine = options.branch?.name
     ? `${options.branch.name} Branch`
@@ -606,48 +571,48 @@ function drawLetterhead(
     .filter(Boolean)
     .join(' | ');
 
-  doc.rect(left, top, width, height).fillAndStroke('#f8fbff', '#0b5f9e');
-  doc.rect(left, top, 8, height).fill('#005da8');
-
-  let textLeft = left + 20;
+  let textLeft = left;
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, left + 18, top + 18, {
+      doc.image(logoBuffer, left, top + 4, {
         fit: [logoSize, logoSize],
       });
-      textLeft = left + (compact ? 62 : 78);
+      textLeft = left + logoSize + 10;
     } catch {
-      textLeft = left + 20;
+      textLeft = left;
     }
   }
 
   doc
     .fillColor('#0f172a')
     .font('Helvetica-Bold')
-    .fontSize(compact ? 13 : 16)
-    .text(facilityName, textLeft, top + 15, { width: compact ? 250 : 275 });
+    .fontSize(compact ? 12.5 : 15)
+    .text(facilityName.toUpperCase(), textLeft, top + 2, {
+      width: titleX - textLeft - 12,
+      lineGap: 0.5,
+    });
   doc
     .fillColor('#005da8')
     .font('Helvetica-Bold')
-    .fontSize(compact ? 7.5 : 9)
-    .text(branchLine || 'Official Hospital Document', textLeft, top + 35, {
-      width: compact ? 250 : 275,
+    .fontSize(compact ? 7.1 : 8.2)
+    .text(branchLine || 'Official Hospital Document', textLeft, top + 22, {
+      width: titleX - textLeft - 12,
     });
   doc
     .fillColor('#334155')
     .font('Helvetica')
-    .fontSize(compact ? 6.8 : 8)
-    .text(contact || 'Facility contact details not recorded', textLeft, top + 49, {
-      width: compact ? 270 : 285,
+    .fontSize(compact ? 6.7 : 7.6)
+    .text(contact || 'Facility contact details not recorded', textLeft, top + 35, {
+      width: titleX - textLeft - 12,
       lineGap: compact ? 1 : 2,
     });
 
   doc
     .fillColor('#0f172a')
     .font('Helvetica-Bold')
-    .fontSize(compact ? 14 : 17)
+    .fontSize(compact ? 12.8 : 15.5)
     .text(options.title, titleX, top + 14, {
-      width: width - (compact ? 340 : 350),
+      width: titleWidth,
       align: 'right',
     });
 
@@ -657,14 +622,14 @@ function drawLetterhead(
       .font('Helvetica')
       .fontSize(compact ? 7.5 : 9)
       .text(options.subtitle, titleX, top + (compact ? 34 : 38), {
-        width: width - (compact ? 340 : 350),
+        width: titleWidth,
         align: 'right',
       });
   }
 
   if (qrBuffer) {
-    const qrSize = compact ? 34 : 42;
-    doc.image(qrBuffer, doc.page.width - doc.page.margins.right - qrSize - 8, top + (compact ? 38 : 50), {
+    const qrSize = compact ? 30 : 36;
+    doc.image(qrBuffer, titleX - qrSize - 10, top + 18, {
       fit: [qrSize, qrSize],
     });
     doc
@@ -672,7 +637,7 @@ function drawLetterhead(
       .font('Helvetica-Bold')
       .fontSize(compact ? 5.8 : 6.5)
       .text(options.verificationCode || options.reference || 'VERIFY', titleX, top + height - 13, {
-        width: width - (compact ? 384 : 390),
+        width: titleWidth,
         align: 'right',
       });
   } else if (options.reference) {
@@ -681,12 +646,19 @@ function drawLetterhead(
       .font('Helvetica-Bold')
       .fontSize(compact ? 7 : 8)
       .text(options.reference, titleX, top + height - 27, {
-        width: width - (compact ? 340 : 350),
+        width: titleWidth,
         align: 'right',
       });
   }
 
-  doc.y = top + height + (compact ? 12 : 16);
+  doc
+    .moveTo(left, top + height)
+    .lineTo(left + width, top + height)
+    .lineWidth(1)
+    .strokeColor('#0b5f9e')
+    .stroke();
+
+  doc.y = top + height + (compact ? 10 : 13);
 }
 
 async function createDocumentQr(options: HospitalPdfOptions) {
@@ -702,11 +674,14 @@ async function createDocumentQr(options: HospitalPdfOptions) {
     } satisfies Record<string, unknown>);
 
   try {
-    return QRCode.toBuffer(JSON.stringify(payload), {
-      errorCorrectionLevel: 'M',
-      margin: 1,
-      scale: 3,
-    });
+    return QRCode.toBuffer(
+      typeof payload === 'string' ? payload : JSON.stringify(payload),
+      {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        scale: 3,
+      },
+    );
   } catch {
     return undefined;
   }
@@ -719,7 +694,7 @@ function drawFooter(doc: PDFKit.PDFDocument) {
   for (let pageIndex = 0; pageIndex < range.count; pageIndex += 1) {
     doc.switchToPage(range.start + pageIndex);
 
-    const footerY = doc.page.height - 42;
+    const footerY = doc.page.height - doc.page.margins.bottom - 24;
     doc
       .moveTo(doc.page.margins.left, footerY - 10)
       .lineTo(doc.page.width - doc.page.margins.right, footerY - 10)

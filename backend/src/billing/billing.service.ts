@@ -5,8 +5,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import PDFDocument from 'pdfkit';
-import QRCode from 'qrcode';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientService } from '../patient/patient.service';
 import { AppointmentService } from '../appointment/appointment.service';
@@ -29,9 +27,14 @@ import { UpdateServiceTariffDto } from './dto/update-service-tariff.dto';
 import { ImportServiceTariffsCsvDto } from './dto/import-service-tariffs-csv.dto';
 import { OpenPatientInvoiceDto } from './dto/open-patient-invoice.dto';
 import {
+  addCompactDefinitionList,
+  addCompactParagraph,
+  addCompactTable,
+  addSectionTitle,
+  createHospitalPdfBuffer,
   formatPdfMoney,
-  loadLogoBuffer,
   patientName,
+  staffName,
 } from '../common/pdf/hospital-pdf';
 import {
   paginatedResponse,
@@ -2728,152 +2731,61 @@ export class BillingService {
 
     const currency =
       payment.facility?.currency || payment.branch?.currency || 'KES';
-    const logoBuffer = await loadLogoBuffer(payment.facility?.logoUrl);
     const verificationCode = this.buildInvoiceVerificationCode(payment.invoice);
-    const qrBuffer = await QRCode.toBuffer(
-      this.invoiceVerificationUrl(payment.invoice, verificationCode),
+
+    return createHospitalPdfBuffer(
       {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        scale: 4,
+        title: 'Payment Receipt',
+        subtitle: payment.receiptNumber,
+        reference: payment.invoice?.invoiceNumber,
+        verificationCode,
+        facility: payment.facility ?? payment.invoice?.facility,
+        branch: payment.branch ?? payment.invoice?.branch,
+        compact: true,
+        qrPayload: this.invoiceVerificationUrl(payment.invoice, verificationCode),
+      },
+      (doc) => {
+        addSectionTitle(doc, 'Receipt details');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'Receipt No.', value: payment.receiptNumber },
+            { label: 'Invoice No.', value: payment.invoice?.invoiceNumber },
+            { label: 'Patient', value: patientName(payment.invoice?.patient) },
+            { label: 'Method', value: payment.paymentMethod },
+            {
+              label: 'Reference',
+              value: payment.mpesaReceiptNumber || payment.transactionRef,
+            },
+            { label: 'Paid At', value: payment.paidAt },
+            { label: 'Received By', value: staffName(payment.receivedBy) },
+            { label: 'Status', value: payment.statusCode },
+          ],
+          2,
+        );
+
+        addSectionTitle(doc, 'Amount received');
+        addCompactDefinitionList(
+          doc,
+          [
+            {
+              label: 'Amount',
+              value: formatPdfMoney(payment.amount, currency),
+            },
+            {
+              label: 'Invoice Balance',
+              value: formatPdfMoney(payment.invoice?.balanceAmount, currency),
+            },
+          ],
+          2,
+        );
+        addCompactParagraph(
+          doc,
+          'Receipt note',
+          'This receipt confirms a payment recorded against the invoice above. Keep this copy for reconciliation.',
+        );
       },
     );
-
-    return new Promise<Buffer>((resolve, reject) => {
-      const doc = new PDFDocument({
-        size: 'A5',
-        margin: 22,
-        info: {
-          Title: `Receipt ${payment.receiptNumber}`,
-          Producer: 'Invinceible Core HMS',
-        },
-      });
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      const left = doc.page.margins.left;
-      const right = doc.page.width - doc.page.margins.right;
-      const width = right - left;
-
-      doc.rect(left, 22, width, 82).fill('#eef7ff');
-      if (logoBuffer) {
-        try {
-          doc.image(logoBuffer, left + 12, 36, { fit: [48, 48] });
-        } catch {
-          this.drawInvoiceLogoPlaceholder(doc, left + 12, 36);
-        }
-      } else {
-        this.drawInvoiceLogoPlaceholder(doc, left + 12, 36);
-      }
-
-      doc
-        .fillColor('#0b2f56')
-        .font('Helvetica-Bold')
-        .fontSize(15)
-        .text(
-          (payment.facility?.name || 'Hospital Facility').toUpperCase(),
-          left + 72,
-          34,
-          {
-            width: width - 170,
-          },
-        )
-        .font('Helvetica')
-        .fontSize(8)
-        .fillColor('#475569')
-        .text(
-          [
-            payment.facility?.email,
-            payment.facility?.phone,
-            payment.facility?.town,
-          ]
-            .filter(Boolean)
-            .join('  |  ') || '-',
-          left + 72,
-          58,
-          { width: width - 170 },
-        );
-
-      doc
-        .fillColor('#0b2f56')
-        .font('Helvetica-Bold')
-        .fontSize(16)
-        .text('PAYMENT RECEIPT', right - 118, 42, {
-          width: 112,
-          align: 'right',
-        });
-
-      doc.image(qrBuffer, right - 62, 112, { fit: [54, 54] });
-
-      const rows = [
-        ['Receipt No.', payment.receiptNumber],
-        ['Invoice No.', payment.invoice?.invoiceNumber ?? '-'],
-        ['Patient', patientName(payment.invoice?.patient)],
-        ['Method', payment.paymentMethod],
-        [
-          'Reference',
-          payment.mpesaReceiptNumber || payment.transactionRef || '-',
-        ],
-        [
-          'Paid At',
-          payment.paidAt
-            ? new Date(payment.paidAt).toLocaleString('en-GB')
-            : '-',
-        ],
-        [
-          'Received By',
-          payment.receivedBy
-            ? `${payment.receivedBy.firstName} ${payment.receivedBy.lastName}`
-            : '-',
-        ],
-      ];
-
-      let y = 118;
-      rows.forEach(([label, value]) => {
-        doc
-          .fillColor('#64748b')
-          .font('Helvetica')
-          .fontSize(9)
-          .text(label, left + 4, y, { width: 88 })
-          .fillColor('#0f172a')
-          .font('Helvetica-Bold')
-          .text(String(value || '-'), left + 98, y, { width: width - 172 });
-        y += 17;
-      });
-
-      doc
-        .roundedRect(left, y + 12, width, 46, 5)
-        .fill('#f8fafc')
-        .strokeColor('#bfdbfe')
-        .stroke();
-      doc
-        .fillColor('#64748b')
-        .font('Helvetica')
-        .fontSize(10)
-        .text('Amount Received', left + 14, y + 25, { width: 150 })
-        .fillColor('#0b2f56')
-        .font('Helvetica-Bold')
-        .fontSize(18)
-        .text(formatPdfMoney(payment.amount, currency), right - 185, y + 20, {
-          width: 168,
-          align: 'right',
-        });
-
-      doc
-        .fillColor('#475569')
-        .font('Helvetica')
-        .fontSize(8)
-        .text(
-          'This receipt confirms payment recorded against the invoice above. Keep this copy for reconciliation.',
-          left + 4,
-          y + 78,
-          { width },
-        );
-
-      doc.end();
-    });
   }
 
   private async createCollectionInvoicePdf(
@@ -2882,303 +2794,89 @@ export class BillingService {
     verificationCode: string,
     currency: string,
   ) {
-    const logoBuffer = await loadLogoBuffer(invoice.facility?.logoUrl);
     const paymentLines = this.invoicePaymentLines(invoice);
     const qrPayload = this.invoiceVerificationUrl(invoice, verificationCode);
-    const qrBuffer = await QRCode.toBuffer(qrPayload, {
-      errorCorrectionLevel: 'M',
-      margin: 1,
-      scale: 4,
-    });
+    const admittedAt =
+      invoice.admission?.admittedAt ||
+      invoice.appointment?.scheduledAt ||
+      invoice.issuedAt;
 
-    return new Promise<Buffer>((resolve, reject) => {
-      const doc = new PDFDocument({
-        size: [842, 500],
-        margin: 28,
-        info: {
-          Title: `Invoice ${invoice.invoiceNumber}`,
-          Producer: 'Invinceible Core HMS',
-        },
-      });
-
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      const left = doc.page.margins.left;
-      const right = doc.page.width - doc.page.margins.right;
-      const width = right - left;
-      const rowHeight = 17;
-      const patient = invoice.patient;
-      const facilityName = (
-        invoice.facility?.name || 'Hospital Facility'
-      ).toUpperCase();
-      const facilityContact =
-        [invoice.facility?.email, invoice.facility?.phone]
-          .filter(Boolean)
-          .join(' | ') || '-';
-      const facilityAddress =
-        [
-          invoice.facility?.address,
-          invoice.facility?.town,
-          invoice.facility?.county,
-        ]
-          .filter(Boolean)
-          .join(', ') || '-';
-      const admittedAt =
-        invoice.admission?.admittedAt ||
-        invoice.appointment?.scheduledAt ||
-        invoice.issuedAt;
-
-      const drawHeader = () => {
-        doc.rect(left - 4, 20, width + 8, 112).fill('#ffffff');
-        doc
-          .fillColor('#0b2f56')
-          .font('Times-Bold')
-          .fontSize(19)
-          .text(facilityName, left + 68, 38, { width: width - 250 });
-
-        if (logoBuffer) {
-          try {
-            doc.image(logoBuffer, left + 8, 34, { fit: [48, 48] });
-          } catch {
-            this.drawInvoiceLogoPlaceholder(doc, left + 8, 34, 48);
-          }
-        } else {
-          this.drawInvoiceLogoPlaceholder(doc, left + 8, 34, 48);
-        }
-
-        doc
-          .fillColor('#0f172a')
-          .font('Helvetica')
-          .fontSize(7.2)
-          .text(facilityContact, left + 68, 59, { width: width - 270 })
-          .fillColor('#334155')
-          .fontSize(7)
-          .text(facilityAddress, left + 68, 71, { width: width - 270 });
-
-        doc
-          .fillColor('#0b2f56')
-          .font('Times-Roman')
-          .fontSize(24)
-          .text('INVOICE', right - 132, 42, { width: 128, align: 'right' });
-        doc.image(qrBuffer, right - 62, 72, { fit: [54, 54] });
-        doc
-          .fillColor('#64748b')
-          .font('Helvetica')
-          .fontSize(6)
-          .text(verificationCode, right - 112, 128, {
-            width: 104,
-            align: 'right',
-          });
-
-        doc
-          .moveTo(left, 140)
-          .lineTo(right, 140)
-          .lineWidth(1.4)
-          .strokeColor('#0284c7')
-          .stroke();
-
-        const details = [
+    return createHospitalPdfBuffer(
+      {
+        title: 'Invoice',
+        subtitle: invoice.invoiceNumber,
+        reference: invoice.statusCode,
+        verificationCode,
+        facility: invoice.facility,
+        branch: invoice.branch,
+        compact: true,
+        qrPayload,
+      },
+      (doc) => {
+        addSectionTitle(doc, 'Patient and invoice details');
+        addCompactDefinitionList(
+          doc,
           [
-            'PATIENT',
-            patientName(patient).toUpperCase(),
-            patient?.patientNumber || invoice.invoiceNumber,
-            left,
+            { label: 'Patient', value: patientName(invoice.patient) },
+            { label: 'Patient No.', value: invoice.patient?.patientNumber },
+            { label: 'Phone', value: invoice.patient?.phonePrimary },
+            { label: 'Invoice No.', value: invoice.invoiceNumber },
+            { label: 'Date', value: invoice.issuedAt },
+            { label: 'Visit/Admission', value: admittedAt },
+            { label: 'Status', value: invoice.statusCode },
+            { label: 'Branch', value: invoice.branch?.name },
           ],
-          ['PHONE', patient?.phonePrimary || '-', '', left + 285],
-          ['INVOICE NO.', invoice.invoiceNumber, '', left + 455],
-          ['DATE', this.shortInvoiceDate(invoice.issuedAt), '', left + 620],
-        ] as const;
-
-        details.forEach(([label, value, small, x]) => {
-          doc
-            .fillColor('#0b5f9e')
-            .font('Helvetica-Bold')
-            .fontSize(6.4)
-            .text(label, x, 148, { width: 135 })
-            .fillColor('#020617')
-            .fontSize(8.2)
-            .text(String(value || '-'), x, 158, {
-              width: x === left ? 250 : 150,
-              ellipsis: true,
-            });
-          if (small) {
-            doc
-              .fillColor('#64748b')
-              .font('Helvetica')
-              .fontSize(6.5)
-              .text(String(small), x, 169, { width: 220 });
-          }
-        });
-
-        doc.y = 184;
-      };
-
-      const drawTableHeader = () => {
-        const columns = this.invoicePrintColumns(left, right);
-        const headerY = doc.y;
-        doc.rect(left, headerY, width, 16).fill('#eaf6ff');
-        doc
-          .fillColor('#0b2f56')
-          .font('Helvetica-Bold')
-          .fontSize(7.2)
-          .text('DATE', columns[0].x, headerY + 5, { width: columns[0].width })
-          .text('ITEM', columns[1].x, headerY + 5, { width: columns[1].width })
-          .text('UNIT', columns[2].x, headerY + 5, { width: columns[2].width })
-          .text('QTY', columns[3].x, headerY + 5, { width: columns[3].width })
-          .text('DISC', columns[4].x, headerY + 5, {
-            width: columns[4].width,
-            align: 'right',
-          })
-          .text('PRICE', columns[5].x, headerY + 5, {
-            width: columns[5].width,
-            align: 'right',
-          })
-          .text('TOTAL', columns[6].x, headerY + 5, {
-            width: columns[6].width,
-            align: 'right',
-          });
-        doc
-          .moveTo(left, headerY + 16)
-          .lineTo(right, headerY + 16)
-          .lineWidth(1)
-          .strokeColor('#7dd3fc')
-          .stroke();
-        doc.y = headerY + 17;
-        return columns;
-      };
-
-      drawHeader();
-      let columns = drawTableHeader();
-
-      printableItems.forEach((item, index) => {
-        if (doc.y + rowHeight > doc.page.height - 96) {
-          doc.addPage();
-          drawHeader();
-          columns = drawTableHeader();
-        }
-
-        const y = doc.y;
-        const quantity = Number(item.quantity || 0);
-        const unitText =
-          (
-            item.billingService?.category ||
-            item.sourceModule ||
-            ''
-          ).toUpperCase() || 'EACH';
-
-        doc
-          .rect(left, y, width, rowHeight)
-          .fill(index % 2 === 0 ? '#f8fafc' : '#ffffff');
-        doc
-          .moveTo(left, y + rowHeight)
-          .lineTo(right, y + rowHeight)
-          .dash(4, { space: 5 })
-          .lineWidth(0.6)
-          .strokeColor('#cbd5e1')
-          .stroke()
-          .undash();
-
-        const values = [
-          this.shortInvoiceDate(item.createdAt),
-          item.description,
-          unitText,
-          String(quantity),
-          `${Number(item.discountPercent || 0)}%`,
-          this.compactMoney(item.unitPrice, currency),
-          this.compactMoney(item.lineTotal, currency),
-        ];
-        columns.forEach((column, columnIndex) => {
-          doc
-            .fillColor(columnIndex === 6 ? '#020617' : '#334155')
-            .font(columnIndex === 6 ? 'Helvetica-Bold' : 'Helvetica')
-            .fontSize(7.3)
-            .text(values[columnIndex], column.x, y + 4.3, {
-              width: column.width,
-              align: column.align,
-              ellipsis: true,
-            });
-        });
-        doc.y = y + rowHeight;
-      });
-
-      const footerMin = 82;
-      if (doc.y + footerMin > doc.page.height - 30) {
-        doc.addPage();
-        drawHeader();
-        drawTableHeader();
-      }
-
-      const boxY = doc.y + 10;
-      const totalsX = right - 240;
-      const totalsW = 238;
-
-      const totalRows = [
-        ['Subtotal', invoice.subtotal],
-        ['VAT', invoice.taxAmount],
-        ['Discount', invoice.discountAmount],
-        ['Grand Total', invoice.totalAmount],
-      ];
-      totalRows.forEach(([label, value], index) => {
-        const rowY = boxY + index * 17;
-        const isGrand = index === totalRows.length - 1;
-        doc
-          .rect(totalsX, rowY, totalsW, 17)
-          .fillAndStroke(isGrand ? '#dff3ff' : '#ffffff', '#cbd5e1');
-        doc
-          .fillColor('#0f172a')
-          .font(isGrand ? 'Helvetica-Bold' : 'Helvetica')
-          .fontSize(isGrand ? 8.6 : 7.5)
-          .text(String(label), totalsX + 8, rowY + 5, { width: 95 })
-          .font('Helvetica-Bold')
-          .text(
-            this.compactMoney(Number(value || 0), currency),
-            totalsX + 118,
-            rowY + 5,
-            {
-              width: totalsW - 126,
-              align: 'right',
-            },
-          );
-      });
-
-      doc
-        .fillColor('#0b2f56')
-        .font('Helvetica-Bold')
-        .fontSize(6.8)
-        .text('PAYMENT', left, boxY + 2, { width: 95 })
-        .fillColor('#334155')
-        .font('Helvetica')
-        .fontSize(7);
-      paymentLines.slice(0, 5).forEach((line, index) => {
-        doc.text(line, left, boxY + 13 + index * 10, {
-          width: 360,
-        });
-      });
-      doc
-        .fillColor('#64748b')
-        .font('Helvetica')
-        .fontSize(6.8)
-        .text(`Served at ${this.timeOnly(new Date())}`, left, boxY + 66, {
-          width: 160,
-        })
-        .text(`Items ${printableItems.length}`, left, doc.page.height - 38, {
-          width: 160,
-        })
-        .text(
-          'Generated by Invinceible Core HMS',
-          right - 230,
-          doc.page.height - 38,
-          {
-            width: 230,
-            align: 'right',
-          },
+          4,
         );
 
-      doc.end();
-    });
+        addSectionTitle(doc, 'Invoice items');
+        addCompactTable(
+          doc,
+          [
+            { header: 'Date', width: 58, render: (item) => this.shortInvoiceDate(item.createdAt) },
+            { header: 'Item', width: 206, render: (item) => item.description },
+            {
+              header: 'Unit',
+              width: 50,
+              render: (item) =>
+                (item.billingService?.category || item.sourceModule || 'EACH').toUpperCase(),
+            },
+            { header: 'Qty', width: 34, render: (item) => Number(item.quantity || 0) },
+            { header: 'Disc', width: 44, render: (item) => `${Number(item.discountPercent || 0)}%` },
+            { header: 'Price', width: 62, render: (item) => this.compactMoney(item.unitPrice, currency) },
+            { header: 'Total', width: 72, render: (item) => this.compactMoney(item.lineTotal, currency) },
+          ],
+          printableItems,
+          'No active invoice items recorded.',
+        );
+
+        addSectionTitle(doc, 'Payment instructions and totals');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'Subtotal', value: this.compactMoney(invoice.subtotal, currency) },
+            { label: 'VAT', value: this.compactMoney(invoice.taxAmount, currency) },
+            { label: 'Discount', value: this.compactMoney(invoice.discountAmount, currency) },
+            { label: 'Grand Total', value: this.compactMoney(invoice.totalAmount, currency) },
+            { label: 'Paid', value: this.compactMoney(invoice.amountPaid, currency) },
+            { label: 'Balance', value: this.compactMoney(invoice.balanceAmount, currency) },
+          ],
+          3,
+        );
+        addCompactParagraph(
+          doc,
+          'Payment',
+          paymentLines.length
+            ? paymentLines.join('\n')
+            : 'Payment is received at the cashier desk. Thank you for visiting.',
+        );
+        addCompactParagraph(
+          doc,
+          'Invoice note',
+          `Items: ${printableItems.length}. Served at ${this.timeOnly(new Date())}.`,
+        );
+      },
+    );
   }
 
   private invoicePrintColumns(left: number, right: number) {

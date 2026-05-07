@@ -206,7 +206,7 @@ export default function InvoiceDetailPage() {
                   Invoice Details
                 </h1>
                 <p className="text-muted-foreground">
-                  View, print, and save invoice as PDF
+                  View the invoice and download the official server PDF
                 </p>
               </div>
             </div>
@@ -222,7 +222,7 @@ export default function InvoiceDetailPage() {
 
             <Button type="button" className="rounded-2xl" onClick={handlePrint}>
               <Download className="mr-2 h-4 w-4" />
-              Print / Save PDF
+              Preview print
             </Button>
 
             <Button

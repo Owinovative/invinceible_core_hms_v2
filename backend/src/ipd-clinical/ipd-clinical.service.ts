@@ -12,9 +12,9 @@ import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
 import {
   addKeyValueGrid,
-  addParagraph,
+  addCompactParagraph,
+  addCompactTable,
   addSectionTitle,
-  addTable,
   createHospitalPdfBuffer,
   formatPdfDate,
   patientName,
@@ -521,8 +521,8 @@ export class IpdClinicalService {
         this.addAdmissionIdentity(doc, bundle.admission);
 
         addSectionTitle(doc, 'Clinical overview');
-        addParagraph(doc, 'Admission reason', bundle.admission.admissionReason);
-        addParagraph(
+        addCompactParagraph(doc, 'Admission reason', bundle.admission.admissionReason);
+        addCompactParagraph(
           doc,
           'Consultation summary',
           [
@@ -551,11 +551,11 @@ export class IpdClinicalService {
                 : null,
           },
         ]);
-        addParagraph(doc, 'Latest assessment', latestReview?.assessment);
-        addParagraph(doc, 'Latest plan', latestReview?.plan);
+        addCompactParagraph(doc, 'Latest assessment', latestReview?.assessment);
+        addCompactParagraph(doc, 'Latest plan', latestReview?.plan);
 
         addSectionTitle(doc, 'Recent progress notes');
-        addTable(
+        addCompactTable(
           doc,
           [
             {
@@ -576,7 +576,7 @@ export class IpdClinicalService {
         );
 
         addSectionTitle(doc, 'Laboratory summary');
-        addTable(
+        addCompactTable(
           doc,
           [
             { header: 'Order', width: 88, render: (item) => item.orderNumber },
@@ -627,14 +627,14 @@ export class IpdClinicalService {
           },
           { label: 'Status', value: bundle.admission.statusCode },
         ]);
-        addParagraph(doc, 'Discharge diagnosis', summary?.dischargeDiagnosis);
-        addParagraph(doc, 'Hospital course', summary?.hospitalCourse);
-        addParagraph(
+        addCompactParagraph(doc, 'Discharge diagnosis', summary?.dischargeDiagnosis);
+        addCompactParagraph(doc, 'Hospital course', summary?.hospitalCourse);
+        addCompactParagraph(
           doc,
           'Discharge medications',
           summary?.dischargeMedications,
         );
-        addParagraph(
+        addCompactParagraph(
           doc,
           'Follow-up instructions',
           summary?.followUpInstructions,
@@ -659,7 +659,7 @@ export class IpdClinicalService {
         this.addAdmissionIdentity(doc, bundle.admission);
 
         addSectionTitle(doc, 'Treatment chart');
-        addTable(
+        addCompactTable(
           doc,
           [
             {
@@ -689,7 +689,7 @@ export class IpdClinicalService {
         );
 
         addSectionTitle(doc, 'Vital chart');
-        addTable(
+        addCompactTable(
           doc,
           [
             {

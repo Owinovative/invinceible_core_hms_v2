@@ -9,6 +9,7 @@
 - [Security testing](security-testing.md)
 - [Operations alerting](operations-alerting.md)
 - [Logging and observability](logging-observability.md)
+- [PDF and printout audit](pdf-printout-audit.md)
 - [M-Pesa reconciliation](mpesa-reconciliation.md)
 - [High availability architecture](high-availability-architecture.md)
 - [Multi-tenant facility isolation](multi-tenant-facility-isolation.md)

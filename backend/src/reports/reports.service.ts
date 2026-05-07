@@ -178,14 +178,7 @@ export class ReportsService {
         facility: consultation.facility,
         branch: consultation.branch,
         compact: true,
-        qrPayload: {
-          type: 'medical-report',
-          consultationNumber: consultation.consultationNumber,
-          patientNumber: consultation.patient.patientNumber,
-          facility: consultation.facility.name,
-          branch: consultation.branch?.name,
-          generatedAt: new Date().toISOString(),
-        },
+        qrPayload: `/reports/medical/consultations/${consultation.id}.pdf`,
       },
       (doc) => {
         addMiniKeyValueGrid(
