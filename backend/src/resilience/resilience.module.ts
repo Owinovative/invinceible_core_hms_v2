@@ -39,6 +39,7 @@ import { SafeLoggerService } from './safe-logger.service';
     CacheService,
     JobQueueService,
     RateLimitMiddleware,
+    RateLimitService,
     RedisConnectionService,
     RequestContextMiddleware,
     RequestLoggingMiddleware,
