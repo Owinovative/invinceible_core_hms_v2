@@ -11,10 +11,27 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 const AUDITED_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const SENSITIVE_KEYS = new Set([
   'password',
+  'oldPassword',
   'newPassword',
   'token',
-  'passwordHash',
+  'resetToken',
+  'refreshToken',
   'accessToken',
+  'authorization',
+  'cookie',
+  'jwt',
+  'jwtSecret',
+  'JWT_SECRET',
+  'passwordHash',
+  'consumerSecret',
+  'mpesaConsumerSecret',
+  'mpesaPasskey',
+  'passkey',
+  'clientSecret',
+  'databaseUrl',
+  'DATABASE_URL',
+  'apiKey',
+  'secret',
 ]);
 
 @Injectable()
@@ -136,8 +153,22 @@ export class AuditInterceptor implements NestInterceptor {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, item]) => [
         key,
-        SENSITIVE_KEYS.has(key) ? '[redacted]' : this.sanitize(item),
+        SENSITIVE_KEYS.has(key) || this.looksSensitive(key)
+          ? '[redacted]'
+          : this.sanitize(item),
       ]),
+    );
+  }
+
+  private looksSensitive(key: string) {
+    const lower = key.toLowerCase();
+    return (
+      lower.includes('password') ||
+      lower.includes('secret') ||
+      lower.includes('token') ||
+      lower.includes('passkey') ||
+      lower.includes('authorization') ||
+      lower.includes('cookie')
     );
   }
 

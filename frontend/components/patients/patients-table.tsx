@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 function getFullName(patient: Patient) {
   return [patient.firstName, patient.middleName, patient.lastName]
@@ -44,11 +45,12 @@ export function PatientsTable({
 }) {
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
+  const debouncedSearch = useDebouncedValue(search, 250);
 
   const pageSize = 8;
 
   const filteredItems = React.useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     if (!query) return items;
 
     return items.filter((patient) => {
@@ -67,11 +69,11 @@ export function PatientsTable({
 
       return haystack.includes(query);
     });
-  }, [items, search]);
+  }, [items, debouncedSearch]);
 
   React.useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const safePage = Math.min(page, totalPages);

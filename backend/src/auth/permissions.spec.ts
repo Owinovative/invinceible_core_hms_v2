@@ -1,20 +1,21 @@
 import { roleHasPermission } from './permissions';
 
-describe('role permissions', () => {
-  it('allows super admin to manage platform settings', () => {
-    expect(roleHasPermission('SUPER_ADMIN', 'facility.manage')).toBe(true);
+describe('roleHasPermission', () => {
+  it('allows super admin to perform every critical permission', () => {
     expect(roleHasPermission('SUPER_ADMIN', 'mpesa.settings.update')).toBe(
+      true,
+    );
+    expect(roleHasPermission('SUPER_ADMIN', 'payment.manual_confirm')).toBe(
       true,
     );
   });
 
-  it('prevents cashier from changing M-Pesa settings', () => {
-    expect(roleHasPermission('CASHIER', 'payment.collect')).toBe(true);
-    expect(roleHasPermission('CASHIER', 'mpesa.settings.update')).toBe(false);
+  it('does not allow doctors to manually confirm payments', () => {
+    expect(roleHasPermission('DOCTOR', 'payment.manual_confirm')).toBe(false);
   });
 
-  it('prevents patient role from staff-only records', () => {
-    expect(roleHasPermission('PATIENT', 'patient.portal.read')).toBe(true);
-    expect(roleHasPermission('PATIENT', 'audit.read')).toBe(false);
+  it('allows cashiers to collect payments but not change M-PESA settings', () => {
+    expect(roleHasPermission('CASHIER', 'payment.collect')).toBe(true);
+    expect(roleHasPermission('CASHIER', 'mpesa.settings.update')).toBe(false);
   });
 });

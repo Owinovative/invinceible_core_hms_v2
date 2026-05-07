@@ -1,203 +1,113 @@
-# 🏥 Invinceible HMS
+# Invinceible Core HMS
 
-A modern, full-stack Hospital Management System built for real-world clinical workflows.
+Invinceible Core HMS is a multi-facility hospital management system for patient registration, triage, doctor workflow, laboratory, pharmacy, inpatient care, billing, M-Pesa payments, SHA claims, reports, audit trails, and platform administration.
 
-Designed with scalability, performance, and real hospital operations in mind — from patient registration to triage, doctor consultation, inpatient (IPD) management, lab workflows, pharmacy, and billing.
+The project is built as critical healthcare software: facility and branch scoping, role-based permissions, auditability, payment safety, resilient APIs, and operational monitoring are treated as core system behavior, not optional extras.
 
----
+## Production Priorities
 
-## 🚀 Why This Project?
+- Strong authentication with lockout, session tracking, and password reset token hashing.
+- Facility and branch isolation across clinical, billing, pharmacy, lab, reports, and platform operations.
+- M-Pesa/Daraja duplicate-prompt protection, status checks, idempotent callbacks, and reconciliation foundations.
+- Short-TTL caching, request coalescing, pagination, scoped search, and indexed database access for high traffic.
+- Audit logs for critical hospital and administrative actions.
+- Official PDF/printout foundations for invoices, receipts, summaries, reports, and SHA workflows.
+- Patient portal, AI assistant, communications, reporting, and data warehouse foundations behind safe feature flags.
 
-Most hospital systems are either:
-- outdated
-- overly complex
-- or not aligned with real clinical workflows
+## Architecture
 
-**Invinceible HMS** is different.
-
-It is designed to mirror how hospitals actually work:
-
-➡️ Reception → Triage → Doctor → Lab → Pharmacy → IPD → Billing
-
----
-
-## 📸 Screenshots
-
-> Screenshots will be added here as the interface is polished.
-
-A strong healthcare system should be easy to understand at a glance. This section is prepared for visual previews of the most important workflows.
-
-### 🧭 Main Dashboard
-
-![Invinceible HMS Dashboard](docs/screenshots/dashboard.png)
-
-### 🩺 Triage Workflow
-
-![Triage Workflow](docs/screenshots/triage.png)
-
-### 👨‍⚕️ Doctor Queue
-
-![Doctor Queue](docs/screenshots/doctor-queue.png)
-
-### 📋 Consultation Workspace
-
-![Consultation Workspace](docs/screenshots/consultation.png)
-
-### 🏥 IPD Admission Management
-
-![IPD Admission Management](docs/screenshots/ipd.png)
-
-### 🧪 Lab Workflow
-
-![Lab Workflow](docs/screenshots/lab.png)
-
----
-
-## ⚡ Core Features
-
-### 🧾 Patient Management
-- Patient registration & search
-- Visit tracking
-- Patient history overview
-
-### 🩺 Smart Triage System
-- Vital capture
-- Pain scoring
-- Priority classification (CRITICAL, EMERGENCY, URGENT, NORMAL)
-- Clinic & doctor routing
-
-### 👨‍⚕️ Doctor Queue
-- Priority-based queue (not just FIFO)
-- Sorted by severity + waiting time
-- Filter by doctor / clinic / status
-
-### 📋 Consultation Workspace
-- Full patient overview
-- Diagnosis & treatment plan
-- Prescriptions
-- Lab requests
-- Admission & discharge
-
-### 🏥 IPD (Inpatient Department)
-- Admission management
-- Bed allocation
-- Clinical notes
-- Lab integration
-- Discharge workflow
-
-### 🧪 Lab System
-- Lab order creation
-- Result entry
-- Real-time result updates
-
-### 💊 Pharmacy
-- Prescription handling
-- Medication dispensing
-- Stock tracking
-
-### 💰 Billing
-- Invoice generation
-- Payment tracking
-- Service billing
-
-### 🔐 Role-Based Access Control
-- Super Admin
-- Admin
-- Doctor
-- Nurse
-- Receptionist
-- Lab Technician
-- Pharmacist
-- And more
-
----
-
-## 🏗️ Tech Stack
-
-**Backend**
-- NestJS
-- Prisma ORM
-- MySQL
-
-**Frontend**
-- Next.js
-- React
-
----
-
-## 📂 Project Structure (Simplified)
-
-```
-/backend   → API (NestJS)
-/frontend  → UI (Next.js)
+```text
+backend/   NestJS API, Prisma ORM, MySQL, auth, billing, clinical modules
+frontend/  Next.js app for hospital dashboard, platform admin, public pages
+docs/      Production, security, clinical, scaling, and operations guides
+load-tests/ k6/autocannon load testing starting points
+services/  Future worker/service foundations
 ```
 
----
+## Main Modules
 
-## ⚙️ Getting Started
+- Patient registration, search, duplicate warning foundation, and visit history.
+- Triage with priority and doctor routing.
+- Doctor queue and consultation workspace.
+- Laboratory requests, results, verification, and doctor review.
+- Pharmacy catalog, branch stock, dispensing, low stock, and reorder foundations.
+- IPD admissions, wards, beds, treatment charts, and discharge summaries.
+- Billing, invoices, payments, receipts, M-Pesa, SHA coverage, and cashier close.
+- Reports, audit logs, user management, facility settings, and platform controls.
 
-### 1. Clone the repo
-```
-git clone https://github.com/Owinovative/invinceible_core_hms_v2.git
-```
-
-### 2. Install dependencies
+## Local Setup
 
 Backend:
-```
+
+```bash
 cd backend
 npm install
-```
-
-Frontend:
-```
-cd frontend
-npm install
-```
-
-### 3. Setup environment
-
-Create `.env` files for backend and frontend.
-
-### 4. Run the app
-
-Backend:
-```
+cp .env.example .env
+npm run prisma:generate
 npm run start:dev
 ```
 
 Frontend:
-```
+
+```bash
+cd frontend
+npm install
 npm run dev
 ```
 
----
+Default local URLs:
 
-## 🌍 Vision
+- Backend: `http://localhost:3000`
+- Frontend: `http://localhost:3001`
 
-To build a powerful, scalable, and modern hospital management platform that can be used in real healthcare environments globally.
+## Required Environment
 
----
+Use the examples in `backend/.env.example` and `.env.example`.
 
-## 🤝 Contributing
+Production must use:
 
-Contributions are welcome.
+- a strong `JWT_SECRET` of at least 48 high-entropy characters,
+- a private `DATABASE_URL`,
+- strict `FRONTEND_URL` or `FRONTEND_ORIGINS`,
+- Redis where possible for cache, rate limiting, queues, and request coalescing,
+- secure M-Pesa credentials stored only in the backend environment.
 
-- Fork the repo
-- Create a feature branch
-- Submit a pull request
+Never commit `.env` files.
 
----
+## Verification
 
-## ⭐ Support
+Backend:
 
-If you find this project useful:
+```bash
+cd backend
+npm run build
+npm run test
+```
 
-👉 Star the repo
-👉 Share it with others
+Frontend:
 
----
+```bash
+cd frontend
+npm run build
+```
 
-## 📜 License
+## Documentation
 
-MIT License
+Start with [docs/README.md](docs/README.md).
+
+Important guides:
+
+- [Performance and scalability](docs/performance-scalability.md)
+- [Production security checklist](docs/production-security-checklist.md)
+- [HMS benchmark gap analysis](docs/hms-benchmark-gap-analysis.md)
+- [Multi-tenant facility isolation](docs/multi-tenant-facility-isolation.md)
+- [M-Pesa reconciliation](docs/mpesa-reconciliation.md)
+- [Load testing](docs/load-testing.md)
+
+## Security
+
+Report security concerns privately. See [SECURITY.md](SECURITY.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).

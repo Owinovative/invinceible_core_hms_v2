@@ -30,6 +30,26 @@ export function validateEnvironment(
     throw new Error('JWT_SECRET must be at least 32 characters long');
   }
 
+  const weakJwtSecrets = new Set([
+    'changeme',
+    'change-me',
+    'secret',
+    'jwt_secret',
+    'your_jwt_secret',
+    'development_jwt_secret',
+    'invinceible_jwt_secret',
+  ]);
+
+  if (nodeEnv === production) {
+    const normalizedSecret = jwtSecret.toLowerCase().replace(/\s+/g, '');
+
+    if (jwtSecret.length < 48 || weakJwtSecrets.has(normalizedSecret)) {
+      throw new Error(
+        'Production JWT_SECRET must be a unique high-entropy secret of at least 48 characters',
+      );
+    }
+  }
+
   if (
     nodeEnv === production &&
     !hasValue(config, 'FRONTEND_URL') &&
@@ -79,5 +99,11 @@ export function validateEnvironment(
       config.CLINICAL_DECISION_SUPPORT_ENABLED ?? 'true',
     MOBILE_OPTIMIZED_VIEWS_ENABLED:
       config.MOBILE_OPTIMIZED_VIEWS_ENABLED ?? 'true',
+    PASSWORD_MIN_LENGTH: config.PASSWORD_MIN_LENGTH ?? '12',
+    AUTH_FAILED_LOGIN_DELAY_MAX_MS:
+      config.AUTH_FAILED_LOGIN_DELAY_MAX_MS ?? '2500',
+    STEP_UP_TTL_SECONDS: config.STEP_UP_TTL_SECONDS ?? '300',
+    STEP_UP_ENFORCEMENT_ENABLED:
+      config.STEP_UP_ENFORCEMENT_ENABLED ?? 'false',
   };
 }

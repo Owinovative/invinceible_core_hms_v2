@@ -26,28 +26,40 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  create(
+    @Body() createUserDto: CreateUserDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.userService.secureCreate(createUserDto, user);
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@CurrentUser() user: RequestUser) {
+    return this.userService.findAll(user);
   }
 
   @Get('username/:username')
-  findByUsername(@Param('username') username: string) {
-    return this.userService.findByUsername(username);
+  findByUsername(
+    @Param('username') username: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.userService.findByUsernameForActor(username, user);
   }
 
   @Get('email/:email')
-  findByEmail(@Param('email') email: string) {
-    return this.userService.findByEmail(email);
+  findByEmail(
+    @Param('email') email: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.userService.findByEmailForActor(email, user);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.userService.findOneForActor(id, user);
   }
 
   @Patch(':id')
@@ -63,8 +75,11 @@ export class UserController {
   adminResetPassword(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AdminResetPasswordDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.userService.adminResetPassword(id, dto);
+    return this.userService.findOneForActor(id, user).then(() =>
+      this.userService.adminResetPassword(id, dto),
+    );
   }
 
   @Delete(':id')

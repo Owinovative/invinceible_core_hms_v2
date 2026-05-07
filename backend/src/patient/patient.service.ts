@@ -136,8 +136,23 @@ export class PatientService {
       where: {
         facilityId: scope.facilityId,
       },
-      include: {
-        facility: true,
+      take: 200,
+      select: {
+        id: true,
+        patientNumber: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        gender: true,
+        dateOfBirth: true,
+        phonePrimary: true,
+        email: true,
+        facilityId: true,
+        isActive: true,
+        isDeceased: true,
+        createdAt: true,
+        updatedAt: true,
+        facility: { select: { id: true, name: true } },
       },
       orderBy: { id: 'desc' },
     });

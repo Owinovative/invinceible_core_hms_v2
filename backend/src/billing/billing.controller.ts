@@ -31,20 +31,26 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { Permissions } from '../auth/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { StepUpRequired } from '../auth/step-up.decorator';
+import { StepUpGuard } from '../auth/step-up.guard';
 
 @Controller('billing')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionsGuard, StepUpGuard)
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
   @Post('services')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  @Permissions('billing.write')
   createBillingService(@Body() dto: CreateBillingServiceDto) {
     return this.billingService.createBillingService(dto);
   }
 
   @Get('services')
+  @Permissions('billing.read')
   getAllBillingServices() {
     return this.billingService.getAllBillingServices();
   }
@@ -52,6 +58,7 @@ export class BillingController {
   @Get('tariffs/pricing-template')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  @Permissions('billing.write')
   getServiceTariffPricingTemplate(
     @Query('facilityId') facilityId: string,
     @Query('branchId') branchId: string | undefined,
@@ -67,6 +74,7 @@ export class BillingController {
   @Post('tariffs/pricing-import')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  @Permissions('billing.write')
   importServiceTariffs(
     @Body() dto: ImportServiceTariffsCsvDto,
     @CurrentUser() user: RequestUser,
@@ -77,6 +85,7 @@ export class BillingController {
   @Post('tariffs')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  @Permissions('billing.write')
   createServiceTariff(
     @Body() dto: CreateServiceTariffDto,
     @CurrentUser() user: RequestUser,
@@ -85,6 +94,7 @@ export class BillingController {
   }
 
   @Get('tariffs')
+  @Permissions('billing.read')
   getServiceTariffs(@CurrentUser() user: RequestUser) {
     return this.billingService.getServiceTariffs(user);
   }
@@ -92,6 +102,7 @@ export class BillingController {
   @Patch('tariffs/:id')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN', 'ADMIN', 'FACILITY_ADMIN')
+  @Permissions('billing.write')
   updateServiceTariff(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateServiceTariffDto,
@@ -101,11 +112,16 @@ export class BillingController {
   }
 
   @Post('invoices')
-  createInvoice(@Body() dto: CreateInvoiceDto) {
-    return this.billingService.createInvoice(dto);
+  @Permissions('billing.write')
+  createInvoice(
+    @Body() dto: CreateInvoiceDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.createInvoice(dto, user);
   }
 
   @Post('patients/:id/open-invoice')
+  @Permissions('billing.write')
   openPatientInvoice(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: OpenPatientInvoiceDto,
@@ -115,6 +131,7 @@ export class BillingController {
   }
 
   @Get('patients/:id/workspace')
+  @Permissions('billing.read')
   getPatientBillingWorkspace(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -123,6 +140,7 @@ export class BillingController {
   }
 
   @Post('admissions/:id/bed-charge')
+  @Permissions('billing.write')
   postAdmissionBedCharge(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: PostBedChargeDto,
@@ -138,6 +156,7 @@ export class BillingController {
   }
 
   @Get('invoices')
+  @Permissions('billing.read')
   getAllInvoices(@CurrentUser() user: RequestUser, @Query() query: any) {
     if (query?.page || query?.pageSize || query?.search) {
       return this.billingService.getInvoicesPageScoped(user, query);
@@ -147,6 +166,7 @@ export class BillingController {
   }
 
   @Get('invoices/:id/pdf')
+  @Permissions('billing.read')
   async downloadInvoicePdf(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -190,6 +210,7 @@ export class BillingController {
   }
 
   @Get('invoices/:id')
+  @Permissions('billing.read')
   getInvoiceById(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -198,6 +219,7 @@ export class BillingController {
   }
 
   @Post('invoices/:id/items')
+  @Permissions('billing.write')
   addInvoiceItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AddInvoiceItemDto,
@@ -207,6 +229,7 @@ export class BillingController {
   }
 
   @Post('invoices/:id/close')
+  @Permissions('billing.write')
   closeInvoice(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -215,6 +238,7 @@ export class BillingController {
   }
 
   @Patch('invoice-items/:id')
+  @Permissions('billing.write')
   updateInvoiceItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInvoiceItemDto,
@@ -224,6 +248,7 @@ export class BillingController {
   }
 
   @Patch('invoice-items/:id/remove')
+  @Permissions('billing.write')
   removeInvoiceItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RemoveInvoiceItemDto,
@@ -233,18 +258,28 @@ export class BillingController {
   }
 
   @Get('patient/:patientNumber')
+  @Permissions('billing.read')
   getPatientBillingByPatientNumber(
     @Param('patientNumber') patientNumber: string,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.billingService.getPatientBillingByPatientNumber(patientNumber);
+    return this.billingService.getPatientBillingByPatientNumber(
+      patientNumber,
+      user,
+    );
   }
 
   @Post('payments/cash')
-  createCashPayment(@Body() dto: CreateCashPaymentDto) {
-    return this.billingService.createCashPayment(dto);
+  @Permissions('payment.collect')
+  createCashPayment(
+    @Body() dto: CreateCashPaymentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.createCashPayment(dto, user);
   }
 
   @Get('payments/:id/receipt.pdf')
+  @Permissions('billing.read')
   async downloadPaymentReceiptPdf(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -261,6 +296,7 @@ export class BillingController {
   }
 
   @Post('payments/mpesa/request')
+  @Permissions('payment.collect')
   createMpesaPaymentRequest(
     @Body() dto: CreateMpesaPaymentRequestDto,
     @CurrentUser() user: RequestUser,
@@ -274,6 +310,7 @@ export class BillingController {
   }
 
   @Post('payments/:id/mpesa/resend')
+  @Permissions('payment.collect')
   resendMpesaPaymentRequest(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -282,22 +319,32 @@ export class BillingController {
   }
 
   @Post('payments/mpesa/confirm')
-  confirmMpesaPayment(@Body() dto: ConfirmMpesaPaymentDto) {
-    return this.billingService.confirmMpesaPayment(dto);
+  @Permissions('payment.manual_confirm')
+  @StepUpRequired()
+  confirmMpesaPayment(
+    @Body() dto: ConfirmMpesaPaymentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.confirmMpesaPayment(dto, user, 'MANUAL');
   }
 
   @Patch('payments/mpesa/fail/:checkoutRequestId')
+  @Permissions('payment.manual_confirm')
+  @StepUpRequired()
   failMpesaPayment(
     @Param('checkoutRequestId') checkoutRequestId: string,
     @Body() body: { callbackPayload?: string },
+    @CurrentUser() user: RequestUser,
   ) {
     return this.billingService.failMpesaPayment(
       checkoutRequestId,
       body?.callbackPayload,
+      user,
     );
   }
 
   @Get('payments/mpesa/status/:checkoutRequestId')
+  @Permissions('payment.collect')
   getMpesaPaymentStatus(
     @Param('checkoutRequestId') checkoutRequestId: string,
     @CurrentUser() user: RequestUser,
@@ -306,16 +353,19 @@ export class BillingController {
   }
 
   @Get('dashboard')
+  @Permissions('billing.read')
   getBillingDashboard(@CurrentUser() user: RequestUser) {
     return this.billingService.getBillingDashboard(user);
   }
 
   @Get('revenue-integrity')
+  @Permissions('reports.read')
   getRevenueIntegrity(@CurrentUser() user: RequestUser) {
     return this.billingService.getRevenueIntegrity(user);
   }
 
   @Get('cashier-close')
+  @Permissions('reports.read')
   getCashierClose(
     @CurrentUser() user: RequestUser,
     @Query('date') date?: string,
