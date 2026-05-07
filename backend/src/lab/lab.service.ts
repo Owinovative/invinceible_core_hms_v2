@@ -272,6 +272,7 @@ export class LabService {
         },
       },
       orderBy: { id: 'desc' },
+      take: 100,
     });
   }
 
@@ -322,6 +323,7 @@ export class LabService {
         },
       },
       orderBy: [{ createdAt: 'asc' }],
+      take: 100,
     });
   }
 
@@ -528,6 +530,7 @@ export class LabService {
         },
       },
       orderBy: { id: 'desc' },
+      take: 100,
     });
   }
   getAllOrdersScoped(user: RequestUser) {
@@ -610,6 +613,7 @@ export class LabService {
         },
       },
       orderBy: { createdAt: 'asc' },
+      take: 100,
     });
   }
 }

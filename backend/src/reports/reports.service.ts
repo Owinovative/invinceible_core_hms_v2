@@ -4,11 +4,12 @@ import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CacheService } from '../resilience/cache.service';
 import {
-  addCompactKeyValueGrid,
+  addCompactParagraph,
   addCompactTable,
-  addParagraph,
+  addMiniKeyValueGrid,
   addSectionTitle,
   createHospitalPdfBuffer,
+  ensureRoom,
   formatPdfDate,
   patientName,
   staffName,
@@ -176,6 +177,7 @@ export class ReportsService {
         verificationCode: `MR-${reference}`,
         facility: consultation.facility,
         branch: consultation.branch,
+        compact: true,
         qrPayload: {
           type: 'medical-report',
           consultationNumber: consultation.consultationNumber,
@@ -186,13 +188,14 @@ export class ReportsService {
         },
       },
       (doc) => {
-        addCompactKeyValueGrid(
+        addMiniKeyValueGrid(
           doc,
           [
             {
               label: 'Patient',
-              value: `${patientName(consultation.patient)} (${consultation.patient.patientNumber})`,
+              value: patientName(consultation.patient),
             },
+            { label: 'Patient No.', value: consultation.patient.patientNumber },
             { label: 'Phone', value: consultation.patient.phonePrimary },
             { label: 'Gender', value: consultation.patient.gender },
             {
@@ -207,16 +210,16 @@ export class ReportsService {
             { label: 'Started', value: consultation.startedAt },
             { label: 'Status', value: consultation.statusCode },
             {
-              label: 'Visit Reason',
+              label: 'Reason',
               value: consultation.appointment.visitReason,
             },
           ],
-          3,
+          4,
         );
 
         if (latestTriage) {
           addSectionTitle(doc, 'Triage snapshot');
-          addCompactKeyValueGrid(
+          addMiniKeyValueGrid(
             doc,
             [
               { label: 'Priority', value: latestTriage.triagePriority },
@@ -232,25 +235,25 @@ export class ReportsService {
               { label: 'SPO2', value: latestTriage.oxygenSaturation },
               { label: 'Pain score', value: latestTriage.painScore },
             ],
-            3,
+            6,
           );
         }
 
         addSectionTitle(doc, 'Clinical notes');
-        addParagraph(doc, 'Chief complaint', consultation.chiefComplaint);
-        addParagraph(
+        addCompactParagraph(doc, 'Chief complaint', consultation.chiefComplaint);
+        addCompactParagraph(
           doc,
           'History of presenting illness',
           consultation.historyOfPresenting,
         );
-        addParagraph(
+        addCompactParagraph(
           doc,
           'Examination findings',
           consultation.examinationFindings,
         );
-        addParagraph(doc, 'Diagnosis', consultation.diagnosis);
-        addParagraph(doc, 'Treatment plan', consultation.treatmentPlan);
-        addParagraph(doc, 'Additional notes', consultation.notes);
+        addCompactParagraph(doc, 'Diagnosis', consultation.diagnosis);
+        addCompactParagraph(doc, 'Treatment plan', consultation.treatmentPlan);
+        addCompactParagraph(doc, 'Additional notes', consultation.notes);
 
         addSectionTitle(doc, 'Prescriptions');
         const prescriptionRows: Array<{
@@ -319,7 +322,7 @@ export class ReportsService {
         );
 
         addSectionTitle(doc, 'Clinician sign off');
-        addCompactKeyValueGrid(
+        addMiniKeyValueGrid(
           doc,
           [
             { label: 'Prepared by', value: staffName(consultation.doctor) },
@@ -331,6 +334,22 @@ export class ReportsService {
           ],
           3,
         );
+        ensureRoom(doc, 28);
+        const signatureY = doc.y + 6;
+        doc
+          .moveTo(doc.page.margins.left, signatureY)
+          .lineTo(doc.page.margins.left + 210, signatureY)
+          .lineWidth(0.6)
+          .strokeColor('#94a3b8')
+          .stroke();
+        doc
+          .fillColor('#475569')
+          .font('Helvetica')
+          .fontSize(7)
+          .text('Clinician signature / official stamp', doc.page.margins.left, signatureY + 5, {
+            width: 230,
+          });
+        doc.y = signatureY + 22;
       },
     );
 

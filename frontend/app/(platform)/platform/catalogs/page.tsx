@@ -79,55 +79,39 @@ export default function PlatformCatalogsPage() {
     React.useState<MasterCatalogKind>("medicines");
   const [message, setMessage] = React.useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = React.useState("");
+  const [debouncedCatalogSearch, setDebouncedCatalogSearch] =
+    React.useState("");
+  const [page, setPage] = React.useState(1);
+  const pageSize = 50;
   const [isDownloading, setIsDownloading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const activeTab = catalogTabs.find((item) => item.kind === activeKind)!;
   const ActiveIcon = activeTab.icon;
   const { data: overview } = useMasterCatalogOverview();
-  const { data: rowsData = [], isLoading } = useMasterCatalogRows(activeKind);
+  const {
+    data: rowsData,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useMasterCatalogRows(activeKind, {
+    page,
+    pageSize,
+    search: debouncedCatalogSearch,
+  });
   const importMutation = useImportMasterCatalogCsv(activeKind);
-  const rows = React.useMemo(
-    () => (Array.isArray(rowsData) ? rowsData : []),
-    [rowsData],
-  );
-  const filteredRows = React.useMemo(() => {
-    const query = catalogSearch.trim().toLowerCase();
-    if (!query) return rows;
+  const rows = rowsData?.data ?? [];
+  const meta = rowsData?.meta;
 
-    return rows.filter((row) => {
-      if (activeKind === "medicines") {
-        const medicine = row as PharmacyMedicine;
-        return [
-          medicine.name,
-          medicine.code,
-          medicine.dosageForm,
-          medicine.strength,
-          medicine.manufacturer,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      }
+  React.useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedCatalogSearch(catalogSearch.trim());
+      setPage(1);
+    }, 300);
 
-      if (activeKind === "billing-services") {
-        const service = row as BillingServiceItem;
-        return [service.name, service.code, service.category]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      }
-
-      const test = row as LabTestCatalogItem;
-      return [test.testName, test.category, test.specimenType]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [activeKind, catalogSearch, rows]);
+    return () => window.clearTimeout(handle);
+  }, [catalogSearch]);
 
   const handleDownload = async () => {
     setMessage(null);
@@ -183,33 +167,43 @@ export default function PlatformCatalogsPage() {
   const renderRows = () => {
     if (isLoading) {
       return (
-        <div className="border border-sky-200 bg-sky-50 p-4 text-sm text-slate-600">
+        <div className="border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
           Loading catalog rows...
         </div>
       );
     }
 
-    if (filteredRows.length === 0) {
+    if (isError) {
       return (
-        <div className="border border-dashed border-sky-200 bg-sky-50 p-4 text-sm text-slate-600">
+        <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error instanceof Error
+            ? error.message
+            : "Unable to load this catalog page."}
+        </div>
+      );
+    }
+
+    if (rows.length === 0) {
+      return (
+        <div className="border border-dashed border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
           No matching master rows found in this catalog.
         </div>
       );
     }
 
     if (activeKind === "medicines") {
-      const medicines = filteredRows as PharmacyMedicine[];
+      const medicines = rows as PharmacyMedicine[];
       return (
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <table className="w-full min-w-[820px] table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
             <tr>
-              <th className="px-4 py-3">Code</th>
-              <th className="px-4 py-3">Drug</th>
-              <th className="px-4 py-3">Form</th>
-              <th className="px-4 py-3">Strength</th>
-              <th className="px-4 py-3">Manufacturer</th>
-              <th className="px-4 py-3">Default</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="w-[120px] px-3 py-3">Code</th>
+              <th className="px-3 py-3">Drug</th>
+              <th className="w-[130px] px-3 py-3">Form</th>
+              <th className="w-[130px] px-3 py-3">Strength</th>
+              <th className="w-[150px] px-3 py-3">Manufacturer</th>
+              <th className="w-[110px] px-3 py-3">Default</th>
+              <th className="w-[100px] px-3 py-3">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -218,26 +212,26 @@ export default function PlatformCatalogsPage() {
                 key={medicine.id}
                 className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
               >
-                <td className="px-4 py-3 font-mono text-sky-700">
+                <td className="truncate px-3 py-2 font-mono text-sky-700">
                   {medicine.code || `MED-${medicine.id}`}
                 </td>
-                <td className="px-4 py-3 font-semibold text-slate-950">
+                <td className="truncate px-3 py-2 font-semibold text-slate-950">
                   {medicine.name}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="truncate px-3 py-2 text-slate-600">
                   {medicine.dosageForm || "-"}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="truncate px-3 py-2 text-slate-600">
                   {medicine.strength || "-"}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="truncate px-3 py-2 text-slate-600">
                   {medicine.manufacturer || "-"}
                 </td>
-                <td className="px-4 py-3 text-slate-700">
+                <td className="px-3 py-2 text-slate-700">
                   {formatMoney(medicine.unitPrice)}
                 </td>
-                <td className="px-4 py-3">
-                  <Badge className="rounded border-0 bg-emerald-500/10 font-mono text-emerald-200">
+                <td className="px-3 py-2">
+                  <Badge className="rounded border-0 bg-emerald-100 font-mono text-emerald-700">
                     {boolLabel(medicine.isActive)}
                   </Badge>
                 </td>
@@ -249,16 +243,16 @@ export default function PlatformCatalogsPage() {
     }
 
     if (activeKind === "billing-services") {
-      const services = filteredRows as BillingServiceItem[];
+      const services = rows as BillingServiceItem[];
       return (
-        <table className="w-full min-w-[860px] text-left text-sm">
+        <table className="w-full min-w-[720px] table-fixed text-left text-sm">
           <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
             <tr>
-              <th className="px-4 py-3">Code</th>
-              <th className="px-4 py-3">Service</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Default</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="w-[130px] px-3 py-3">Code</th>
+              <th className="px-3 py-3">Service</th>
+              <th className="w-[150px] px-3 py-3">Category</th>
+              <th className="w-[120px] px-3 py-3">Default</th>
+              <th className="w-[100px] px-3 py-3">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -267,20 +261,20 @@ export default function PlatformCatalogsPage() {
                 key={service.id}
                 className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
               >
-                <td className="px-4 py-3 font-mono text-sky-700">
+                <td className="truncate px-3 py-2 font-mono text-sky-700">
                   {service.code}
                 </td>
-                <td className="px-4 py-3 font-semibold text-slate-950">
+                <td className="truncate px-3 py-2 font-semibold text-slate-950">
                   {service.name}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="truncate px-3 py-2 text-slate-600">
                   {service.category || "SERVICE"}
                 </td>
-                <td className="px-4 py-3 text-slate-700">
+                <td className="px-3 py-2 text-slate-700">
                   {formatMoney(service.defaultPrice)}
                 </td>
-                <td className="px-4 py-3">
-                  <Badge className="rounded border-0 bg-emerald-500/10 font-mono text-emerald-200">
+                <td className="px-3 py-2">
+                  <Badge className="rounded border-0 bg-emerald-100 font-mono text-emerald-700">
                     {boolLabel(service.isActive)}
                   </Badge>
                 </td>
@@ -291,15 +285,15 @@ export default function PlatformCatalogsPage() {
       );
     }
 
-    const labTests = filteredRows as LabTestCatalogItem[];
+    const labTests = rows as LabTestCatalogItem[];
     return (
-      <table className="w-full min-w-[760px] text-left text-sm">
+      <table className="w-full min-w-[620px] table-fixed text-left text-sm">
         <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
           <tr>
-            <th className="px-4 py-3">Test</th>
-            <th className="px-4 py-3">Category</th>
-            <th className="px-4 py-3">Specimen</th>
-            <th className="px-4 py-3">Status</th>
+            <th className="px-3 py-3">Test</th>
+            <th className="w-[170px] px-3 py-3">Category</th>
+            <th className="w-[160px] px-3 py-3">Specimen</th>
+            <th className="w-[100px] px-3 py-3">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -308,17 +302,17 @@ export default function PlatformCatalogsPage() {
               key={test.id}
               className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
             >
-              <td className="px-4 py-3 font-semibold text-slate-950">
+              <td className="truncate px-3 py-2 font-semibold text-slate-950">
                 {test.testName}
               </td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="truncate px-3 py-2 text-slate-600">
                 {test.category || "-"}
               </td>
-              <td className="px-4 py-3 text-slate-600">
+              <td className="truncate px-3 py-2 text-slate-600">
                 {test.specimenType || "-"}
               </td>
-              <td className="px-4 py-3">
-                <Badge className="rounded border-0 bg-emerald-500/10 font-mono text-emerald-200">
+              <td className="px-3 py-2">
+                <Badge className="rounded border-0 bg-emerald-100 font-mono text-emerald-700">
                   {boolLabel(test.isActive)}
                 </Badge>
               </td>
@@ -331,23 +325,22 @@ export default function PlatformCatalogsPage() {
 
   return (
     <div className="space-y-5 text-slate-950">
-      <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-white p-6 shadow-sm md:p-8">
-        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(to_right,rgba(34,211,238,.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(16,185,129,.1)_1px,transparent_1px)] [background-size:28px_28px]" />
-        <div className="absolute inset-x-0 top-0 h-px bg-cyan-300" />
-        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+      <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-white p-5 shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-1 bg-sky-600" />
+        <div className="relative flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
           <div>
             <Badge className="rounded border border-sky-200 bg-sky-50 text-sky-800">
               platform.catalogs/write-enabled
             </Badge>
-            <div className="mt-5 flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-md border border-cyan-400/20 bg-cyan-400/10">
-                <DatabaseZap className="h-7 w-7 text-cyan-200" />
+            <div className="mt-4 flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-md border border-sky-200 bg-sky-50">
+                <DatabaseZap className="h-6 w-6 text-sky-700" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-slate-950 md:text-5xl">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
                   Master Catalog Command
                 </h1>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                   Platform owns the master lists. Facilities own branch prices,
                   stock, consultation fees, lab fees, and bed-day tariffs.
                 </p>
@@ -355,28 +348,28 @@ export default function PlatformCatalogsPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 xl:w-[280px]">
-            <div className="border border-sky-200 bg-sky-50 p-4">
+          <div className="grid gap-3 sm:grid-cols-3 2xl:w-[520px]">
+            <div className="border border-sky-200 bg-sky-50 p-3">
               <p className="text-xs font-semibold uppercase text-slate-500">
                 Drugs
               </p>
-              <p className="mt-2 text-2xl font-bold">
+              <p className="mt-1 text-2xl font-bold">
                 {overview?.medicines.total ?? "-"}
               </p>
             </div>
-            <div className="border border-sky-200 bg-sky-50 p-4">
+            <div className="border border-sky-200 bg-sky-50 p-3">
               <p className="text-xs font-semibold uppercase text-slate-500">
                 Services
               </p>
-              <p className="mt-2 text-2xl font-bold">
+              <p className="mt-1 text-2xl font-bold">
                 {overview?.billingServices.total ?? "-"}
               </p>
             </div>
-            <div className="border border-sky-200 bg-sky-50 p-4">
+            <div className="border border-sky-200 bg-sky-50 p-3">
               <p className="text-xs font-semibold uppercase text-slate-500">
                 Lab Tests
               </p>
-              <p className="mt-2 text-2xl font-bold">
+              <p className="mt-1 text-2xl font-bold">
                 {overview?.labTests.total ?? "-"}
               </p>
             </div>
@@ -390,11 +383,11 @@ export default function PlatformCatalogsPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[0.78fr_1.22fr]">
+      <section className="grid gap-4 2xl:grid-cols-[360px_minmax(0,1fr)]">
         <div className="space-y-4">
           <div className="border border-sky-200 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <ActiveIcon className="h-5 w-5 text-cyan-200" />
+              <ActiveIcon className="h-5 w-5 text-sky-700" />
               <div>
                 <p className="font-semibold">{activeTab.title}</p>
                 <p className="text-xs text-slate-500">
@@ -415,6 +408,8 @@ export default function PlatformCatalogsPage() {
                       setActiveKind(item.kind);
                       setMessage(null);
                       setCatalogSearch("");
+                      setDebouncedCatalogSearch("");
+                      setPage(1);
                     }}
                     className={`flex items-center justify-between border px-4 py-3 text-left transition ${
                       active
@@ -435,7 +430,7 @@ export default function PlatformCatalogsPage() {
 
           <div className="border border-sky-200 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <ServerCog className="h-5 w-5 text-emerald-300" />
+              <ServerCog className="h-5 w-5 text-emerald-700" />
               <h2 className="font-semibold">CSV Operation</h2>
             </div>
             <input
@@ -476,7 +471,7 @@ export default function PlatformCatalogsPage() {
             </div>
 
             {importMutation.data?.errors?.length ? (
-              <div className="mt-4 border border-amber-400/25 bg-amber-400/10 p-3 font-mono text-xs text-amber-100">
+              <div className="mt-4 border border-amber-200 bg-amber-50 p-3 font-mono text-xs text-amber-800">
                 {importMutation.data.errors.slice(0, 5).map((error) => (
                   <p key={`${error.row}-${error.message}`}>
                     row {error.row}: {error.message}
@@ -488,7 +483,7 @@ export default function PlatformCatalogsPage() {
 
           <div className="border border-sky-200 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-emerald-300" />
+              <ShieldCheck className="h-5 w-5 text-emerald-700" />
               <h2 className="font-semibold">Facility Pricing Gates</h2>
             </div>
             <div className="space-y-2">
@@ -510,12 +505,13 @@ export default function PlatformCatalogsPage() {
           </div>
         </div>
 
-        <div className="border border-sky-200 bg-white shadow-sm">
+        <div className="min-w-0 border border-sky-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-cyan-400/10 p-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <p className="font-semibold">{activeTab.label} Register</p>
               <p className="text-xs text-slate-500">
-                showing {filteredRows.length} of {rows.length} rows
+                showing {rows.length} of {meta?.total ?? 0} rows
+                {isFetching && !isLoading ? " - refreshing" : ""}
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -540,6 +536,31 @@ export default function PlatformCatalogsPage() {
             </div>
           </div>
           <div className="max-h-[620px] overflow-auto">{renderRows()}</div>
+          <div className="flex flex-col gap-3 border-t border-sky-100 p-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Page {meta?.page ?? page} of {meta?.totalPages ?? 1} -{" "}
+              {meta?.pageSize ?? pageSize} per page
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={(meta?.page ?? page) <= 1 || isFetching}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                className="rounded-md border-sky-300 bg-white text-sky-800 hover:bg-sky-50"
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                disabled={!meta?.hasNextPage || isFetching}
+                onClick={() => setPage((current) => current + 1)}
+                className="rounded-md bg-sky-700 text-white hover:bg-sky-800"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
     </div>

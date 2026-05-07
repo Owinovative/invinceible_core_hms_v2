@@ -1,9 +1,11 @@
 import {
   IsArray,
+  ArrayMinSize,
   IsInt,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -34,6 +36,7 @@ class PrescriptionItemInputDto {
 
   @IsOptional()
   @IsInt()
+  @Min(1)
   quantity?: number;
 
   @IsOptional()
@@ -60,6 +63,9 @@ export class CreatePrescriptionDto {
   notes?: string;
 
   @IsArray()
+  @ArrayMinSize(1, {
+    message: 'At least one medicine item is required before sending to pharmacy.',
+  })
   @ValidateNested({ each: true })
   @Type(() => PrescriptionItemInputDto)
   items: PrescriptionItemInputDto[];

@@ -45,7 +45,6 @@ import { useMedicineStockAlternatives } from "@/hooks/use-medicine-stock-alterna
 import { useCreatePrescription } from "@/hooks/use-create-prescription";
 import { useConsultationPrescriptions } from "@/hooks/use-consultation-prescriptions";
 import { usePatientPrescriptions } from "@/hooks/use-patient-prescriptions";
-import { useCreatePrescriptionItem } from "@/hooks/use-create-prescription-item";
 
 
 import { useWards } from "@/hooks/use-wards";
@@ -71,6 +70,24 @@ function formatDate(value?: string | null) {
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString();
 }
+
+type DraftPrescriptionItem = {
+  medicineId: number;
+  medicineName: string;
+  medicineCode?: string | null;
+  strength?: string | null;
+  dosageForm?: string | null;
+  stockQuantity: number;
+  reorderLevel: number;
+  stockStatus: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
+  dosage?: string;
+  route?: string;
+  frequency?: string;
+  duration?: string;
+  quantity: number;
+  instructions?: string;
+  acceptedAlternativeForMedicineId?: number;
+};
 
 
 export default function ConsultationDetailPage() {
@@ -110,7 +127,6 @@ export default function ConsultationDetailPage() {
 
 
   const createPrescriptionMutation = useCreatePrescription();
-  const createPrescriptionItemMutation = useCreatePrescriptionItem();
   const { data: consultationPrescriptions } = useConsultationPrescriptions(id);
   const { data: patientPrescriptions, isLoading: patientPrescriptionsLoading } =
     usePatientPrescriptions(patientId);
@@ -217,6 +233,11 @@ export default function ConsultationDetailPage() {
   const [itemInstructions, setItemInstructions] = React.useState("");
   const [acceptedAlternativeForMedicineId, setAcceptedAlternativeForMedicineId] =
     React.useState<number | null>(null);
+  const [draftPrescriptionItems, setDraftPrescriptionItems] = React.useState<
+    DraftPrescriptionItem[]
+  >([]);
+  const [allowOutOfStockPrescribing, setAllowOutOfStockPrescribing] =
+    React.useState(false);
 
 
   const [selectedTestId, setSelectedTestId] = React.useState("");
@@ -534,67 +555,7 @@ export default function ConsultationDetailPage() {
   };
 
 
-  const handleCreatePrescription = async () => {
-    if (!data) return;
-    setMessage(null);
-
-   if (!user?.staffId) {
-    throw new Error("Current staff ID is missing");
-  }
-
-  const created = await createPrescriptionMutation.mutateAsync({
-    consultationId: data.id,
-    patientId: data.patientId,
-    prescribedByStaffId: Number(user.staffId),
-    notes: prescriptionNotes || undefined,
-    items: [],
-  });
-
-    setSelectedPrescriptionId(created.id);
-    setPrescriptionNotes("");
-    setMessage(`Prescription ${created.prescriptionNumber} created successfully.`);
-  };
-
-
-  const handleAddPrescriptionItem = async () => {
-    if (!activePrescription) {
-      setMessage("Create a prescription first.");
-      return;
-    }
-
-
-    if (!selectedMedicineId) {
-      setMessage("Please select a medicine.");
-      return;
-    }
-
-    if (selectedStockStatus === "OUT_OF_STOCK") {
-      const shouldContinue = window.confirm(
-        "This medicine is out of stock in the current branch. Continue prescribing it anyway, or cancel and choose an in-stock alternative?",
-      );
-      if (!shouldContinue) return;
-    }
-
-
-    setMessage(null);
-
-
-    await createPrescriptionItemMutation.mutateAsync({
-      prescriptionId: activePrescription.id,
-      medicineId: Number(selectedMedicineId),
-      dosage: itemDosage || undefined,
-      route: itemRoute || undefined,
-      frequency: itemFrequency || undefined,
-      duration: itemDuration || undefined,
-      quantity: itemQuantity ? Number(itemQuantity) : 1,
-      instructions: itemInstructions || undefined,
-      stockStatusAtPrescribing: selectedStockStatus || undefined,
-      acceptedAlternativeForMedicineId:
-        acceptedAlternativeForMedicineId || undefined,
-      statusCode: "PRESCRIBED",
-    });
-
-
+  const resetPrescriptionItemForm = () => {
     setSelectedMedicineId("");
     setItemDosage("");
     setItemRoute("");
@@ -603,7 +564,121 @@ export default function ConsultationDetailPage() {
     setItemQuantity("1");
     setItemInstructions("");
     setAcceptedAlternativeForMedicineId(null);
-    setMessage("Prescription item added successfully.");
+    setAllowOutOfStockPrescribing(false);
+  };
+
+
+  const handleCreatePrescription = async () => {
+    if (!data) return;
+    setMessage(null);
+
+    if (!user?.staffId) {
+      setMessage("Current staff ID is missing. Prescription cannot be sent.");
+      return;
+    }
+
+    if (draftPrescriptionItems.length === 0) {
+      setMessage("Add at least one structured medicine item before sending to pharmacy.");
+      return;
+    }
+
+    const created = await createPrescriptionMutation.mutateAsync({
+      consultationId: data.id,
+      patientId: data.patientId,
+      prescribedByStaffId: Number(user.staffId),
+      notes: prescriptionNotes || undefined,
+      items: draftPrescriptionItems.map((item) => ({
+        medicineId: item.medicineId,
+        dosage: item.dosage || undefined,
+        route: item.route || undefined,
+        frequency: item.frequency || undefined,
+        duration: item.duration || undefined,
+        quantity: item.quantity,
+        instructions: item.instructions || undefined,
+        acceptedAlternativeForMedicineId:
+          item.acceptedAlternativeForMedicineId,
+      })),
+    });
+
+    setSelectedPrescriptionId(created.id);
+    setPrescriptionNotes("");
+    setDraftPrescriptionItems([]);
+    resetPrescriptionItemForm();
+    setMessage(`Prescription ${created.prescriptionNumber} sent to pharmacy.`);
+  };
+
+
+  const handleAddPrescriptionItem = () => {
+    if (!selectedMedicineId) {
+      setMessage("Please select a medicine.");
+      return;
+    }
+
+    if (!selectedStockItem || !selectedStockStatus) {
+      setMessage("Branch stock details are still loading. Try again in a moment.");
+      return;
+    }
+
+    if (
+      selectedStockStatus === "OUT_OF_STOCK" &&
+      !acceptedAlternativeForMedicineId &&
+      !allowOutOfStockPrescribing
+    ) {
+      setMessage(
+        "This medicine is out of stock. Choose a suggested in-stock alternative or explicitly allow out-of-stock prescribing.",
+      );
+      return;
+    }
+
+    const quantity = Math.max(1, Number(itemQuantity || 1));
+    const medicineId = Number(selectedMedicineId);
+    const duplicate = draftPrescriptionItems.some(
+      (item) => item.medicineId === medicineId,
+    );
+    if (
+      duplicate &&
+      !window.confirm(
+        "This medicine is already in the draft. Add another line anyway?",
+      )
+    ) {
+      return;
+    }
+
+
+    setMessage(null);
+
+    setDraftPrescriptionItems((current) => [
+      ...current,
+      {
+        medicineId,
+        medicineName:
+          selectedStockItem.medicine?.name || `Medicine #${medicineId}`,
+        medicineCode: selectedStockItem.medicine?.code,
+        strength: selectedStockItem.medicine?.strength,
+        dosageForm: selectedStockItem.medicine?.dosageForm,
+        stockQuantity: Number(selectedStockItem.stockQuantity ?? 0),
+        reorderLevel: Number(selectedStockItem.reorderLevel ?? 0),
+        stockStatus: selectedStockStatus as DraftPrescriptionItem["stockStatus"],
+        dosage: itemDosage || undefined,
+        route: itemRoute || undefined,
+        frequency: itemFrequency || undefined,
+        duration: itemDuration || undefined,
+        quantity,
+        instructions: itemInstructions || undefined,
+        acceptedAlternativeForMedicineId:
+          acceptedAlternativeForMedicineId || undefined,
+      },
+    ]);
+
+    resetPrescriptionItemForm();
+    setMessage("Prescription item added to draft. Send it to pharmacy when complete.");
+  };
+
+
+  const handleRemoveDraftPrescriptionItem = (index: number) => {
+    setDraftPrescriptionItems((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index),
+    );
   };
 
 
@@ -1342,34 +1417,17 @@ export default function ConsultationDetailPage() {
                 </div>
 
 
-                {!activePrescription ? (
-                  <>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">Prescription Notes</label>
-                      <Textarea
-                        value={prescriptionNotes}
-                        onChange={(e) => setPrescriptionNotes(e.target.value)}
-                        className="min-h-[110px] rounded-2xl"
-                        placeholder="General prescription notes"
-                      />
-                    </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Prescription Notes</label>
+                  <Textarea
+                    value={prescriptionNotes}
+                    onChange={(e) => setPrescriptionNotes(e.target.value)}
+                    className="min-h-[90px] rounded-2xl"
+                    placeholder="General prescription notes"
+                  />
+                </div>
 
-
-                    <Button
-                      type="button"
-                      className="h-12 rounded-2xl"
-                      onClick={handleCreatePrescription}
-                      disabled={createPrescriptionMutation.isPending}
-                    >
-                      {createPrescriptionMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="mr-2 h-4 w-4" />
-                      )}
-                      Create Prescription
-                    </Button>
-                  </>
-                ) : (
+                {(
                   <>
                     <div>
                       <label className="mb-2 block text-sm font-medium">
@@ -1386,6 +1444,7 @@ export default function ConsultationDetailPage() {
                         onChange={(e) => {
                           setSelectedMedicineId(e.target.value);
                           setAcceptedAlternativeForMedicineId(null);
+                          setAllowOutOfStockPrescribing(false);
                         }}
                         className="flex h-12 w-full rounded-2xl border border-white/10 bg-background px-4 text-sm"
                       >
@@ -1470,6 +1529,7 @@ export default function ConsultationDetailPage() {
                                       );
                                       setSelectedMedicineId(String(item.medicineId));
                                       setMedicineSearch(item.medicine?.name || "");
+                                      setAllowOutOfStockPrescribing(false);
                                       setMessage(
                                         `Selected in-stock alternative: ${item.medicine?.name}. Confirm dose and indication before saving.`,
                                       );
@@ -1502,6 +1562,25 @@ export default function ConsultationDetailPage() {
                               </p>
                             )}
                           </div>
+                        ) : null}
+                        {selectedStockStatus === "OUT_OF_STOCK" ? (
+                          <label className="mt-3 flex items-start gap-3 rounded-[1rem] border border-amber-500/20 bg-amber-500/10 p-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={allowOutOfStockPrescribing}
+                              onChange={(event) =>
+                                setAllowOutOfStockPrescribing(
+                                  event.target.checked,
+                                )
+                              }
+                              className="mt-1"
+                            />
+                            <span>
+                              Continue with this out-of-stock medicine after
+                              clinical review. Pharmacy will dispense only if
+                              stock becomes available.
+                            </span>
+                          </label>
                         ) : null}
                       </div>
                     ) : null}
@@ -1572,16 +1651,104 @@ export default function ConsultationDetailPage() {
                       type="button"
                       className="h-12 rounded-2xl"
                       onClick={handleAddPrescriptionItem}
+                      disabled={!selectedMedicineId}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add to Prescription Draft
+                    </Button>
+
+                    <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">Draft medicine items</p>
+                          <p className="text-sm text-muted-foreground">
+                            Stock is checked now. Stock reduces only when pharmacy dispenses.
+                          </p>
+                        </div>
+                        <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-300">
+                          {draftPrescriptionItems.length} item(s)
+                        </Badge>
+                      </div>
+                      {draftPrescriptionItems.length === 0 ? (
+                        <div className="rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                          Search and add at least one medicine before sending to pharmacy.
+                        </div>
+                      ) : (
+                        <div className="max-h-[280px] overflow-auto">
+                          <table className="w-full min-w-[780px] text-left text-sm">
+                            <thead className="sticky top-0 bg-background text-xs uppercase text-muted-foreground">
+                              <tr>
+                                <th className="px-3 py-2">Medicine</th>
+                                <th className="px-3 py-2">Dose / route / frequency</th>
+                                <th className="px-3 py-2">Duration</th>
+                                <th className="px-3 py-2">Qty</th>
+                                <th className="px-3 py-2">Stock</th>
+                                <th className="px-3 py-2">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {draftPrescriptionItems.map((item, index) => (
+                                <tr
+                                  key={`${item.medicineId}-${index}`}
+                                  className="border-t border-white/10"
+                                >
+                                  <td className="px-3 py-2">
+                                    <p className="font-medium">{item.medicineName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {[item.strength, item.dosageForm, item.medicineCode]
+                                        .filter(Boolean)
+                                        .join(" / ") || "Catalog medicine"}
+                                    </p>
+                                  </td>
+                                  <td className="px-3 py-2 text-muted-foreground">
+                                    {[item.dosage, item.route, item.frequency]
+                                      .filter(Boolean)
+                                      .join(" / ") || "-"}
+                                  </td>
+                                  <td className="px-3 py-2 text-muted-foreground">
+                                    {item.duration || "-"}
+                                  </td>
+                                  <td className="px-3 py-2">{item.quantity}</td>
+                                  <td className="px-3 py-2">
+                                    <Badge className="rounded-full border border-white/10 bg-white/[0.04] text-xs">
+                                      {item.stockStatus} - {item.stockQuantity}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="h-9 rounded-xl"
+                                      onClick={() =>
+                                        handleRemoveDraftPrescriptionItem(index)
+                                      }
+                                    >
+                                      Remove
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      type="button"
+                      className="h-12 rounded-2xl"
+                      onClick={handleCreatePrescription}
                       disabled={
-                        createPrescriptionItemMutation.isPending
+                        createPrescriptionMutation.isPending ||
+                        draftPrescriptionItems.length === 0
                       }
                     >
-                      {createPrescriptionItemMutation.isPending ? (
+                      {createPrescriptionMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
                         <Plus className="mr-2 h-4 w-4" />
                       )}
-                      Add Prescription Item
+                      Send Prescription to Pharmacy
                     </Button>
                   </>
                 )}

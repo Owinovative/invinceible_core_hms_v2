@@ -125,6 +125,7 @@ export class AppointmentService {
         clinic: true,
       },
       orderBy: { id: 'desc' },
+      take: 100,
     });
   }
 
@@ -233,6 +234,7 @@ export class AppointmentService {
         clinic: true,
       },
       orderBy: { id: 'desc' },
+      take: 100,
     });
   }
 

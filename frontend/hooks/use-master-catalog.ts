@@ -6,6 +6,7 @@ import {
   getMasterCatalogRows,
   importMasterCatalogCsv,
   type MasterCatalogKind,
+  type MasterCatalogListParams,
 } from "@/services/master-catalog-service";
 
 export function useMasterCatalogOverview() {
@@ -15,10 +16,21 @@ export function useMasterCatalogOverview() {
   });
 }
 
-export function useMasterCatalogRows(kind: MasterCatalogKind) {
+export function useMasterCatalogRows(
+  kind: MasterCatalogKind,
+  params: MasterCatalogListParams = {},
+) {
   return useQuery({
-    queryKey: ["master-catalog", kind],
-    queryFn: () => getMasterCatalogRows(kind),
+    queryKey: [
+      "master-catalog",
+      kind,
+      params.page ?? 1,
+      params.pageSize ?? 50,
+      params.search?.trim() ?? "",
+    ],
+    queryFn: () => getMasterCatalogRows(kind, params),
+    placeholderData: (previousData) => previousData,
+    staleTime: 60_000,
   });
 }
 
