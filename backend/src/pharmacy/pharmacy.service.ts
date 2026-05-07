@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientService } from '../patient/patient.service';
 import { StaffService } from '../staff/staff.service';
@@ -1073,13 +1074,11 @@ async getPharmacyQueueScoped(user: RequestUser) {
       );
     }
 
-    const temporaryPrescriptionNumber = `RX-DIRECT-TMP-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)
+    const temporaryPrescriptionNumber = `RX-DIRECT-TMP-${Date.now()}-${randomBytes(4)
+      .toString('hex')
       .toUpperCase()}`;
-    const temporaryDispenseNumber = `DSP-DIRECT-TMP-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)
+    const temporaryDispenseNumber = `DSP-DIRECT-TMP-${Date.now()}-${randomBytes(4)
+      .toString('hex')
       .toUpperCase()}`;
     const startedAt = Date.now();
 
