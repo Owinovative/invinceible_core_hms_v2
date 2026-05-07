@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Bot,
-  Download,
   FileSignature,
   Loader2,
   Printer,
@@ -163,7 +162,8 @@ export default function MedicalRecordsPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
               Write patient notes, format them with AI, add signer details, and
-              print the finished report with the facility letterhead.
+              preview a draft letterhead report. Official PDFs are generated
+              from saved clinical records.
             </p>
           </div>
 
@@ -174,16 +174,7 @@ export default function MedicalRecordsPage() {
               onClick={handlePrint}
             >
               <Printer className="h-4 w-4" />
-              Print
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-md"
-              onClick={handlePrint}
-            >
-              <Download className="h-4 w-4" />
-              Save as PDF
+              Preview print
             </Button>
           </div>
         </div>
