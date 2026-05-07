@@ -1,41 +1,91 @@
 # Invinceible Core HMS
 
-Invinceible Core HMS is a multi-facility hospital management system for patient registration, triage, doctor workflow, laboratory, pharmacy, inpatient care, billing, M-Pesa payments, SHA claims, reports, audit trails, and platform administration.
+Invinceible Core HMS is a multi-facility hospital management system for real clinical, billing, pharmacy, laboratory, inpatient, reporting, and platform administration workflows.
 
-The project is built as critical healthcare software: facility and branch scoping, role-based permissions, auditability, payment safety, resilient APIs, and operational monitoring are treated as core system behavior, not optional extras.
+The project is built as critical healthcare software. Facility and branch scoping, role-based permissions, auditability, payment safety, resilient APIs, and operational monitoring are treated as core system behavior, not optional extras.
 
 ## Production Priorities
 
-- Strong authentication with lockout, session tracking, and password reset token hashing.
-- Facility and branch isolation across clinical, billing, pharmacy, lab, reports, and platform operations.
+- Strong authentication with lockout, session tracking, password reset token hashing, and production secret validation.
+- Facility and branch isolation across clinical, billing, pharmacy, lab, reports, users, settings, and platform operations.
 - M-Pesa/Daraja duplicate-prompt protection, status checks, idempotent callbacks, and reconciliation foundations.
 - Short-TTL caching, request coalescing, pagination, scoped search, and indexed database access for high traffic.
-- Audit logs for critical hospital and administrative actions.
-- Official PDF/printout foundations for invoices, receipts, summaries, reports, and SHA workflows.
-- Patient portal, AI assistant, communications, reporting, and data warehouse foundations behind safe feature flags.
+- Audit logs for critical hospital, payment, pharmacy, clinical, and administrative actions.
+- Official PDF/printout foundations for invoices, receipts, medical summaries, reports, and SHA workflows.
+- Patient portal, AI assistant, communication, reporting, and data warehouse foundations behind safe feature flags.
 
-## Architecture
+## What It Does
+
+The system connects the main hospital flow:
 
 ```text
-backend/   NestJS API, Prisma ORM, MySQL, auth, billing, clinical modules
-frontend/  Next.js app for hospital dashboard, platform admin, public pages
-docs/      Production, security, clinical, scaling, and operations guides
-load-tests/ k6/autocannon load testing starting points
-services/  Future worker/service foundations
+Reception -> Triage -> Doctor -> Lab -> Pharmacy -> Billing -> Payment -> Reports
 ```
+
+It supports patient registration, triage, doctor consultation, structured prescribing, lab orders and results, pharmacy dispensing, IPD/admissions, billing, invoices, receipts, SHA claims, M-Pesa/Daraja payments, branches, users, roles, audit logs, reports, stock control, and platform administration.
 
 ## Main Modules
 
 - Patient registration, search, duplicate warning foundation, and visit history.
-- Triage with priority and doctor routing.
+- Triage with vitals, urgency, priority, clinic routing, and doctor routing.
 - Doctor queue and consultation workspace with structured prescribing.
-- Laboratory requests, results, verification, and doctor review.
+- Laboratory requests, results, verification, attachments, and doctor review.
 - Pharmacy catalog, branch stock, stock-aware prescribing, partial dispensing, low stock, and reorder foundations.
-- IPD admissions, wards, beds, treatment charts, and discharge summaries.
-- Billing, invoices, payments, receipts, M-Pesa, SHA coverage, and cashier close.
-- Reports, audit logs, user management, facility settings, and platform controls.
+- IPD admissions, wards, beds, treatment charts, progress notes, and discharge summaries.
+- Billing, invoices, discounts, payments, receipts, cashier close, M-Pesa, SHA coverage, and revenue tracking.
+- Reports, audit logs, user management, facility settings, subscriptions, and platform controls.
+- Patient portal and public verification foundations.
+- AI assistance foundations for drafting and workflow support, disabled by default unless configured.
+
+## Real Hospital Flow
+
+1. Reception registers or finds the patient.
+2. Triage captures vitals, urgency, and routing details.
+3. Doctor opens the patient from the doctor queue.
+4. Doctor records consultation notes, diagnosis, lab requests, prescriptions, admission, referral, or discharge decisions.
+5. Lab enters and verifies results.
+6. Pharmacy dispenses structured prescription items and updates branch stock.
+7. Billing creates or updates the invoice and receives payment.
+8. Cashier issues receipt.
+9. Admins and managers review reports, audit logs, stock, payments, and operational performance.
+
+## Tech Stack
+
+Backend:
+
+- NestJS
+- Prisma ORM
+- MySQL
+- JWT authentication
+- PDFKit and QR utilities
+- Redis optional cache, rate-limit, and queue foundation with in-memory fallback
+
+Frontend:
+
+- Next.js
+- React
+- TypeScript
+- TanStack Query
+- Tailwind-style component system
+
+Repository:
+
+```text
+backend/      NestJS API, Prisma, auth, billing, lab, pharmacy, IPD, users
+frontend/     Next.js/React dashboard, platform pages, public pages, workflows
+docs/         Security, setup, deployment, scaling, workflow, and operations guides
+load-tests/   k6/autocannon load testing starting points
+services/     Future worker/service foundations
+```
 
 ## Local Setup
+
+Clone:
+
+```bash
+git clone https://github.com/Owinovative/invinceible_core_hms_v2.git
+cd invinceible_core_hms_v2
+```
 
 Backend:
 
@@ -52,6 +102,7 @@ Frontend:
 ```bash
 cd frontend
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
@@ -62,7 +113,7 @@ Default local URLs:
 
 ## Required Environment
 
-Use the examples in `backend/.env.example` and `.env.example`.
+Use the examples in `.env.example`, `backend/.env.example`, and `frontend/.env.example`.
 
 Production must use:
 
@@ -70,18 +121,21 @@ Production must use:
 - a private `DATABASE_URL`,
 - strict `FRONTEND_URL` or `FRONTEND_ORIGINS`,
 - Redis where possible for cache, rate limiting, queues, and request coalescing,
-- secure M-Pesa credentials stored only in the backend environment.
+- secure M-Pesa credentials stored only in backend or facility-level protected settings,
+- HTTPS-only public URLs for deployed frontend, backend, and callback endpoints.
 
-Never commit `.env` files.
+Never commit `.env` files or secrets.
 
-## Verification
+## Useful Commands
 
 Backend:
 
 ```bash
 cd backend
+npm run prisma:generate
 npm run build
 npm run test
+npm run prisma:migrate:deploy
 ```
 
 Frontend:
@@ -89,7 +143,28 @@ Frontend:
 ```bash
 cd frontend
 npm run build
+npm run lint
 ```
+
+Dependency audit:
+
+```bash
+cd backend
+npm audit --audit-level=moderate --omit=dev
+
+cd ../frontend
+npm audit --audit-level=moderate --omit=dev
+```
+
+## Deployment Notes
+
+- Run database backups before production migrations.
+- Deploy backend and frontend through their configured platforms.
+- Configure Railway backend environment variables securely.
+- Configure Vercel frontend `NEXT_PUBLIC_API_BASE_URL` to the Railway backend URL.
+- Configure Daraja callback URLs to point to the deployed backend.
+- Run queue workers when queue-backed jobs are enabled.
+- Check `/health/live`, `/health/ready`, and `/health/deep` after deployment.
 
 ## Documentation
 
@@ -105,11 +180,22 @@ Important guides:
 - [Reports and printouts](docs/reports-printouts.md)
 - [Multi-tenant facility isolation](docs/multi-tenant-facility-isolation.md)
 - [M-Pesa reconciliation](docs/mpesa-reconciliation.md)
+- [SHA and insurance workflow](docs/sha-insurance-workflow.md)
 - [Load testing](docs/load-testing.md)
+- [Security testing](docs/security-testing.md)
 
 ## Security
 
 Report security concerns privately. See [SECURITY.md](SECURITY.md).
+
+Security basics:
+
+- Never commit `.env` files.
+- Rotate any exposed local or development secret.
+- Use a strong production `JWT_SECRET`.
+- Keep Daraja credentials out of frontend payloads and logs.
+- Guard report exports, payment changes, user management, and facility settings.
+- Keep audit logging enabled for critical actions.
 
 ## License
 
