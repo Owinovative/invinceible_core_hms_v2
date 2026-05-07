@@ -526,6 +526,10 @@ model Consultation {
   @@index([patientId])
   @@index([doctorId])
   @@index([statusCode])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([facilityId, branchId, statusCode, startedAt])
+  @@index([doctorId, statusCode, startedAt])
   @@map("consultations")
 }
 
@@ -1024,10 +1028,17 @@ model ServiceTariff {
   @@index([facilityId])
   @@index([branchId])
   @@index([category])
+  @@index([code])
+  @@index([name])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([updatedAt])
   @@index([billingServiceId])
   @@index([labTestId])
   @@index([wardId])
   @@index([bedId])
+  @@index([facilityId, branchId, category, name])
+  @@index([facilityId, branchId, isActive])
   @@map("service_tariffs")
 }
 
@@ -1497,6 +1508,10 @@ model Notification {
   @@index([entityType])
   @@index([entityId])
   @@index([createdAt])
+  @@index([facilityId, branchId, isResolved, createdAt])
+  @@index([targetUserId, isRead, createdAt])
+  @@index([targetStaffId, isRead, createdAt])
+  @@index([moduleName, isResolved, createdAt])
   @@index([resolvedByUserId])
   @@index([resolvedByStaffId])
   @@map("notifications")
@@ -1525,6 +1540,9 @@ model BranchMedicineStock {
   @@index([medicineId])
   @@index([createdAt])
   @@index([updatedAt])
+  @@index([facilityId, branchId, isActive])
+  @@index([branchId, stockQuantity])
+  @@index([branchId, updatedAt])
   @@map("branch_medicine_stocks")
 }
 

@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { StaffService } from '../staff/staff.service';
@@ -12,6 +13,11 @@ import { NotificationQueryDto } from './dto/notification-query.dto';
 import { ResolveNotificationDto } from './dto/resolve-notification.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  paginatedResponse,
+  parsePagination,
+} from '../common/pagination/pagination';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 
 @Injectable()
 export class NotificationService {
@@ -20,16 +26,35 @@ export class NotificationService {
     private readonly userService: UserService,
     private readonly staffService: StaffService,
     private readonly scopeService: ScopeService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
 
   private includeRelations() {
     return {
-      facility: true,
-      branch: true,
-      targetUser: true,
-      targetStaff: true,
-      resolvedByUser: true,
-      resolvedByStaff: true,
+      facility: { select: { id: true, code: true, name: true } },
+      branch: { select: { id: true, code: true, name: true } },
+      targetUser: {
+        select: { id: true, username: true, fullName: true, email: true },
+      },
+      targetStaff: {
+        select: {
+          id: true,
+          staffCode: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      resolvedByUser: {
+        select: { id: true, username: true, fullName: true, email: true },
+      },
+      resolvedByStaff: {
+        select: {
+          id: true,
+          staffCode: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
     };
   }
 
@@ -41,6 +66,18 @@ export class NotificationService {
     if (query?.isRead === 'false') where.isRead = false;
     if (query?.isResolved === 'true') where.isResolved = true;
     if (query?.isResolved === 'false') where.isResolved = false;
+
+    if (query?.search?.trim()) {
+      const search = query.search.trim();
+      where.OR = [
+        { title: { contains: search } },
+        { message: { contains: search } },
+        { notificationType: { contains: search } },
+        { moduleName: { contains: search } },
+        { entityType: { contains: search } },
+        { entityId: { contains: search } },
+      ];
+    }
 
     return where;
   }
@@ -836,13 +873,53 @@ export class NotificationService {
     };
   }
   async findAllScoped(user: RequestUser, query?: NotificationQueryDto) {
+    const startedAt = Date.now();
     const where = this.buildScopedWhere(user, query);
-
-    return this.prisma.notification.findMany({
-      where,
-      include: this.includeRelations(),
-      orderBy: { id: 'desc' },
+    const pagination = parsePagination(query ?? {}, {
+      defaultPageSize: 25,
+      maxPageSize: 100,
+      allowedSortFields: ['createdAt', 'id'],
+      defaultSortBy: 'createdAt',
+      defaultSortDirection: 'desc',
     });
+
+    const orderBy: Prisma.NotificationOrderByWithRelationInput[] = [
+      { [pagination.sortBy]: pagination.sortDirection as Prisma.SortOrder },
+      { id: 'desc' },
+    ];
+
+    const [data, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        include: this.includeRelations(),
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    const result = paginatedResponse(data, {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      total,
+    });
+
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= Number(process.env.SLOW_LIST_MS ?? 750)) {
+      this.safeLogger.warn('Slow notification list request', {
+        userId: user.userId,
+        roleCode: user.roleCode,
+        facilityId: user.homeFacilityId,
+        branchId: user.homeBranchId,
+        page: result.meta.page,
+        pageSize: result.meta.pageSize,
+        total: result.meta.total,
+        durationMs,
+      });
+    }
+
+    return result;
   }
 
   async markScopedAsRead(user: RequestUser, query?: NotificationQueryDto) {

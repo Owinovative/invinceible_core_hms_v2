@@ -10,6 +10,7 @@ export function useCreatePrescription() {
     mutationFn: createPrescription,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["consultation-workspace"] });
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       queryClient.invalidateQueries({ queryKey: ["pharmacy-queue"] });
     },

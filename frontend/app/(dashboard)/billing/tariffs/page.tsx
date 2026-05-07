@@ -43,7 +43,15 @@ function optionalNumber(value: string) {
 export default function BillingTariffsPage() {
   const { facilityId, selectedBranchId, facilityName, selectedBranchName } =
     useScope();
-  const { data: tariffs = [], isLoading } = useServiceTariffs();
+  const [tariffSearch, setTariffSearch] = React.useState("");
+  const [tariffPage, setTariffPage] = React.useState(1);
+  const tariffPageSize = 25;
+  const deferredTariffSearch = React.useDeferredValue(tariffSearch);
+  const { data: tariffData, isLoading } = useServiceTariffs({
+    page: tariffPage,
+    pageSize: tariffPageSize,
+    search: deferredTariffSearch,
+  });
   const { data: labTestsData = [] } = useLabTests();
   const { data: wardsData = [] } = useWards();
   const { data: bedsData = [] } = useBeds();
@@ -66,6 +74,13 @@ export default function BillingTariffsPage() {
   const [wardId, setWardId] = React.useState("");
   const [bedId, setBedId] = React.useState("");
   const [notes, setNotes] = React.useState("");
+
+  const tariffs = tariffData?.data ?? [];
+  const tariffMeta = tariffData?.meta;
+
+  React.useEffect(() => {
+    setTariffPage(1);
+  }, [deferredTariffSearch]);
 
   const labTests = React.useMemo(
     () => (Array.isArray(labTestsData) ? labTestsData : []),
@@ -302,8 +317,10 @@ export default function BillingTariffsPage() {
           </div>
 
           <div className="rounded-xl border bg-background/70 px-4 py-3 text-sm">
-            <span className="font-semibold">{tariffs.length}</span> active and
-            inactive tariff records
+            <span className="font-semibold">
+              {tariffMeta?.total ?? tariffs.length}
+            </span>{" "}
+            tariff records
           </div>
         </div>
       </section>
@@ -536,7 +553,15 @@ export default function BillingTariffsPage() {
 
         <Card className="rounded-[1.2rem] gradient-border panel-shadow">
           <CardHeader>
-            <CardTitle>Tariff Register</CardTitle>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <CardTitle>Tariff Register</CardTitle>
+              <Input
+                value={tariffSearch}
+                onChange={(event) => setTariffSearch(event.target.value)}
+                placeholder="Search tariff code, name, service, lab, ward, bed"
+                className="h-11 rounded-xl md:max-w-sm"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -587,6 +612,38 @@ export default function BillingTariffsPage() {
                     </div>
                   </div>
                 ))}
+                {tariffMeta ? (
+                  <div className="flex flex-col gap-3 rounded-xl border bg-background/70 p-3 text-sm md:flex-row md:items-center md:justify-between">
+                    <span className="text-muted-foreground">
+                      Page {tariffMeta.page} of {tariffMeta.totalPages} /
+                      showing {tariffs.length} of {tariffMeta.total}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setTariffPage((current) => Math.max(1, current - 1))
+                        }
+                        disabled={tariffMeta.page <= 1 || isLoading}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setTariffPage((current) => current + 1)
+                        }
+                        disabled={!tariffMeta.hasNextPage || isLoading}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </CardContent>

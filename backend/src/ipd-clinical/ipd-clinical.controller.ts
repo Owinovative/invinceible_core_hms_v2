@@ -17,6 +17,7 @@ import { CreateTreatmentChartEntryDto } from './dto/create-treatment-chart-entry
 import { CreateIpdVitalRecordDto } from './dto/create-ipd-vital-record.dto';
 import { CreateIpdDoctorReviewDto } from './dto/create-ipd-doctor-review.dto';
 import { CreateIpdDischargeSummaryDto } from './dto/create-ipd-discharge-summary.dto';
+import { AdministerIpdMedicineDto } from './dto/administer-ipd-medicine.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
@@ -81,6 +82,19 @@ export class IpdClinicalController {
     return this.ipdClinicalService.administerTreatment(
       entryId,
       body?.administeredByStaffId,
+    );
+  }
+
+  @Post('admissions/:admissionId/medicine-administration')
+  administerAdmissionMedicine(
+    @Param('admissionId', ParseIntPipe) admissionId: number,
+    @Body() dto: AdministerIpdMedicineDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdClinicalService.administerAdmissionMedicine(
+      admissionId,
+      dto,
+      user,
     );
   }
 

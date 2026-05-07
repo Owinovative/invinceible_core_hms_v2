@@ -218,6 +218,25 @@ export interface ServiceTariffRecord {
   } | null;
 }
 
+export interface ServiceTariffListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}
+
+export interface PaginatedServiceTariffResponse {
+  data: ServiceTariffRecord[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
 export interface CreateServiceTariffPayload {
   code: string;
   name: string;
@@ -442,8 +461,16 @@ export async function getPatientBillingWorkspace(patientId: number) {
   );
 }
 
-export async function getServiceTariffs() {
-  return apiFetch<ServiceTariffRecord[]>("/billing/tariffs", {
+export async function getServiceTariffs(params?: ServiceTariffListParams) {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.pageSize) query.set("pageSize", String(params.pageSize));
+  if (params?.search?.trim()) query.set("search", params.search.trim());
+  if (params?.sortBy) query.set("sortBy", params.sortBy);
+  if (params?.sortDirection) query.set("sortDirection", params.sortDirection);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return apiFetch<PaginatedServiceTariffResponse>(`/billing/tariffs${suffix}`, {
     method: "GET",
   });
 }

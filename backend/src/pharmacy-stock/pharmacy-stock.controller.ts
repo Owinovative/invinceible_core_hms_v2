@@ -17,6 +17,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
 import { ImportBranchPricingCsvDto } from './dto/import-branch-pricing-csv.dto';
+import type { PaginationQuery } from '../common/pagination/pagination';
 
 
 
@@ -34,8 +35,8 @@ export class PharmacyStockController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: RequestUser) {
-    return this.pharmacyStockService.findAllScoped(user);
+  findAll(@Query() query: PaginationQuery, @CurrentUser() user: RequestUser) {
+    return this.pharmacyStockService.findAllScoped(user, query);
   }
 
   @Get('low-stock')
@@ -76,9 +77,10 @@ export class PharmacyStockController {
   @Get('branch/:branchId')
   findByBranch(
     @Param('branchId', ParseIntPipe) branchId: number,
+    @Query() query: PaginationQuery,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.pharmacyStockService.findByBranchScoped(branchId, user);
+    return this.pharmacyStockService.findByBranchScoped(branchId, user, query);
   }
 
   @Get('branch/:branchId/medicine/:medicineId/alternatives')

@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import type { PrescriptionRecord } from "@/services/prescription-service";
 
 
 export interface ConsultationItem {
@@ -39,6 +40,20 @@ export interface ConsultationItem {
     appointmentDate?: string | null;
     triagePriority?: string | null;
   } | null;
+}
+
+export interface ConsultationWorkspaceResponse {
+  consultation: ConsultationItem;
+  latestTriage?: Record<string, any> | null;
+  recentConsultations: ConsultationItem[];
+  consultationPrescriptions: PrescriptionRecord[];
+  patientPrescriptions: PrescriptionRecord[];
+  labOrders: Array<Record<string, any>>;
+  activeAdmission?: Record<string, any> | null;
+  meta?: {
+    durationMs?: number;
+    limitedHistory?: boolean;
+  };
 }
 
 
@@ -87,6 +102,13 @@ export async function getConsultationById(id: number) {
   return apiFetch<ConsultationItem>(`/consultations/${id}`, {
     method: "GET",
   });
+}
+
+export async function getConsultationWorkspace(id: number) {
+  return apiFetch<ConsultationWorkspaceResponse>(
+    `/consultations/${id}/workspace`,
+    { method: "GET" },
+  );
 }
 
 

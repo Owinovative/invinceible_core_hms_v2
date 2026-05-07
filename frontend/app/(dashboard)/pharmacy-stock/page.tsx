@@ -52,39 +52,32 @@ function formatMoney(value?: number | null) {
 export default function PharmacyStockPage() {
   const { selectedBranchId, selectedBranchName, facilityName } = useScope();
 
-  const { data, isLoading } = useBranchPharmacyStock(selectedBranchId);
+  const [search, setSearch] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const pageSize = 25;
+  const deferredSearch = React.useDeferredValue(search);
+  const { data, isLoading } = useBranchPharmacyStock(selectedBranchId, {
+    page,
+    pageSize,
+    search: deferredSearch,
+  });
   const { data: lowStockData } = useLowPharmacyStock();
   const restockMutation = useRestockBranchMedicine();
 
-  const stocks = Array.isArray(data) ? data : [];
+  const stocks = Array.isArray(data) ? data : (data?.data ?? []);
+  const stockMeta = Array.isArray(data) ? undefined : data?.meta;
   const [message, setMessage] = React.useState<string | null>(null);
-  const [search, setSearch] = React.useState("");
 
   const [activeStockId, setActiveStockId] = React.useState<number | null>(null);
   const [quantityToAdd, setQuantityToAdd] = React.useState("");
   const [reorderLevel, setReorderLevel] = React.useState("");
   const [unitPrice, setUnitPrice] = React.useState("");
 
-  const filteredStocks = React.useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return stocks;
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch, selectedBranchId]);
 
-    return stocks.filter((item) =>
-      [
-        item.medicine?.name,
-        item.medicine?.code,
-        item.medicine?.dosageForm,
-        item.medicine?.strength,
-        item.branch?.name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [stocks, search]);
-
-  const totalItems = stocks.length;
+  const totalItems = stockMeta?.total ?? stocks.length;
   const lowStockCount = stocks.filter(
     (item) => item.stockQuantity > 0 && item.stockQuantity <= item.reorderLevel,
   ).length;
@@ -284,71 +277,101 @@ export default function PharmacyStockPage() {
           <CardContent className="space-y-4">
             {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading stock...</div>
-            ) : filteredStocks.length === 0 ? (
+            ) : stocks.length === 0 ? (
               <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
                 No branch medicine stock records matched.
               </div>
             ) : (
-              filteredStocks.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-2">
-                      <p className="font-semibold">
-                        {item.medicine?.name || `Medicine #${item.medicineId}`}
-                      </p>
+              <>
+                {stocks.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                  >
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-2">
+                        <p className="font-semibold">
+                          {item.medicine?.name || `Medicine #${item.medicineId}`}
+                        </p>
 
-                      <p className="text-sm text-muted-foreground">
-                        {[item.medicine?.code, item.medicine?.dosageForm, item.medicine?.strength]
-                          .filter(Boolean)
-                          .join(" / ") || "-"}
-                      </p>
+                        <p className="text-sm text-muted-foreground">
+                          {[item.medicine?.code, item.medicine?.dosageForm, item.medicine?.strength]
+                            .filter(Boolean)
+                            .join(" / ") || "-"}
+                        </p>
 
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                          <p className="text-xs text-muted-foreground">Stock Quantity</p>
-                          <p className="mt-1 text-sm font-medium">{item.stockQuantity}</p>
-                        </div>
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">Stock Quantity</p>
+                            <p className="mt-1 text-sm font-medium">{item.stockQuantity}</p>
+                          </div>
 
-                        <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                          <p className="text-xs text-muted-foreground">Reorder Level</p>
-                          <p className="mt-1 text-sm font-medium">{item.reorderLevel}</p>
-                        </div>
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">Reorder Level</p>
+                            <p className="mt-1 text-sm font-medium">{item.reorderLevel}</p>
+                          </div>
 
-                        <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
-                          <p className="text-xs text-muted-foreground">Unit Price</p>
-                          <p className="mt-1 text-sm font-medium">
-                            {formatMoney(item.unitPrice)}
-                          </p>
-                          {item.unitPrice <= 0 ? (
-                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
-                              Fix before dispensing
+                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs text-muted-foreground">Unit Price</p>
+                            <p className="mt-1 text-sm font-medium">
+                              {formatMoney(item.unitPrice)}
                             </p>
-                          ) : null}
+                            {item.unitPrice <= 0 ? (
+                              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                                Fix before dispensing
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Badge className={`rounded-full border px-3 py-1 ${stockTone(item)}`}>
+                          {stockLabel(item)}
+                        </Badge>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-2xl"
+                          onClick={() => handleOpenRestock(item)}
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Restock
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="flex flex-col gap-2">
-                      <Badge className={`rounded-full border px-3 py-1 ${stockTone(item)}`}>
-                        {stockLabel(item)}
-                      </Badge>
-
+                  </div>
+                ))}
+                {stockMeta ? (
+                  <div className="flex flex-col gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-3 text-sm md:flex-row md:items-center md:justify-between">
+                    <span className="text-muted-foreground">
+                      Page {stockMeta.page} of {stockMeta.totalPages} /
+                      showing {stocks.length} of {stockMeta.total}
+                    </span>
+                    <div className="flex gap-2">
                       <Button
                         type="button"
                         variant="outline"
-                        className="rounded-2xl"
-                        onClick={() => handleOpenRestock(item)}
+                        size="sm"
+                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        disabled={stockMeta.page <= 1 || isLoading}
                       >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Restock
+                        Previous
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((current) => current + 1)}
+                        disabled={!stockMeta.hasNextPage || isLoading}
+                      >
+                        Next
                       </Button>
                     </div>
                   </div>
-                </div>
-              ))
+                ) : null}
+              </>
             )}
           </CardContent>
         </Card>
