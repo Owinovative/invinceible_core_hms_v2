@@ -38,6 +38,41 @@ export class PharmacyService {
     private readonly cacheService: CacheService,
   ) {}
 
+  private async recordPrescriptionAudit(params: {
+    actionName: string;
+    prescription: {
+      id: number;
+      prescriptionNumber?: string | null;
+      facilityId: number;
+      branchId?: number | null;
+      consultationId?: number | null;
+      patientId?: number | null;
+    };
+    user?: RequestUser;
+    afterData?: unknown;
+  }) {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          moduleName: 'PRESCRIPTION',
+          actionName: params.actionName,
+          entityType: 'PRESCRIPTION',
+          entityId: String(params.prescription.id),
+          facilityId: params.prescription.facilityId,
+          branchId: params.prescription.branchId ?? undefined,
+          actorUserId: params.user?.userId,
+          actorStaffId: params.user?.staffId ?? undefined,
+          description: `Prescription ${params.prescription.prescriptionNumber ?? params.prescription.id} sent to pharmacy.`,
+          afterData: params.afterData
+            ? JSON.stringify(params.afterData)
+            : undefined,
+        },
+      });
+    } catch {
+      // Prescribing should continue if audit storage is temporarily unavailable.
+    }
+  }
+
 
   async createMedicine(createMedicineDto: CreateMedicineDto) {
     const existing = await this.prisma.medicine.findFirst({
@@ -72,11 +107,12 @@ export class PharmacyService {
 
   getAllMedicines() {
     return this.cacheService.getOrSet(
-      this.cacheService.makeKey(['medicine-reference', 'all']),
+      this.cacheService.makeKey(['medicine-reference', 'first-page']),
       Number(process.env.CACHE_REFERENCE_TTL_SECONDS ?? 300),
       () =>
         this.prisma.medicine.findMany({
-          orderBy: { id: 'asc' },
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+          take: 100,
         }),
     );
   }
@@ -93,7 +129,10 @@ export class PharmacyService {
     return medicine;
   }
 
-  async createPrescription(createPrescriptionDto: CreatePrescriptionDto) {
+  async createPrescription(
+    createPrescriptionDto: CreatePrescriptionDto,
+    user?: RequestUser,
+  ) {
     const temporaryPrescriptionNumber = `RX-TMP-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)
@@ -108,13 +147,23 @@ export class PharmacyService {
       createPrescriptionDto.patientId,
     );
 
-    await this.staffService.findOne(createPrescriptionDto.prescribedByStaffId);
-
     if (consultation.patientId !== patient.id) {
       throw new BadRequestException(
         'Consultation does not belong to the selected patient',
       );
     }
+
+    if (user) {
+      this.scopeService.assertBranchAccess(
+        user,
+        consultation.facilityId,
+        consultation.branchId,
+      );
+    }
+
+    const prescribedByStaffId =
+      user?.staffId ?? createPrescriptionDto.prescribedByStaffId;
+    await this.staffService.findOne(prescribedByStaffId);
 
     const medicineIds = Array.from(
       new Set(createPrescriptionDto.items.map((item) => item.medicineId)),
@@ -159,7 +208,7 @@ export class PharmacyService {
         prescriptionNumber: temporaryPrescriptionNumber,
         consultationId: createPrescriptionDto.consultationId,
         patientId: createPrescriptionDto.patientId,
-        prescribedByStaffId: createPrescriptionDto.prescribedByStaffId,
+        prescribedByStaffId,
         notes: createPrescriptionDto.notes,
         statusCode: 'PRESCRIBED',
         items: {
@@ -196,7 +245,7 @@ export class PharmacyService {
       },
     });
 
-    return this.prisma.prescription.update({
+    const prescription = await this.prisma.prescription.update({
       where: { id: created.id },
       data: {
         prescriptionNumber: `RX-${String(created.id).padStart(6, '0')}`,
@@ -214,6 +263,27 @@ export class PharmacyService {
         },
       },
     });
+
+    await this.recordPrescriptionAudit({
+      actionName: createPrescriptionDto.items.some(
+        (item) => item.acceptedAlternativeForMedicineId,
+      )
+        ? 'PRESCRIPTION_SENT_WITH_ALTERNATIVE'
+        : 'PRESCRIPTION_SENT_TO_PHARMACY',
+      prescription,
+      user,
+      afterData: {
+        prescriptionId: prescription.id,
+        consultationId: prescription.consultationId,
+        patientId: prescription.patientId,
+        itemCount: prescription.items.length,
+        acceptedAlternativeCount: prescription.items.filter(
+          (item) => item.acceptedAlternativeForMedicineId,
+        ).length,
+      },
+    });
+
+    return prescription;
   }
 
   getAllPrescriptions() {
@@ -507,6 +577,7 @@ export class PharmacyService {
       },
     },
     orderBy: { id: 'desc' },
+    take: 100,
   });
 }
 
@@ -545,6 +616,7 @@ async getPharmacyQueueScoped(user: RequestUser) {
       },
     },
     orderBy: { prescribedAt: 'asc' },
+    take: 100,
   });
 }
 

@@ -41,6 +41,23 @@ export interface MasterCatalogImportResult {
   }>;
 }
 
+export interface MasterCatalogListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+export interface PaginatedMasterCatalogResponse<T> {
+  data: T[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
 const listEndpointByKind: Record<MasterCatalogKind, string> = {
   medicines: "/master-catalog/medicines",
   "billing-services": "/master-catalog/billing-services",
@@ -55,22 +72,59 @@ export async function getMasterCatalogOverview() {
 
 export async function getMasterCatalogRows(
   kind: "medicines",
-): Promise<PharmacyMedicine[]>;
+  params?: MasterCatalogListParams,
+): Promise<PaginatedMasterCatalogResponse<PharmacyMedicine>>;
 export async function getMasterCatalogRows(
   kind: "billing-services",
-): Promise<BillingServiceItem[]>;
+  params?: MasterCatalogListParams,
+): Promise<PaginatedMasterCatalogResponse<BillingServiceItem>>;
 export async function getMasterCatalogRows(
   kind: "lab-tests",
-): Promise<LabTestCatalogItem[]>;
+  params?: MasterCatalogListParams,
+): Promise<PaginatedMasterCatalogResponse<LabTestCatalogItem>>;
 export async function getMasterCatalogRows(
   kind: MasterCatalogKind,
-): Promise<Array<PharmacyMedicine | BillingServiceItem | LabTestCatalogItem>>;
-export async function getMasterCatalogRows(kind: MasterCatalogKind) {
+  params?: MasterCatalogListParams,
+): Promise<
+  PaginatedMasterCatalogResponse<
+    PharmacyMedicine | BillingServiceItem | LabTestCatalogItem
+  >
+>;
+export async function getMasterCatalogRows(
+  kind: MasterCatalogKind,
+  params: MasterCatalogListParams = {},
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(params.page ?? 1));
+  searchParams.set("pageSize", String(params.pageSize ?? 50));
+  if (params.search?.trim()) {
+    searchParams.set("search", params.search.trim());
+  }
+
   return apiFetch<
-    Array<PharmacyMedicine | BillingServiceItem | LabTestCatalogItem>
-  >(listEndpointByKind[kind], {
+    PaginatedMasterCatalogResponse<
+      PharmacyMedicine | BillingServiceItem | LabTestCatalogItem
+    >
+  >(`${listEndpointByKind[kind]}?${searchParams.toString()}`, {
     method: "GET",
   });
+}
+
+export async function getLegacyMasterCatalogRows(
+  kind: "medicines",
+): Promise<PharmacyMedicine[]>;
+export async function getLegacyMasterCatalogRows(
+  kind: "billing-services",
+): Promise<BillingServiceItem[]>;
+export async function getLegacyMasterCatalogRows(
+  kind: "lab-tests",
+): Promise<LabTestCatalogItem[]>;
+export async function getLegacyMasterCatalogRows(
+  kind: MasterCatalogKind,
+): Promise<Array<PharmacyMedicine | BillingServiceItem | LabTestCatalogItem>>;
+export async function getLegacyMasterCatalogRows(kind: MasterCatalogKind) {
+  const response = await getMasterCatalogRows(kind, { page: 1, pageSize: 100 });
+  return response.data;
 }
 
 export async function getMasterCatalogTemplate(kind: MasterCatalogKind) {

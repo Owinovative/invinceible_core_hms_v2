@@ -41,8 +41,11 @@ export class PharmacyController {
 
   @Post('prescriptions')
   @Permissions('consultation.write')
-  createPrescription(@Body() createPrescriptionDto: CreatePrescriptionDto) {
-    return this.pharmacyService.createPrescription(createPrescriptionDto);
+  createPrescription(
+    @Body() createPrescriptionDto: CreatePrescriptionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyService.createPrescription(createPrescriptionDto, user);
   }
 
   @Get('prescriptions')

@@ -539,6 +539,10 @@ model LabTestCatalog {
   orderItems     LabOrderItem[]
   serviceTariffs ServiceTariff[]
 
+  @@index([testName])
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("lab_test_catalog")
 }
 
@@ -985,6 +989,11 @@ model BillingService {
   invoiceItems   InvoiceItem[]
   serviceTariffs ServiceTariff[]
 
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([updatedAt])
   @@map("billing_services")
 }
 

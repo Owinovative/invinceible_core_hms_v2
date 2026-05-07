@@ -126,6 +126,7 @@ export class PatientService {
         facility: true,
       },
       orderBy: { id: 'desc' },
+      take: 200,
     });
   }
 

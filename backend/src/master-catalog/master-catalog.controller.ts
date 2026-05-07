@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import type { PaginationQuery } from '../common/pagination/pagination';
 import { ImportMasterCatalogCsvDto } from './dto/import-master-catalog-csv.dto';
 import { MasterCatalogService } from './master-catalog.service';
 
@@ -19,8 +20,8 @@ export class MasterCatalogController {
   }
 
   @Get('medicines')
-  getMedicines() {
-    return this.masterCatalogService.getMedicines();
+  getMedicines(@Query() query: PaginationQuery) {
+    return this.masterCatalogService.getMedicines(query);
   }
 
   @Get('medicines/template')
@@ -37,8 +38,8 @@ export class MasterCatalogController {
   }
 
   @Get('billing-services')
-  getBillingServices() {
-    return this.masterCatalogService.getBillingServices();
+  getBillingServices(@Query() query: PaginationQuery) {
+    return this.masterCatalogService.getBillingServices(query);
   }
 
   @Get('billing-services/template')
@@ -55,8 +56,8 @@ export class MasterCatalogController {
   }
 
   @Get('lab-tests')
-  getLabTests() {
-    return this.masterCatalogService.getLabTests();
+  getLabTests(@Query() query: PaginationQuery) {
+    return this.masterCatalogService.getLabTests(query);
   }
 
   @Get('lab-tests/template')

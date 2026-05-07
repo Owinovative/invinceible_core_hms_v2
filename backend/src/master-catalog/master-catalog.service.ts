@@ -2,7 +2,13 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  paginatedResponse,
+  parsePagination,
+  type PaginationQuery,
+} from '../common/pagination/pagination';
 import { PrismaService } from '../prisma/prisma.service';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 import { ImportMasterCatalogCsvDto } from './dto/import-master-catalog-csv.dto';
 
 type CsvRow = Record<string, string>;
@@ -178,7 +184,14 @@ export class MasterCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
+
+  private readonly defaultCatalogPageSize = 50;
+  private readonly maxCatalogPageSize = 100;
+  private readonly slowCatalogListMs = Number(
+    process.env.SLOW_LIST_MS ?? process.env.SLOW_REQUEST_MS ?? 1000,
+  );
 
   private parseImport(csvText: string, requiredColumns: string[]) {
     const records = parseCsvRecords(csvText);
@@ -253,14 +266,66 @@ export class MasterCatalogService {
     };
   }
 
-  getMedicines() {
-    return this.prisma.medicine.findMany({
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+  async getMedicines(query: PaginationQuery = {}) {
+    const pagination = parsePagination(query, {
+      defaultPageSize: this.defaultCatalogPageSize,
+      maxPageSize: this.maxCatalogPageSize,
+      allowedSortFields: ['name', 'code', 'createdAt', 'updatedAt', 'id'],
+      defaultSortBy: 'name',
+      defaultSortDirection: 'asc',
     });
+    const startedAt = Date.now();
+    const where: Prisma.MedicineWhereInput = pagination.search
+      ? {
+          OR: [
+            { code: { contains: pagination.search } },
+            { name: { contains: pagination.search } },
+            { dosageForm: { contains: pagination.search } },
+            { strength: { contains: pagination.search } },
+            { manufacturer: { contains: pagination.search } },
+          ],
+        }
+      : {};
+    const orderBy = this.getMedicineOrderBy(
+      pagination.sortBy,
+      pagination.sortDirection,
+    );
+
+    const [data, total] = await Promise.all([
+      this.prisma.medicine.findMany({
+        where,
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.take,
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          dosageForm: true,
+          strength: true,
+          manufacturer: true,
+          unitPrice: true,
+          stockQuantity: true,
+          reorderLevel: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.medicine.count({ where }),
+    ]);
+
+    const result = paginatedResponse(data, {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      total,
+    });
+    this.logSlowCatalogList('medicines', startedAt, result.meta, pagination);
+    return result;
   }
 
   async getMedicinesTemplate() {
-    const medicines = await this.getMedicines();
+    const medicines = await this.getAllMedicinesForCsv();
     const rows = [
       MEDICINE_COLUMNS,
       ...medicines.map((medicine) => [
@@ -401,14 +466,72 @@ export class MasterCatalogService {
     return result;
   }
 
-  getBillingServices() {
-    return this.prisma.billingService.findMany({
-      orderBy: [{ category: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+  async getBillingServices(query: PaginationQuery = {}) {
+    const pagination = parsePagination(query, {
+      defaultPageSize: this.defaultCatalogPageSize,
+      maxPageSize: this.maxCatalogPageSize,
+      allowedSortFields: [
+        'category',
+        'name',
+        'code',
+        'createdAt',
+        'updatedAt',
+        'id',
+      ],
+      defaultSortBy: 'category',
+      defaultSortDirection: 'asc',
     });
+    const startedAt = Date.now();
+    const where: Prisma.BillingServiceWhereInput = pagination.search
+      ? {
+          OR: [
+            { code: { contains: pagination.search } },
+            { name: { contains: pagination.search } },
+            { category: { contains: pagination.search } },
+          ],
+        }
+      : {};
+    const orderBy = this.getBillingServiceOrderBy(
+      pagination.sortBy,
+      pagination.sortDirection,
+    );
+
+    const [data, total] = await Promise.all([
+      this.prisma.billingService.findMany({
+        where,
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.take,
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          category: true,
+          defaultPrice: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.billingService.count({ where }),
+    ]);
+
+    const result = paginatedResponse(data, {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      total,
+    });
+    this.logSlowCatalogList(
+      'billing-services',
+      startedAt,
+      result.meta,
+      pagination,
+    );
+    return result;
   }
 
   async getBillingServicesTemplate() {
-    const services = await this.getBillingServices();
+    const services = await this.getAllBillingServicesForCsv();
     const rows = [
       BILLING_SERVICE_COLUMNS,
       ...services.map((service) => [
@@ -538,14 +661,58 @@ export class MasterCatalogService {
     return result;
   }
 
-  getLabTests() {
-    return this.prisma.labTestCatalog.findMany({
-      orderBy: [{ category: 'asc' }, { testName: 'asc' }, { id: 'asc' }],
+  async getLabTests(query: PaginationQuery = {}) {
+    const pagination = parsePagination(query, {
+      defaultPageSize: this.defaultCatalogPageSize,
+      maxPageSize: this.maxCatalogPageSize,
+      allowedSortFields: ['category', 'testName', 'createdAt', 'id'],
+      defaultSortBy: 'category',
+      defaultSortDirection: 'asc',
     });
+    const startedAt = Date.now();
+    const where: Prisma.LabTestCatalogWhereInput = pagination.search
+      ? {
+          OR: [
+            { testName: { contains: pagination.search } },
+            { category: { contains: pagination.search } },
+            { specimenType: { contains: pagination.search } },
+          ],
+        }
+      : {};
+    const orderBy = this.getLabTestOrderBy(
+      pagination.sortBy,
+      pagination.sortDirection,
+    );
+
+    const [data, total] = await Promise.all([
+      this.prisma.labTestCatalog.findMany({
+        where,
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.take,
+        select: {
+          id: true,
+          testName: true,
+          category: true,
+          specimenType: true,
+          isActive: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.labTestCatalog.count({ where }),
+    ]);
+
+    const result = paginatedResponse(data, {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      total,
+    });
+    this.logSlowCatalogList('lab-tests', startedAt, result.meta, pagination);
+    return result;
   }
 
   async getLabTestsTemplate() {
-    const labTests = await this.getLabTests();
+    const labTests = await this.getAllLabTestsForCsv();
     const rows = [
       LAB_TEST_COLUMNS,
       ...labTests.map((test) => [
@@ -664,5 +831,114 @@ export class MasterCatalogService {
     const result = { processed, created, updated, skipped, errors };
     await this.auditImport('IMPORT_MASTER_LAB_TESTS', result, user);
     return result;
+  }
+
+  private getMedicineOrderBy(
+    sortBy: string,
+    sortDirection: string,
+  ): Prisma.MedicineOrderByWithRelationInput[] {
+    const direction: Prisma.SortOrder =
+      sortDirection === 'asc' ? 'asc' : 'desc';
+    if (sortBy === 'id') return [{ id: direction }];
+    return [
+      { [sortBy]: direction } as Prisma.MedicineOrderByWithRelationInput,
+      { id: 'asc' },
+    ];
+  }
+
+  private getBillingServiceOrderBy(
+    sortBy: string,
+    sortDirection: string,
+  ): Prisma.BillingServiceOrderByWithRelationInput[] {
+    const direction: Prisma.SortOrder =
+      sortDirection === 'asc' ? 'asc' : 'desc';
+    if (sortBy === 'id') return [{ id: direction }];
+    return [
+      {
+        [sortBy]: direction,
+      } as Prisma.BillingServiceOrderByWithRelationInput,
+      { id: 'asc' },
+    ];
+  }
+
+  private getLabTestOrderBy(
+    sortBy: string,
+    sortDirection: string,
+  ): Prisma.LabTestCatalogOrderByWithRelationInput[] {
+    const direction: Prisma.SortOrder =
+      sortDirection === 'asc' ? 'asc' : 'desc';
+    if (sortBy === 'id') return [{ id: direction }];
+    return [
+      {
+        [sortBy]: direction,
+      } as Prisma.LabTestCatalogOrderByWithRelationInput,
+      { id: 'asc' },
+    ];
+  }
+
+  private logSlowCatalogList(
+    kind: string,
+    startedAt: number,
+    meta: { page: number; pageSize: number; total: number },
+    pagination: ReturnType<typeof parsePagination>,
+  ) {
+    const durationMs = Date.now() - startedAt;
+    if (durationMs < this.slowCatalogListMs) return;
+
+    this.safeLogger.warn('Slow master catalog list request', {
+      kind,
+      durationMs,
+      page: meta.page,
+      pageSize: meta.pageSize,
+      total: meta.total,
+      search: pagination.search ? '[present]' : undefined,
+      sortBy: pagination.sortBy,
+      sortDirection: pagination.sortDirection,
+    });
+  }
+
+  private getAllMedicinesForCsv() {
+    return this.prisma.medicine.findMany({
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        dosageForm: true,
+        strength: true,
+        manufacturer: true,
+        unitPrice: true,
+        stockQuantity: true,
+        reorderLevel: true,
+        isActive: true,
+      },
+    });
+  }
+
+  private getAllBillingServicesForCsv() {
+    return this.prisma.billingService.findMany({
+      orderBy: [{ category: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        category: true,
+        defaultPrice: true,
+        isActive: true,
+      },
+    });
+  }
+
+  private getAllLabTestsForCsv() {
+    return this.prisma.labTestCatalog.findMany({
+      orderBy: [{ category: 'asc' }, { testName: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        testName: true,
+        category: true,
+        specimenType: true,
+        isActive: true,
+      },
+    });
   }
 }
