@@ -15,6 +15,9 @@ export function useUpdateConsultation() {
       updateConsultation(id, payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["consultation", data.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["consultation-workspace", data.id],
+      });
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
     },
   });

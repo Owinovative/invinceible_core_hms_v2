@@ -13,6 +13,7 @@ import { PharmacyService } from './pharmacy.service';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { CreateDispenseDto } from './dto/create-dispense.dto';
+import { DirectMedicineAdministrationDto } from './dto/direct-medicine-administration.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type{ RequestUser } from '../auth/interfaces/request-user.interface';
 import { Permissions } from '../auth/permissions.decorator';
@@ -75,6 +76,15 @@ export class PharmacyController {
     @Body() dto?: Partial<CreateDispenseDto>,
   ) {
     return this.pharmacyService.dispensePrescription(id, user, dto);
+  }
+
+  @Post('direct-administrations')
+  @Permissions('consultation.write')
+  directMedicineAdministration(
+    @Body() dto: DirectMedicineAdministrationDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyService.directMedicineAdministration(dto, user);
   }
 
 }

@@ -38,6 +38,7 @@ import { PermissionsGuard } from '../auth/permissions.guard';
 import { StepUpRequired } from '../auth/step-up.decorator';
 import { StepUpGuard } from '../auth/step-up.guard';
 import type { RequestWithContext } from '../resilience/request-context.middleware';
+import type { PaginationQuery } from '../common/pagination/pagination';
 
 @Controller('billing')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard, StepUpGuard)
@@ -101,8 +102,11 @@ export class BillingController {
 
   @Get('tariffs')
   @Permissions('billing.read')
-  getServiceTariffs(@CurrentUser() user: RequestUser) {
-    return this.billingService.getServiceTariffs(user);
+  getServiceTariffs(
+    @Query() query: PaginationQuery,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.getServiceTariffs(user, query);
   }
 
   @Patch('tariffs/:id')

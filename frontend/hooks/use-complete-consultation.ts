@@ -13,6 +13,9 @@ export function useCompleteConsultation() {
     mutationFn: (id: number) => completeConsultation(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["consultation", data.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["consultation-workspace", data.id],
+      });
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["triage"] });

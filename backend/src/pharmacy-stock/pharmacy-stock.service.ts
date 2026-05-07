@@ -13,6 +13,12 @@ import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
 import { ImportBranchPricingCsvDto } from './dto/import-branch-pricing-csv.dto';
+import {
+  paginatedResponse,
+  parsePagination,
+  type PaginationQuery,
+} from '../common/pagination/pagination';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 
 type CsvRow = Record<string, string>;
 
@@ -199,6 +205,7 @@ export class PharmacyStockService {
     private readonly facilityService: FacilityService,
     private readonly branchService: BranchService,
     private readonly scopeService: ScopeService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
 
   private async resolveRecoveredStockNotifications(stockId: number) {
@@ -630,17 +637,102 @@ export class PharmacyStockService {
     });
   }
 
-  findAllScoped(user: RequestUser) {
-    const scope = this.scopeService.buildReadScope(user);
+  private buildStockSearchWhere(search?: string): Prisma.BranchMedicineStockWhereInput[] {
+    if (!search) return [];
 
-    return this.prisma.branchMedicineStock.findMany({
-      where: scope,
-      include: {
-        facility: true,
-        branch: true,
-        medicine: true,
+    return [
+      { medicine: { code: { contains: search } } },
+      { medicine: { name: { contains: search } } },
+      { medicine: { dosageForm: { contains: search } } },
+      { medicine: { strength: { contains: search } } },
+      { medicine: { manufacturer: { contains: search } } },
+    ];
+  }
+
+  private branchStockListSelect() {
+    return {
+      id: true,
+      facilityId: true,
+      branchId: true,
+      medicineId: true,
+      stockQuantity: true,
+      reorderLevel: true,
+      buyingPrice: true,
+      unitPrice: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      facility: { select: { id: true, code: true, name: true } },
+      branch: { select: { id: true, code: true, name: true } },
+      medicine: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          dosageForm: true,
+          strength: true,
+          manufacturer: true,
+          unitPrice: true,
+          stockQuantity: true,
+          reorderLevel: true,
+          isActive: true,
+        },
       },
-      orderBy: { id: 'asc' },
+    } satisfies Prisma.BranchMedicineStockSelect;
+  }
+
+  async findAllScoped(user: RequestUser, query: PaginationQuery = {}) {
+    const scope = this.scopeService.buildReadScope(user);
+    const params = parsePagination(query, {
+      defaultPageSize: 50,
+      maxPageSize: 100,
+      allowedSortFields: [
+        'id',
+        'stockQuantity',
+        'reorderLevel',
+        'unitPrice',
+        'buyingPrice',
+        'createdAt',
+        'updatedAt',
+      ],
+      defaultSortBy: 'id',
+      defaultSortDirection: 'asc',
+    });
+    const where: Prisma.BranchMedicineStockWhereInput = { ...scope };
+    const searchOr = this.buildStockSearchWhere(params.search);
+    if (searchOr.length) {
+      where.OR = searchOr;
+    }
+
+    const startedAt = Date.now();
+    const [data, total] = await Promise.all([
+      this.prisma.branchMedicineStock.findMany({
+        where,
+        select: this.branchStockListSelect(),
+        skip: params.skip,
+        take: params.take,
+        orderBy: { [params.sortBy]: params.sortDirection },
+      }),
+      this.prisma.branchMedicineStock.count({ where }),
+    ]);
+
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= Number(process.env.SLOW_LIST_MS ?? 750)) {
+      this.safeLogger.warn('Slow pharmacy stock list request', {
+        durationMs,
+        page: params.page,
+        pageSize: params.pageSize,
+        total,
+        facilityId: user.homeFacilityId ?? null,
+        branchId: user.homeBranchId ?? null,
+        roleCode: user.roleCode,
+      });
+    }
+
+    return paginatedResponse(data, {
+      page: params.page,
+      pageSize: params.pageSize,
+      total,
     });
   }
 
@@ -656,20 +748,65 @@ export class PharmacyStockService {
     });
   }
 
-  async findByBranchScoped(branchId: number, user: RequestUser) {
+  async findByBranchScoped(
+    branchId: number,
+    user: RequestUser,
+    query: PaginationQuery = {},
+  ) {
     const branch = await this.getScopedBranch(branchId, user);
+    const params = parsePagination(query, {
+      defaultPageSize: 50,
+      maxPageSize: 100,
+      allowedSortFields: [
+        'id',
+        'stockQuantity',
+        'reorderLevel',
+        'unitPrice',
+        'buyingPrice',
+        'createdAt',
+        'updatedAt',
+      ],
+      defaultSortBy: 'id',
+      defaultSortDirection: 'asc',
+    });
+    const where: Prisma.BranchMedicineStockWhereInput = {
+      facilityId: branch.facilityId,
+      branchId,
+    };
+    const searchOr = this.buildStockSearchWhere(params.search);
+    if (searchOr.length) {
+      where.OR = searchOr;
+    }
 
-    return this.prisma.branchMedicineStock.findMany({
-      where: {
+    const startedAt = Date.now();
+    const [data, total] = await Promise.all([
+      this.prisma.branchMedicineStock.findMany({
+        where,
+        select: this.branchStockListSelect(),
+        skip: params.skip,
+        take: params.take,
+        orderBy: { [params.sortBy]: params.sortDirection },
+      }),
+      this.prisma.branchMedicineStock.count({ where }),
+    ]);
+
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= Number(process.env.SLOW_LIST_MS ?? 750)) {
+      this.safeLogger.warn('Slow branch pharmacy stock list request', {
+        durationMs,
+        page: params.page,
+        pageSize: params.pageSize,
+        total,
         facilityId: branch.facilityId,
         branchId,
-      },
-      include: {
-        facility: true,
-        branch: true,
-        medicine: true,
-      },
-      orderBy: { id: 'asc' },
+        roleCode: user.roleCode,
+      });
+    }
+
+    return paginatedResponse(data, {
+      page: params.page,
+      pageSize: params.pageSize,
+      total,
     });
   }
 

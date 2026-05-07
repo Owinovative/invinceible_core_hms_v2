@@ -3,6 +3,20 @@ import { Type } from 'class-transformer';
 
 export class NotificationQueryDto {
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  pageSize?: number;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
   @IsString()
   moduleName?: string;
 

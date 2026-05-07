@@ -21,11 +21,9 @@ import {
 } from "lucide-react";
 
 
-import { useConsultation } from "@/hooks/use-consultation";
-import { usePatientConsultations } from "@/hooks/use-patient-consultations";
+import { useConsultationWorkspace } from "@/hooks/use-consultation-workspace";
 import { useUpdateConsultation } from "@/hooks/use-update-consultation";
 import { useCompleteConsultation } from "@/hooks/use-complete-consultation";
-import { useTriageByAppointment } from "@/hooks/use-triage-by-appointment";
 import { useScope } from "@/providers/scope-provider";
 import { useAuth } from "@/providers/auth-provider";
 import type {
@@ -36,21 +34,17 @@ import type {
 
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { useCreateLabOrder } from "@/hooks/use-create-lab-order";
-import { useLabOrders } from "@/hooks/use-lab-orders";
-import { useLabResults } from "@/hooks/use-lab-results";
 
 
 import { useBranchMedicineSearch } from "@/hooks/use-branch-medicine-search";
 import { useMedicineStockAlternatives } from "@/hooks/use-medicine-stock-alternatives";
 import { useCreatePrescription } from "@/hooks/use-create-prescription";
-import { useConsultationPrescriptions } from "@/hooks/use-consultation-prescriptions";
-import { usePatientPrescriptions } from "@/hooks/use-patient-prescriptions";
+import { useDirectMedicineAdministration } from "@/hooks/use-direct-medicine-administration";
 
 
 import { useWards } from "@/hooks/use-wards";
 import { useBeds } from "@/hooks/use-beds";
 import { useCreateAdmission } from "@/hooks/use-create-admission";
-import { useActiveAdmissions } from "@/hooks/use-active-admissions";
 
 
 import { Badge } from "@/components/ui/badge";
@@ -100,21 +94,21 @@ export default function ConsultationDetailPage() {
   const { user } = useAuth();
 
 
-  const { data, isLoading } = useConsultation(id);
+  const { data: workspace, isLoading } = useConsultationWorkspace(id);
+  const data = workspace?.consultation;
   const patientId = data?.patientId;
   const appointmentId = data?.appointmentId;
 
 
-  const { data: triageData } = useTriageByAppointment(appointmentId);
-  const { data: historyData, isLoading: historyLoading } =
-    usePatientConsultations(patientId);
+  const triageData = workspace?.latestTriage ?? null;
+  const historyData = workspace?.recentConsultations ?? [];
+  const historyLoading = isLoading;
 
 
   const updateMutation = useUpdateConsultation();
   const completeMutation = useCompleteConsultation();
 
 
-  const { data: activeAdmissionsData } = useActiveAdmissions();
   const { data: wardsData, isLoading: wardsLoading } = useWards();
   const { data: bedsData, isLoading: bedsLoading } = useBeds();
   const createAdmissionMutation = useCreateAdmission();
@@ -127,62 +121,40 @@ export default function ConsultationDetailPage() {
 
 
   const createPrescriptionMutation = useCreatePrescription();
-  const { data: consultationPrescriptions } = useConsultationPrescriptions(id);
-  const { data: patientPrescriptions, isLoading: patientPrescriptionsLoading } =
-    usePatientPrescriptions(patientId);
+  const directMedicineAdministrationMutation = useDirectMedicineAdministration();
+  const consultationPrescriptions =
+    workspace?.consultationPrescriptions ?? [];
+  const patientPrescriptions = workspace?.patientPrescriptions ?? [];
+  const patientPrescriptionsLoading = isLoading;
 
 
   const { data: labTestsData, isLoading: labTestsLoading } = useLabTests();
   const createLabOrderMutation = useCreateLabOrder();
-  const { data: allLabOrders, isLoading: labOrdersLoading } = useLabOrders();
+  const labOrdersLoading = isLoading;
 
   const consultationNumber = data?.consultationNumber;
 
   const consultationLabOrders = React.useMemo(() => {
-    const orders = Array.isArray(allLabOrders) ? allLabOrders : [];
-    return orders.filter((order) => {
-      const sameAppointment =
-        appointmentId && order.appointmentId === appointmentId;
-
-
-      const sameEncounterRef =
-        consultationNumber &&
-        String((order as { encounterRef?: string | null }).encounterRef ?? "") ===
-          consultationNumber;
-
-
-      return Boolean(sameAppointment || sameEncounterRef);
-    });
-  }, [allLabOrders, appointmentId, consultationNumber]);
+    return Array.isArray(workspace?.labOrders) ? workspace.labOrders : [];
+  }, [workspace?.labOrders]);
 
 
   const latestConsultationLabOrder =
     consultationLabOrders.length > 0 ? consultationLabOrders[0] : null;
 
 
-  const { data: latestLabResults } = useLabResults(latestConsultationLabOrder?.id);
-
-
   const latestLabResultsList = React.useMemo(
-    () => (Array.isArray(latestLabResults) ? latestLabResults : []),
-    [latestLabResults],
-  );
-
-  const activeAdmissions = React.useMemo(
-    () => (Array.isArray(activeAdmissionsData) ? activeAdmissionsData : []),
-    [activeAdmissionsData],
+    () =>
+      latestConsultationLabOrder?.items?.flatMap(
+        (item: { results?: Array<Record<string, any>> }) => item.results ?? [],
+      ) ?? [],
+    [latestConsultationLabOrder],
   );
 
 
   const existingAdmission = React.useMemo(() => {
-    return (
-      activeAdmissions.find(
-        (item) =>
-          item.consultationId === data?.id &&
-          (item.statusCode || "").toUpperCase() === "ADMITTED",
-      ) ?? null
-    );
-  }, [activeAdmissions, data?.id]);
+    return workspace?.activeAdmission ?? null;
+  }, [workspace?.activeAdmission]);
 
 
   const wards = React.useMemo(
@@ -238,6 +210,8 @@ export default function ConsultationDetailPage() {
   >([]);
   const [allowOutOfStockPrescribing, setAllowOutOfStockPrescribing] =
     React.useState(false);
+  const [directAdministrationMode, setDirectAdministrationMode] =
+    React.useState<"DIRECT_DISPENSE" | "INJECTION">("DIRECT_DISPENSE");
 
 
   const [selectedTestId, setSelectedTestId] = React.useState("");
@@ -316,14 +290,14 @@ export default function ConsultationDetailPage() {
             urgency: latestConsultationLabOrder.urgency,
             status: latestConsultationLabOrder.status,
             clinicalNotes: latestConsultationLabOrder.clinicalNotes,
-            tests: latestConsultationLabOrder.items?.map((item) => ({
+            tests: latestConsultationLabOrder.items?.map((item: any) => ({
               testName: item.test?.testName,
               status: item.status,
               instructions: item.instructions,
             })),
           }
         : undefined,
-      latestLabResults: latestLabResultsList.map((item) => ({
+      latestLabResults: latestLabResultsList.map((item: any) => ({
         resultValue: item.resultValue,
         remarks: item.remarks,
         recordedAt: item.recordedAt,
@@ -672,6 +646,45 @@ export default function ConsultationDetailPage() {
 
     resetPrescriptionItemForm();
     setMessage("Prescription item added to draft. Send it to pharmacy when complete.");
+  };
+
+  const handleDirectMedicineAdministration = async () => {
+    if (!data) return;
+    setMessage(null);
+
+    if (!selectedMedicineIdNumber || !selectedStockItem) {
+      setMessage("Select an in-stock medicine first.");
+      return;
+    }
+
+    const quantity = Math.max(1, Number(itemQuantity || 1));
+    if (Number(selectedStockItem.stockQuantity ?? 0) < quantity) {
+      setMessage(
+        "Insufficient branch stock for direct dispense or injection administration.",
+      );
+      return;
+    }
+
+    await directMedicineAdministrationMutation.mutateAsync({
+      consultationId: data.id,
+      patientId: data.patientId,
+      medicineId: selectedMedicineIdNumber,
+      quantity,
+      mode: directAdministrationMode,
+      dosage: itemDosage || undefined,
+      route: itemRoute || undefined,
+      frequency: itemFrequency || undefined,
+      duration: itemDuration || undefined,
+      instructions: itemInstructions || undefined,
+      notes: prescriptionNotes || undefined,
+    });
+
+    resetPrescriptionItemForm();
+    setMessage(
+      directAdministrationMode === "INJECTION"
+        ? "Medicine administered and stock deducted."
+        : "Medicine directly dispensed and stock deducted.",
+    );
   };
 
 
@@ -1657,6 +1670,52 @@ export default function ConsultationDetailPage() {
                       Add to Prescription Draft
                     </Button>
 
+                    <div className="rounded-[1.2rem] border border-cyan-500/20 bg-cyan-500/8 p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold">
+                            Doctor-room stock action
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Use this only when medicine is given or dispensed in
+                            the consultation room. Stock is deducted immediately.
+                          </p>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
+                          <select
+                            value={directAdministrationMode}
+                            onChange={(event) =>
+                              setDirectAdministrationMode(
+                                event.target.value as "DIRECT_DISPENSE" | "INJECTION",
+                              )
+                            }
+                            className="h-11 rounded-xl border border-white/10 bg-background px-3 text-sm"
+                          >
+                            <option value="DIRECT_DISPENSE">Direct dispense</option>
+                            <option value="INJECTION">Injection/administer</option>
+                          </select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 rounded-xl"
+                            onClick={handleDirectMedicineAdministration}
+                            disabled={
+                              directMedicineAdministrationMutation.isPending ||
+                              !selectedMedicineIdNumber ||
+                              selectedStockStatus === "OUT_OF_STOCK"
+                            }
+                          >
+                            {directMedicineAdministrationMutation.isPending ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Pill className="mr-2 h-4 w-4" />
+                            )}
+                            Deduct stock now
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -2043,11 +2102,11 @@ export default function ConsultationDetailPage() {
                             No test items in this order.
                           </div>
                         ) : (
-                          order.items?.map((item) => {
+                          order.items?.map((item: any) => {
                             const itemResult =
                               item.results?.[0] ??
                               latestLabResultsList.find(
-                                (result) => result.orderItemId === item.id,
+                                (result: any) => result.orderItemId === item.id,
                               ) ??
                               null;
                             const attachmentUrl =

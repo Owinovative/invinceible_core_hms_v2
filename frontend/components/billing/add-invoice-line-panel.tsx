@@ -64,9 +64,10 @@ export function AddInvoiceLinePanel({
   const addInvoiceItemMutation = useAddInvoiceItem();
   const { data: billingServicesData = [] } = useBillingServices();
   const { data: labTestsData = [] } = useLabTests();
-  const { data: tariffsData = [] } = useServiceTariffs();
+  const { data: tariffsData } = useServiceTariffs({ pageSize: 100 });
   const { data: branchStockData = [] } = useBranchPharmacyStock(
     branchId ?? undefined,
+    { pageSize: 100 },
   );
 
   const billingServices = React.useMemo(
@@ -78,11 +79,17 @@ export function AddInvoiceLinePanel({
     [labTestsData],
   );
   const tariffs = React.useMemo(
-    () => (Array.isArray(tariffsData) ? tariffsData : []),
+    () =>
+      Array.isArray(tariffsData)
+        ? tariffsData
+        : (tariffsData?.data ?? []),
     [tariffsData],
   );
   const branchStock = React.useMemo(
-    () => (Array.isArray(branchStockData) ? branchStockData : []),
+    () =>
+      Array.isArray(branchStockData)
+        ? branchStockData
+        : (branchStockData?.data ?? []),
     [branchStockData],
   );
 

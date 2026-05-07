@@ -199,6 +199,20 @@ export interface DispensePrescriptionPayload {
   }>;
 }
 
+export interface DirectMedicineAdministrationPayload {
+  consultationId: number;
+  patientId: number;
+  medicineId: number;
+  quantity: number;
+  mode: "DIRECT_DISPENSE" | "INJECTION";
+  dosage?: string;
+  route?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
+  notes?: string;
+}
+
 export async function dispensePharmacyPrescription(
   id: number,
   payload?: DispensePrescriptionPayload,
@@ -206,5 +220,14 @@ export async function dispensePharmacyPrescription(
   return apiFetch<PharmacyPrescriptionRecord>(`/pharmacy/prescriptions/${id}/dispense`, {
     method: "PATCH",
     body: JSON.stringify(payload ?? {}),
+  });
+}
+
+export async function directMedicineAdministration(
+  payload: DirectMedicineAdministrationPayload,
+) {
+  return apiFetch<PharmacyPrescriptionRecord>("/pharmacy/direct-administrations", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }

@@ -16,6 +16,7 @@ export function useCreateLabOrder() {
     mutationFn: (payload: CreateLabOrderPayload) => createLabOrder(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lab-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["consultation-workspace"] });
     },
   });
 }

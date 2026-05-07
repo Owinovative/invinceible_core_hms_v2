@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientService } from '../patient/patient.service';
 import { StaffService } from '../staff/staff.service';
@@ -11,10 +12,12 @@ import { NotificationService } from '../notification/notification.service';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { CreateDispenseDto } from './dto/create-dispense.dto';
+import { DirectMedicineAdministrationDto } from './dto/direct-medicine-administration.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { BillingService } from '../billing/billing.service';
 import { CacheService } from '../resilience/cache.service';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 
 function stockStatus(stockQuantity?: number | null, reorderLevel?: number | null) {
   const quantity = Number(stockQuantity ?? 0);
@@ -36,6 +39,7 @@ export class PharmacyService {
     private readonly scopeService: ScopeService,
     private readonly billingService: BillingService,
     private readonly cacheService: CacheService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
 
   private async recordPrescriptionAudit(params: {
@@ -1012,5 +1016,249 @@ async getPharmacyQueueScoped(user: RequestUser) {
   return result;
 }
 
+  async directMedicineAdministration(
+    dto: DirectMedicineAdministrationDto,
+    user: RequestUser,
+  ) {
+    const consultation = await this.consultationService.findOne(
+      dto.consultationId,
+    );
+
+    if (consultation.patientId !== dto.patientId) {
+      throw new BadRequestException(
+        'Consultation does not belong to the selected patient',
+      );
+    }
+
+    if (!consultation.branchId) {
+      throw new BadRequestException(
+        'Consultation has no branch assigned. Direct stock administration requires branch stock.',
+      );
+    }
+
+    this.scopeService.assertBranchAccess(
+      user,
+      consultation.facilityId,
+      consultation.branchId,
+    );
+
+    const staff = await this.prisma.staff.findFirst({
+      where: { userId: user.userId, isActive: true },
+    });
+
+    if (!staff) {
+      throw new BadRequestException(
+        'Logged in user is not linked to an active staff profile.',
+      );
+    }
+
+    const stock = await this.prisma.branchMedicineStock.findFirst({
+      where: {
+        facilityId: consultation.facilityId,
+        branchId: consultation.branchId,
+        medicineId: dto.medicineId,
+        isActive: true,
+      },
+      include: { medicine: true, branch: true },
+    });
+
+    if (!stock) {
+      throw new NotFoundException(
+        `No branch stock found for medicine ${dto.medicineId} in this consultation branch.`,
+      );
+    }
+
+    if (stock.stockQuantity < dto.quantity) {
+      throw new BadRequestException(
+        `Insufficient consultation-room stock for ${stock.medicine.name}. Available: ${stock.stockQuantity}, required: ${dto.quantity}`,
+      );
+    }
+
+    const temporaryPrescriptionNumber = `RX-DIRECT-TMP-${Date.now()}-${randomBytes(4)
+      .toString('hex')
+      .toUpperCase()}`;
+    const temporaryDispenseNumber = `DSP-DIRECT-TMP-${Date.now()}-${randomBytes(4)
+      .toString('hex')
+      .toUpperCase()}`;
+    const startedAt = Date.now();
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const reservedStock = await tx.branchMedicineStock.updateMany({
+        where: {
+          id: stock.id,
+          stockQuantity: { gte: dto.quantity },
+        },
+        data: { stockQuantity: { decrement: dto.quantity } },
+      });
+
+      if (reservedStock.count !== 1) {
+        throw new BadRequestException(
+          `Insufficient consultation-room stock for ${stock.medicine.name}. Another action may have used the stock first.`,
+        );
+      }
+
+      let prescription = await tx.prescription.create({
+        data: {
+          prescriptionNumber: temporaryPrescriptionNumber,
+          consultationId: consultation.id,
+          patientId: consultation.patientId,
+          facilityId: consultation.facilityId,
+          branchId: consultation.branchId,
+          prescribedByStaffId: staff.id,
+          notes:
+            dto.mode === 'INJECTION'
+              ? `Doctor-room injection/administered medicine. ${dto.notes ?? ''}`.trim()
+              : `Doctor-room direct dispense. ${dto.notes ?? ''}`.trim(),
+          statusCode: 'DISPENSED',
+          dispensedAt: new Date(),
+        },
+      });
+
+      prescription = await tx.prescription.update({
+        where: { id: prescription.id },
+        data: {
+          prescriptionNumber: `RX-DIRECT-${String(prescription.id).padStart(6, '0')}`,
+        },
+      });
+
+      const prescriptionItem = await tx.prescriptionItem.create({
+        data: {
+          prescriptionId: prescription.id,
+          medicineId: dto.medicineId,
+          medicineNameSnapshot: stock.medicine.name,
+          dosage: dto.dosage,
+          route: dto.route,
+          frequency: dto.frequency,
+          duration: dto.duration,
+          quantity: dto.quantity,
+          instructions: dto.instructions,
+          stockStatusAtPrescribing: stockStatus(
+            stock.stockQuantity,
+            stock.reorderLevel,
+          ),
+          statusCode: 'DISPENSED',
+        },
+      });
+
+      let dispense = await tx.dispense.create({
+        data: {
+          dispenseNumber: temporaryDispenseNumber,
+          prescriptionId: prescription.id,
+          patientId: consultation.patientId,
+          facilityId: consultation.facilityId,
+          branchId: consultation.branchId,
+          dispensedByStaffId: staff.id,
+          statusCode: 'DISPENSED',
+          notes:
+            dto.mode === 'INJECTION'
+              ? 'Administered in consultation room'
+              : 'Directly dispensed in consultation room',
+          dispensedAt: new Date(),
+        },
+      });
+
+      dispense = await tx.dispense.update({
+        where: { id: dispense.id },
+        data: {
+          dispenseNumber: `DSP-DIRECT-${String(dispense.id).padStart(6, '0')}`,
+        },
+      });
+
+      await tx.dispenseItem.create({
+        data: {
+          dispenseId: dispense.id,
+          prescriptionItemId: prescriptionItem.id,
+          medicineId: dto.medicineId,
+          quantityPrescribed: dto.quantity,
+          quantityDispensed: dto.quantity,
+          unitPrice: stock.unitPrice ?? stock.medicine.unitPrice ?? 0,
+          lineTotal: (stock.unitPrice ?? stock.medicine.unitPrice ?? 0) * dto.quantity,
+          notes: dto.instructions ?? dto.notes,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          moduleName: 'CONSULTATION',
+          actionName:
+            dto.mode === 'INJECTION'
+              ? 'DOCTOR_ROOM_INJECTION_ADMINISTERED'
+              : 'DOCTOR_ROOM_DIRECT_DISPENSED',
+          entityType: 'PRESCRIPTION',
+          entityId: String(prescription.id),
+          facilityId: consultation.facilityId,
+          branchId: consultation.branchId ?? undefined,
+          actorUserId: user.userId,
+          actorStaffId: staff.id,
+          afterData: JSON.stringify({
+            mode: dto.mode,
+            consultationId: consultation.id,
+            patientId: consultation.patientId,
+            medicineId: dto.medicineId,
+            quantity: dto.quantity,
+          }),
+        },
+      });
+
+      return tx.prescription.findUnique({
+        where: { id: prescription.id },
+        include: {
+          patient: true,
+          prescribedBy: true,
+          items: { include: { medicine: true } },
+          dispenses: {
+            include: {
+              dispensedBy: true,
+              items: { include: { medicine: true, prescriptionItem: true } },
+            },
+          },
+        },
+      });
+    });
+
+    const unitPrice = stock.unitPrice ?? stock.medicine.unitPrice ?? 0;
+    await this.billingService.addAutoInvoiceItem({
+      patientId: consultation.patientId,
+      facilityId: consultation.facilityId,
+      branchId: consultation.branchId,
+      consultationId: consultation.id,
+      createdByStaffId: staff.id,
+      description:
+        dto.mode === 'INJECTION'
+          ? `Injection/Administered: ${stock.medicine.name}`
+          : `Doctor Room Dispensed: ${stock.medicine.name}`,
+      quantity: dto.quantity,
+      unitPrice,
+      notes: dto.instructions ?? dto.notes,
+      sourceModule: 'CONSULTATION_ROOM',
+      sourceEntityType: dto.mode,
+      sourceEntityId: result?.id ? String(result.id) : String(dto.medicineId),
+    });
+
+    await this.notifyLowOrOutOfStock({
+      stockId: stock.id,
+      facilityId: stock.facilityId,
+      branchId: stock.branchId,
+      medicineName: stock.medicine.name,
+      branchName: stock.branch.name,
+      stockQuantity: stock.stockQuantity - dto.quantity,
+      reorderLevel: stock.reorderLevel,
+    });
+
+    this.safeLogger.info('Doctor-room medicine administration completed', {
+      mode: dto.mode,
+      consultationId: consultation.id,
+      patientId: consultation.patientId,
+      medicineId: dto.medicineId,
+      quantity: dto.quantity,
+      facilityId: consultation.facilityId,
+      branchId: consultation.branchId,
+      actorUserId: user.userId,
+      actorStaffId: staff.id,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return result;
+  }
 
 }

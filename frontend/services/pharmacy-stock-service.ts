@@ -34,6 +34,25 @@ export interface BranchMedicineStockItem {
   } | null;
 }
 
+export interface BranchMedicineStockListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}
+
+export interface PaginatedBranchMedicineStockResponse {
+  data: BranchMedicineStockItem[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
 export interface BranchMedicineAlternativeItem extends BranchMedicineStockItem {
   score: number;
   reasons: string[];
@@ -141,12 +160,21 @@ export interface BranchMedicinePricingImportResult {
   }>;
 }
 
-export async function getBranchPharmacyStock(branchId: number) {
-  return apiFetch<BranchMedicineStockItem[]>(
-    `/pharmacy-stock/branch/${branchId}`,
-    {
-      method: "GET",
-    },
+export async function getBranchPharmacyStock(
+  branchId: number,
+  params?: BranchMedicineStockListParams,
+) {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.pageSize) query.set("pageSize", String(params.pageSize));
+  if (params?.search?.trim()) query.set("search", params.search.trim());
+  if (params?.sortBy) query.set("sortBy", params.sortBy);
+  if (params?.sortDirection) query.set("sortDirection", params.sortDirection);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+
+  return apiFetch<PaginatedBranchMedicineStockResponse>(
+    `/pharmacy-stock/branch/${branchId}${suffix}`,
+    { method: "GET" },
   );
 }
 

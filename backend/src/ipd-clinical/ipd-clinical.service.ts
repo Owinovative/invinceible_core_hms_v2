@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IpdService } from '../ipd/ipd.service';
 import { StaffService } from '../staff/staff.service';
@@ -7,7 +7,9 @@ import { CreateTreatmentChartEntryDto } from './dto/create-treatment-chart-entry
 import { CreateIpdVitalRecordDto } from './dto/create-ipd-vital-record.dto';
 import { CreateIpdDoctorReviewDto } from './dto/create-ipd-doctor-review.dto';
 import { CreateIpdDischargeSummaryDto } from './dto/create-ipd-discharge-summary.dto';
+import { AdministerIpdMedicineDto } from './dto/administer-ipd-medicine.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 import {
   addKeyValueGrid,
   addParagraph,
@@ -26,6 +28,7 @@ export class IpdClinicalService {
     private readonly prisma: PrismaService,
     private readonly ipdService: IpdService,
     private readonly staffService: StaffService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
 
   async createProgressNote(dto: CreateIpdProgressNoteDto) {
@@ -221,6 +224,132 @@ export class IpdClinicalService {
     });
   }
 
+  async administerAdmissionMedicine(
+    admissionId: number,
+    dto: AdministerIpdMedicineDto,
+    user: RequestUser,
+  ) {
+    const admission = await this.ipdService.getAdmissionByIdScoped(
+      admissionId,
+      user,
+    );
+
+    if (!admission.branchId) {
+      throw new BadRequestException(
+        'Admission has no branch assigned. IPD medicine administration requires branch stock.',
+      );
+    }
+
+    const staff = await this.prisma.staff.findFirst({
+      where: { userId: user.userId, isActive: true },
+    });
+
+    if (!staff) {
+      throw new BadRequestException(
+        'Logged in user is not linked to an active staff profile.',
+      );
+    }
+
+    const stock = await this.prisma.branchMedicineStock.findFirst({
+      where: {
+        facilityId: admission.facilityId,
+        branchId: admission.branchId,
+        medicineId: dto.medicineId,
+        isActive: true,
+      },
+      include: { medicine: true, branch: true },
+    });
+
+    if (!stock) {
+      throw new NotFoundException(
+        `No branch stock found for medicine ${dto.medicineId} in this IPD branch.`,
+      );
+    }
+
+    if (stock.stockQuantity < dto.quantity) {
+      throw new BadRequestException(
+        `Insufficient IPD stock for ${stock.medicine.name}. Available: ${stock.stockQuantity}, required: ${dto.quantity}`,
+      );
+    }
+
+    const startedAt = Date.now();
+    const treatmentEntry = await this.prisma.$transaction(async (tx) => {
+      const reservedStock = await tx.branchMedicineStock.updateMany({
+        where: {
+          id: stock.id,
+          stockQuantity: { gte: dto.quantity },
+        },
+        data: { stockQuantity: { decrement: dto.quantity } },
+      });
+
+      if (reservedStock.count !== 1) {
+        throw new BadRequestException(
+          `Insufficient IPD stock for ${stock.medicine.name}. Another action may have used the stock first.`,
+        );
+      }
+
+      const entry = await tx.treatmentChartEntry.create({
+        data: {
+          admissionId,
+          treatmentType: 'MEDICINE',
+          treatmentName: stock.medicine.name,
+          dosage: dto.dosage,
+          route: dto.route,
+          frequency: dto.frequency,
+          statusCode: 'ADMINISTERED',
+          administeredAt: new Date(),
+          administeredByStaffId: staff.id,
+          notes: [
+            dto.notes,
+            `Quantity administered from IPD/ward stock: ${dto.quantity}`,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        },
+        include: {
+          admission: true,
+          orderedBy: true,
+          administeredBy: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          moduleName: 'IPD',
+          actionName: 'IPD_MEDICINE_ADMINISTERED',
+          entityType: 'TREATMENT_CHART_ENTRY',
+          entityId: String(entry.id),
+          facilityId: admission.facilityId,
+          branchId: admission.branchId ?? undefined,
+          actorUserId: user.userId,
+          actorStaffId: staff.id,
+          afterData: JSON.stringify({
+            admissionId,
+            medicineId: dto.medicineId,
+            quantity: dto.quantity,
+            stockId: stock.id,
+          }),
+        },
+      });
+
+      return entry;
+    });
+
+    this.safeLogger.info('IPD medicine administration completed', {
+      admissionId,
+      treatmentEntryId: treatmentEntry.id,
+      medicineId: dto.medicineId,
+      quantity: dto.quantity,
+      facilityId: admission.facilityId,
+      branchId: admission.branchId,
+      actorUserId: user.userId,
+      actorStaffId: staff.id,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return treatmentEntry;
+  }
+
   async createOrUpdateDischargeSummary(dto: CreateIpdDischargeSummaryDto) {
     const admission = await this.ipdService.getAdmissionById(dto.admissionId);
 
@@ -386,6 +515,7 @@ export class IpdClinicalService {
         reference: bundle.admission.statusCode,
         facility: bundle.admission.facility,
         branch: bundle.admission.branch,
+        compact: true,
       },
       (doc) => {
         this.addAdmissionIdentity(doc, bundle.admission);
@@ -477,6 +607,7 @@ export class IpdClinicalService {
         reference: bundle.admission.statusCode,
         facility: bundle.admission.facility,
         branch: bundle.admission.branch,
+        compact: true,
       },
       (doc) => {
         this.addAdmissionIdentity(doc, bundle.admission);
@@ -522,6 +653,7 @@ export class IpdClinicalService {
         reference: bundle.admission.statusCode,
         facility: bundle.admission.facility,
         branch: bundle.admission.branch,
+        compact: true,
       },
       (doc) => {
         this.addAdmissionIdentity(doc, bundle.admission);

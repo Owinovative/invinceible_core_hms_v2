@@ -134,7 +134,7 @@ export default function IpdDetailPage() {
   const { data: labTestsData } = useLabTests();
   const admissionBranchId = data?.branchId ?? undefined;
   const { data: treatmentBranchStockData, isLoading: treatmentStockLoading } =
-    useBranchPharmacyStock(admissionBranchId);
+    useBranchPharmacyStock(admissionBranchId, { pageSize: 100 });
   const createAdmissionLabOrderMutation = useCreateAdmissionLabOrder();
   const postAdmissionBedChargeMutation = usePostAdmissionBedCharge(id);
   const createClinicalAiDraftMutation = useCreateClinicalAiDraft();
@@ -276,7 +276,7 @@ export default function IpdDetailPage() {
   const treatmentBranchStockItems = React.useMemo(() => {
     const items = Array.isArray(treatmentBranchStockData)
       ? treatmentBranchStockData
-      : [];
+      : (treatmentBranchStockData?.data ?? []);
     return items.filter((item) => item.isActive !== false && item.medicine);
   }, [treatmentBranchStockData]);
 

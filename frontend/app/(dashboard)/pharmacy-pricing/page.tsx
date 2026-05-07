@@ -68,7 +68,7 @@ export default function PharmacyPricingPage() {
   const { data: medicinesData = [], isLoading: medicinesLoading } =
     usePharmacyMedicines();
   const { data: stockData = [], isLoading: stockLoading } =
-    useBranchPharmacyStock(selectedBranchId);
+    useBranchPharmacyStock(selectedBranchId, { pageSize: 100 });
   const createMedicineMutation = useCreatePharmacyMedicine();
   const createStockMutation = useCreateBranchMedicineStock();
   const importPricingMutation = useImportBranchMedicinePricing();
@@ -76,7 +76,7 @@ export default function PharmacyPricingPage() {
   const restockMutation = useRestockBranchMedicine();
 
   const medicines = Array.isArray(medicinesData) ? medicinesData : [];
-  const branchStock = Array.isArray(stockData) ? stockData : [];
+  const branchStock = Array.isArray(stockData) ? stockData : (stockData?.data ?? []);
 
   const [message, setMessage] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");

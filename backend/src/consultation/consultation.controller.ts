@@ -33,6 +33,14 @@ export class ConsultationController {
     return this.consultationService.findAllScoped(user);
   }
 
+  @Get(':id/workspace')
+  getWorkspace(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.consultationService.getWorkspaceScoped(id, user);
+  }
+
   @Get('number/:consultationNumber')
   findByConsultationNumber(
     @Param('consultationNumber') consultationNumber: string,

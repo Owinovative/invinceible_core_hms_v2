@@ -1783,8 +1783,23 @@ export class BillingService {
     return tariff;
   }
 
-  async getServiceTariffs(user?: RequestUser) {
+  async getServiceTariffs(user?: RequestUser, query: PaginationQuery = {}) {
     const where: Prisma.ServiceTariffWhereInput = {};
+    const params = parsePagination(query, {
+      defaultPageSize: 50,
+      maxPageSize: 100,
+      allowedSortFields: [
+        'id',
+        'code',
+        'name',
+        'category',
+        'unitPrice',
+        'createdAt',
+        'updatedAt',
+      ],
+      defaultSortBy: 'name',
+      defaultSortDirection: 'asc',
+    });
 
     if (user?.roleCode && user.roleCode !== 'SUPER_ADMIN') {
       if (!user.homeFacilityId) {
@@ -1811,6 +1826,39 @@ export class BillingService {
       }
     }
 
+    if (params.search) {
+      const search = params.search;
+      const searchOr: Prisma.ServiceTariffWhereInput[] = [
+        { code: { contains: search } },
+        { name: { contains: search } },
+        { category: { contains: search } },
+        { notes: { contains: search } },
+        { billingService: { name: { contains: search } } },
+        { billingService: { code: { contains: search } } },
+        { labTest: { testName: { contains: search } } },
+        { ward: { name: { contains: search } } },
+        { bed: { bedNumber: { contains: search } } },
+        { bed: { bedLabel: { contains: search } } },
+      ];
+
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: searchOr }];
+        delete where.OR;
+      } else {
+        where.OR = searchOr;
+      }
+    }
+
+    const startedAt = Date.now();
+    const sortDirection = params.sortDirection as Prisma.SortOrder;
+    const cacheKey = [
+      'billing-service-tariffs',
+      `page:${params.page}`,
+      `pageSize:${params.pageSize}`,
+      `search:${params.search ?? ''}`,
+      `sort:${params.sortBy}:${params.sortDirection}`,
+    ].join(':');
+
     return this.cacheService.rememberScoped(
       {
         facilityId: user?.homeFacilityId ?? 'platform',
@@ -1818,21 +1866,76 @@ export class BillingService {
         roleCode: user?.roleCode ?? 'public',
         extra: `service-tariffs:${(user?.allowedBranchIds ?? []).join(',')}:${user?.canAccessAllBranchesInFacility ? 'all' : 'limited'}`,
       },
-      'billing-service-tariffs',
-      this.getReferenceTtlSeconds(),
-      () =>
-        this.prisma.serviceTariff.findMany({
-          where,
-          include: {
-            facility: true,
-            branch: true,
-            billingService: true,
-            labTest: true,
-            ward: true,
-            bed: true,
-          },
-          orderBy: [{ category: 'asc' }, { name: 'asc' }],
-        }),
+      cacheKey,
+      Math.min(this.getReferenceTtlSeconds(), 120),
+      async () => {
+        const [data, total] = await Promise.all([
+          this.prisma.serviceTariff.findMany({
+            where,
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              category: true,
+              facilityId: true,
+              branchId: true,
+              billingServiceId: true,
+              labTestId: true,
+              wardId: true,
+              bedId: true,
+              unitPrice: true,
+              isActive: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
+              facility: { select: { id: true, code: true, name: true } },
+              branch: { select: { id: true, code: true, name: true } },
+              billingService: {
+                select: { id: true, code: true, name: true, category: true },
+              },
+              labTest: { select: { id: true, testName: true, category: true } },
+              ward: { select: { id: true, name: true, wardType: true } },
+              bed: {
+                select: {
+                  id: true,
+                  bedNumber: true,
+                  bedLabel: true,
+                  statusCode: true,
+                },
+              },
+            },
+            skip: params.skip,
+            take: params.take,
+            orderBy:
+              params.sortBy === 'category'
+                ? [
+                    { category: sortDirection },
+                    { name: sortDirection },
+                  ]
+                : [{ [params.sortBy]: sortDirection }],
+          }),
+          this.prisma.serviceTariff.count({ where }),
+        ]);
+
+        const durationMs = Date.now() - startedAt;
+        if (durationMs >= Number(process.env.SLOW_LIST_MS ?? 750)) {
+          this.safeLogger.warn('Slow service tariff list request', {
+            durationMs,
+            page: params.page,
+            pageSize: params.pageSize,
+            total,
+            facilityId: user?.homeFacilityId ?? null,
+            branchId: user?.homeBranchId ?? null,
+            roleCode: user?.roleCode ?? null,
+          });
+        }
+
+        return paginatedResponse(data, {
+          page: params.page,
+          pageSize: params.pageSize,
+          total,
+        });
+      },
     );
   }
 

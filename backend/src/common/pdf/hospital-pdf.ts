@@ -105,7 +105,7 @@ export async function createHospitalPdfBuffer(
 
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
-      size: 'A4',
+      size: 'LETTER',
       margin: options.compact ? 34 : 48,
       bufferPages: true,
       info: {
@@ -179,49 +179,65 @@ export function addKeyValueGrid(
   items: PdfKeyValue[],
   columns = 2,
 ) {
+  return addCompactDefinitionList(doc, items, columns);
+}
+
+export function addCompactDefinitionList(
+  doc: PDFKit.PDFDocument,
+  items: PdfKeyValue[],
+  columns = 2,
+) {
   const pageWidth =
     doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const columnGap = 14;
+  const columnGap = 12;
   const columnWidth = (pageWidth - columnGap * (columns - 1)) / columns;
 
   for (let index = 0; index < items.length; index += columns) {
     const row = items.slice(index, index + columns);
     const y = doc.y;
     const heights = row.map((item) => {
-      doc.font('Helvetica').fontSize(9);
-      return (
-        25 +
+      const labelWidth = Math.min(82, columnWidth * 0.42);
+      doc.font('Helvetica').fontSize(8);
+      return Math.max(
+        16,
         doc.heightOfString(textOrDash(item.value), {
-          width: columnWidth - 20,
-        })
+          width: columnWidth - labelWidth - 8,
+          lineGap: 1,
+        }) + 4,
       );
     });
-    const height = Math.max(42, ...heights);
+    const height = Math.max(18, ...heights);
 
-    ensureRoom(doc, height + 8);
+    ensureRoom(doc, height + 3);
 
     row.forEach((item, offset) => {
       const x = doc.page.margins.left + offset * (columnWidth + columnGap);
+      const labelWidth = Math.min(82, columnWidth * 0.42);
       doc
-        .roundedRect(x, y, columnWidth, height, 4)
-        .fillAndStroke('#f8fafc', '#e2e8f0');
+        .moveTo(x, y + height + 1)
+        .lineTo(x + columnWidth, y + height + 1)
+        .lineWidth(0.35)
+        .strokeColor('#dbeafe')
+        .stroke();
       doc
         .fillColor('#64748b')
         .font('Helvetica-Bold')
-        .fontSize(7.5)
-        .text(item.label.toUpperCase(), x + 10, y + 9, {
-          width: columnWidth - 20,
+        .fontSize(7)
+        .text(`${item.label}:`, x, y + 3, {
+          width: labelWidth,
+          ellipsis: true,
         });
       doc
         .fillColor('#0f172a')
         .font('Helvetica')
-        .fontSize(9.5)
-        .text(textOrDash(item.value), x + 10, y + 23, {
-          width: columnWidth - 20,
+        .fontSize(8.2)
+        .text(textOrDash(item.value), x + labelWidth + 6, y + 3, {
+          width: columnWidth - labelWidth - 6,
+          lineGap: 1,
         });
     });
 
-    doc.y = y + height + 8;
+    doc.y = y + height + 4;
   }
 }
 
@@ -271,41 +287,7 @@ export function addMiniKeyValueGrid(
   items: PdfKeyValue[],
   columns = 4,
 ) {
-  const pageWidth =
-    doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const columnGap = 5;
-  const columnWidth = (pageWidth - columnGap * (columns - 1)) / columns;
-
-  for (let index = 0; index < items.length; index += columns) {
-    const row = items.slice(index, index + columns);
-    const y = doc.y;
-    const height = 24;
-
-    ensureRoom(doc, height + 4);
-
-    row.forEach((item, offset) => {
-      const x = doc.page.margins.left + offset * (columnWidth + columnGap);
-      doc.rect(x, y, columnWidth, height).fillAndStroke('#ffffff', '#dbeafe');
-      doc
-        .fillColor('#475569')
-        .font('Helvetica-Bold')
-        .fontSize(5.8)
-        .text(item.label.toUpperCase(), x + 5, y + 5, {
-          width: columnWidth - 10,
-          ellipsis: true,
-        });
-      doc
-        .fillColor('#0f172a')
-        .font('Helvetica')
-        .fontSize(7.2)
-        .text(textOrDash(item.value), x + 5, y + 14, {
-          width: columnWidth - 10,
-          ellipsis: true,
-        });
-    });
-
-    doc.y = y + height + 4;
-  }
+  return addCompactDefinitionList(doc, items, columns);
 }
 
 export function addParagraph(

@@ -19,8 +19,17 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const { facilityId, facilityName, selectedBranchId, selectedBranchName } =
     useScope();
+  const [page, setPage] = React.useState(1);
+  const [search, setSearch] = React.useState("");
+  const pageSize = 25;
+  const deferredSearch = React.useDeferredValue(search);
   const scope = { facilityId, branchId: selectedBranchId };
-  const { data, isLoading } = useNotifications(scope);
+  const { data, isLoading, isFetching } = useNotifications({
+    ...scope,
+    page,
+    pageSize,
+    search: deferredSearch,
+  });
   const { data: stats } = useNotificationStats(scope);
   const { data: recipients } = useNotificationRecipients();
   const createNotificationMutation = useCreateNotification();
@@ -29,10 +38,15 @@ export default function NotificationsPage() {
   const [message, setMessage] = React.useState("");
   const [notice, setNotice] = React.useState<string | null>(null);
 
-  const notifications = data ?? [];
+  const notifications = data?.data ?? [];
+  const notificationMeta = data?.meta;
   const roleCode = user?.roleCode ?? "";
   const isSuperAdmin = roleCode === "SUPER_ADMIN";
   const isFacilityAdmin = ["ADMIN", "FACILITY_ADMIN"].includes(roleCode);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch, facilityId, selectedBranchId]);
 
   const recipientOptions = React.useMemo(() => {
     const rows: Array<{ value: string; label: string }> = [];
@@ -217,7 +231,45 @@ export default function NotificationsPage() {
         </div>
       </section>
 
+      <section className="border border-sky-200 bg-white p-4 shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
+        <label className="mb-2 block text-sm font-medium">
+          Search notifications
+        </label>
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="h-11 rounded-md"
+          placeholder="Search title, message, module, entity, or type"
+        />
+      </section>
+
       <NotificationsList items={notifications} isLoading={isLoading} scope={scope} />
+
+      <div className="flex flex-col gap-3 border border-sky-200 bg-white p-4 text-sm shadow-sm dark:border-sky-900/50 dark:bg-slate-950 md:flex-row md:items-center md:justify-between">
+        <span className="text-muted-foreground">
+          Showing page {notificationMeta?.page ?? page} of{" "}
+          {notificationMeta?.totalPages ?? 1}.{" "}
+          {isFetching && !isLoading ? "Refreshing..." : `${notificationMeta?.total ?? notifications.length} total alerts`}
+        </span>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="rounded-md"
+            disabled={page <= 1 || isFetching}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-md"
+            disabled={!notificationMeta?.hasNextPage || isFetching}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

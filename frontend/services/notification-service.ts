@@ -113,17 +113,34 @@ export interface NotificationRecipients {
 export type NotificationQueryParams = {
   facilityId?: number;
   branchId?: number;
+  page?: number;
+  pageSize?: number;
+  search?: string;
   moduleName?: string;
   notificationType?: string;
   isRead?: boolean;
   isResolved?: boolean;
 };
 
+export interface PaginatedNotifications {
+  data: NotificationItem[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
 function buildNotificationQuery(params?: NotificationQueryParams) {
   const search = new URLSearchParams();
 
   if (params?.facilityId) search.set("facilityId", String(params.facilityId));
   if (params?.branchId) search.set("branchId", String(params.branchId));
+  if (params?.page) search.set("page", String(params.page));
+  if (params?.pageSize) search.set("pageSize", String(params.pageSize));
+  if (params?.search?.trim()) search.set("search", params.search.trim());
   if (params?.moduleName) search.set("moduleName", params.moduleName);
   if (params?.notificationType) {
     search.set("notificationType", params.notificationType);
@@ -140,7 +157,7 @@ function buildNotificationQuery(params?: NotificationQueryParams) {
 }
 
 export async function getNotifications(params?: NotificationQueryParams) {
-  return apiFetch<NotificationItem[]>(
+  return apiFetch<PaginatedNotifications>(
     `/notifications${buildNotificationQuery(params)}`,
     {
       method: "GET",

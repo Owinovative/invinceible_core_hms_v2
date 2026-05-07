@@ -8,6 +8,7 @@
 - [Security monitoring](security-monitoring.md)
 - [Security testing](security-testing.md)
 - [Operations alerting](operations-alerting.md)
+- [Logging and observability](logging-observability.md)
 - [M-Pesa reconciliation](mpesa-reconciliation.md)
 - [High availability architecture](high-availability-architecture.md)
 - [Multi-tenant facility isolation](multi-tenant-facility-isolation.md)
