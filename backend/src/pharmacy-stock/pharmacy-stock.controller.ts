@@ -60,6 +60,19 @@ export class PharmacyStockController {
     return this.pharmacyStockService.importBranchPricing(branchId, dto, user);
   }
 
+  @Get('branch/:branchId/search')
+  searchBranchMedicines(
+    @Param('branchId', ParseIntPipe) branchId: number,
+    @Query('search') search: string | undefined,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.pharmacyStockService.searchBranchMedicinesScoped(
+      branchId,
+      search,
+      user,
+    );
+  }
+
   @Get('branch/:branchId')
   findByBranch(
     @Param('branchId', ParseIntPipe) branchId: number,

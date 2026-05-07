@@ -20,6 +20,11 @@ class PrescriptionItemInputDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  route?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   frequency?: string;
 
   @IsOptional()
@@ -34,6 +39,10 @@ class PrescriptionItemInputDto {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @IsOptional()
+  @IsInt()
+  acceptedAlternativeForMedicineId?: number;
 }
 
 export class CreatePrescriptionDto {

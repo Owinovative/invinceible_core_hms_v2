@@ -22,8 +22,8 @@ This benchmark inspected five public HMS/HMIS repositories for architecture and 
 | M-Pesa/Daraja | Benchmarks generally lack Kenya-specific STK behavior. | This HMS already has facility-level Daraja and prompt locks. | Strengthened manual confirmation/failure scoping and duplicate M-Pesa receipt protection. |
 | Performance | Large HMS repos document indexes and report optimization. | Cache, rate limiting, coalescing, health checks, and many indexes existed. | Capped legacy large invoice/patient list responses, kept paginated endpoints, added frontend debounced patient search, documented load strategy. |
 | Reports | Health4All and CareCode have broad reports. | Reports and dashboards exist but should keep moving toward queued exports. | Added benchmark report and repo docs; existing queue/report foundations remain the safe path for heavy exports. |
-| Lab and pharmacy | Benchmarks show lab PDFs, result docs, stock, expiry, and pharmacy report depth. | Lab, pharmacy, branch stock, and AI-assisted prescribing foundations exist. | Permission and payment hardening support the flow; deeper lab/pharmacy feature expansion remains a follow-up roadmap item. |
-| Printouts/PDFs | OpenClinic has many PDF generator classes. | Invoice, receipt, summaries and SHA printouts exist. | This PR focused on backend safety; printout polish remains in the next UI/PDF-specific PR to avoid risky rewrites. |
+| Lab and pharmacy | Benchmarks show lab PDFs, result docs, stock, expiry, structured prescribing, and pharmacy report depth. | Lab, pharmacy, branch stock, and stock-aware prescribing foundations exist. | Structured prescription items now include route, stock snapshot, accepted alternatives, and pharmacy partial-dispense quantities. |
+| Printouts/PDFs | OpenClinic has many PDF generator classes. | Invoice, receipt, summaries and SHA printouts exist. | Consultation medical reports now have a guarded server-side PDF endpoint with facility letterhead, QR payload, prescriptions, lab results, and audit logging. |
 | Integrations | OpenClinic has HL7 utilities; CareCode has FHIR docs. | M-Pesa, AI, SHA and outbox foundations exist. | Added interoperability gap to roadmap; no copied integration code. |
 | Repository polish | Mature repos include contribution/security docs. | Root README was outdated and encoding-corrupted. | Rebuilt README and added security, support, contribution, changelog, roadmap, CI, and templates. |
 
@@ -44,6 +44,9 @@ This benchmark inspected five public HMS/HMIS repositories for architecture and 
 - User management facility scoping.
 - Manual M-Pesa confirmation/failure scoping and duplicate receipt protection.
 - Capped legacy large list responses and frontend debounced patient search.
+- Structured prescription builder with branch stock visibility and safe out-of-stock continuation.
+- Pharmacy partial dispensing for structured prescription items.
+- Server-side consultation medical report PDF export.
 - Repository-level operational documentation and CI foundation.
 
 ## Deferred High-Value Work
