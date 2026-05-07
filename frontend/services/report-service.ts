@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch } from "@/lib/api";
 
 export interface ReportsDashboardRecord {
   filters: {
@@ -250,4 +250,14 @@ export async function getProfitAnalyticsExport(
   return apiFetch<CsvExportResponse>(path, {
     method: "GET",
   });
+}
+
+export function downloadConsultationMedicalReportPdf(
+  consultationId: number,
+  consultationNumber?: string,
+) {
+  return apiDownload(
+    `/reports/medical/consultations/${consultationId}.pdf`,
+    `${consultationNumber || `consultation-${consultationId}`}-medical-report.pdf`,
+  );
 }

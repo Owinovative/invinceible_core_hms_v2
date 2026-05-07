@@ -1,8 +1,18 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CacheService } from '../resilience/cache.service';
+import {
+  addCompactKeyValueGrid,
+  addCompactTable,
+  addParagraph,
+  addSectionTitle,
+  createHospitalPdfBuffer,
+  formatPdfDate,
+  patientName,
+  staffName,
+} from '../common/pdf/hospital-pdf';
 
 function escapeCsvCell(value: unknown) {
   const text =
@@ -69,6 +79,279 @@ export class ReportsService {
     }
 
     return next;
+  }
+
+  private assertRecordScope(
+    user: RequestUser,
+    record: { facilityId?: number | null; branchId?: number | null },
+  ) {
+    if (user.roleCode === 'SUPER_ADMIN') return;
+
+    if (!user.homeFacilityId || record.facilityId !== user.homeFacilityId) {
+      throw new ForbiddenException('You cannot access another facility');
+    }
+
+    if (user.canAccessAllBranchesInFacility || !record.branchId) return;
+
+    const allowedBranchIds = new Set<number>([
+      ...(user.allowedBranchIds ?? []),
+      ...(user.homeBranchId ? [user.homeBranchId] : []),
+    ]);
+
+    if (!allowedBranchIds.has(record.branchId)) {
+      throw new ForbiddenException('You cannot access another branch');
+    }
+  }
+
+  async getConsultationMedicalReportPdf(id: number, user: RequestUser) {
+    const consultation = await this.prisma.consultation.findUnique({
+      where: { id },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        appointment: {
+          include: {
+            triages: {
+              orderBy: { arrivedAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+        prescriptions: {
+          include: {
+            prescribedBy: true,
+            items: {
+              include: {
+                medicine: true,
+              },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+          orderBy: { prescribedAt: 'desc' },
+        },
+      },
+    });
+
+    if (!consultation) {
+      throw new NotFoundException('Consultation not found');
+    }
+
+    this.assertRecordScope(user, consultation);
+
+    const labOrders = await this.prisma.labOrder.findMany({
+      where: {
+        OR: [
+          { appointmentId: consultation.appointmentId },
+          { encounterRef: consultation.consultationNumber },
+        ],
+        facilityId: consultation.facilityId,
+        ...(consultation.branchId ? { branchId: consultation.branchId } : {}),
+      },
+      include: {
+        requestedBy: true,
+        items: {
+          include: {
+            test: true,
+            results: {
+              orderBy: { recordedAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    const latestTriage = consultation.appointment.triages[0];
+    const reference = consultation.consultationNumber;
+
+    const buffer = await createHospitalPdfBuffer(
+      {
+        title: 'Medical Report',
+        subtitle: 'Consultation clinical summary',
+        reference,
+        verificationCode: `MR-${reference}`,
+        facility: consultation.facility,
+        branch: consultation.branch,
+        qrPayload: {
+          type: 'medical-report',
+          consultationNumber: consultation.consultationNumber,
+          patientNumber: consultation.patient.patientNumber,
+          facility: consultation.facility.name,
+          branch: consultation.branch?.name,
+          generatedAt: new Date().toISOString(),
+        },
+      },
+      (doc) => {
+        addCompactKeyValueGrid(
+          doc,
+          [
+            {
+              label: 'Patient',
+              value: `${patientName(consultation.patient)} (${consultation.patient.patientNumber})`,
+            },
+            { label: 'Phone', value: consultation.patient.phonePrimary },
+            { label: 'Gender', value: consultation.patient.gender },
+            {
+              label: 'Consultation',
+              value: consultation.consultationNumber,
+            },
+            {
+              label: 'Appointment',
+              value: consultation.appointment.appointmentNumber,
+            },
+            { label: 'Doctor', value: staffName(consultation.doctor) },
+            { label: 'Started', value: consultation.startedAt },
+            { label: 'Status', value: consultation.statusCode },
+            {
+              label: 'Visit Reason',
+              value: consultation.appointment.visitReason,
+            },
+          ],
+          3,
+        );
+
+        if (latestTriage) {
+          addSectionTitle(doc, 'Triage snapshot');
+          addCompactKeyValueGrid(
+            doc,
+            [
+              { label: 'Priority', value: latestTriage.triagePriority },
+              { label: 'Temperature', value: latestTriage.temperatureC },
+              {
+                label: 'Blood pressure',
+                value:
+                  latestTriage.systolicBp || latestTriage.diastolicBp
+                    ? `${latestTriage.systolicBp ?? '-'}/${latestTriage.diastolicBp ?? '-'}`
+                    : '-',
+              },
+              { label: 'Pulse', value: latestTriage.pulseRate },
+              { label: 'SPO2', value: latestTriage.oxygenSaturation },
+              { label: 'Pain score', value: latestTriage.painScore },
+            ],
+            3,
+          );
+        }
+
+        addSectionTitle(doc, 'Clinical notes');
+        addParagraph(doc, 'Chief complaint', consultation.chiefComplaint);
+        addParagraph(
+          doc,
+          'History of presenting illness',
+          consultation.historyOfPresenting,
+        );
+        addParagraph(
+          doc,
+          'Examination findings',
+          consultation.examinationFindings,
+        );
+        addParagraph(doc, 'Diagnosis', consultation.diagnosis);
+        addParagraph(doc, 'Treatment plan', consultation.treatmentPlan);
+        addParagraph(doc, 'Additional notes', consultation.notes);
+
+        addSectionTitle(doc, 'Prescriptions');
+        const prescriptionRows: Array<{
+          date: string;
+          medicine: string;
+          dose: string;
+          quantity: number;
+          status: string;
+        }> = consultation.prescriptions.flatMap((rx) =>
+          rx.items.map((item) => ({
+            date: formatPdfDate(rx.prescribedAt),
+            medicine:
+              item.medicineNameSnapshot ||
+              item.medicine?.name ||
+              `Medicine #${item.medicineId}`,
+            dose: [item.dosage, item.route, item.frequency, item.duration]
+              .filter(Boolean)
+              .join(' / '),
+            quantity: item.quantity,
+            status: item.statusCode,
+          })),
+        );
+        addCompactTable(
+          doc,
+          [
+            { header: 'Date', width: 70, render: (row) => row.date },
+            { header: 'Medicine', width: 180, render: (row) => row.medicine },
+            { header: 'Dose / Route / Frequency', width: 160, render: (row) => row.dose },
+            { header: 'Qty', width: 45, render: (row) => row.quantity },
+            { header: 'Status', width: 72, render: (row) => row.status },
+          ],
+          prescriptionRows,
+          'No prescription items recorded for this consultation.',
+        );
+
+        addSectionTitle(doc, 'Lab orders and results');
+        const labRows: Array<{
+          order: string;
+          test: string;
+          status: string;
+          result?: string | null;
+          recordedAt?: Date | null;
+        }> = labOrders.flatMap((order) =>
+          order.items.map((item) => {
+            const result = item.results[0];
+            return {
+              order: order.orderNumber,
+              test: item.test.testName,
+              status: item.status,
+              result: result?.resultValue,
+              recordedAt: result?.recordedAt,
+            };
+          }),
+        );
+        addCompactTable(
+          doc,
+          [
+            { header: 'Order', width: 88, render: (row) => row.order },
+            { header: 'Test', width: 170, render: (row) => row.test },
+            { header: 'Status', width: 75, render: (row) => row.status },
+            { header: 'Result', width: 126, render: (row) => row.result },
+            { header: 'Recorded', width: 68, render: (row) => row.recordedAt },
+          ],
+          labRows,
+          'No lab orders/results recorded for this consultation.',
+        );
+
+        addSectionTitle(doc, 'Clinician sign off');
+        addCompactKeyValueGrid(
+          doc,
+          [
+            { label: 'Prepared by', value: staffName(consultation.doctor) },
+            {
+              label: 'Designation',
+              value: consultation.doctor.designation || 'Clinician',
+            },
+            { label: 'Generated', value: new Date() },
+          ],
+          3,
+        );
+      },
+    );
+
+    await this.prisma.auditLog.create({
+      data: {
+        moduleName: 'REPORTS',
+        actionName: 'MEDICAL_REPORT_PDF_DOWNLOADED',
+        entityType: 'Consultation',
+        entityId: String(consultation.id),
+        description: `Medical report PDF downloaded for ${consultation.consultationNumber}`,
+        facilityId: consultation.facilityId,
+        branchId: consultation.branchId ?? undefined,
+        actorUserId: user.userId,
+        actorStaffId: user.staffId ?? undefined,
+      },
+    });
+
+    return {
+      fileName: `${consultation.consultationNumber}-medical-report.pdf`,
+      buffer,
+    };
   }
 
   private getTodayRange() {

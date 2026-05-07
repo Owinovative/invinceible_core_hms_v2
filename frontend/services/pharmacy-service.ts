@@ -67,10 +67,14 @@ export interface PharmacyPrescriptionItem {
   prescriptionId: number;
   medicineId: number;
   dosage?: string | null;
+  route?: string | null;
   frequency?: string | null;
   duration?: string | null;
   quantity: number;
   instructions?: string | null;
+  medicineNameSnapshot?: string | null;
+  stockStatusAtPrescribing?: string | null;
+  acceptedAlternativeForMedicineId?: number | null;
   statusCode: string;
   medicine?: PharmacyMedicine | null;
 }
@@ -185,8 +189,22 @@ export async function getPharmacyPrescriptionById(id: number) {
   });
 }
 
-export async function dispensePharmacyPrescription(id: number) {
+export interface DispensePrescriptionPayload {
+  notes?: string;
+  items?: Array<{
+    prescriptionItemId: number;
+    medicineId: number;
+    quantityDispensed: number;
+    notes?: string;
+  }>;
+}
+
+export async function dispensePharmacyPrescription(
+  id: number,
+  payload?: DispensePrescriptionPayload,
+) {
   return apiFetch<PharmacyPrescriptionRecord>(`/pharmacy/prescriptions/${id}/dispense`, {
     method: "PATCH",
+    body: JSON.stringify(payload ?? {}),
   });
 }

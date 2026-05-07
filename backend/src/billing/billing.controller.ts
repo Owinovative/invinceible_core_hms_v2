@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -36,6 +37,7 @@ import { Permissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { StepUpRequired } from '../auth/step-up.decorator';
 import { StepUpGuard } from '../auth/step-up.guard';
+import type { RequestWithContext } from '../resilience/request-context.middleware';
 
 @Controller('billing')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard, StepUpGuard)
@@ -305,8 +307,13 @@ export class BillingController {
     @Body() dto: CreateMpesaPaymentRequestDto,
     @CurrentUser() user: RequestUser,
     @Headers('idempotency-key') idempotencyKey?: string,
+    @Req() request?: RequestWithContext,
   ) {
-    return this.facilityMpesaBillingService.createMpesaPaymentRequest(dto, user);
+    return this.facilityMpesaBillingService.createMpesaPaymentRequest(
+      dto,
+      user,
+      request?.requestId,
+    );
   }
 
   @Post('payments/:id/mpesa/resend')
@@ -314,8 +321,13 @@ export class BillingController {
   resendMpesaPaymentRequest(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
+    @Req() request?: RequestWithContext,
   ) {
-    return this.facilityMpesaBillingService.resendMpesaPaymentRequest(id, user);
+    return this.facilityMpesaBillingService.resendMpesaPaymentRequest(
+      id,
+      user,
+      request?.requestId,
+    );
   }
 
   @Post('payments/mpesa/confirm')

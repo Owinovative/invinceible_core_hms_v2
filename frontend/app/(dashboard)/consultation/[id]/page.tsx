@@ -9,6 +9,7 @@ import {
   BedDouble,
   CheckCircle2,
   ClipboardList,
+  Download,
   FlaskConical,
   Loader2,
   Paperclip,
@@ -39,7 +40,7 @@ import { useLabOrders } from "@/hooks/use-lab-orders";
 import { useLabResults } from "@/hooks/use-lab-results";
 
 
-import { useBranchPharmacyStock } from "@/hooks/use-branch-pharmacy-stock";
+import { useBranchMedicineSearch } from "@/hooks/use-branch-medicine-search";
 import { useMedicineStockAlternatives } from "@/hooks/use-medicine-stock-alternatives";
 import { useCreatePrescription } from "@/hooks/use-create-prescription";
 import { useConsultationPrescriptions } from "@/hooks/use-consultation-prescriptions";
@@ -61,6 +62,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
 import { searchDiagnoses } from "@/lib/diagnosis-catalog";
+import { downloadConsultationMedicalReportPdf } from "@/services/report-service";
 
 
 function formatDate(value?: string | null) {
@@ -102,8 +104,9 @@ export default function ConsultationDetailPage() {
 
 
   const branchIdForStock = data?.branchId ?? selectedBranchId;
+  const [medicineSearch, setMedicineSearch] = React.useState("");
   const { data: branchStockData, isLoading: stockLoading } =
-    useBranchPharmacyStock(branchIdForStock);
+    useBranchMedicineSearch(branchIdForStock, medicineSearch);
 
 
   const createPrescriptionMutation = useCreatePrescription();
@@ -186,6 +189,7 @@ export default function ConsultationDetailPage() {
   const [treatmentPlan, setTreatmentPlan] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
+  const [reportDownloading, setReportDownloading] = React.useState(false);
   const diagnosisMatches = React.useMemo(
     () => searchDiagnoses(diagnosisSearch),
     [diagnosisSearch],
@@ -205,12 +209,14 @@ export default function ConsultationDetailPage() {
 
 
   const [selectedMedicineId, setSelectedMedicineId] = React.useState("");
-  const [medicineSearch, setMedicineSearch] = React.useState("");
   const [itemDosage, setItemDosage] = React.useState("");
+  const [itemRoute, setItemRoute] = React.useState("");
   const [itemFrequency, setItemFrequency] = React.useState("");
   const [itemDuration, setItemDuration] = React.useState("");
   const [itemQuantity, setItemQuantity] = React.useState("1");
   const [itemInstructions, setItemInstructions] = React.useState("");
+  const [acceptedAlternativeForMedicineId, setAcceptedAlternativeForMedicineId] =
+    React.useState<number | null>(null);
 
 
   const [selectedTestId, setSelectedTestId] = React.useState("");
@@ -306,12 +312,14 @@ export default function ConsultationDetailPage() {
         statusCode: prescription.statusCode,
         notes: prescription.notes,
         items: prescription.items?.map((item) => ({
-          medicine: item.medicine?.name,
+          medicine: item.medicineNameSnapshot || item.medicine?.name,
           dosage: item.dosage,
+          route: item.route,
           frequency: item.frequency,
           duration: item.duration,
           quantity: item.quantity,
           instructions: item.instructions,
+          stockStatusAtPrescribing: item.stockStatusAtPrescribing,
           statusCode: item.statusCode,
         })),
       })),
@@ -561,10 +569,10 @@ export default function ConsultationDetailPage() {
     }
 
     if (selectedStockStatus === "OUT_OF_STOCK") {
-      setMessage(
-        "Selected medicine is out of stock in this branch. Choose an in-stock alternative or restock before prescribing.",
+      const shouldContinue = window.confirm(
+        "This medicine is out of stock in the current branch. Continue prescribing it anyway, or cancel and choose an in-stock alternative?",
       );
-      return;
+      if (!shouldContinue) return;
     }
 
 
@@ -575,20 +583,26 @@ export default function ConsultationDetailPage() {
       prescriptionId: activePrescription.id,
       medicineId: Number(selectedMedicineId),
       dosage: itemDosage || undefined,
+      route: itemRoute || undefined,
       frequency: itemFrequency || undefined,
       duration: itemDuration || undefined,
       quantity: itemQuantity ? Number(itemQuantity) : 1,
       instructions: itemInstructions || undefined,
+      stockStatusAtPrescribing: selectedStockStatus || undefined,
+      acceptedAlternativeForMedicineId:
+        acceptedAlternativeForMedicineId || undefined,
       statusCode: "PRESCRIBED",
     });
 
 
     setSelectedMedicineId("");
     setItemDosage("");
+    setItemRoute("");
     setItemFrequency("");
     setItemDuration("");
     setItemQuantity("1");
     setItemInstructions("");
+    setAcceptedAlternativeForMedicineId(null);
     setMessage("Prescription item added successfully.");
   };
 
@@ -696,6 +710,29 @@ export default function ConsultationDetailPage() {
   router.push(`/ipd/${createdAdmission.id}`);
 };
 
+  const handleDownloadMedicalReport = async () => {
+    if (!data) return;
+
+    setReportDownloading(true);
+    setMessage(null);
+
+    try {
+      await downloadConsultationMedicalReportPdf(
+        data.id,
+        data.consultationNumber,
+      );
+      setMessage("Medical report PDF downloaded.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to download medical report PDF.",
+      );
+    } finally {
+      setReportDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
@@ -722,7 +759,7 @@ export default function ConsultationDetailPage() {
 
 
           {data ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Consultation No
@@ -737,6 +774,20 @@ export default function ConsultationDetailPage() {
                   {data.statusCode || "IN_PROGRESS"}
                 </p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-full min-h-[76px] rounded-[1.2rem] justify-start border-white/10 bg-white/[0.03]"
+                onClick={handleDownloadMedicalReport}
+                disabled={reportDownloading}
+              >
+                {reportDownloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Download medical PDF
+              </Button>
             </div>
           ) : null}
         </div>
@@ -1332,7 +1383,10 @@ export default function ConsultationDetailPage() {
                       />
                       <select
                         value={selectedMedicineId}
-                        onChange={(e) => setSelectedMedicineId(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedMedicineId(e.target.value);
+                          setAcceptedAlternativeForMedicineId(null);
+                        }}
                         className="flex h-12 w-full rounded-2xl border border-white/10 bg-background px-4 text-sm"
                       >
                         <option value="">Select medicine</option>
@@ -1411,6 +1465,9 @@ export default function ConsultationDetailPage() {
                                     type="button"
                                     className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
                                     onClick={() => {
+                                      setAcceptedAlternativeForMedicineId(
+                                        selectedMedicineIdNumber,
+                                      );
                                       setSelectedMedicineId(String(item.medicineId));
                                       setMedicineSearch(item.medicine?.name || "");
                                       setMessage(
@@ -1450,7 +1507,7 @@ export default function ConsultationDetailPage() {
                     ) : null}
 
 
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                       <div>
                         <label className="mb-2 block text-sm font-medium">Dosage</label>
                         <Input
@@ -1458,6 +1515,15 @@ export default function ConsultationDetailPage() {
                           onChange={(e) => setItemDosage(e.target.value)}
                           className="h-12 rounded-2xl"
                           placeholder="1 tablet"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium">Route</label>
+                        <Input
+                          value={itemRoute}
+                          onChange={(e) => setItemRoute(e.target.value)}
+                          className="h-12 rounded-2xl"
+                          placeholder="Oral"
                         />
                       </div>
                       <div>
@@ -1507,8 +1573,7 @@ export default function ConsultationDetailPage() {
                       className="h-12 rounded-2xl"
                       onClick={handleAddPrescriptionItem}
                       disabled={
-                        createPrescriptionItemMutation.isPending ||
-                        selectedStockStatus === "OUT_OF_STOCK"
+                        createPrescriptionItemMutation.isPending
                       }
                     >
                       {createPrescriptionItemMutation.isPending ? (
@@ -1579,15 +1644,26 @@ export default function ConsultationDetailPage() {
                               className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3"
                             >
                               <p className="font-medium">
-                                {item.medicine?.name || `Medicine #${item.medicineId}`}
+                                {item.medicineNameSnapshot ||
+                                  item.medicine?.name ||
+                                  `Medicine #${item.medicineId}`}
                               </p>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                {[item.medicine?.strength, item.dosage, item.frequency, item.duration]
+                                {[
+                                  item.medicine?.strength,
+                                  item.dosage,
+                                  item.route,
+                                  item.frequency,
+                                  item.duration,
+                                ]
                                   .filter(Boolean)
-                                  .join(" • ") || "—"}
+                                  .join(" / ") || "-"}
                               </p>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                Qty: {item.quantity} • {item.statusCode}
+                                Qty: {item.quantity} / {item.statusCode}
+                                {item.stockStatusAtPrescribing
+                                  ? ` / ${item.stockStatusAtPrescribing}`
+                                  : ""}
                               </p>
                               <p className="mt-1 text-sm text-muted-foreground">
                                 {item.instructions || "No instructions"}

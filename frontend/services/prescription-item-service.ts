@@ -10,11 +10,15 @@ export interface PrescriptionItemRecord {
   prescriptionId: number;
   medicineId: number;
   dosage?: string | null;
+  route?: string | null;
   frequency?: string | null;
   duration?: string | null;
   quantity: number;
   instructions?: string | null;
   statusCode: string;
+  medicineNameSnapshot?: string | null;
+  stockStatusAtPrescribing?: string | null;
+  acceptedAlternativeForMedicineId?: number | null;
   medicine?: {
     id: number;
     code?: string;
@@ -30,10 +34,13 @@ export interface CreatePrescriptionItemPayload {
   prescriptionId: number;
   medicineId: number;
   dosage?: string;
+  route?: string;
   frequency?: string;
   duration?: string;
   quantity?: number;
   instructions?: string;
+  stockStatusAtPrescribing?: string;
+  acceptedAlternativeForMedicineId?: number;
   statusCode?: string;
 }
 

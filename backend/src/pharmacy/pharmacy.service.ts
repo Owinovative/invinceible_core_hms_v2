@@ -10,10 +10,20 @@ import { ConsultationService } from '../consultation/consultation.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
+import { CreateDispenseDto } from './dto/create-dispense.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { BillingService } from '../billing/billing.service';
 import { CacheService } from '../resilience/cache.service';
+
+function stockStatus(stockQuantity?: number | null, reorderLevel?: number | null) {
+  const quantity = Number(stockQuantity ?? 0);
+  const reorder = Number(reorderLevel ?? 0);
+
+  if (quantity <= 0) return 'OUT_OF_STOCK';
+  if (reorder > 0 && quantity <= reorder) return 'LOW_STOCK';
+  return 'IN_STOCK';
+}
 
 @Injectable()
 export class PharmacyService {
@@ -106,17 +116,41 @@ export class PharmacyService {
       );
     }
 
-    for (const item of createPrescriptionDto.items) {
-      const medicine = await this.prisma.medicine.findUnique({
-        where: { id: item.medicineId },
-      });
+    const medicineIds = Array.from(
+      new Set(createPrescriptionDto.items.map((item) => item.medicineId)),
+    );
+    const medicines = await this.prisma.medicine.findMany({
+      where: { id: { in: medicineIds } },
+    });
+    const medicineById = new Map(
+      medicines.map((medicine) => [medicine.id, medicine]),
+    );
 
+    for (const item of createPrescriptionDto.items) {
+      const medicine = medicineById.get(item.medicineId);
       if (!medicine) {
         throw new NotFoundException(
           `Medicine with id ${item.medicineId} not found`,
         );
       }
     }
+
+    const branchStocks = consultation.branchId
+      ? await this.prisma.branchMedicineStock.findMany({
+          where: {
+            branchId: consultation.branchId,
+            medicineId: { in: medicineIds },
+          },
+          select: {
+            medicineId: true,
+            stockQuantity: true,
+            reorderLevel: true,
+          },
+        })
+      : [];
+    const stockByMedicineId = new Map(
+      branchStocks.map((stock) => [stock.medicineId, stock]),
+    );
 
     const created = await this.prisma.prescription.create({
       data: {
@@ -132,10 +166,18 @@ export class PharmacyService {
           create: createPrescriptionDto.items.map((item) => ({
             medicineId: item.medicineId,
             dosage: item.dosage,
+            route: item.route,
             frequency: item.frequency,
             duration: item.duration,
             quantity: item.quantity ?? 1,
             instructions: item.instructions,
+            medicineNameSnapshot: medicineById.get(item.medicineId)?.name,
+            stockStatusAtPrescribing: stockStatus(
+              stockByMedicineId.get(item.medicineId)?.stockQuantity,
+              stockByMedicineId.get(item.medicineId)?.reorderLevel,
+            ),
+            acceptedAlternativeForMedicineId:
+              item.acceptedAlternativeForMedicineId,
             statusCode: 'PRESCRIBED',
           })),
         },
@@ -506,7 +548,11 @@ async getPharmacyQueueScoped(user: RequestUser) {
   });
 }
 
- async dispensePrescription(id: number, user: RequestUser) {
+ async dispensePrescription(
+  id: number,
+  user: RequestUser,
+  dto?: Partial<CreateDispenseDto>,
+) {
   const prescription = await this.getPrescriptionById(id);
 
   if (!prescription.branchId) {
@@ -545,16 +591,48 @@ async getPharmacyQueueScoped(user: RequestUser) {
   );
 
   const nonDispensableItemStatuses = ['DISPENSED', 'CANCELLED', 'DISPENSING'];
-  const itemsToDispense = prescription.items.filter(
-    (item) =>
-      !nonDispensableItemStatuses.includes(
-        (item.statusCode || '').toUpperCase(),
-      ),
-  );
+  const alreadyDispensedByItemId = new Map<number, number>();
+  for (const dispense of prescription.dispenses ?? []) {
+    for (const item of dispense.items ?? []) {
+      alreadyDispensedByItemId.set(
+        item.prescriptionItemId,
+        (alreadyDispensedByItemId.get(item.prescriptionItemId) ?? 0) +
+          item.quantityDispensed,
+      );
+    }
+  }
+
+  const requestedByItemId = new Map<number, number>();
+  for (const item of dto?.items ?? []) {
+    requestedByItemId.set(item.prescriptionItemId, item.quantityDispensed);
+  }
+
+  const itemsToDispense = prescription.items
+    .filter(
+      (item) =>
+        !nonDispensableItemStatuses.includes(
+          (item.statusCode || '').toUpperCase(),
+        ),
+    )
+    .map((item) => {
+      const alreadyDispensed = alreadyDispensedByItemId.get(item.id) ?? 0;
+      const remaining = Math.max(0, item.quantity - alreadyDispensed);
+      const requested = requestedByItemId.has(item.id)
+        ? Number(requestedByItemId.get(item.id))
+        : remaining;
+
+      return {
+        ...item,
+        alreadyDispensed,
+        remaining,
+        quantityToDispense: Math.max(0, Math.min(requested, remaining)),
+      };
+    })
+    .filter((item) => item.remaining > 0 && item.quantityToDispense > 0);
 
   if (itemsToDispense.length === 0) {
     throw new BadRequestException(
-      'All prescription items have already been dispensed.',
+      'No prescription item quantity is available to dispense.',
     );
   }
 
@@ -578,12 +656,26 @@ async getPharmacyQueueScoped(user: RequestUser) {
       );
     }
 
-    if (branchStock.stockQuantity < item.quantity) {
+    if (branchStock.stockQuantity < item.quantityToDispense) {
       throw new BadRequestException(
-        `Insufficient branch stock for ${branchStock.medicine.name} at ${branchStock.branch.name}. Available: ${branchStock.stockQuantity}, required: ${item.quantity}`,
+        `Insufficient branch stock for ${branchStock.medicine.name} at ${branchStock.branch.name}. Available: ${branchStock.stockQuantity}, required: ${item.quantityToDispense}`,
       );
     }
   }
+
+  const quantityToDispenseByItemId = new Map(
+    itemsToDispense.map((item) => [item.id, item.quantityToDispense]),
+  );
+  const willAllItemsBeFullyDispensed = prescription.items.every((item) => {
+    const status = (item.statusCode || '').toUpperCase();
+    if (status === 'CANCELLED') return true;
+    const alreadyDispensed = alreadyDispensedByItemId.get(item.id) ?? 0;
+    const currentDispense = quantityToDispenseByItemId.get(item.id) ?? 0;
+    return alreadyDispensed + currentDispense >= item.quantity;
+  });
+  const finalPrescriptionStatus = willAllItemsBeFullyDispensed
+    ? 'DISPENSED'
+    : 'PARTIALLY_DISPENSED';
 
   const temporaryDispenseNumber = `DSP-TMP-${Date.now()}-${Math.random()
     .toString(36)
@@ -617,7 +709,8 @@ async getPharmacyQueueScoped(user: RequestUser) {
         facilityId: prescription.facilityId,
         branchId: prescription.branchId,
         dispensedByStaffId: staff.id,
-        statusCode: 'DISPENSED',
+        statusCode: finalPrescriptionStatus,
+        notes: dto?.notes,
         dispensedAt: new Date(),
       },
     });
@@ -671,12 +764,12 @@ async getPharmacyQueueScoped(user: RequestUser) {
         where: {
           id: branchStock.id,
           stockQuantity: {
-            gte: item.quantity,
+            gte: item.quantityToDispense,
           },
         },
         data: {
           stockQuantity: {
-            decrement: item.quantity,
+            decrement: item.quantityToDispense,
           },
         },
       });
@@ -695,10 +788,15 @@ async getPharmacyQueueScoped(user: RequestUser) {
         },
       });
 
+      const itemStatus =
+        item.alreadyDispensed + item.quantityToDispense >= item.quantity
+          ? 'DISPENSED'
+          : 'PARTIALLY_DISPENSED';
+
       await tx.prescriptionItem.update({
         where: { id: item.id },
         data: {
-          statusCode: 'DISPENSED',
+          statusCode: itemStatus,
         },
       });
 
@@ -710,16 +808,16 @@ async getPharmacyQueueScoped(user: RequestUser) {
           prescriptionItemId: item.id,
           medicineId: item.medicineId,
           quantityPrescribed: item.quantity,
-          quantityDispensed: item.quantity,
+          quantityDispensed: item.quantityToDispense,
           unitPrice,
-          lineTotal: unitPrice * item.quantity,
+          lineTotal: unitPrice * item.quantityToDispense,
           notes: item.instructions,
         },
       });
 
       billedItems.push({
         description: `Drug Dispensed: ${item.medicine?.name || `Medicine #${item.medicineId}`}`,
-        quantity: item.quantity,
+        quantity: item.quantityToDispense,
         unitPrice,
         notes: item.instructions || undefined,
         sourceEntityId: String(item.id),
@@ -739,8 +837,8 @@ async getPharmacyQueueScoped(user: RequestUser) {
     await tx.prescription.update({
       where: { id: prescription.id },
       data: {
-        statusCode: 'DISPENSED',
-        dispensedAt: new Date(),
+        statusCode: finalPrescriptionStatus,
+        dispensedAt: willAllItemsBeFullyDispensed ? new Date() : null,
       },
     });
 
@@ -794,9 +892,41 @@ async getPharmacyQueueScoped(user: RequestUser) {
     await this.notifyLowOrOutOfStock(stockCheck);
   }
 
+  await this.prisma.auditLog
+    .create({
+      data: {
+        moduleName: 'PHARMACY',
+        actionName:
+          finalPrescriptionStatus === 'DISPENSED'
+            ? 'PRESCRIPTION_DISPENSED'
+            : 'PRESCRIPTION_PARTIALLY_DISPENSED',
+        entityType: 'PRESCRIPTION',
+        entityId: String(prescription.id),
+        facilityId: prescription.facilityId,
+        branchId: prescription.branchId ?? undefined,
+        actorUserId: user.userId,
+        actorStaffId: staff.id,
+        afterData: JSON.stringify({
+          prescriptionNumber: prescription.prescriptionNumber,
+          finalPrescriptionStatus,
+          items: itemsToDispense.map((item) => ({
+            prescriptionItemId: item.id,
+            medicineId: item.medicineId,
+            quantityPrescribed: item.quantity,
+            alreadyDispensed: item.alreadyDispensed,
+            quantityDispensedNow: item.quantityToDispense,
+          })),
+        }),
+      },
+    })
+    .catch(() => undefined);
+
   await this.notificationService.create({
-    title: 'Prescription Dispensed',
-    message: `Prescription ${prescription.prescriptionNumber} has been dispensed.`,
+    title:
+      finalPrescriptionStatus === 'DISPENSED'
+        ? 'Prescription Dispensed'
+        : 'Prescription Partially Dispensed',
+    message: `Prescription ${prescription.prescriptionNumber} is ${finalPrescriptionStatus.toLowerCase().replace(/_/g, ' ')}.`,
     notificationType: 'PRESCRIPTION_DISPENSED',
     severity: 'INFO',
     moduleName: 'PHARMACY',

@@ -150,6 +150,22 @@ export async function getBranchPharmacyStock(branchId: number) {
   );
 }
 
+export async function searchBranchPharmacyStock(
+  branchId: number,
+  search?: string,
+) {
+  const params = new URLSearchParams();
+  if (search?.trim()) params.set("search", search.trim());
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+
+  return apiFetch<BranchMedicineStockItem[]>(
+    `/pharmacy-stock/branch/${branchId}/search${suffix}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
 export async function getMedicineStockAlternatives(
   branchId: number,
   medicineId: number,

@@ -8,12 +8,22 @@ import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { BillingService } from './billing.service';
 import { CreateMpesaPaymentRequestDto } from './dto/create-mpesa-payment-request.dto';
 import { ConfirmMpesaPaymentDto } from './dto/confirm-mpesa-payment.dto';
+import { SafeLoggerService } from '../resilience/safe-logger.service';
 
 type FacilityMpesaContext = {
   invoiceId: number;
   invoiceNumber?: string | null;
+  requestId?: string;
   facility: Record<string, any>;
   branch?: Record<string, any> | null;
+};
+
+type FacilityMpesaRuntimeConfig = {
+  env: Record<string, string>;
+  environment: string;
+  transactionType: string;
+  shortcode: string;
+  paybill: string;
 };
 
 @Injectable()
@@ -23,20 +33,27 @@ export class FacilityMpesaBillingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly billingService: BillingService,
+    private readonly safeLogger: SafeLoggerService,
   ) {}
 
   async createMpesaPaymentRequest(
     dto: CreateMpesaPaymentRequestDto,
     user: RequestUser,
+    requestId?: string,
   ) {
     const context = await this.getMpesaContextFromInvoice(dto.invoiceId);
+    context.requestId = requestId;
 
     return this.runWithFacilityMpesaEnv(context, () =>
       this.billingService.createMpesaPaymentRequest(dto, user),
     );
   }
 
-  async resendMpesaPaymentRequest(paymentId: number, user: RequestUser) {
+  async resendMpesaPaymentRequest(
+    paymentId: number,
+    user: RequestUser,
+    requestId?: string,
+  ) {
     const payment = await (this.prisma as any).payment.findUnique({
       where: { id: paymentId },
       include: {
@@ -54,6 +71,7 @@ export class FacilityMpesaBillingService {
     }
 
     const context = this.contextFromInvoice(payment.invoice);
+    context.requestId = requestId;
 
     return this.runWithFacilityMpesaEnv(context, () =>
       this.billingService.resendMpesaPaymentRequest(paymentId, user),
@@ -88,10 +106,15 @@ export class FacilityMpesaBillingService {
     return this.billingService.confirmMpesaPayment(dto);
   }
 
-  failMpesaPayment(checkoutRequestId: string, callbackPayload?: string) {
+  failMpesaPayment(
+    checkoutRequestId: string,
+    callbackPayload?: string,
+    user?: RequestUser,
+  ) {
     return this.billingService.failMpesaPayment(
       checkoutRequestId,
       callbackPayload,
+      user,
     );
   }
 
@@ -163,8 +186,7 @@ export class FacilityMpesaBillingService {
     const accountReference = this.firstText(
       facility.mpesaAccountNumber,
       branch?.mpesaAccountNumber,
-      `${facility.code ?? 'FAC'}-${invoiceNumber ?? `INV-${invoiceId}`}`,
-    );
+    ) ?? `${facility.code ?? 'FAC'}-${invoiceNumber ?? `INV-${invoiceId}`}`;
     const transactionDesc = `Invoice ${invoiceNumber ?? invoiceId} payment`;
 
     const missing = [
@@ -178,32 +200,56 @@ export class FacilityMpesaBillingService {
       .map(([label]) => label);
 
     if (missing.length > 0) {
+      this.safeLogger.warn('Facility M-Pesa configuration incomplete', {
+        facilityId: this.safeNumber(facility.id),
+        branchId: this.safeNumber(branch?.id),
+        missingFields: missing,
+      });
+
       throw new BadRequestException(
         `${facility.name ?? 'This facility'} is missing M-Pesa ${missing.join(', ')}. Complete the facility M-Pesa settings before sending an STK prompt.`,
       );
     }
 
-    return this.withAliases({
-      consumerKey: consumerKey!,
-      consumerSecret: consumerSecret!,
-      passkey: passkey!,
-      shortcode: shortcode!,
-      paybill: paybill ?? shortcode!,
-      callbackUrl: callbackUrl!,
+    const resolvedShortcode = shortcode!;
+    const resolvedPaybill = paybill ?? resolvedShortcode;
+
+    return {
+      env: this.withAliases({
+        consumerKey: consumerKey!,
+        consumerSecret: consumerSecret!,
+        passkey: passkey!,
+        shortcode: resolvedShortcode,
+        paybill: resolvedPaybill,
+        callbackUrl: callbackUrl!,
+        environment,
+        transactionType,
+        accountReference,
+        transactionDesc,
+      }),
       environment,
       transactionType,
-      accountReference,
-      transactionDesc,
-    });
+      shortcode: resolvedShortcode,
+      paybill: resolvedPaybill,
+    } satisfies FacilityMpesaRuntimeConfig;
   }
 
   private async runWithFacilityMpesaEnv<T>(
     context: FacilityMpesaContext,
     work: () => Promise<T>,
   ) {
-    const env = this.buildFacilityMpesaEnv(context);
+    const startedAt = Date.now();
+    const config = this.buildFacilityMpesaEnv(context);
     const previousQueue = this.mpesaEnvQueue;
-    let releaseQueue = () => undefined;
+    let releaseQueue: () => void = () => {};
+
+    this.safeLogger.info('Starting facility M-Pesa request', {
+      ...this.logContext(context),
+      environment: config.environment,
+      transactionType: config.transactionType,
+      shortcode: this.maskIdentifier(config.shortcode),
+      paybill: this.maskIdentifier(config.paybill),
+    });
 
     this.mpesaEnvQueue = new Promise<void>((resolve) => {
       releaseQueue = resolve;
@@ -211,15 +257,33 @@ export class FacilityMpesaBillingService {
 
     await previousQueue;
 
+    this.safeLogger.info('Switching facility M-Pesa environment', {
+      ...this.logContext(context),
+      environment: config.environment,
+      transactionType: config.transactionType,
+    });
+
     const previousValues = new Map<string, string | undefined>();
 
-    for (const [key, value] of Object.entries(env)) {
+    for (const [key, value] of Object.entries(config.env)) {
       previousValues.set(key, process.env[key]);
       process.env[key] = value;
     }
 
     try {
-      return await work();
+      const result = await work();
+      this.safeLogger.info('Facility M-Pesa request completed', {
+        ...this.logContext(context),
+        durationMs: Date.now() - startedAt,
+      });
+      return result;
+    } catch (error) {
+      this.safeLogger.error('Facility M-Pesa request failed', {
+        ...this.logContext(context),
+        errorName: error instanceof Error ? error.name : typeof error,
+        errorMessage: this.safeErrorMessage(error),
+      });
+      throw error;
     } finally {
       for (const [key, value] of previousValues.entries()) {
         if (value === undefined) {
@@ -228,8 +292,51 @@ export class FacilityMpesaBillingService {
           process.env[key] = value;
         }
       }
+      this.safeLogger.info('Restored previous M-Pesa environment', {
+        ...this.logContext(context),
+      });
       releaseQueue();
     }
+  }
+
+  private logContext(context: FacilityMpesaContext) {
+    return {
+      invoiceId: context.invoiceId,
+      invoiceNumber: context.invoiceNumber,
+      requestId: context.requestId,
+      facilityId: this.safeNumber(context.facility.id),
+      branchId: this.safeNumber(context.branch?.id),
+    };
+  }
+
+  private safeNumber(value: unknown) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+
+  private maskIdentifier(value?: string | null) {
+    if (!value) return undefined;
+    if (value.length <= 4) return '****';
+    return `${'*'.repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`;
+  }
+
+  private safeErrorMessage(error: unknown) {
+    if (!(error instanceof Error)) return 'Unknown error';
+    const redacted = error.message
+      .replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
+      .replace(/Basic\s+[^\s]+/gi, 'Basic [REDACTED]')
+      .replace(
+        /\b(mysql|postgres|postgresql):\/\/[^\s]+/gi,
+        '[REDACTED_DATABASE_URL]',
+      )
+      .replace(
+        /\b(consumer[_-]?secret|passkey|access[_-]?token|authorization|password)=([^\s&]+)/gi,
+        '$1=[REDACTED]',
+      );
+
+    return redacted.length > 500
+      ? `${redacted.slice(0, 500)}...[TRUNCATED]`
+      : redacted;
   }
 
   private firstText(...values: unknown[]) {

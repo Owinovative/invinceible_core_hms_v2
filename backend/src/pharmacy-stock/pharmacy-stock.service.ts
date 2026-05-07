@@ -673,6 +673,66 @@ export class PharmacyStockService {
     });
   }
 
+  async searchBranchMedicinesScoped(
+    branchId: number,
+    search: string | undefined,
+    user: RequestUser,
+  ) {
+    const branch = await this.getScopedBranch(branchId, user);
+    const query = String(search ?? '').trim();
+
+    return this.prisma.branchMedicineStock.findMany({
+      where: {
+        facilityId: branch.facilityId,
+        branchId,
+        isActive: true,
+        medicine: {
+          isActive: true,
+          ...(query
+            ? {
+                OR: [
+                  { name: { contains: query } },
+                  { code: { contains: query } },
+                  { dosageForm: { contains: query } },
+                  { strength: { contains: query } },
+                  { manufacturer: { contains: query } },
+                ],
+              }
+            : {}),
+        },
+      },
+      select: {
+        id: true,
+        facilityId: true,
+        branchId: true,
+        medicineId: true,
+        stockQuantity: true,
+        reorderLevel: true,
+        buyingPrice: true,
+        unitPrice: true,
+        isActive: true,
+        facility: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true } },
+        medicine: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            dosageForm: true,
+            strength: true,
+            manufacturer: true,
+            unitPrice: true,
+            stockQuantity: true,
+            reorderLevel: true,
+            isActive: true,
+          },
+        },
+      },
+      orderBy: [{ stockQuantity: 'desc' }, { id: 'asc' }],
+      take: 50,
+    });
+  }
+
   async findMedicineAlternativesScoped(
     branchId: number,
     medicineId: number,
