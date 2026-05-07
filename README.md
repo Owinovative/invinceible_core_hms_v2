@@ -12,7 +12,7 @@
   <img alt="MySQL" src="https://img.shields.io/badge/Database-MySQL-4479a1?style=for-the-badge&logo=mysql&logoColor=white" />
 </p>
 
----
+## Production Priorities
 
 ## ✨ What It Does
 
@@ -126,7 +126,7 @@ invinceible_core_hms_v2/
 └── README.md      # Project overview
 ```
 
----
+## Main Modules
 
 ## 🚀 Getting Started
 
@@ -192,7 +192,11 @@ npm run start
 npm run lint
 ```
 
----
+- a strong `JWT_SECRET` of at least 48 high-entropy characters,
+- a private `DATABASE_URL`,
+- strict `FRONTEND_URL` or `FRONTEND_ORIGINS`,
+- Redis where possible for cache, rate limiting, queues, and request coalescing,
+- secure M-Pesa credentials stored only in the backend environment.
 
 ## 📌 Current Product Focus
 
@@ -218,9 +222,13 @@ The platform is focused on:
 - Rust-powered heavy reporting engine foundation
 - Load testing and high-availability deployment guides
 
----
+Backend:
 
-## 🤝 Contributing
+```bash
+cd backend
+npm run build
+npm run test
+```
 
 Contributions should keep the system safe, scoped, and hospital-ready.
 
@@ -230,14 +238,14 @@ Recommended flow:
 create branch → make changes → open pull request → review → merge
 ```
 
----
+Start with [docs/README.md](docs/README.md).
 
-## ⭐ Support
+Important guides:
 
 If this project is useful, star the repository and share it with people building better healthcare systems.
 
----
+Report security concerns privately. See [SECURITY.md](SECURITY.md).
 
-## 📜 License
+## License
 
-MIT License
+MIT. See [LICENSE](LICENSE).

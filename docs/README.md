@@ -2,6 +2,12 @@
 
 - [Performance and scalability](performance-scalability.md)
 - [Load testing](load-testing.md)
+- [HMS benchmark gap analysis](hms-benchmark-gap-analysis.md)
+- [Production security checklist](production-security-checklist.md)
+- [Security monitoring](security-monitoring.md)
+- [Security testing](security-testing.md)
+- [Operations alerting](operations-alerting.md)
+- [M-Pesa reconciliation](mpesa-reconciliation.md)
 - [High availability architecture](high-availability-architecture.md)
 - [Multi-tenant facility isolation](multi-tenant-facility-isolation.md)
 - [Roles and permissions matrix](roles-permissions-matrix.md)

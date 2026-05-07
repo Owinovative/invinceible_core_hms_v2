@@ -66,7 +66,12 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'audit.read',
     'users.manage',
   ],
-  RECEPTIONIST: ['patient.read', 'patient.write', 'billing.read'],
+  RECEPTIONIST: [
+    'patient.read',
+    'patient.write',
+    'billing.read',
+    'billing.write',
+  ],
   TRIAGE_NURSE: ['patient.read', 'consultation.write'],
   NURSE: ['patient.read', 'consultation.write', 'admission.manage'],
   IPD_NURSE: ['patient.read', 'consultation.write', 'admission.manage'],
@@ -104,7 +109,12 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'billing.read',
     'reports.read',
   ],
-  CASHIER: ['patient.read', 'billing.read', 'payment.collect'],
+  CASHIER: [
+    'patient.read',
+    'billing.read',
+    'billing.write',
+    'payment.collect',
+  ],
   BILLING_OFFICER: [
     'patient.read',
     'billing.read',
