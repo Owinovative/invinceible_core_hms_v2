@@ -89,6 +89,9 @@ export default function PharmacyPage() {
   >(null);
   const [queueSearch, setQueueSearch] = React.useState("");
   const [queueStatus, setQueueStatus] = React.useState("OPEN");
+  const [dispenseQuantities, setDispenseQuantities] = React.useState<
+    Record<number, number>
+  >({});
 
   React.useEffect(() => {
     if (!selectedPrescriptionId && queue.length > 0) {
@@ -142,6 +145,29 @@ export default function PharmacyPage() {
     ? prescription.dispenses
     : [];
 
+  const dispensedByItemId = React.useMemo(() => {
+    const map = new Map<number, number>();
+    dispenses.forEach((dispense) => {
+      (dispense.items ?? []).forEach((item) => {
+        map.set(
+          item.prescriptionItemId,
+          (map.get(item.prescriptionItemId) ?? 0) + item.quantityDispensed,
+        );
+      });
+    });
+    return map;
+  }, [dispenses]);
+
+  React.useEffect(() => {
+    const next: Record<number, number> = {};
+    items.forEach((item) => {
+      const dispensed = dispensedByItemId.get(item.id) ?? 0;
+      const remaining = Math.max(0, item.quantity - dispensed);
+      if (remaining > 0) next[item.id] = remaining;
+    });
+    setDispenseQuantities(next);
+  }, [dispensedByItemId, items]);
+
 
   const totalQueue = queue.length;
   const totalPrescribed = queue.filter(
@@ -156,7 +182,33 @@ export default function PharmacyPage() {
 
     setMessage(null);
 
-    await dispensePrescriptionMutation.mutateAsync(selectedPrescriptionId);
+    const payloadItems = items
+      .map((item) => {
+        const dispensed = dispensedByItemId.get(item.id) ?? 0;
+        const remaining = Math.max(0, item.quantity - dispensed);
+        const quantityDispensed = Math.min(
+          Math.max(0, Number(dispenseQuantities[item.id] ?? 0)),
+          remaining,
+        );
+
+        return {
+          prescriptionItemId: item.id,
+          medicineId: item.medicineId,
+          quantityDispensed,
+          notes: item.instructions || undefined,
+        };
+      })
+      .filter((item) => item.quantityDispensed > 0);
+
+    if (payloadItems.length === 0) {
+      setMessage("Enter at least one quantity to dispense.");
+      return;
+    }
+
+    await dispensePrescriptionMutation.mutateAsync({
+      id: selectedPrescriptionId,
+      payload: { items: payloadItems },
+    });
 
     setMessage("Prescription dispensed successfully.");
   };
@@ -430,7 +482,12 @@ export default function PharmacyPage() {
                       No prescription items found.
                     </div>
                   ) : (
-                    items.map((item: PharmacyPrescriptionItem) => (
+                    items.map((item: PharmacyPrescriptionItem) => {
+                      const alreadyDispensed = dispensedByItemId.get(item.id) ?? 0;
+                      const remaining = Math.max(0, item.quantity - alreadyDispensed);
+                      const canDispense = remaining > 0;
+
+                      return (
                       <div
                         key={item.id}
                         className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
@@ -438,19 +495,49 @@ export default function PharmacyPage() {
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div>
                             <p className="font-semibold">
-                              {item.medicine?.name || `Medicine #${item.medicineId}`}
+                              {item.medicineNameSnapshot ||
+                                item.medicine?.name ||
+                                `Medicine #${item.medicineId}`}
                             </p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              {[item.dosage, item.frequency, item.duration]
+                              {[item.dosage, item.route, item.frequency, item.duration]
                                 .filter(Boolean)
-                                .join(" • ") || "—"}
+                                .join(" / ") || "-"}
                             </p>
                             <p className="mt-2 text-sm text-muted-foreground">
-                              Quantity: {item.quantity}
+                              Prescribed: {item.quantity} / Dispensed: {alreadyDispensed} /
+                              Remaining: {remaining}
                             </p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              Instructions: {item.instructions || "—"}
+                              Instructions: {item.instructions || "-"}
                             </p>
+                          </div>
+
+                          <div className="w-full max-w-[190px]">
+                            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                              Dispense now
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={remaining}
+                              value={dispenseQuantities[item.id] ?? 0}
+                              disabled={!canDispense}
+                              onChange={(event) => {
+                                const next = Math.max(
+                                  0,
+                                  Math.min(
+                                    remaining,
+                                    Number(event.target.value || 0),
+                                  ),
+                                );
+                                setDispenseQuantities((current) => ({
+                                  ...current,
+                                  [item.id]: next,
+                                }));
+                              }}
+                              className="h-11 rounded-xl"
+                            />
                           </div>
 
                           <Badge
@@ -462,7 +549,8 @@ export default function PharmacyPage() {
                           </Badge>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 

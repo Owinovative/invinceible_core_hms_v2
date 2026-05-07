@@ -28,9 +28,9 @@ services/  Future worker/service foundations
 
 - Patient registration, search, duplicate warning foundation, and visit history.
 - Triage with priority and doctor routing.
-- Doctor queue and consultation workspace.
+- Doctor queue and consultation workspace with structured prescribing.
 - Laboratory requests, results, verification, and doctor review.
-- Pharmacy catalog, branch stock, dispensing, low stock, and reorder foundations.
+- Pharmacy catalog, branch stock, stock-aware prescribing, partial dispensing, low stock, and reorder foundations.
 - IPD admissions, wards, beds, treatment charts, and discharge summaries.
 - Billing, invoices, payments, receipts, M-Pesa, SHA coverage, and cashier close.
 - Reports, audit logs, user management, facility settings, and platform controls.
@@ -100,6 +100,9 @@ Important guides:
 - [Performance and scalability](docs/performance-scalability.md)
 - [Production security checklist](docs/production-security-checklist.md)
 - [HMS benchmark gap analysis](docs/hms-benchmark-gap-analysis.md)
+- [Repository audit](docs/repository-audit.md)
+- [Prescriptions and pharmacy workflow](docs/prescriptions-pharmacy.md)
+- [Reports and printouts](docs/reports-printouts.md)
 - [Multi-tenant facility isolation](docs/multi-tenant-facility-isolation.md)
 - [M-Pesa reconciliation](docs/mpesa-reconciliation.md)
 - [Load testing](docs/load-testing.md)

@@ -673,23 +673,28 @@ model Prescription {
 }
 
 model PrescriptionItem {
-  id             Int            @id @default(autoincrement())
-  dosage         String?        @db.VarChar(100)
-  frequency      String?        @db.VarChar(100)
-  duration       String?        @db.VarChar(100)
-  quantity       Int            @default(1)
-  instructions   String?        @db.Text
-  statusCode     String         @default("PRESCRIBED") @db.VarChar(50)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  prescriptionId Int
-  medicineId     Int
-  medicine       Medicine       @relation(fields: [medicineId], references: [id])
-  prescription   Prescription   @relation(fields: [prescriptionId], references: [id])
-  dispenseItems  DispenseItem[]
+  id                               Int            @id @default(autoincrement())
+  dosage                           String?        @db.VarChar(100)
+  route                            String?        @db.VarChar(100)
+  frequency                        String?        @db.VarChar(100)
+  duration                         String?        @db.VarChar(100)
+  quantity                         Int            @default(1)
+  instructions                     String?        @db.Text
+  medicineNameSnapshot             String?        @db.VarChar(180)
+  stockStatusAtPrescribing         String?        @db.VarChar(50)
+  acceptedAlternativeForMedicineId Int?
+  statusCode                       String         @default("PRESCRIBED") @db.VarChar(50)
+  createdAt                        DateTime       @default(now())
+  updatedAt                        DateTime       @updatedAt
+  prescriptionId                   Int
+  medicineId                       Int
+  medicine                         Medicine       @relation(fields: [medicineId], references: [id])
+  prescription                     Prescription   @relation(fields: [prescriptionId], references: [id])
+  dispenseItems                    DispenseItem[]
 
   @@index([prescriptionId])
   @@index([medicineId])
+  @@index([acceptedAlternativeForMedicineId])
   @@index([statusCode])
   @@map("prescription_items")
 }

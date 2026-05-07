@@ -12,11 +12,15 @@ export interface MedicineSummary {
 export interface PrescriptionItemSummary {
   id: number;
   dosage?: string | null;
+  route?: string | null;
   frequency?: string | null;
   duration?: string | null;
   quantity: number;
   instructions?: string | null;
   statusCode?: string | null;
+  medicineNameSnapshot?: string | null;
+  stockStatusAtPrescribing?: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | string | null;
+  acceptedAlternativeForMedicineId?: number | null;
   medicineId: number;
   medicine?: MedicineSummary | null;
 }
@@ -103,10 +107,13 @@ export interface PrescriptionRecord {
 export interface CreatePrescriptionItemPayload {
   medicineId: number;
   dosage?: string;
+  route?: string;
   frequency?: string;
   duration?: string;
   quantity?: number;
   instructions?: string;
+  stockStatusAtPrescribing?: string;
+  acceptedAlternativeForMedicineId?: number;
 }
 
 export interface CreatePrescriptionPayload {
@@ -143,12 +150,12 @@ export async function getPharmacyQueue() {
 }
 export async function getPrescriptionsByConsultationId(consultationId: number) {
   return apiFetch<PrescriptionRecord[]>(
-    `/prescriptions?consultationId=${consultationId}`,
+    `/prescriptions/consultation/${consultationId}`,
   );
 }
 
 export async function getPrescriptionsByPatientId(patientId: number) {
-  return apiFetch<PrescriptionRecord[]>(`/prescriptions?patientId=${patientId}`);
+  return apiFetch<PrescriptionRecord[]>(`/prescriptions/patient/${patientId}`);
 }
 
 export async function dispensePrescription(id: number) {

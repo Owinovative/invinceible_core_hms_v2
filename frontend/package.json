@@ -45,6 +45,8 @@
   },
   "overrides": {
     "postcss": "8.5.10",
-    "hono": "4.12.15"
+    "hono": "4.12.18",
+    "express-rate-limit": "8.5.1",
+    "ip-address": "10.2.0"
   }
 }

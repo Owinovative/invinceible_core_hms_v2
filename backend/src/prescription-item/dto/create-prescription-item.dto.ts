@@ -15,6 +15,11 @@ export class CreatePrescriptionItemDto {
   @MaxLength(100)
   dosage?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  route?: string;
+
 
   @IsOptional()
   @IsString()
@@ -37,6 +42,15 @@ export class CreatePrescriptionItemDto {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  stockStatusAtPrescribing?: string;
+
+  @IsOptional()
+  @IsInt()
+  acceptedAlternativeForMedicineId?: number;
 
 
   @IsOptional()

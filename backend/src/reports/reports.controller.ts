@@ -1,5 +1,14 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -148,5 +157,22 @@ export class ReportsController {
     return this.reportsService.getSystemHealthSummary(
       this.reportsService.applyUserScopeToFilter(user, filter),
     );
+  }
+
+  @Get('medical/consultations/:id.pdf')
+  async downloadConsultationMedicalReportPdf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+    @Res() response: Response,
+  ) {
+    const report =
+      await this.reportsService.getConsultationMedicalReportPdf(id, user);
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+      'Cache-Control': 'private, no-store',
+    });
+    response.end(report.buffer);
   }
 }
