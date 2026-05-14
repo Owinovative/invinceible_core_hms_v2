@@ -20,12 +20,15 @@ Official PDFs use `backend/src/common/pdf/hospital-pdf.ts` for:
 
 - Letter-size pages.
 - Compact margins.
-- Simple hospital letterhead.
+- Premium hospital letterhead with logo frame, document title block, verification QR, and official footer rail.
 - Compact information lists instead of metric cards.
-- Compact clinical paragraphs.
-- Compact tables.
+- Compact clinical paragraphs with readable section framing.
+- Compact tables with strong headers, alternating rows, and printer-safe contrast.
+- Shared totals and signature blocks for official financial and clinical documents.
 - Footer/page numbering on actual content pages.
 - QR payload generation for exact document routes where available.
+
+Set `PUBLIC_API_BASE_URL` or `BACKEND_PUBLIC_URL` in production so QR codes embedded in protected PDFs open the real backend document endpoint. If Railway exposes `RAILWAY_PUBLIC_DOMAIN`, the helper can use it as a fallback.
 
 ## Browser print audit
 

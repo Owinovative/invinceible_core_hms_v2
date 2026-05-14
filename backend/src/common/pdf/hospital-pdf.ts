@@ -42,6 +42,24 @@ export interface PdfTableColumn<T> {
   render: (row: T, index: number) => PdfValue;
 }
 
+const PDF_COLORS = {
+  navy: '#073b63',
+  blue: '#0b79bf',
+  sky: '#e8f6ff',
+  paleBlue: '#f4fbff',
+  green: '#047857',
+  slate: '#0f172a',
+  muted: '#64748b',
+  line: '#cbd5e1',
+  softLine: '#dbeafe',
+  tableAlt: '#f8fafc',
+  white: '#ffffff',
+};
+
+function contentWidth(doc: PDFKit.PDFDocument) {
+  return doc.page.width - doc.page.margins.left - doc.page.margins.right;
+}
+
 export function textOrDash(value?: PdfValue) {
   if (value instanceof Date) return formatPdfDate(value);
   if (value === null || value === undefined || value === '') return '-';
@@ -158,20 +176,32 @@ export async function loadLogoBuffer(logoUrl?: string | null) {
 }
 
 export function addSectionTitle(doc: PDFKit.PDFDocument, title: string) {
-  ensureRoom(doc, 42);
-  doc.moveDown(0.6);
+  ensureRoom(doc, 32);
+  const left = doc.page.margins.left;
+  const width = contentWidth(doc);
+  const y = doc.y + 4;
+
+  doc
+    .roundedRect(left, y, width, 18, 2)
+    .fillAndStroke(PDF_COLORS.paleBlue, '#bfdbfe');
+  doc
+    .rect(left, y, 4, 18)
+    .fill(PDF_COLORS.blue);
   doc
     .font('Helvetica-Bold')
-    .fontSize(11)
-    .fillColor('#0f766e')
-    .text(title.toUpperCase(), { continued: false });
+    .fontSize(7.8)
+    .fillColor(PDF_COLORS.navy)
+    .text(title.toUpperCase(), left + 10, y + 5.2, {
+      width: width - 20,
+      characterSpacing: 0.25,
+    });
   doc
-    .moveTo(doc.page.margins.left, doc.y + 5)
-    .lineTo(doc.page.width - doc.page.margins.right, doc.y + 5)
-    .lineWidth(0.7)
-    .strokeColor('#cbd5e1')
+    .moveTo(left, y + 21)
+    .lineTo(left + width, y + 21)
+    .lineWidth(0.35)
+    .strokeColor(PDF_COLORS.line)
     .stroke();
-  doc.moveDown(0.8);
+  doc.y = y + 27;
 }
 
 export function addKeyValueGrid(
@@ -187,52 +217,56 @@ export function addCompactDefinitionList(
   items: PdfKeyValue[],
   columns = 2,
 ) {
-  const pageWidth =
-    doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const columnGap = 12;
+  const pageWidth = contentWidth(doc);
+  const columnGap = 10;
   const columnWidth = (pageWidth - columnGap * (columns - 1)) / columns;
 
   for (let index = 0; index < items.length; index += columns) {
     const row = items.slice(index, index + columns);
     const heights = row.map((item) => {
-      const labelWidth = Math.min(82, columnWidth * 0.42);
+      const labelWidth = Math.min(78, columnWidth * 0.42);
       doc.font('Helvetica').fontSize(8);
       return Math.max(
-        16,
+        18,
         doc.heightOfString(textOrDash(item.value), {
-          width: columnWidth - labelWidth - 8,
+          width: columnWidth - labelWidth - 10,
           lineGap: 1,
-        }) + 4,
+        }) + 6,
       );
     });
-    const height = Math.max(18, ...heights);
+    const height = Math.max(20, ...heights);
 
     ensureRoom(doc, height + 3);
     const y = doc.y;
 
     row.forEach((item, offset) => {
       const x = doc.page.margins.left + offset * (columnWidth + columnGap);
-      const labelWidth = Math.min(82, columnWidth * 0.42);
+      const labelWidth = Math.min(78, columnWidth * 0.42);
       doc
-        .moveTo(x, y + height + 1)
-        .lineTo(x + columnWidth, y + height + 1)
-        .lineWidth(0.35)
-        .strokeColor('#dbeafe')
-        .stroke();
+        .roundedRect(x, y, columnWidth, height, 2)
+        .fillAndStroke(
+          Math.floor(index / columns) % 2 === 0
+            ? PDF_COLORS.white
+            : PDF_COLORS.paleBlue,
+          PDF_COLORS.softLine,
+        );
       doc
-        .fillColor('#64748b')
+        .rect(x, y, 2.2, height)
+        .fill(offset % 2 === 0 ? PDF_COLORS.blue : '#38bdf8');
+      doc
+        .fillColor(PDF_COLORS.muted)
         .font('Helvetica-Bold')
-        .fontSize(7)
-        .text(`${item.label}:`, x, y + 3, {
-          width: labelWidth,
+        .fontSize(6.8)
+        .text(`${item.label}:`, x + 7, y + 5, {
+          width: labelWidth - 4,
           ellipsis: true,
         });
       doc
-        .fillColor('#0f172a')
+        .fillColor(PDF_COLORS.slate)
         .font('Helvetica')
         .fontSize(8.2)
-        .text(textOrDash(item.value), x + labelWidth + 6, y + 3, {
-          width: columnWidth - labelWidth - 6,
+        .text(textOrDash(item.value), x + labelWidth + 7, y + 5, {
+          width: columnWidth - labelWidth - 12,
           lineGap: 1,
         });
     });
@@ -263,28 +297,32 @@ export function addParagraph(
   value?: PdfValue,
 ) {
   const text = textOrDash(value);
-  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const width = contentWidth(doc);
   const bodyHeight = doc.heightOfString(text, {
-    width,
+    width: width - 18,
     lineGap: 1.4,
   });
-  const height = Math.max(31, bodyHeight + 18);
+  const height = Math.max(34, bodyHeight + 22);
 
   ensureRoom(doc, height + 6);
   const y = doc.y;
   doc
-    .fillColor('#0f172a')
+    .roundedRect(doc.page.margins.left, y, width, height, 3)
+    .fillAndStroke(PDF_COLORS.white, PDF_COLORS.softLine);
+  doc.rect(doc.page.margins.left, y, 3, height).fill(PDF_COLORS.blue);
+  doc
+    .fillColor(PDF_COLORS.navy)
     .font('Helvetica-Bold')
-    .fontSize(8.5)
-    .text(`${label}:`, doc.page.margins.left, y, {
-      width,
+    .fontSize(8)
+    .text(`${label}:`, doc.page.margins.left + 10, y + 7, {
+      width: width - 18,
     });
   doc
-    .fillColor('#0f172a')
+    .fillColor(PDF_COLORS.slate)
     .font('Helvetica')
-    .fontSize(9)
-    .text(text, doc.page.margins.left, y + 12, {
-      width,
+    .fontSize(8.7)
+    .text(text, doc.page.margins.left + 10, y + 19, {
+      width: width - 18,
       lineGap: 1.4,
     });
   doc.y = y + height + 3;
@@ -296,28 +334,32 @@ export function addCompactParagraph(
   value?: PdfValue,
 ) {
   const text = textOrDash(value);
-  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const width = contentWidth(doc);
   const bodyHeight = doc.heightOfString(text, {
-    width,
+    width: width - 16,
     lineGap: 1,
   });
-  const height = Math.max(24, bodyHeight + 16);
+  const height = Math.max(25, bodyHeight + 17);
 
   ensureRoom(doc, height + 5);
   const y = doc.y;
   doc
-    .fillColor('#0f172a')
+    .roundedRect(doc.page.margins.left, y, width, height, 2)
+    .fillAndStroke(PDF_COLORS.white, '#e0f2fe');
+  doc.rect(doc.page.margins.left, y, 2, height).fill(PDF_COLORS.blue);
+  doc
+    .fillColor(PDF_COLORS.navy)
     .font('Helvetica-Bold')
     .fontSize(7.8)
-    .text(`${label}:`, doc.page.margins.left, y, {
-      width,
+    .text(`${label}:`, doc.page.margins.left + 8, y + 5, {
+      width: width - 16,
     });
   doc
-    .fillColor('#0f172a')
+    .fillColor(PDF_COLORS.slate)
     .font('Helvetica')
     .fontSize(8.4)
-    .text(text, doc.page.margins.left, y + 10, {
-      width,
+    .text(text, doc.page.margins.left + 8, y + 15, {
+      width: width - 16,
       lineGap: 1,
     });
   doc.y = y + height + 2;
@@ -418,32 +460,36 @@ export function addCompactTable<T>(
   ensureRoom(doc, 28);
   let y = doc.y;
 
-  doc.rect(startX, y, tableWidth, 17).fillAndStroke('#f1f5f9', '#cbd5e1');
+  doc
+    .roundedRect(startX, y, tableWidth, 18, 2)
+    .fillAndStroke(PDF_COLORS.navy, PDF_COLORS.navy);
   let x = startX;
   columns.forEach((column) => {
     doc
-      .fillColor('#0f172a')
+      .fillColor(PDF_COLORS.white)
       .font('Helvetica-Bold')
       .fontSize(7.2)
-      .text(column.header, x + 4, y + 5.5, {
+      .text(column.header, x + 4, y + 5.8, {
         width: column.width - 8,
       });
     x += column.width;
   });
 
-  doc.y = y + 17;
+  doc.y = y + 18;
 
   if (rows.length === 0) {
     ensureRoom(doc, 28);
-    doc.rect(startX, doc.y, tableWidth, 24).fillAndStroke('#ffffff', '#e2e8f0');
     doc
-      .fillColor('#64748b')
+      .roundedRect(startX, doc.y, tableWidth, 25, 2)
+      .fillAndStroke(PDF_COLORS.paleBlue, '#bfdbfe');
+    doc
+      .fillColor(PDF_COLORS.muted)
       .font('Helvetica')
       .fontSize(8)
-      .text(emptyMessage, startX + 6, doc.y + 8, {
+      .text(emptyMessage, startX + 7, doc.y + 8.5, {
         width: tableWidth - 12,
       });
-    doc.y += 29;
+    doc.y += 30;
     return;
   }
 
@@ -468,12 +514,23 @@ export function addCompactTable<T>(
     y = doc.y;
     doc
       .rect(startX, y, tableWidth, rowHeight)
-      .fillAndStroke(rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc', '#e2e8f0');
+      .fillAndStroke(
+        rowIndex % 2 === 0 ? PDF_COLORS.white : PDF_COLORS.tableAlt,
+        '#e2e8f0',
+      );
 
     x = startX;
     values.forEach((value, columnIndex) => {
+      if (columnIndex > 0) {
+        doc
+          .moveTo(x, y)
+          .lineTo(x, y + rowHeight)
+          .lineWidth(0.2)
+          .strokeColor('#e2e8f0')
+          .stroke();
+      }
       doc
-        .fillColor('#0f172a')
+        .fillColor(PDF_COLORS.slate)
         .font('Helvetica')
         .fontSize(7.8)
         .text(value, x + 4, y + 6, {
@@ -487,6 +544,114 @@ export function addCompactTable<T>(
   });
 
   doc.moveDown(0.35);
+}
+
+export function addTotalsPanel(
+  doc: PDFKit.PDFDocument,
+  items: PdfKeyValue[],
+  title = 'Totals',
+) {
+  const width = 210;
+  const left = doc.page.width - doc.page.margins.right - width;
+  const rowHeight = 18;
+  const height = 26 + items.length * rowHeight;
+
+  ensureRoom(doc, height + 6);
+  const y = doc.y;
+  doc
+    .roundedRect(left, y, width, height, 3)
+    .fillAndStroke(PDF_COLORS.white, '#bfdbfe');
+  doc
+    .roundedRect(left, y, width, 22, 3)
+    .fillAndStroke(PDF_COLORS.sky, '#bfdbfe');
+  doc
+    .fillColor(PDF_COLORS.navy)
+    .font('Helvetica-Bold')
+    .fontSize(8)
+    .text(title.toUpperCase(), left + 8, y + 7, {
+      width: width - 16,
+      characterSpacing: 0.2,
+    });
+
+  let rowY = y + 24;
+  items.forEach((item, index) => {
+    const isFinal = index === items.length - 1;
+    if (index > 0) {
+      doc
+        .moveTo(left + 8, rowY - 2)
+        .lineTo(left + width - 8, rowY - 2)
+        .lineWidth(0.25)
+        .strokeColor('#dbeafe')
+        .stroke();
+    }
+    doc
+      .fillColor(isFinal ? PDF_COLORS.navy : PDF_COLORS.muted)
+      .font(isFinal ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(isFinal ? 8.8 : 7.8)
+      .text(item.label, left + 8, rowY + 2, { width: 88 });
+    doc
+      .fillColor(isFinal ? PDF_COLORS.navy : PDF_COLORS.slate)
+      .font(isFinal ? 'Helvetica-Bold' : 'Helvetica-Bold')
+      .fontSize(isFinal ? 9 : 8)
+      .text(textOrDash(item.value), left + 98, rowY + 2, {
+        width: width - 106,
+        align: 'right',
+      });
+    rowY += rowHeight;
+  });
+
+  doc.y = y + height + 6;
+}
+
+export function addSignatureBlock(
+  doc: PDFKit.PDFDocument,
+  items: PdfKeyValue[],
+  title = 'Clinician sign off',
+) {
+  const width = contentWidth(doc);
+  const height = 62;
+
+  ensureRoom(doc, height + 8);
+  const y = doc.y;
+  doc
+    .roundedRect(doc.page.margins.left, y, width, height, 3)
+    .fillAndStroke(PDF_COLORS.white, '#bfdbfe');
+  doc
+    .fillColor(PDF_COLORS.navy)
+    .font('Helvetica-Bold')
+    .fontSize(8)
+    .text(title.toUpperCase(), doc.page.margins.left + 9, y + 7, {
+      width: width - 18,
+      characterSpacing: 0.2,
+    });
+
+  const columns = Math.max(1, Math.min(3, items.length));
+  const colGap = 12;
+  const colWidth = (width - 18 - colGap * (columns - 1)) / columns;
+  items.slice(0, 3).forEach((item, index) => {
+    const x = doc.page.margins.left + 9 + index * (colWidth + colGap);
+    doc
+      .fillColor(PDF_COLORS.muted)
+      .font('Helvetica-Bold')
+      .fontSize(6.8)
+      .text(item.label, x, y + 25, { width: colWidth });
+    doc
+      .fillColor(PDF_COLORS.slate)
+      .font('Helvetica')
+      .fontSize(8.2)
+      .text(textOrDash(item.value), x, y + 36, {
+        width: colWidth,
+        ellipsis: true,
+      });
+    doc
+      .moveTo(x, y + 52)
+      .lineTo(x + colWidth, y + 52)
+      .lineWidth(0.4)
+      .strokeColor(PDF_COLORS.line)
+      .stroke();
+  });
+
+  doc.y = y + height + 6;
 }
 
 export function drawVerificationBarcode(
@@ -551,12 +716,12 @@ function drawLetterhead(
   qrBuffer?: Buffer,
 ) {
   const left = doc.page.margins.left;
-  const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const width = contentWidth(doc);
   const compact = options.compact === true;
-  const top = compact ? 28 : 34;
-  const height = compact ? 58 : 72;
-  const logoSize = compact ? 32 : 40;
-  const titleWidth = compact ? 148 : 170;
+  const top = compact ? 24 : 30;
+  const height = compact ? 66 : 80;
+  const logoSize = compact ? 35 : 44;
+  const titleWidth = compact ? 156 : 176;
   const titleX = doc.page.width - doc.page.margins.right - titleWidth;
   const facilityName = options.facility?.name || 'Hospital Facility';
   const branchLine = options.branch?.name
@@ -571,78 +736,135 @@ function drawLetterhead(
     .filter(Boolean)
     .join(' | ');
 
-  let textLeft = left;
+  doc.save();
+  doc
+    .rect(0, 0, doc.page.width, 6)
+    .fill(PDF_COLORS.blue);
+  doc
+    .roundedRect(left, top, width, height, 5)
+    .fillAndStroke(PDF_COLORS.paleBlue, '#bfdbfe');
+  doc
+    .rect(left, top, 5, height)
+    .fill(PDF_COLORS.navy);
+  doc
+    .moveTo(left + width - titleWidth - 18, top + 9)
+    .lineTo(left + width - titleWidth - 18, top + height - 9)
+    .lineWidth(0.4)
+    .strokeColor('#bfdbfe')
+    .stroke();
+  doc.restore();
+
+  let textLeft = left + 13;
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, left, top + 4, {
+      doc
+        .roundedRect(left + 13, top + 12, logoSize + 8, logoSize + 8, 4)
+        .fillAndStroke(PDF_COLORS.white, '#bae6fd');
+      doc.image(logoBuffer, left + 17, top + 16, {
         fit: [logoSize, logoSize],
       });
-      textLeft = left + logoSize + 10;
+      textLeft = left + logoSize + 30;
     } catch {
-      textLeft = left;
+      textLeft = left + 13;
     }
+  } else {
+    doc
+      .roundedRect(left + 13, top + 12, logoSize + 8, logoSize + 8, 4)
+      .fillAndStroke(PDF_COLORS.white, '#bae6fd');
+    doc
+      .fillColor(PDF_COLORS.blue)
+      .font('Helvetica-Bold')
+      .fontSize(compact ? 18 : 22)
+      .text('+', left + 13, top + (compact ? 15 : 15), {
+        width: logoSize + 8,
+        align: 'center',
+      });
+    textLeft = left + logoSize + 30;
   }
 
   doc
-    .fillColor('#0f172a')
+    .fillColor(PDF_COLORS.navy)
     .font('Helvetica-Bold')
-    .fontSize(compact ? 12.5 : 15)
-    .text(facilityName.toUpperCase(), textLeft, top + 2, {
-      width: titleX - textLeft - 12,
+    .fontSize(compact ? 12.2 : 14.5)
+    .text(facilityName.toUpperCase(), textLeft, top + 13, {
+      width: titleX - textLeft - 18,
       lineGap: 0.5,
     });
   doc
-    .fillColor('#005da8')
+    .fillColor(PDF_COLORS.blue)
     .font('Helvetica-Bold')
     .fontSize(compact ? 7.1 : 8.2)
-    .text(branchLine || 'Official Hospital Document', textLeft, top + 22, {
-      width: titleX - textLeft - 12,
+    .text(branchLine || 'Official Hospital Document', textLeft, top + 33, {
+      width: titleX - textLeft - 18,
     });
   doc
-    .fillColor('#334155')
+    .fillColor(PDF_COLORS.muted)
     .font('Helvetica')
     .fontSize(compact ? 6.7 : 7.6)
-    .text(contact || 'Facility contact details not recorded', textLeft, top + 35, {
-      width: titleX - textLeft - 12,
-      lineGap: compact ? 1 : 2,
-    });
+    .text(
+      contact || 'Facility contact details not recorded',
+      textLeft,
+      top + 46,
+      {
+        width: titleX - textLeft - 18,
+        lineGap: compact ? 1 : 2,
+      },
+    );
 
   doc
-    .fillColor('#0f172a')
+    .fillColor(PDF_COLORS.navy)
     .font('Helvetica-Bold')
-    .fontSize(compact ? 12.8 : 15.5)
-    .text(options.title, titleX, top + 14, {
+    .fontSize(compact ? 12.4 : 15)
+    .text(options.title.toUpperCase(), titleX, top + 14, {
       width: titleWidth,
       align: 'right',
     });
 
   if (options.subtitle) {
     doc
-      .fillColor('#334155')
-      .font('Helvetica')
-      .fontSize(compact ? 7.5 : 9)
-      .text(options.subtitle, titleX, top + (compact ? 34 : 38), {
-        width: titleWidth,
+      .roundedRect(titleX + titleWidth - 118, top + 35, 118, 16, 2)
+      .fillAndStroke(PDF_COLORS.white, '#bfdbfe');
+    doc
+      .fillColor(PDF_COLORS.blue)
+      .font('Helvetica-Bold')
+      .fontSize(compact ? 6.8 : 7.5)
+      .text(options.subtitle, titleX + titleWidth - 113, top + 39.8, {
+        width: 108,
         align: 'right',
+        ellipsis: true,
       });
   }
 
   if (qrBuffer) {
-    const qrSize = compact ? 30 : 36;
-    doc.image(qrBuffer, titleX - qrSize - 10, top + 18, {
+    const qrSize = compact ? 29 : 35;
+    const qrX = titleX - qrSize - 11;
+    const qrY = top + (compact ? 27 : 31);
+    doc
+      .roundedRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 14, 3)
+      .fillAndStroke(PDF_COLORS.white, '#bfdbfe');
+    doc.image(qrBuffer, qrX, qrY, {
       fit: [qrSize, qrSize],
     });
     doc
-      .fillColor('#334155')
+      .fillColor(PDF_COLORS.muted)
+      .font('Helvetica-Bold')
+      .fontSize(compact ? 5.2 : 5.8)
+      .text('VERIFY', qrX - 4, qrY + qrSize + 2, {
+        width: qrSize + 8,
+        align: 'center',
+      });
+    doc
+      .fillColor(PDF_COLORS.muted)
       .font('Helvetica-Bold')
       .fontSize(compact ? 5.8 : 6.5)
-      .text(options.verificationCode || options.reference || 'VERIFY', titleX, top + height - 13, {
+      .text(options.verificationCode || options.reference || 'VERIFY', titleX, top + height - 14, {
         width: titleWidth,
         align: 'right',
+        ellipsis: true,
       });
   } else if (options.reference) {
     doc
-      .fillColor('#005da8')
+      .fillColor(PDF_COLORS.blue)
       .font('Helvetica-Bold')
       .fontSize(compact ? 7 : 8)
       .text(options.reference, titleX, top + height - 27, {
@@ -654,37 +876,66 @@ function drawLetterhead(
   doc
     .moveTo(left, top + height)
     .lineTo(left + width, top + height)
-    .lineWidth(1)
-    .strokeColor('#0b5f9e')
+    .lineWidth(1.2)
+    .strokeColor(PDF_COLORS.blue)
     .stroke();
 
   doc.y = top + height + (compact ? 10 : 13);
 }
 
 async function createDocumentQr(options: HospitalPdfOptions) {
-  const payload =
+  const payload = normalizeQrPayload(
     options.qrPayload ??
-    ({
-      title: options.title,
-      subtitle: options.subtitle,
-      reference: options.reference,
-      verificationCode: options.verificationCode,
-      facility: options.facility?.name,
-      branch: options.branch?.name,
-    } satisfies Record<string, unknown>);
+      ({
+        title: options.title,
+        subtitle: options.subtitle,
+        reference: options.reference,
+        verificationCode: options.verificationCode,
+        facility: options.facility?.name,
+        branch: options.branch?.name,
+      } satisfies Record<string, unknown>),
+  );
 
   try {
-    return QRCode.toBuffer(
-      typeof payload === 'string' ? payload : JSON.stringify(payload),
-      {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        scale: 3,
-      },
-    );
+    return QRCode.toBuffer(payload, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      scale: 3,
+    });
   } catch {
     return undefined;
   }
+}
+
+function normalizeQrPayload(payload: unknown) {
+  if (typeof payload !== 'string') {
+    return JSON.stringify(payload);
+  }
+
+  if (/^https?:\/\//i.test(payload)) {
+    return payload;
+  }
+
+  if (payload.startsWith('/')) {
+    return `${publicDocumentBaseUrl()}${payload}`;
+  }
+
+  return payload;
+}
+
+function publicDocumentBaseUrl() {
+  const configured =
+    process.env.PUBLIC_API_BASE_URL ||
+    process.env.API_PUBLIC_URL ||
+    process.env.BACKEND_PUBLIC_URL ||
+    process.env.SERVER_PUBLIC_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : undefined) ||
+    'http://localhost:3000';
+
+  return configured.replace(/\/+$/, '');
 }
 
 function drawFooter(doc: PDFKit.PDFDocument) {
@@ -695,32 +946,36 @@ function drawFooter(doc: PDFKit.PDFDocument) {
     doc.switchToPage(range.start + pageIndex);
 
     const footerY = doc.page.height - doc.page.margins.bottom - 24;
+    const left = doc.page.margins.left;
+    const width = contentWidth(doc);
     doc
-      .moveTo(doc.page.margins.left, footerY - 10)
-      .lineTo(doc.page.width - doc.page.margins.right, footerY - 10)
-      .lineWidth(0.5)
-      .strokeColor('#cbd5e1')
-      .stroke();
+      .roundedRect(left, footerY - 13, width, 24, 2)
+      .fillAndStroke('#f8fbff', '#dbeafe');
+    doc.rect(left, footerY - 13, 4, 24).fill(PDF_COLORS.blue);
     doc
-      .fillColor('#64748b')
+      .fillColor(PDF_COLORS.muted)
       .font('Helvetica')
       .fontSize(7.5)
       .text(
         `Generated ${generatedAt} by Invinceible Core HMS`,
-        doc.page.margins.left,
-        footerY,
+        left + 9,
+        footerY - 4,
         {
           width: 280,
         },
       );
-    doc.text(
-      `Page ${pageIndex + 1} of ${range.count}`,
-      doc.page.width - 140,
-      footerY,
-      {
-        width: 92,
-        align: 'right',
-      },
-    );
+    doc
+      .fillColor(PDF_COLORS.navy)
+      .font('Helvetica-Bold')
+      .fontSize(7.5)
+      .text(
+        `Page ${pageIndex + 1} of ${range.count}`,
+        doc.page.width - 140,
+        footerY - 4,
+        {
+          width: 92,
+          align: 'right',
+        },
+      );
   }
 }

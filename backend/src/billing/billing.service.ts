@@ -31,6 +31,7 @@ import {
   addCompactParagraph,
   addCompactTable,
   addSectionTitle,
+  addTotalsPanel,
   createHospitalPdfBuffer,
   formatPdfMoney,
   patientName,
@@ -2764,8 +2765,7 @@ export class BillingService {
           2,
         );
 
-        addSectionTitle(doc, 'Amount received');
-        addCompactDefinitionList(
+        addTotalsPanel(
           doc,
           [
             {
@@ -2777,7 +2777,7 @@ export class BillingService {
               value: formatPdfMoney(payment.invoice?.balanceAmount, currency),
             },
           ],
-          2,
+          'Amount received',
         );
         addCompactParagraph(
           doc,
@@ -2851,7 +2851,7 @@ export class BillingService {
         );
 
         addSectionTitle(doc, 'Payment instructions and totals');
-        addCompactDefinitionList(
+        addTotalsPanel(
           doc,
           [
             { label: 'Subtotal', value: this.compactMoney(invoice.subtotal, currency) },
@@ -2861,7 +2861,7 @@ export class BillingService {
             { label: 'Paid', value: this.compactMoney(invoice.amountPaid, currency) },
             { label: 'Balance', value: this.compactMoney(invoice.balanceAmount, currency) },
           ],
-          3,
+          'Invoice totals',
         );
         addCompactParagraph(
           doc,
