@@ -1,7 +1,14 @@
 # Render Blueprint for production migration.
-# This keeps the existing MySQL Prisma provider. DATABASE_URL should point to
-# the current external MySQL database for the first Render cutover unless a
-# separate, tested data migration has already been completed.
+# This branch prepares the PostgreSQL cutover path. Keep the existing MySQL
+# database available until the PostgreSQL import and validation checklist pass.
+databases:
+  - name: invinceible-core-hms-postgres
+    databaseName: invinceible_core_hms
+    user: invinceible_core_hms
+    region: frankfurt
+    plan: basic-1gb
+    postgresMajorVersion: "16"
+
 services:
   - type: web
     name: invinceible-core-hms-api
@@ -9,8 +16,8 @@ services:
     rootDir: backend
     plan: starter
     region: frankfurt
-    buildCommand: npm ci && npx prisma generate && npm run build
-    preDeployCommand: npx prisma migrate deploy
+    buildCommand: npm ci && npm run prisma:generate:postgres && npm run build
+    preDeployCommand: npm run prisma:migrate:postgres
     startCommand: npm run start:prod
     healthCheckPath: /health/live
     autoDeployTrigger: checksPass
@@ -19,8 +26,12 @@ services:
         value: production
       - key: NODE_VERSION
         value: "22"
+      - key: DATABASE_PROVIDER
+        value: postgresql
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: invinceible-core-hms-postgres
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN

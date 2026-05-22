@@ -11,10 +11,10 @@ database access have been verified.
 | --- | --- | --- | --- |
 | Backend API | `backend/` | NestJS on Node 22 | Web service |
 | Frontend | `frontend/` | Next.js on Node 22 | Web service |
-| Database | `backend/prisma/schema.prisma` | Prisma MySQL provider | External MySQL `DATABASE_URL` |
+| Database | `backend/prisma/schema.prisma` and `backend/prisma-postgresql/schema.prisma` | MySQL today, PostgreSQL for Render cutover | External MySQL first, Render PostgreSQL after tested migration |
 | Cache/queues | Optional `REDIS_URL` | Redis-compatible URL when configured | External Redis or Render Key Value |
 
-The Prisma datasource is MySQL:
+The canonical Prisma datasource is still MySQL:
 
 ```prisma
 datasource db {
@@ -23,8 +23,10 @@ datasource db {
 }
 ```
 
-Do not switch the Prisma provider to PostgreSQL just because Render supports
-Render Postgres. That would be a separate data migration project.
+The Render PostgreSQL cutover uses `backend/prisma-postgresql/schema.prisma`,
+which is generated from the canonical MySQL schema by
+`npm run prisma:schema:postgres`. Do not remove MySQL support until the
+PostgreSQL import, validation checklist, and rollback plan have been tested.
 
 ## Render Blueprint
 
@@ -34,11 +36,36 @@ It defines:
 
 - `invinceible-core-hms-api`: backend web service.
 - `invinceible-core-hms-web`: frontend Next.js web service.
+- `invinceible-core-hms-postgres`: Render PostgreSQL database.
 
-The blueprint intentionally does not create a Render Postgres database because
-the application currently uses MySQL. For the first Render cutover, set
-`DATABASE_URL` to the existing production MySQL database or to a separately
-provisioned MySQL-compatible database.
+The blueprint is PostgreSQL-ready and wires backend `DATABASE_URL` from the
+Render PostgreSQL internal connection string. Use this only after the
+MySQL-to-PostgreSQL migration has been rehearsed. If you need the interim
+external MySQL mode, override the backend build/pre-deploy commands and set
+`DATABASE_URL` manually as described below.
+
+## Database modes
+
+### Mode 1: Render app with external MySQL
+
+Use this mode while Render hosting is being validated without changing the
+database engine.
+
+| Setting | Value |
+| --- | --- |
+| Backend build command | `npm ci && npx prisma generate && npm run build` |
+| Backend pre-deploy command | `npx prisma migrate deploy` |
+| `DATABASE_URL` | Existing MySQL connection string entered as a Render secret |
+
+### Mode 2: Render app with Render PostgreSQL
+
+Use this mode only after a dry-run import and data validation pass.
+
+| Setting | Value |
+| --- | --- |
+| Backend build command | `npm ci && npm run prisma:generate:postgres && npm run build` |
+| Backend pre-deploy command | `npm run prisma:migrate:postgres` |
+| `DATABASE_URL` | Render PostgreSQL internal connection string from Blueprint `fromDatabase` |
 
 ## Backend service settings
 
@@ -49,8 +76,8 @@ Use these settings if configuring manually in the Render dashboard:
 | Root directory | `backend` |
 | Runtime | Node |
 | Node version | `22` |
-| Build command | `npm ci && npx prisma generate && npm run build` |
-| Pre-deploy command | `npx prisma migrate deploy` |
+| Build command | PostgreSQL mode: `npm ci && npm run prisma:generate:postgres && npm run build` |
+| Pre-deploy command | PostgreSQL mode: `npm run prisma:migrate:postgres` |
 | Start command | `npm run start:prod` |
 | Health check path | `/health/live` |
 
@@ -86,7 +113,8 @@ Required:
 | Variable | Notes |
 | --- | --- |
 | `NODE_ENV` | `production` |
-| `DATABASE_URL` | Existing production MySQL or new MySQL-compatible URL. Do not use Render Postgres without a migration project. |
+| `DATABASE_PROVIDER` | Optional operational marker. Use `mysql` before cutover and `postgresql` after cutover. |
+| `DATABASE_URL` | External MySQL in mode 1, Render PostgreSQL internal connection string in mode 2. |
 | `JWT_SECRET` | At least 48 high-entropy characters. The blueprint can generate a value for a new Render service. |
 | `JWT_EXPIRES_IN` | Example: `1d` |
 | `FRONTEND_URL` | Primary Render frontend URL or custom production domain. |
@@ -161,7 +189,11 @@ keys, or provider credentials in frontend environment variables.
 
 ## Database migration safety
 
-Safest first migration:
+The PostgreSQL database migration is not an environment-variable-only change.
+Follow [MySQL to Render PostgreSQL migration](mysql-to-render-postgres.md)
+before switching production traffic.
+
+Safest first hosting migration:
 
 1. Keep the existing production MySQL database.
 2. Set Render backend `DATABASE_URL` to that external MySQL connection string.
@@ -169,19 +201,15 @@ Safest first migration:
    fresh backup.
 4. Verify `/health/ready` before sending production users to Render.
 
-If moving to a new database:
+PostgreSQL cutover:
 
-1. Provision a MySQL-compatible target.
-2. Take a verified backup of the current Railway production database.
-3. Restore into the target database.
-4. Run `npx prisma migrate deploy` against the target.
+1. Provision Render PostgreSQL from the Blueprint.
+2. Generate the PostgreSQL Prisma schema with `npm run prisma:schema:postgres`.
+3. Apply PostgreSQL baseline migrations with `npm run prisma:migrate:postgres`.
+4. Import data from a fresh MySQL snapshot into Render PostgreSQL.
 5. Run data integrity checks for facilities, branches, users, patients,
    invoices, payments, stock, SHA claims, and audit logs.
-6. Point Render `DATABASE_URL` to the target only after validation.
-
-Do not convert the Prisma datasource to PostgreSQL as part of this hosting
-migration. That would require schema review, data type mapping, rehearsed data
-copy, downtime planning, and rollback testing.
+6. Point Render backend to the PostgreSQL `DATABASE_URL` only after validation.
 
 ## Deploy order
 
@@ -204,8 +232,11 @@ copy, downtime planning, and rollback testing.
 - Do not remove Railway/Vercel env vars during the Render trial.
 - If Render fails, point frontend API env/DNS back to Railway and keep the
   existing Vercel deployment serving users.
-- If a migration was applied, restore the latest pre-deploy backup if the
-  application cannot safely run on the migrated schema.
+- Keep the MySQL database read-only but available during PostgreSQL validation.
+- If PostgreSQL validation fails before cutover, keep production on MySQL.
+- If cutover fails after traffic moves, point the backend `DATABASE_URL` and
+  frontend API URL back to the Railway/MySQL stack and restore from the latest
+  backup only if MySQL received writes during the failed window.
 
 ## Secrets policy
 
