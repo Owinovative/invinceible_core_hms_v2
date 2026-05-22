@@ -8,6 +8,7 @@
 - [Security monitoring](security-monitoring.md)
 - [Security testing](security-testing.md)
 - [Render production deployment](deployment/render.md)
+- [MySQL to Render PostgreSQL migration](deployment/mysql-to-render-postgres.md)
 - [Operations alerting](operations-alerting.md)
 - [Logging and observability](logging-observability.md)
 - [PDF and printout audit](pdf-printout-audit.md)

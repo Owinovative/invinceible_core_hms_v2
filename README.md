@@ -161,10 +161,12 @@ npm audit --audit-level=moderate --omit=dev
 - Run database backups before production migrations.
 - Deploy backend and frontend through their configured platforms.
 - Render production migration is prepared in [docs/deployment/render.md](docs/deployment/render.md) and [render.yaml](render.yaml).
+- Render PostgreSQL migration planning is documented in [docs/deployment/mysql-to-render-postgres.md](docs/deployment/mysql-to-render-postgres.md).
 - Keep Railway and Vercel active until Render backend, frontend, database connectivity, health checks, and payment callbacks are verified.
 - Configure Render backend environment variables securely in the Render dashboard.
 - Configure Render frontend `NEXT_PUBLIC_API_BASE_URL` to the Render backend URL.
 - If Railway/Vercel remain active during cutover, keep their existing environment variables intact for rollback.
+- Do not point production at Render PostgreSQL until MySQL data has been backed up, imported, validated, and rollback-tested.
 - Configure Daraja callback URLs to point to the deployed backend.
 - Run queue workers when queue-backed jobs are enabled.
 - Check `/health/live`, `/health/ready`, and `/health/deep` after deployment.
@@ -187,6 +189,7 @@ Important guides:
 - [Load testing](docs/load-testing.md)
 - [Security testing](docs/security-testing.md)
 - [Render production deployment](docs/deployment/render.md)
+- [MySQL to Render PostgreSQL migration](docs/deployment/mysql-to-render-postgres.md)
 
 ## Security
 
