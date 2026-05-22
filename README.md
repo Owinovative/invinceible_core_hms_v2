@@ -160,8 +160,11 @@ npm audit --audit-level=moderate --omit=dev
 
 - Run database backups before production migrations.
 - Deploy backend and frontend through their configured platforms.
-- Configure Railway backend environment variables securely.
-- Configure Vercel frontend `NEXT_PUBLIC_API_BASE_URL` to the Railway backend URL.
+- Render production migration is prepared in [docs/deployment/render.md](docs/deployment/render.md) and [render.yaml](render.yaml).
+- Keep Railway and Vercel active until Render backend, frontend, database connectivity, health checks, and payment callbacks are verified.
+- Configure Render backend environment variables securely in the Render dashboard.
+- Configure Render frontend `NEXT_PUBLIC_API_BASE_URL` to the Render backend URL.
+- If Railway/Vercel remain active during cutover, keep their existing environment variables intact for rollback.
 - Configure Daraja callback URLs to point to the deployed backend.
 - Run queue workers when queue-backed jobs are enabled.
 - Check `/health/live`, `/health/ready`, and `/health/deep` after deployment.
@@ -183,6 +186,7 @@ Important guides:
 - [SHA and insurance workflow](docs/sha-insurance-workflow.md)
 - [Load testing](docs/load-testing.md)
 - [Security testing](docs/security-testing.md)
+- [Render production deployment](docs/deployment/render.md)
 
 ## Security
 
