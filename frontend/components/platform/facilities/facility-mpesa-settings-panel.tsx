@@ -368,7 +368,7 @@ export function FacilityMpesaSettingsPanel() {
               onChange={(event) => updateText("mpesaCallbackUrl", event.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Use the backend API URL, not the frontend Vercel URL.
+              Use the backend API URL, not the frontend application URL.
             </p>
           </div>
 

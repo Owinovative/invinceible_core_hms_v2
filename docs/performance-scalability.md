@@ -151,7 +151,7 @@ npm run start:worker
 npm run start:prod:worker
 ```
 
-Recommended deployment is a separate Railway service running the worker command.
+Recommended deployment is a separate worker service running the worker command.
 
 ### Database Indexes
 
@@ -207,16 +207,16 @@ LOG_LEVEL=info
 
 Use a production-grade `JWT_SECRET`, secure `DATABASE_URL`, Redis password/TLS where supported, and rotate any secret that has ever been exposed locally.
 
-## Railway Notes
+## Deployment Notes
 
-Recommended services:
+Recommended services on Railway, Render, or equivalent managed hosting:
 
 - backend web service: `npm run start:prod`
 - backend worker service: `npm run start:prod:worker`
 - Redis service or managed Redis provider
 - MySQL service with adequate CPU, memory, and connection limits
 
-Set `TRUST_PROXY=true` only when Railway/Cloudflare proxy headers are trusted in your deployment.
+Set `TRUST_PROXY=true` only when the platform or CDN proxy headers are trusted in your deployment. For Render migration details, see [Render production deployment](deployment/render.md).
 
 ## Cloudflare or Load Balancer Notes
 

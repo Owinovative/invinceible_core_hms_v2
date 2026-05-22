@@ -690,7 +690,7 @@ export function CreateFacilityForm() {
               <p className="font-semibold">Facility Daraja setup</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Use these only when this facility has its own Safaricom app.
-                Empty credential fields fall back to Railway variables.
+                Empty credential fields fall back to backend environment variables.
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField
@@ -779,7 +779,7 @@ export function CreateFacilityForm() {
                     <FormItem className="md:col-span-2">
                       <FormLabel>Callback URL</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="https://backend.up.railway.app/billing/payments/mpesa/callback" {...field} />
+                        <Input className="h-11 rounded-xl" placeholder="https://your-backend.example.com/billing/payments/mpesa/callback" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

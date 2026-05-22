@@ -7,6 +7,7 @@
 - [Production security checklist](production-security-checklist.md)
 - [Security monitoring](security-monitoring.md)
 - [Security testing](security-testing.md)
+- [Render production deployment](deployment/render.md)
 - [Operations alerting](operations-alerting.md)
 - [Logging and observability](logging-observability.md)
 - [PDF and printout audit](pdf-printout-audit.md)
