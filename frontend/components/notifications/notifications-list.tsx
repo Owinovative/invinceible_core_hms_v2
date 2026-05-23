@@ -239,11 +239,11 @@ export function NotificationsList({
                           </span>
 
                           {item.isResolved ? (
-                            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600">
                               Resolved
                             </span>
                           ) : item.isRead === false ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
                               Unread
                             </span>
                           ) : (
@@ -330,7 +330,7 @@ export function NotificationsList({
           <div className="rounded-[1.8rem] border gradient-border panel-shadow">
             <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10">
-                <Bell className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+                <Bell className="h-7 w-7 text-emerald-600" />
               </div>
               <h3 className="text-2xl font-bold tracking-tight">
                 No notifications yet

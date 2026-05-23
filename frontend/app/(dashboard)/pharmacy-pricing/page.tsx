@@ -429,7 +429,7 @@ export default function PharmacyPricingPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-500/16 via-cyan-500/8 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Badge className="mb-4 rounded-full border-0 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+            <Badge className="mb-4 rounded-full border-0 bg-emerald-500/10 px-3 py-1 text-emerald-700">
               Medicine master and branch pricing
             </Badge>
             <div className="flex items-center gap-4">
@@ -489,7 +489,7 @@ export default function PharmacyPricingPage() {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700 dark:text-cyan-200">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
           {message}
         </div>
       ) : null}
@@ -635,7 +635,7 @@ export default function PharmacyPricingPage() {
             <CardContent className="space-y-4">
               <div className="rounded-xl border bg-background/65 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div>
@@ -1049,8 +1049,8 @@ export default function PharmacyPricingPage() {
                             <span
                               className={
                                 margin >= 0
-                                  ? "font-semibold text-emerald-600 dark:text-emerald-300"
-                                  : "font-semibold text-rose-600 dark:text-rose-300"
+                                  ? "font-semibold text-emerald-600"
+                                  : "font-semibold text-rose-600"
                               }
                             >
                               {formatMoney(margin)}
@@ -1061,15 +1061,15 @@ export default function PharmacyPricingPage() {
                           </td>
                           <td className="px-4 py-4">
                             {stock.unitPrice <= 0 ? (
-                              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700">
                                 Missing price
                               </Badge>
                             ) : stock.stockQuantity <= stock.reorderLevel ? (
-                              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700 dark:text-rose-300">
+                              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700">
                                 Reorder
                               </Badge>
                             ) : (
-                              <Badge className="rounded-full border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                              <Badge className="rounded-full border-0 bg-emerald-500/10 text-emerald-700">
                                 Ready
                               </Badge>
                             )}

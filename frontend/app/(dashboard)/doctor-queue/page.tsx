@@ -240,7 +240,7 @@ export default function DoctorQueuePage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700 dark:text-cyan-300">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
               Doctor Queue
             </Badge>
 

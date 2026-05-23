@@ -392,7 +392,7 @@ export default function IpdPage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700 dark:text-blue-300">
+            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
               Inpatient Department
             </Badge>
 

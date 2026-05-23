@@ -119,7 +119,7 @@ export default function NotificationsPage() {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-cyan-400/70 to-cyan-400/0" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700 dark:text-blue-300">
+            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
               Live alerts
             </Badge>
 
@@ -166,7 +166,7 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
+      <section className="border border-sky-200 bg-white p-5 shadow-sm">
         <div className="grid gap-4 xl:grid-cols-[0.75fr_1.25fr_auto] xl:items-end">
           <div>
             <label className="mb-2 block text-sm font-medium">Recipient</label>
@@ -231,7 +231,7 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="border border-sky-200 bg-white p-4 shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
+      <section className="border border-sky-200 bg-white p-4 shadow-sm">
         <label className="mb-2 block text-sm font-medium">
           Search notifications
         </label>
@@ -245,7 +245,7 @@ export default function NotificationsPage() {
 
       <NotificationsList items={notifications} isLoading={isLoading} scope={scope} />
 
-      <div className="flex flex-col gap-3 border border-sky-200 bg-white p-4 text-sm shadow-sm dark:border-sky-900/50 dark:bg-slate-950 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 border border-sky-200 bg-white p-4 text-sm shadow-sm md:flex-row md:items-center md:justify-between">
         <span className="text-muted-foreground">
           Showing page {notificationMeta?.page ?? page} of{" "}
           {notificationMeta?.totalPages ?? 1}.{" "}

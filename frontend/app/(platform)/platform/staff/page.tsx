@@ -14,13 +14,13 @@ export default function PlatformStaffPage() {
         <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
 
         <div className="relative space-y-3">
-          <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700 dark:text-cyan-300">
+          <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
             Platform Access
           </Badge>
 
           <div className="flex items-center gap-3">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-500/10">
-              <UserCog className="h-7 w-7 text-cyan-600 dark:text-cyan-400" />
+              <UserCog className="h-7 w-7 text-cyan-600" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight md:text-4xl">

@@ -24,7 +24,7 @@ export function NotificationStatsCards() {
         subtitle="Unread alerts and messages"
         icon={AlertTriangle}
         chip="Attention"
-        chipClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+        chipClassName="bg-amber-500/10 text-amber-600"
         glowClassName="from-amber-500/10 to-orange-500/10"
       />
 
@@ -34,7 +34,7 @@ export function NotificationStatsCards() {
         subtitle="Resolved notifications"
         icon={CheckCircle2}
         chip="Closed"
-        chipClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+        chipClassName="bg-emerald-500/10 text-emerald-600"
         glowClassName="from-emerald-500/10 to-cyan-500/10"
       />
 
@@ -44,7 +44,7 @@ export function NotificationStatsCards() {
         subtitle="Critical severity notifications"
         icon={ShieldAlert}
         chip="Critical"
-        chipClassName="bg-red-500/10 text-red-600 dark:text-red-400"
+        chipClassName="bg-red-500/10 text-red-600"
         glowClassName="from-red-500/10 to-rose-500/10"
       />
     </div>

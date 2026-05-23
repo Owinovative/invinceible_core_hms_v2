@@ -199,7 +199,7 @@ export function StaffTable() {
                                 className="h-full w-full rounded-full object-cover"
                               />
                             ) : (
-                              <UserCog className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                              <UserCog className="h-5 w-5 text-cyan-600" />
                             )}
                           </div>
                           <div>
@@ -240,17 +240,17 @@ export function StaffTable() {
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
                           {staff.isClinician ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
                               Clinician
                             </span>
                           ) : null}
                           {staff.isPrescriber ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
                               Prescriber
                             </span>
                           ) : null}
                           {staff.canLogin ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
                               Login Enabled
                             </span>
                           ) : null}

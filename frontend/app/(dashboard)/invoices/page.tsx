@@ -151,7 +151,7 @@ export default function InvoiceDetailPage() {
             background: white !important;
           }
 
-          .print-text-dark {
+          .print-text-ink {
             color: #111827 !important;
           }
 
@@ -192,7 +192,7 @@ export default function InvoiceDetailPage() {
 
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700">
               Invoice Viewer
             </Badge>
 
@@ -245,7 +245,7 @@ export default function InvoiceDetailPage() {
 
       {isLoading || !invoice ? (
         <Card className="print-card rounded-[1.8rem] gradient-border panel-shadow">
-          <CardContent className="p-6 text-sm text-muted-foreground print-text-dark">
+          <CardContent className="p-6 text-sm text-muted-foreground print-text-ink">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading invoice...
@@ -255,7 +255,7 @@ export default function InvoiceDetailPage() {
       ) : (
         <Card id="invoice-document" className="print-card rounded-[1.8rem] gradient-border panel-shadow">
           <CardContent className="p-6 md:p-10">
-            <div className="space-y-8 print-text-dark">
+            <div className="space-y-8 print-text-ink">
               <div className="flex flex-col gap-6 border-b border-white/10 pb-8 print-muted">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
@@ -276,7 +276,7 @@ export default function InvoiceDetailPage() {
                       )}
 
                       <div>
-                        <h2 className="text-3xl font-bold tracking-tight print-text-dark">
+                        <h2 className="text-3xl font-bold tracking-tight print-text-ink">
                           {invoice.facility?.name || "Hospital Name"}
                         </h2>
                         <p className="text-sm text-muted-foreground print-muted">
@@ -321,7 +321,7 @@ export default function InvoiceDetailPage() {
                       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                         Invoice Number
                       </p>
-                      <p className="text-xl font-bold print-text-dark">
+                      <p className="text-xl font-bold print-text-ink">
                         {invoice.invoiceNumber}
                       </p>
                     </div>
@@ -337,7 +337,7 @@ export default function InvoiceDetailPage() {
                       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                         Issued Date
                       </p>
-                      <p className="text-sm font-medium print-text-dark">
+                      <p className="text-sm font-medium print-text-ink">
                         {formatDate(invoice.issuedAt)}
                       </p>
                     </div>
@@ -360,7 +360,7 @@ export default function InvoiceDetailPage() {
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                     Bill To
                   </p>
-                  <p className="mt-2 text-lg font-semibold print-text-dark">
+                  <p className="mt-2 text-lg font-semibold print-text-ink">
                     {patientName(invoice.patient)}
                   </p>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground print-muted">
@@ -423,15 +423,15 @@ export default function InvoiceDetailPage() {
                           key={item.id}
                           className="border-b border-white/10 last:border-b-0"
                         >
-                          <td className="px-4 py-4 align-top text-xs print-text-dark">
+                          <td className="px-4 py-4 align-top text-xs print-text-ink">
                             {formatDate(item.createdAt)}
                           </td>
-                          <td className="px-4 py-4 align-top text-xs font-semibold print-text-dark">
+                          <td className="px-4 py-4 align-top text-xs font-semibold print-text-ink">
                             L{String(item.id).padStart(4, "0")}
                           </td>
                           <td className="px-4 py-4 align-top">
                             <div>
-                              <p className="font-medium print-text-dark">
+                              <p className="font-medium print-text-ink">
                                 {item.description}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground print-muted">
@@ -447,13 +447,13 @@ export default function InvoiceDetailPage() {
                               ) : null}
                             </div>
                           </td>
-                          <td className="px-4 py-4 align-top print-text-dark">
+                          <td className="px-4 py-4 align-top print-text-ink">
                             {item.quantity}
                           </td>
-                          <td className="px-4 py-4 align-top print-text-dark">
+                          <td className="px-4 py-4 align-top print-text-ink">
                             {formatMoney(item.unitPrice)}
                           </td>
-                          <td className="px-4 py-4 align-top font-semibold print-text-dark">
+                          <td className="px-4 py-4 align-top font-semibold print-text-ink">
                             {formatMoney(item.lineTotal)}
                           </td>
                         </tr>
@@ -498,7 +498,7 @@ export default function InvoiceDetailPage() {
                       <span className="text-muted-foreground print-muted">
                         Subtotal
                       </span>
-                      <span className="font-medium print-text-dark">
+                      <span className="font-medium print-text-ink">
                         {formatMoney(invoice.subtotal)}
                       </span>
                     </div>
@@ -507,7 +507,7 @@ export default function InvoiceDetailPage() {
                       <span className="text-muted-foreground print-muted">
                         Discount
                       </span>
-                      <span className="font-medium print-text-dark">
+                      <span className="font-medium print-text-ink">
                         {formatMoney(invoice.discountAmount)}
                       </span>
                     </div>
@@ -516,17 +516,17 @@ export default function InvoiceDetailPage() {
                       <span className="text-muted-foreground print-muted">
                         Tax
                       </span>
-                      <span className="font-medium print-text-dark">
+                      <span className="font-medium print-text-ink">
                         {formatMoney(invoice.taxAmount)}
                       </span>
                     </div>
 
                     <div className="border-t border-white/10 pt-3">
                       <div className="flex items-center justify-between gap-4">
-                        <span className="font-semibold print-text-dark">
+                        <span className="font-semibold print-text-ink">
                           Total
                         </span>
-                        <span className="text-lg font-bold print-text-dark">
+                        <span className="text-lg font-bold print-text-ink">
                           {formatMoney(invoice.totalAmount)}
                         </span>
                       </div>
@@ -536,16 +536,16 @@ export default function InvoiceDetailPage() {
                       <span className="text-muted-foreground print-muted">
                         Paid
                       </span>
-                      <span className="font-medium print-text-dark">
+                      <span className="font-medium print-text-ink">
                         {formatMoney(invoice.paidAmount)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-4">
-                      <span className="font-semibold print-text-dark">
+                      <span className="font-semibold print-text-ink">
                         Balance
                       </span>
-                      <span className="text-lg font-bold text-cyan-300 print-text-dark">
+                      <span className="text-lg font-bold text-cyan-300 print-text-ink">
                         {formatMoney(invoice.balanceAmount)}
                       </span>
                     </div>
@@ -571,7 +571,7 @@ export default function InvoiceDetailPage() {
                       >
                         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                           <div>
-                            <p className="font-medium print-text-dark">
+                            <p className="font-medium print-text-ink">
                               {payment.paymentMethod} •{" "}
                               {formatMoney(payment.amount)}
                             </p>
