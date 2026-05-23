@@ -10,6 +10,9 @@ production.
 - [ ] Prisma PostgreSQL client generated with `npm run prisma:generate:postgres`.
 - [ ] Backend production build passes with `npm run build`.
 - [ ] Frontend production build passes with `npm run build`.
+- [ ] Storage audit reviewed with `npm run db:storage:audit`.
+- [ ] Large-field report reviewed with `npm run db:large-fields:report`.
+- [ ] Safe cleanup candidates reviewed with `npm run db:cleanup:dry-run`; no destructive cleanup run without explicit release-owner approval.
 - [ ] `git diff --check` passes.
 - [ ] Dark mode/theme switching search is clean except QR-code library foreground color options and release-note wording.
 - [ ] No `.env` files or secrets are staged.
@@ -78,6 +81,7 @@ production.
 - [ ] CORS production origins are explicit.
 - [ ] Health endpoints are unauthenticated but do not expose secrets.
 - [ ] Audit logging is enabled for critical actions.
+- [ ] Audit, callback, data-outbox, and notification payloads are not storing secrets or large raw request bodies.
 - [ ] Feature flags are reviewed before enabling AI, SMS, WhatsApp, patient portal, or data warehouse features.
 
 ## Final release approval

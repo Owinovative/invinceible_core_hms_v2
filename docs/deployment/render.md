@@ -134,6 +134,7 @@ Recommended:
 | `CACHE_DASHBOARD_TTL_SECONDS` | Default `30`. |
 | `CACHE_REFERENCE_TTL_SECONDS` | Default `300`. |
 | `CACHE_IN_MEMORY_MAX_ITEMS` | Default `10000` for fallback mode. |
+| `PDF_IMAGE_MAX_BYTES` | Optional PDF logo/image cap. Default `512000`; keep low to avoid storing or fetching oversized image payloads for official printouts. |
 | `RATE_LIMIT_TTL_SECONDS` | Default `60`. |
 | `RATE_LIMIT_MAX` | Default `120`. |
 | `AUTH_RATE_LIMIT_MAX` | Default `10`. |
@@ -222,9 +223,11 @@ PostgreSQL cutover:
 7. Deploy the frontend.
 8. Add the Render frontend URL and any custom domain to backend
    `FRONTEND_URL`/`FRONTEND_ORIGINS`.
-9. Validate login, patient search, clinical flows, invoices, PDF downloads,
+9. Review database storage size with `npm run db:storage:audit` and cleanup
+   candidates with `npm run db:cleanup:dry-run`.
+10. Validate login, patient search, clinical flows, invoices, PDF downloads,
    M-Pesa sandbox or production callbacks, and admin reports.
-10. Move DNS or production traffic only after smoke testing passes.
+11. Move DNS or production traffic only after smoke testing passes.
 
 ## Rollback plan
 

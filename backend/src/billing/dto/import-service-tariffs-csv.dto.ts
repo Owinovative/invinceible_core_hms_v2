@@ -1,4 +1,10 @@
-import { IsInt, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class ImportServiceTariffsCsvDto {
   @IsInt()
@@ -10,5 +16,6 @@ export class ImportServiceTariffsCsvDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(1_000_000)
   csvText: string;
 }

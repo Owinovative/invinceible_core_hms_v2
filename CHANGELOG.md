@@ -5,6 +5,7 @@
 - Prepared Version 2 release cleanup with a fixed professional light-theme HMS interface.
 - Removed unused dark mode/theme switching code to simplify and stabilize the UI.
 - Added Version 2 release notes and release-readiness checklist.
+- Added database storage-efficiency tooling, compact audit/callback payload handling, PDF image size caps, and safe dry-run cleanup guidance for Version 2.
 
 ## 2.0.0 - Release Candidate
 

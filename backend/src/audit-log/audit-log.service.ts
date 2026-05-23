@@ -10,6 +10,10 @@ import { NotificationService } from '../notification/notification.service';
 import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  compactText,
+  serializeMaybeJsonCompact,
+} from '../common/storage/compact-payload';
 
 function escapeAuditCsvCell(value: unknown) {
   const text =
@@ -81,6 +85,33 @@ export class AuditLogService {
       action.includes('DISABLE') ||
       action.includes('LOCK')
     );
+  }
+
+  private auditInclude() {
+    return {
+      facility: { select: { id: true, code: true, name: true } },
+      branch: { select: { id: true, code: true, name: true } },
+      actorUser: {
+        select: { id: true, username: true, fullName: true, email: true },
+      },
+      actorStaff: {
+        select: {
+          id: true,
+          staffCode: true,
+          firstName: true,
+          lastName: true,
+          designation: true,
+        },
+      },
+    };
+  }
+
+  private compactAuditData(value?: string) {
+    return serializeMaybeJsonCompact(value, {
+      maxBytes: 6_000,
+      maxStringLength: 900,
+      maxArrayItems: 25,
+    });
   }
 
   private buildScopedWhere(
@@ -167,29 +198,24 @@ export class AuditLogService {
         actionName: dto.actionName,
         entityType: dto.entityType,
         entityId: dto.entityId,
-        description: dto.description,
+        description: compactText(dto.description, 600),
         facilityId: dto.facilityId,
         branchId: dto.branchId,
         actorUserId: dto.actorUserId,
         actorStaffId: dto.actorStaffId,
-        beforeData: dto.beforeData,
-        afterData: dto.afterData,
+        beforeData: this.compactAuditData(dto.beforeData),
+        afterData: this.compactAuditData(dto.afterData),
         ipAddress: dto.ipAddress,
-        userAgent: dto.userAgent,
+        userAgent: compactText(dto.userAgent, 500),
       },
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
     });
 
     if (this.shouldNotify(dto)) {
       await this.notificationService.create({
         title: `Audit Alert: ${dto.actionName}`,
         message:
-          dto.description ??
+          compactText(dto.description, 500) ??
           `Audit event recorded for ${dto.moduleName}: ${dto.actionName}`,
         notificationType: 'AUDIT_ALERT',
         severity: this.getAuditSeverity(dto),
@@ -214,12 +240,7 @@ export class AuditLogService {
         entityType: query?.entityType,
         entityId: query?.entityId,
       },
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
@@ -229,12 +250,7 @@ export class AuditLogService {
   async findAllScoped(query: AuditLogQueryDto | undefined, user: RequestUser) {
     return this.prisma.auditLog.findMany({
       where: this.buildScopedWhere(query, user),
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
@@ -245,12 +261,7 @@ export class AuditLogService {
   async exportScoped(query: AuditLogQueryDto | undefined, user: RequestUser) {
     const logs = await this.prisma.auditLog.findMany({
       where: this.buildScopedWhere(query, user),
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
@@ -302,12 +313,7 @@ export class AuditLogService {
   async findOne(id: number) {
     const log = await this.prisma.auditLog.findUnique({
       where: { id },
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
     });
 
     if (!log) {
@@ -329,12 +335,7 @@ export class AuditLogService {
         entityType,
         entityId,
       },
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
@@ -348,12 +349,7 @@ export class AuditLogService {
   ) {
     return this.prisma.auditLog.findMany({
       where: this.buildScopedWhere({ entityType, entityId }, user),
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
@@ -365,12 +361,7 @@ export class AuditLogService {
       where: {
         moduleName,
       },
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
@@ -380,12 +371,7 @@ export class AuditLogService {
   async findByModuleScoped(moduleName: string, user: RequestUser) {
     return this.prisma.auditLog.findMany({
       where: this.buildScopedWhere({ moduleName }, user),
-      include: {
-        facility: true,
-        branch: true,
-        actorUser: true,
-        actorStaff: true,
-      },
+      include: this.auditInclude(),
       orderBy: {
         id: 'desc',
       },
