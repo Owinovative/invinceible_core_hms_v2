@@ -7,6 +7,10 @@ import {
 import { Observable, tap } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import {
+  compactText,
+  serializeCompactForStorage,
+} from '../common/storage/compact-payload';
 
 const AUDITED_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const SENSITIVE_KEYS = new Set([
@@ -92,7 +96,10 @@ export class AuditInterceptor implements NestInterceptor {
         actionName: `${method}_${outcome}`,
         entityType: this.entityTypeFromUrl(url),
         entityId: entityId ? String(entityId) : undefined,
-        description: `${method} ${url} ${outcome.toLowerCase()}`,
+        description: compactText(
+          `${method} ${url} ${outcome.toLowerCase()}`,
+          600,
+        ),
         facilityId:
           this.toNumber(req.body?.facilityId) ??
           user.homeFacilityId ??
@@ -108,7 +115,7 @@ export class AuditInterceptor implements NestInterceptor {
         }),
         afterData: this.serialize(this.sanitize(result)),
         ipAddress: this.requestIp(req),
-        userAgent: req.headers?.['user-agent'],
+        userAgent: compactText(req.headers?.['user-agent'], 500),
       },
     });
   }
@@ -174,10 +181,11 @@ export class AuditInterceptor implements NestInterceptor {
 
   private serialize(value: unknown) {
     try {
-      const serialized = JSON.stringify(value);
-      return serialized.length > 12000
-        ? `${serialized.slice(0, 12000)}...[truncated]`
-        : serialized;
+      return serializeCompactForStorage(value, {
+        maxBytes: 6_000,
+        maxStringLength: 900,
+        maxArrayItems: 25,
+      });
     } catch {
       return undefined;
     }

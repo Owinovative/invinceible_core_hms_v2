@@ -138,6 +138,8 @@ npm run prisma:generate
 npm run build
 npm run test
 npm run prisma:migrate:deploy
+npm run db:storage:audit
+npm run db:cleanup:dry-run
 ```
 
 Frontend:
@@ -181,6 +183,7 @@ Start with [docs/README.md](docs/README.md).
 Important guides:
 
 - [Performance and scalability](docs/performance-scalability.md)
+- [Database storage efficiency and retention](docs/database-storage-efficiency.md)
 - [Production security checklist](docs/production-security-checklist.md)
 - [HMS benchmark gap analysis](docs/hms-benchmark-gap-analysis.md)
 - [Repository audit](docs/repository-audit.md)

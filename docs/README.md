@@ -3,6 +3,7 @@
 - [Version 2.0.0 release notes](releases/v2.0.0.md)
 - [Release checklist](release-checklist.md)
 - [Performance and scalability](performance-scalability.md)
+- [Database storage efficiency and retention](database-storage-efficiency.md)
 - [Load testing](load-testing.md)
 - [HMS benchmark gap analysis](hms-benchmark-gap-analysis.md)
 - [Repository audit](repository-audit.md)
