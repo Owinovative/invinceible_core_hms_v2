@@ -177,7 +177,7 @@ export function FacilitiesTable() {
                                 className="h-full w-full rounded-xl object-contain"
                               />
                             ) : (
-                              <Building2 className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                              <Building2 className="h-5 w-5 text-cyan-600" />
                             )}
                           </div>
                           <div>
@@ -254,25 +254,25 @@ export function FacilitiesTable() {
                           </span>
 
                           {facility.isDefault ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
                               Default
                             </span>
                           ) : null}
 
                           {facility.isHeadOffice ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
                               Head Office
                             </span>
                           ) : null}
 
                           {facility.accessStatus?.complianceWriteLocked ? (
-                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
                               Read-only grace
                             </span>
                           ) : null}
 
                           {facility.accessStatus?.loginBlocked ? (
-                            <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-300">
+                            <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700">
                               Login blocked
                             </span>
                           ) : null}

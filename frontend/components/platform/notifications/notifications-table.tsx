@@ -20,12 +20,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function severityClass(severity?: string | null) {
   if (severity === "CRITICAL") {
-    return "bg-red-500/10 text-red-600 dark:text-red-400";
+    return "bg-red-500/10 text-red-600";
   }
   if (severity === "WARNING") {
-    return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
+    return "bg-amber-500/10 text-amber-600";
   }
-  return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400";
+  return "bg-cyan-500/10 text-cyan-600";
 }
 
 export function NotificationsTable() {
@@ -153,7 +153,7 @@ export function NotificationsTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-start gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Bell className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            <Bell className="h-5 w-5 text-cyan-600" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold">{item.title}</p>
@@ -199,8 +199,8 @@ export function NotificationsTable() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-semibold",
                               item.isRead
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                ? "bg-emerald-500/10 text-emerald-600"
+                                : "bg-amber-500/10 text-amber-600",
                             )}
                           >
                             {item.isRead ? "Read" : "Unread"}
@@ -210,8 +210,8 @@ export function NotificationsTable() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-semibold",
                               item.isResolved
-                                ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
-                                : "bg-red-500/10 text-red-600 dark:text-red-400",
+                                ? "bg-cyan-500/10 text-cyan-600"
+                                : "bg-red-500/10 text-red-600",
                             )}
                           >
                             {item.isResolved ? "Resolved" : "Open"}

@@ -884,7 +884,7 @@ export default function IpdDetailPage() {
 
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700 dark:text-blue-300">
+            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
               IPD Workspace
             </Badge>
 
@@ -1838,10 +1838,10 @@ export default function IpdDetailPage() {
                   <div
                     className={`rounded-2xl border p-4 text-sm ${
                       selectedTreatmentStockStatus === "OUT_OF_STOCK"
-                        ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100"
+                        ? "border-rose-300 bg-rose-50 text-rose-900"
                         : selectedTreatmentStockStatus === "LOW_STOCK"
-                          ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100"
-                          : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100"
+                          ? "border-amber-300 bg-amber-50 text-amber-900"
+                          : "border-emerald-300 bg-emerald-50 text-emerald-900"
                     }`}
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -1874,7 +1874,7 @@ export default function IpdDetailPage() {
                     </div>
 
                     {selectedTreatmentStockStatus === "OUT_OF_STOCK" ? (
-                      <div className="mt-4 rounded-xl border border-rose-300/70 bg-white/80 p-3 dark:border-rose-500/25 dark:bg-background/45">
+                      <div className="mt-4 rounded-xl border border-rose-300/70 bg-white/80 p-3">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                           <div>
@@ -1910,7 +1910,7 @@ export default function IpdDetailPage() {
                                     "Stocked alternative selected. Confirm the clinical fit before saving the treatment entry.",
                                   );
                                 }}
-                                className="rounded-xl border border-sky-200 bg-white p-3 text-left text-xs transition hover:border-sky-400 dark:bg-background/70"
+                                className="rounded-xl border border-sky-200 bg-white p-3 text-left text-xs transition hover:border-sky-400"
                               >
                                 <div className="flex items-start gap-2">
                                   <Pill className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
@@ -2348,7 +2348,7 @@ export default function IpdDetailPage() {
                       admission.
                     </p>
                   </div>
-                  <Badge className="w-fit rounded-full border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                  <Badge className="w-fit rounded-full border-0 bg-emerald-500/10 text-emerald-600">
                     AI-assisted drafting
                   </Badge>
                 </div>

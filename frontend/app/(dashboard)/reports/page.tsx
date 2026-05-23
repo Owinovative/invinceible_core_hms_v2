@@ -166,7 +166,7 @@ export default function ReportsPage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700">
               Reports V2
             </Badge>
 

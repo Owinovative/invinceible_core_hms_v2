@@ -142,7 +142,7 @@ export default function PharmacyStockPage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700 dark:text-cyan-300">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
               Pharmacy Stock
             </Badge>
 
@@ -245,7 +245,7 @@ export default function PharmacyStockPage() {
                 {formatMoney(totalStockValue)}
               </p>
               {missingPriceCount > 0 ? (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                <p className="mt-1 text-xs text-amber-600">
                   {missingPriceCount} missing prices
                 </p>
               ) : null}
@@ -317,7 +317,7 @@ export default function PharmacyStockPage() {
                               {formatMoney(item.unitPrice)}
                             </p>
                             {item.unitPrice <= 0 ? (
-                              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                              <p className="mt-1 text-xs text-amber-600">
                                 Fix before dispensing
                               </p>
                             ) : null}

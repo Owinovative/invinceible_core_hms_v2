@@ -232,7 +232,7 @@ export default function InvoiceDetailPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-cyan-500/5 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700">
               Invoice Details
             </Badge>
 
@@ -310,25 +310,25 @@ export default function InvoiceDetailPage() {
           </div>
 
           <section className="print:hidden">
-            <div className="overflow-hidden rounded-[1.2rem] border border-sky-200 bg-white shadow-sm dark:border-sky-900/50 dark:bg-slate-950">
-              <div className="flex flex-col gap-2 border-b border-sky-100 px-4 py-3 dark:border-sky-900/50 sm:flex-row sm:items-center sm:justify-between">
+            <div className="overflow-hidden rounded-[1.2rem] border border-sky-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-2 border-b border-sky-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-950 dark:text-white">
+                  <h2 className="text-base font-semibold text-slate-950">
                     Invoice Line Control
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Edit wrong lines, remove unnecessary billing lines, then
                     download the approved PDF invoice.
                   </p>
                 </div>
-                <Badge className="w-fit rounded border-0 bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-200">
+                <Badge className="w-fit rounded border-0 bg-sky-100 text-sky-800">
                   {items.filter((item) => !item.isRemoved).length} active lines
                 </Badge>
               </div>
 
               <div className="max-h-[360px] overflow-auto">
                 <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead className="sticky top-0 z-10 bg-sky-50 text-xs uppercase text-sky-900 dark:bg-slate-900 dark:text-sky-200">
+                  <thead className="sticky top-0 z-10 bg-sky-50 text-xs uppercase text-sky-900">
                     <tr>
                       <th className="px-4 py-3">Date</th>
                       <th className="px-4 py-3">Item</th>
@@ -343,16 +343,16 @@ export default function InvoiceDetailPage() {
                     {items.map((item) => (
                       <tr
                         key={item.id}
-                        className="border-t border-sky-100 dark:border-sky-900/40"
+                        className="border-t border-sky-100"
                       >
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                        <td className="px-4 py-3 text-slate-600">
                           {formatDate(item.createdAt)}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-slate-950 dark:text-white">
+                          <p className="font-medium text-slate-950">
                             {item.description}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-xs text-slate-500">
                             {item.sourceModule || item.billingService?.category || "Manual"}
                           </p>
                         </td>
@@ -367,8 +367,8 @@ export default function InvoiceDetailPage() {
                           <Badge
                             className={`rounded border-0 ${
                               item.isRemoved
-                                ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200"
-                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
                             {item.isRemoved ? "Removed" : "Active"}

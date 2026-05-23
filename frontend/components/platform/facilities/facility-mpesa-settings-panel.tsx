@@ -183,7 +183,7 @@ export function FacilityMpesaSettingsPanel() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <CreditCard className="h-5 w-5 text-emerald-600" />
               Facility M-Pesa / Daraja Settings
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -191,7 +191,7 @@ export function FacilityMpesaSettingsPanel() {
               the Paybill/shortcode of the invoice facility.
             </p>
           </div>
-          <Badge className="w-fit rounded-full border-0 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300">
+          <Badge className="w-fit rounded-full border-0 bg-emerald-600/10 text-emerald-700">
             Per facility
           </Badge>
         </div>
@@ -397,13 +397,13 @@ export function FacilityMpesaSettingsPanel() {
           </div>
 
           {errorMessage ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 md:col-span-2">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 md:col-span-2">
               {errorMessage}
             </div>
           ) : null}
 
           {successMessage ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400 md:col-span-2">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 md:col-span-2">
               {successMessage}
             </div>
           ) : null}

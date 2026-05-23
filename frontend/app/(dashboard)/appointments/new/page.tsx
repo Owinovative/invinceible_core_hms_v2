@@ -13,7 +13,7 @@ export default function NewAppointmentPage() {
         <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative space-y-3">
-          <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700 dark:text-blue-300">
+          <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
             Scheduling
           </Badge>
 

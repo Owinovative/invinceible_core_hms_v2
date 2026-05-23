@@ -348,7 +348,7 @@ export function CreateStaffForm() {
     <Card className="rounded-[1.8rem] gradient-border panel-shadow">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserCog className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+          <UserCog className="h-5 w-5 text-cyan-600" />
           New Staff
         </CardTitle>
       </CardHeader>
@@ -786,20 +786,20 @@ export function CreateStaffForm() {
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createStaffMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   {getErrorMessage(createStaffMutation.error)}
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {successMessage}
                   {createdCode ? ` Staff Code: ${createdCode}` : ""}
                 </div>
               ) : null}
 
               {ocrMessage ? (
-                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
                   {ocrMessage}
                 </div>
               ) : null}

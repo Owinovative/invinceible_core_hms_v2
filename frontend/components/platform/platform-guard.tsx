@@ -33,7 +33,7 @@ export function PlatformGuard({
         <Card className="w-full max-w-md rounded-[1.8rem] gradient-border panel-shadow">
           <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-500/10">
-              <ShieldAlert className="h-7 w-7 text-cyan-600 dark:text-cyan-400" />
+              <ShieldAlert className="h-7 w-7 text-cyan-600" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight">
               Checking access

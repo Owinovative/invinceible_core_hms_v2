@@ -56,11 +56,11 @@ function ExceptionLine({ item }: { item: InvoiceItemRecord }) {
               {item.sourceModule || "MANUAL"}
             </Badge>
             {item.isRemoved ? (
-              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700 dark:text-rose-300">
+              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700">
                 Removed
               </Badge>
             ) : (
-              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700">
                 Price check
               </Badge>
             )}
@@ -113,7 +113,7 @@ export default function RevenueIntegrityPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-500/16 via-cyan-500/8 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300">
+            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700">
               Revenue assurance
             </Badge>
             <div className="flex items-center gap-4">

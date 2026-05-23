@@ -13,6 +13,7 @@ The project is built as critical healthcare software. Facility and branch scopin
 - Audit logs for critical hospital, payment, pharmacy, clinical, and administrative actions.
 - Official PDF/printout foundations for invoices, receipts, medical summaries, reports, and SHA workflows.
 - Patient portal, AI assistant, communication, reporting, and data warehouse foundations behind safe feature flags.
+- Fixed professional light-theme HMS interface with no runtime theme switching.
 
 ## What It Does
 
@@ -67,6 +68,7 @@ Frontend:
 - TypeScript
 - TanStack Query
 - Tailwind-style component system
+- Fixed light-theme design system for stable clinical/admin use
 
 Repository:
 
@@ -162,6 +164,7 @@ npm audit --audit-level=moderate --omit=dev
 - Deploy backend and frontend through their configured platforms.
 - Render production migration is prepared in [docs/deployment/render.md](docs/deployment/render.md) and [render.yaml](render.yaml).
 - Render PostgreSQL migration planning is documented in [docs/deployment/mysql-to-render-postgres.md](docs/deployment/mysql-to-render-postgres.md).
+- Version 2 release validation is tracked in [docs/release-checklist.md](docs/release-checklist.md), with release notes in [docs/releases/v2.0.0.md](docs/releases/v2.0.0.md).
 - Keep Railway and Vercel active until Render backend, frontend, database connectivity, health checks, and payment callbacks are verified.
 - Configure Render backend environment variables securely in the Render dashboard.
 - Configure Render frontend `NEXT_PUBLIC_API_BASE_URL` to the Render backend URL.

@@ -185,7 +185,7 @@ export function EditRecordDialog({
             ))}
 
             {errorMessage ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 md:col-span-2">
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 md:col-span-2">
                 {errorMessage}
               </div>
             ) : null}
