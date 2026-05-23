@@ -96,6 +96,9 @@ model Facility {
   shaClaims               ShaClaim[]
   userFeedback            UserFeedback[]
   subscriptionPayments    FacilitySubscriptionPayment[]
+  otcSales                OtcSale[]
+  otcSalePayments         OtcSalePayment[]
+  pharmacyStockMovements  PharmacyStockMovement[]
 
   @@index([latitude, longitude])
   @@index([complianceStatus])
@@ -153,6 +156,9 @@ model Branch {
   serviceTariffs       ServiceTariff[]
   shaClaims            ShaClaim[]
   userFeedback         UserFeedback[]
+  otcSales             OtcSale[]
+  otcSalePayments      OtcSalePayment[]
+  pharmacyStockMovements PharmacyStockMovement[]
 
   @@index([facilityId])
   @@index([latitude, longitude])
@@ -299,6 +305,9 @@ model Staff {
   dispenses             Dispense[]            @relation("DispensedByStaff")
   shaClaims             ShaClaim[]            @relation("ShaClaimCreatedBy")
   createdFeedback       UserFeedback[]        @relation("FeedbackCreatedByStaff")
+  createdOtcSales       OtcSale[]             @relation("OtcSaleCreatedByStaff")
+  otcSalePayments       OtcSalePayment[]      @relation("OtcSalePaymentReceivedByStaff")
+  otcStockMovements     PharmacyStockMovement[] @relation("PharmacyStockMovementStaff")
 
   branch     Branch?     @relation(fields: [branchId], references: [id])
   department Department? @relation(fields: [departmentId], references: [id])
@@ -353,6 +362,7 @@ model Patient {
   portalUser     User?          @relation("PatientPortalUser", fields: [portalUserId], references: [id])
   prescriptions  Prescription[]
   dispenses      Dispense[]
+  otcSales       OtcSale[]
 
   @@index([facilityId])
   @@index([phonePrimary])
@@ -643,6 +653,8 @@ model Medicine {
   prescriptionItems PrescriptionItem[]
   branchStocks      BranchMedicineStock[]
   dispenseItems     DispenseItem[]
+  otcSaleItems      OtcSaleItem[]
+  stockMovements    PharmacyStockMovement[]
 
   @@index([name])
   @@index([isActive])
@@ -1538,6 +1550,7 @@ model BranchMedicineStock {
   facility Facility @relation(fields: [facilityId], references: [id])
   branch   Branch   @relation(fields: [branchId], references: [id])
   medicine Medicine @relation(fields: [medicineId], references: [id])
+  stockMovements PharmacyStockMovement[]
 
   @@unique([branchId, medicineId])
   @@index([facilityId])
@@ -1549,6 +1562,164 @@ model BranchMedicineStock {
   @@index([branchId, stockQuantity])
   @@index([branchId, updatedAt])
   @@map("branch_medicine_stocks")
+}
+
+model OtcSale {
+  id               Int      @id @default(autoincrement())
+  saleNumber       String   @unique @db.VarChar(50)
+  saleType         String   @default("OTC") @db.VarChar(20)
+  customerName     String?  @db.VarChar(150)
+  customerPhone    String?  @db.VarChar(30)
+  status           String   @default("DRAFT") @db.VarChar(50)
+  paymentStatus    String   @default("UNPAID") @db.VarChar(50)
+  subtotal         Float    @default(0)
+  discountAmount   Float    @default(0)
+  taxAmount        Float    @default(0)
+  totalAmount      Float    @default(0)
+  paidAmount       Float    @default(0)
+  balanceAmount    Float    @default(0)
+  soldAt           DateTime?
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  facilityId       Int
+  branchId         Int
+  patientId        Int?
+  createdByStaffId Int
+
+  facility  Facility      @relation(fields: [facilityId], references: [id])
+  branch    Branch        @relation(fields: [branchId], references: [id])
+  patient   Patient?      @relation(fields: [patientId], references: [id])
+  createdBy Staff        @relation("OtcSaleCreatedByStaff", fields: [createdByStaffId], references: [id])
+  items     OtcSaleItem[]
+  payments  OtcSalePayment[]
+  stockMovements PharmacyStockMovement[]
+
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([patientId])
+  @@index([createdByStaffId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([soldAt])
+  @@index([facilityId, branchId, status, createdAt])
+  @@map("otc_sales")
+}
+
+model OtcSaleItem {
+  id                   Int      @id @default(autoincrement())
+  saleId               Int
+  medicineId           Int
+  medicineNameSnapshot String   @db.VarChar(180)
+  dosageFormSnapshot   String?  @db.VarChar(100)
+  strengthSnapshot     String?  @db.VarChar(100)
+  quantity             Int      @default(1)
+  unitPrice            Float    @default(0)
+  lineTotal            Float    @default(0)
+  stockBefore          Int?
+  stockAfter           Int?
+  notes                String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  sale      OtcSale   @relation(fields: [saleId], references: [id])
+  medicine  Medicine  @relation(fields: [medicineId], references: [id])
+  stockMovements PharmacyStockMovement[]
+
+  @@index([saleId])
+  @@index([medicineId])
+  @@map("otc_sale_items")
+}
+
+model OtcSalePayment {
+  id                      Int       @id @default(autoincrement())
+  saleId                  Int
+  facilityId              Int
+  branchId                Int
+  paymentMethod           String    @db.VarChar(50)
+  statusCode              String    @default("COMPLETED") @db.VarChar(50)
+  amount                  Float     @default(0)
+  transactionRef          String?   @db.VarChar(120)
+  phoneNumber             String?   @db.VarChar(30)
+  mpesaReceiptNumber      String?   @db.VarChar(100)
+  merchantRequestId       String?   @db.VarChar(100)
+  checkoutRequestId       String?   @db.VarChar(100)
+  insuranceProviderName   String?   @db.VarChar(150)
+  insuranceSchemeName     String?   @db.VarChar(150)
+  insuranceMemberNumber   String?   @db.VarChar(120)
+  principalMemberName     String?   @db.VarChar(150)
+  relationshipToPrincipal String?   @db.VarChar(80)
+  authorizationNumber     String?   @db.VarChar(120)
+  policyNumber            String?   @db.VarChar(120)
+  insuranceCoveredAmount  Float     @default(0)
+  patientCoPayAmount      Float     @default(0)
+  insuranceClaimReference String?   @db.VarChar(120)
+  insuranceClaimStatus    String?   @db.VarChar(50)
+  paidAt                  DateTime?
+  requestedAt             DateTime  @default(now())
+  confirmedAt             DateTime?
+  receivedByStaffId       Int?
+  notes                   String?   @db.Text
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  sale       OtcSale  @relation(fields: [saleId], references: [id])
+  facility   Facility @relation(fields: [facilityId], references: [id])
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  receivedBy Staff?   @relation("OtcSalePaymentReceivedByStaff", fields: [receivedByStaffId], references: [id])
+
+  @@index([saleId])
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([paymentMethod])
+  @@index([statusCode])
+  @@index([insuranceClaimStatus])
+  @@index([mpesaReceiptNumber])
+  @@index([checkoutRequestId])
+  @@index([createdAt])
+  @@index([facilityId, branchId, paymentMethod, createdAt])
+  @@map("otc_sale_payments")
+}
+
+model PharmacyStockMovement {
+  id              Int      @id @default(autoincrement())
+  facilityId      Int
+  branchId        Int
+  medicineId      Int
+  branchStockId   Int?
+  sourceType      String   @db.VarChar(50)
+  sourceEntityId  String?  @db.VarChar(100)
+  movementType    String   @db.VarChar(50)
+  quantity        Int
+  stockBefore     Int
+  stockAfter      Int
+  otcSaleId       Int?
+  otcSaleItemId   Int?
+  performedByStaffId Int?
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  facility    Facility             @relation(fields: [facilityId], references: [id])
+  branch      Branch               @relation(fields: [branchId], references: [id])
+  medicine    Medicine             @relation(fields: [medicineId], references: [id])
+  branchStock BranchMedicineStock? @relation(fields: [branchStockId], references: [id])
+  otcSale     OtcSale?             @relation(fields: [otcSaleId], references: [id])
+  otcSaleItem OtcSaleItem?         @relation(fields: [otcSaleItemId], references: [id])
+  performedBy Staff?               @relation("PharmacyStockMovementStaff", fields: [performedByStaffId], references: [id])
+
+  @@index([facilityId])
+  @@index([branchId])
+  @@index([medicineId])
+  @@index([branchStockId])
+  @@index([sourceType])
+  @@index([movementType])
+  @@index([otcSaleId])
+  @@index([otcSaleItemId])
+  @@index([performedByStaffId])
+  @@index([createdAt])
+  @@index([facilityId, branchId, sourceType, createdAt])
+  @@map("pharmacy_stock_movements")
 }
 
 model PasswordResetToken {
