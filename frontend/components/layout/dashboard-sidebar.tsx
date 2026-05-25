@@ -41,6 +41,8 @@ import {
   Syringe,
   TabletSmartphone,
   Truck,
+  ShoppingCart,
+  type LucideIcon,
 } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
@@ -50,7 +52,32 @@ import { useScope } from "@/providers/scope-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useAuth } from "@/providers/auth-provider";
 
-const navSections = [
+type NavItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+  superAdminOnly?: boolean;
+  allowedRoles?: string[];
+};
+
+type NavSection = {
+  label: string;
+  items: NavItem[];
+};
+
+const otcSaleRoles = [
+  "SUPER_ADMIN",
+  "ADMIN",
+  "FACILITY_ADMIN",
+  "BRANCH_ADMIN",
+  "PHARMACIST",
+  "PHARMACY_MANAGER",
+  "CASHIER",
+  "BILLING_OFFICER",
+];
+
+const navSections: NavSection[] = [
   {
     label: "Command",
     items: [
@@ -127,6 +154,12 @@ const navSections = [
     label: "Pharmacy",
     items: [
       { title: "Dispensing", href: "/pharmacy", icon: Pill },
+      {
+        title: "OTC Drug Sales",
+        href: "/pharmacy/otc-sales",
+        icon: ShoppingCart,
+        allowedRoles: otcSaleRoles,
+      },
       { title: "Stock", href: "/pharmacy-stock", icon: Warehouse },
       { title: "Pricing", href: "/pharmacy-pricing", icon: Pill },
       { title: "Central Store", href: "/central-store", icon: Warehouse },
@@ -311,6 +344,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 {section.items
                   .filter((item) => !item.adminOnly || canManageSettings)
                   .filter((item) => !item.superAdminOnly || isSuperAdmin)
+                  .filter(
+                    (item) =>
+                      !item.allowedRoles ||
+                      item.allowedRoles.includes(user?.roleCode ?? ""),
+                  )
                   .map((item) => {
                     const Icon = item.icon;
                     const isActive =
