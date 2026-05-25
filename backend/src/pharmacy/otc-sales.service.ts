@@ -13,6 +13,18 @@ import {
   parsePagination,
 } from '../common/pagination/pagination';
 import {
+  addCompactDefinitionList,
+  addCompactParagraph,
+  addCompactTable,
+  addMiniKeyValueGrid,
+  addSectionTitle,
+  createHospitalPdfBuffer,
+  formatPdfDate,
+  formatPdfMoney,
+  patientName,
+  staffName,
+} from '../common/pdf/hospital-pdf';
+import {
   CreateOtcSaleDto,
   OtcSaleItemInputDto,
 } from './dto/create-otc-sale.dto';
@@ -45,6 +57,22 @@ type OtcPaymentSummaryInput = {
 
 function roundMoney(value: number) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function safeReceiptFileName(value: string) {
+  return `${value || 'otc-receipt'}`
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+}
+
+function maskValue(value?: string | null, visibleStart = 2, visibleEnd = 3) {
+  if (!value) return undefined;
+  const clean = String(value).trim();
+  if (clean.length <= visibleStart + visibleEnd) return clean;
+  return `${clean.slice(0, visibleStart)}${'*'.repeat(
+    Math.min(8, clean.length - visibleStart - visibleEnd),
+  )}${clean.slice(-visibleEnd)}`;
 }
 
 export function stockStatus(
@@ -177,6 +205,22 @@ export class OtcSalesService {
         },
       },
     };
+  }
+
+  private receiptQrPayload(saleId: number) {
+    const frontendUrl = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+    const path = `/print/otc-receipt/${saleId}`;
+    return frontendUrl ? `${frontendUrl}${path}` : path;
+  }
+
+  private paymentDisplayMethod(payment: {
+    paymentMethod: string;
+    insuranceClaimStatus?: string | null;
+  }) {
+    if (payment.paymentMethod === 'INSURANCE') {
+      return `INSURANCE${payment.insuranceClaimStatus ? ` (${payment.insuranceClaimStatus})` : ''}`;
+    }
+    return payment.paymentMethod.replace(/_/g, ' ');
   }
 
   private async resolveBranch(branchId: number | undefined, user: RequestUser) {
@@ -951,6 +995,347 @@ export class OtcSalesService {
     });
 
     return completed;
+  }
+
+  async getReceiptPdf(id: number, user: RequestUser) {
+    const sale = await this.prisma.otcSale.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        saleNumber: true,
+        customerName: true,
+        customerPhone: true,
+        status: true,
+        paymentStatus: true,
+        subtotal: true,
+        discountAmount: true,
+        taxAmount: true,
+        totalAmount: true,
+        paidAmount: true,
+        balanceAmount: true,
+        soldAt: true,
+        notes: true,
+        createdAt: true,
+        facilityId: true,
+        branchId: true,
+        facility: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            address: true,
+            phone: true,
+            email: true,
+            website: true,
+            logoUrl: true,
+            currency: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            address: true,
+            phone: true,
+            email: true,
+            currency: true,
+          },
+        },
+        patient: {
+          select: {
+            id: true,
+            patientNumber: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            staffCode: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        items: {
+          orderBy: { id: 'asc' },
+          select: {
+            id: true,
+            saleId: true,
+            medicineId: true,
+            medicineNameSnapshot: true,
+            dosageFormSnapshot: true,
+            strengthSnapshot: true,
+            quantity: true,
+            unitPrice: true,
+            lineTotal: true,
+            stockBefore: true,
+            stockAfter: true,
+            notes: true,
+            medicine: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                dosageForm: true,
+                strength: true,
+              },
+            },
+          },
+        },
+        payments: {
+          orderBy: { id: 'asc' },
+          select: {
+            id: true,
+            paymentMethod: true,
+            statusCode: true,
+            amount: true,
+            transactionRef: true,
+            phoneNumber: true,
+            mpesaReceiptNumber: true,
+            merchantRequestId: true,
+            checkoutRequestId: true,
+            insuranceProviderName: true,
+            insuranceSchemeName: true,
+            insuranceMemberNumber: true,
+            principalMemberName: true,
+            relationshipToPrincipal: true,
+            authorizationNumber: true,
+            policyNumber: true,
+            insuranceCoveredAmount: true,
+            patientCoPayAmount: true,
+            insuranceClaimReference: true,
+            insuranceClaimStatus: true,
+            paidAt: true,
+            requestedAt: true,
+            confirmedAt: true,
+            notes: true,
+            receivedBy: {
+              select: {
+                id: true,
+                staffCode: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sale) {
+      throw new NotFoundException(`OTC sale with id ${id} not found`);
+    }
+
+    this.scopeService.assertBranchAccess(user, sale.facilityId, sale.branchId);
+
+    const currency = sale.facility?.currency || sale.branch?.currency || 'KES';
+    const customer =
+      sale.patient ? patientName(sale.patient) : sale.customerName || 'Walk-in customer';
+    const customerReference =
+      sale.patient?.patientNumber || maskValue(sale.customerPhone, 3, 3) || '-';
+    const paymentMethods = Array.from(
+      new Set(sale.payments.map((payment) => payment.paymentMethod)),
+    );
+    const receiptNumber = `OTC-RCPT-${String(sale.id).padStart(6, '0')}`;
+    const paymentLabel =
+      paymentMethods.length > 1
+        ? `MIXED (${paymentMethods.map((x) => x.replace(/_/g, ' ')).join(' + ')})`
+        : paymentMethods[0]?.replace(/_/g, ' ') || sale.paymentStatus;
+
+    const buffer = await createHospitalPdfBuffer(
+      {
+        title: 'OTC Drug Sale Receipt',
+        subtitle: receiptNumber,
+        reference: sale.saleNumber,
+        verificationCode: receiptNumber,
+        facility: sale.facility,
+        branch: sale.branch,
+        compact: true,
+        qrPayload: this.receiptQrPayload(sale.id),
+      },
+      (doc) => {
+        addSectionTitle(doc, 'Sale and customer');
+        addMiniKeyValueGrid(
+          doc,
+          [
+            { label: 'Receipt No.', value: receiptNumber },
+            { label: 'Sale No.', value: sale.saleNumber },
+            { label: 'Status', value: sale.status },
+            { label: 'Payment', value: sale.paymentStatus },
+            { label: 'Customer', value: customer },
+            { label: 'Customer Ref.', value: customerReference },
+            { label: 'Served By', value: staffName(sale.createdBy) },
+            { label: 'Sold At', value: sale.soldAt || sale.createdAt },
+          ],
+          4,
+        );
+
+        addSectionTitle(doc, 'Items');
+        addCompactTable(
+          doc,
+          [
+            { header: '#', width: 24, render: (_item, index) => index + 1 },
+            {
+              header: 'Medicine',
+              width: 180,
+              render: (item) => item.medicineNameSnapshot,
+            },
+            {
+              header: 'Form',
+              width: 80,
+              render: (item) => item.dosageFormSnapshot,
+            },
+            {
+              header: 'Strength',
+              width: 80,
+              render: (item) => item.strengthSnapshot,
+            },
+            { header: 'Qty', width: 45, render: (item) => item.quantity },
+            {
+              header: 'Unit',
+              width: 65,
+              render: (item) => formatPdfMoney(item.unitPrice, currency),
+            },
+            {
+              header: 'Total',
+              width: 70,
+              render: (item) => formatPdfMoney(item.lineTotal, currency),
+            },
+          ],
+          sale.items,
+          'No OTC sale items recorded.',
+        );
+
+        addSectionTitle(doc, 'Totals');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'Subtotal', value: formatPdfMoney(sale.subtotal, currency) },
+            {
+              label: 'Discount',
+              value: formatPdfMoney(sale.discountAmount, currency),
+            },
+            { label: 'Tax', value: formatPdfMoney(sale.taxAmount, currency) },
+            { label: 'Total', value: formatPdfMoney(sale.totalAmount, currency) },
+            { label: 'Paid', value: formatPdfMoney(sale.paidAmount, currency) },
+            {
+              label: 'Balance',
+              value: formatPdfMoney(sale.balanceAmount, currency),
+            },
+          ],
+          3,
+        );
+
+        addSectionTitle(doc, 'Payments');
+        addCompactDefinitionList(
+          doc,
+          [
+            { label: 'Method', value: paymentLabel },
+            { label: 'Payment Status', value: sale.paymentStatus },
+            {
+              label: 'Generated',
+              value: formatPdfDate(new Date()),
+            },
+            {
+              label: 'Exact receipt route',
+              value: this.receiptQrPayload(sale.id),
+            },
+          ],
+          2,
+        );
+
+        addCompactTable(
+          doc,
+          [
+            {
+              header: 'Method',
+              width: 95,
+              render: (payment) => this.paymentDisplayMethod(payment),
+            },
+            {
+              header: 'Reference',
+              width: 110,
+              render: (payment) =>
+                payment.mpesaReceiptNumber ||
+                payment.transactionRef ||
+                payment.checkoutRequestId ||
+                payment.insuranceClaimReference ||
+                payment.authorizationNumber,
+            },
+            {
+              header: 'Amount',
+              width: 75,
+              render: (payment) => formatPdfMoney(payment.amount, currency),
+            },
+            {
+              header: 'Insurance',
+              width: 110,
+              render: (payment) =>
+                payment.paymentMethod === 'INSURANCE'
+                  ? [
+                      payment.insuranceProviderName,
+                      payment.insuranceSchemeName,
+                      maskValue(payment.insuranceMemberNumber, 2, 3),
+                    ]
+                      .filter(Boolean)
+                      .join(' / ')
+                  : maskValue(payment.phoneNumber, 3, 3),
+            },
+            {
+              header: 'Claim/Co-pay',
+              width: 85,
+              render: (payment) =>
+                payment.paymentMethod === 'INSURANCE'
+                  ? `Covered ${formatPdfMoney(
+                      payment.insuranceCoveredAmount,
+                      currency,
+                    )}; Co-pay ${formatPdfMoney(
+                      payment.patientCoPayAmount,
+                      currency,
+                    )}`
+                  : payment.statusCode,
+            },
+            {
+              header: 'Confirmed',
+              width: 69,
+              render: (payment) =>
+                payment.confirmedAt || payment.paidAt || payment.requestedAt,
+            },
+          ],
+          sale.payments,
+          'No payment lines recorded.',
+        );
+
+        if (sale.notes) {
+          addCompactParagraph(doc, 'Notes', sale.notes);
+        }
+      },
+    );
+
+    await this.auditLogService.create({
+      moduleName: 'PHARMACY',
+      actionName: 'OTC_RECEIPT_PDF_DOWNLOADED',
+      entityType: 'OTC_SALE',
+      entityId: String(sale.id),
+      description: `OTC receipt ${receiptNumber} downloaded for sale ${sale.saleNumber}`,
+      facilityId: sale.facilityId,
+      branchId: sale.branchId,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? undefined,
+      afterData: JSON.stringify({
+        saleNumber: sale.saleNumber,
+        receiptNumber,
+        paymentStatus: sale.paymentStatus,
+      }),
+    });
+
+    return {
+      buffer,
+      fileName: `${safeReceiptFileName(`otc-receipt-${sale.saleNumber}`)}.pdf`,
+    };
   }
 
   async cancelSale(id: number, user: RequestUser) {

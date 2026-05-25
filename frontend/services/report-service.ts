@@ -171,6 +171,60 @@ export interface ProfitAnalyticsReport {
   }>;
 }
 
+export interface OtcSalesReport {
+  filters: {
+    startDate?: string | null;
+    endDate?: string | null;
+    facilityId?: number | null;
+    branchId?: number | null;
+  };
+  summary: {
+    totalSales: number;
+    paidSales: number;
+    pendingInsuranceSales: number;
+    cancelledSales: number;
+    grossSales: number;
+    discounts: number;
+    taxes: number;
+    netSales: number;
+    paidAmount: number;
+    outstandingBalance: number;
+  };
+  paymentsByMethod: Array<{
+    method: string;
+    count: number;
+    amount: number;
+  }>;
+  insuranceByStatus: Array<{
+    status: string;
+    count: number;
+    coveredAmount: number;
+    coPayAmount: number;
+  }>;
+  topMedicines: Array<{
+    medicineId: number;
+    medicineName: string;
+    quantity: number;
+    revenue: number;
+  }>;
+  recentSales: Array<{
+    id: number;
+    saleNumber: string;
+    status: string;
+    paymentStatus: string;
+    totalAmount: number;
+    paidAmount: number;
+    balanceAmount: number;
+    soldAt?: string | null;
+    createdAt: string;
+    branchName?: string | null;
+    customerName?: string | null;
+    patientName?: string | null;
+    createdBy?: string | null;
+    itemCount: number;
+  }>;
+}
+
 function reportParams(dateFrom?: string, dateTo?: string) {
   const params = new URLSearchParams();
 
@@ -246,6 +300,29 @@ export async function getProfitAnalyticsExport(
   const path = query
     ? `/reports/profit/export?${query}`
     : "/reports/profit/export";
+
+  return apiFetch<CsvExportResponse>(path, {
+    method: "GET",
+  });
+}
+
+export async function getOtcSalesReport(dateFrom?: string, dateTo?: string) {
+  const query = reportParams(dateFrom, dateTo);
+  const path = query ? `/reports/otc-sales?${query}` : "/reports/otc-sales";
+
+  return apiFetch<OtcSalesReport>(path, {
+    method: "GET",
+  });
+}
+
+export async function getOtcSalesReportExport(
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  const query = reportParams(dateFrom, dateTo);
+  const path = query
+    ? `/reports/otc-sales/export?${query}`
+    : "/reports/otc-sales/export";
 
   return apiFetch<CsvExportResponse>(path, {
     method: "GET",
