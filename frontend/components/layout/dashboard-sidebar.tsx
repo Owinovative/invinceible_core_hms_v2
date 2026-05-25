@@ -154,12 +154,6 @@ const navSections: NavSection[] = [
     label: "Pharmacy",
     items: [
       { title: "Dispensing", href: "/pharmacy", icon: Pill },
-      {
-        title: "OTC Drug Sales",
-        href: "/pharmacy/otc-sales",
-        icon: ShoppingCart,
-        allowedRoles: otcSaleRoles,
-      },
       { title: "Stock", href: "/pharmacy-stock", icon: Warehouse },
       { title: "Pricing", href: "/pharmacy-pricing", icon: Pill },
       { title: "Central Store", href: "/central-store", icon: Warehouse },
@@ -210,16 +204,30 @@ const quickActions = [
   { title: "Invoice", href: "/billing/invoices", icon: Plus },
 ];
 
+const independentActions = [
+  {
+    title: "OTC Drug Sales",
+    subtitle: "One-page pharmacy POS",
+    href: "/pharmacy/otc-sales",
+    icon: ShoppingCart,
+    allowedRoles: otcSaleRoles,
+  },
+];
+
 export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
   const { collapsed, toggleSidebar, closeMobileSidebar } = useSidebar();
   const { facilityName, selectedBranchName } = useScope();
   const { user } = useAuth();
   const compact = collapsed && !mobile;
+  const roleCode = user?.roleCode ?? "";
   const canManageSettings = ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
-    user?.roleCode ?? "",
+    roleCode,
   );
-  const isSuperAdmin = user?.roleCode === "SUPER_ADMIN";
+  const isSuperAdmin = roleCode === "SUPER_ADMIN";
+  const visibleIndependentActions = independentActions.filter((item) =>
+    item.allowedRoles.includes(roleCode),
+  );
 
   return (
     <aside
@@ -328,6 +336,49 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
             );
           })}
         </div>
+
+        {visibleIndependentActions.length > 0 ? (
+          <div className="mt-3 grid gap-2">
+            {visibleIndependentActions.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-label={item.title}
+                  onClick={mobile ? closeMobileSidebar : undefined}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-all duration-200",
+                    compact && "justify-center px-2",
+                    isActive
+                      ? "border-[#28e486] bg-[#0aa35c] text-white shadow-[0_0_24px_rgba(10,163,92,0.34)]"
+                      : "border-cyan-400/35 bg-cyan-500/10 text-cyan-50 hover:border-cyan-300 hover:bg-cyan-500/18 hover:text-white",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                      isActive ? "bg-white/15" : "bg-cyan-300/10",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                  </span>
+                  {!compact ? (
+                    <span className="min-w-0">
+                      <span className="block truncate">{item.title}</span>
+                      <span className="block truncate text-[11px] font-medium text-cyan-100/80">
+                        {item.subtitle}
+                      </span>
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">
@@ -347,7 +398,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                   .filter(
                     (item) =>
                       !item.allowedRoles ||
-                      item.allowedRoles.includes(user?.roleCode ?? ""),
+                      item.allowedRoles.includes(roleCode),
                   )
                   .map((item) => {
                     const Icon = item.icon;
