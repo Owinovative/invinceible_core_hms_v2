@@ -8,8 +8,8 @@ import {
   addCompactTable,
   addMiniKeyValueGrid,
   addSectionTitle,
+  addSignatureBlock,
   createHospitalPdfBuffer,
-  ensureRoom,
   formatPdfDate,
   patientName,
   staffName,
@@ -314,8 +314,7 @@ export class ReportsService {
           'No lab orders/results recorded for this consultation.',
         );
 
-        addSectionTitle(doc, 'Clinician sign off');
-        addMiniKeyValueGrid(
+        addSignatureBlock(
           doc,
           [
             { label: 'Prepared by', value: staffName(consultation.doctor) },
@@ -325,24 +324,8 @@ export class ReportsService {
             },
             { label: 'Generated', value: new Date() },
           ],
-          3,
+          'Clinician sign off',
         );
-        ensureRoom(doc, 28);
-        const signatureY = doc.y + 6;
-        doc
-          .moveTo(doc.page.margins.left, signatureY)
-          .lineTo(doc.page.margins.left + 210, signatureY)
-          .lineWidth(0.6)
-          .strokeColor('#94a3b8')
-          .stroke();
-        doc
-          .fillColor('#475569')
-          .font('Helvetica')
-          .fontSize(7)
-          .text('Clinician signature / official stamp', doc.page.margins.left, signatureY + 5, {
-            width: 230,
-          });
-        doc.y = signatureY + 22;
       },
     );
 

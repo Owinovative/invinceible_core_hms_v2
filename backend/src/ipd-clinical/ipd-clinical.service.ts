@@ -15,6 +15,7 @@ import {
   addCompactParagraph,
   addCompactTable,
   addSectionTitle,
+  addSignatureBlock,
   createHospitalPdfBuffer,
   formatPdfDate,
   patientName,
@@ -516,6 +517,7 @@ export class IpdClinicalService {
         facility: bundle.admission.facility,
         branch: bundle.admission.branch,
         compact: true,
+        qrPayload: `/ipd-clinical/documents/admissions/${admissionId}/medical-summary.pdf`,
       },
       (doc) => {
         this.addAdmissionIdentity(doc, bundle.admission);
@@ -592,6 +594,14 @@ export class IpdClinicalService {
           labRows,
           'No lab results recorded.',
         );
+        addSignatureBlock(doc, [
+          {
+            label: 'Prepared by',
+            value: staffName(latestReview?.reviewedBy ?? bundle.admission.admittedBy),
+          },
+          { label: 'Designation', value: 'Clinical team' },
+          { label: 'Generated', value: new Date() },
+        ]);
       },
     );
   }
@@ -608,6 +618,7 @@ export class IpdClinicalService {
         facility: bundle.admission.facility,
         branch: bundle.admission.branch,
         compact: true,
+        qrPayload: `/ipd-clinical/documents/admissions/${admissionId}/discharge-summary.pdf`,
       },
       (doc) => {
         this.addAdmissionIdentity(doc, bundle.admission);
@@ -639,6 +650,14 @@ export class IpdClinicalService {
           'Follow-up instructions',
           summary?.followUpInstructions,
         );
+        addSignatureBlock(doc, [
+          {
+            label: 'Prepared by',
+            value: staffName(summary?.dischargedBy ?? bundle.admission.admittedBy),
+          },
+          { label: 'Designation', value: 'Discharging clinician' },
+          { label: 'Generated', value: new Date() },
+        ]);
       },
     );
   }
@@ -654,6 +673,7 @@ export class IpdClinicalService {
         facility: bundle.admission.facility,
         branch: bundle.admission.branch,
         compact: true,
+        qrPayload: `/ipd-clinical/documents/admissions/${admissionId}/treatment-chart.pdf`,
       },
       (doc) => {
         this.addAdmissionIdentity(doc, bundle.admission);
@@ -720,6 +740,11 @@ export class IpdClinicalService {
           bundle.vitalRecords,
           'No vital records recorded.',
         );
+        addSignatureBlock(doc, [
+          { label: 'Prepared by', value: staffName(bundle.admission.admittedBy) },
+          { label: 'Designation', value: 'Ward clinical team' },
+          { label: 'Generated', value: new Date() },
+        ]);
       },
     );
   }
