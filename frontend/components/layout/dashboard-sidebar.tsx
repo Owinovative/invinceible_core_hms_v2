@@ -31,6 +31,7 @@ import {
   ScanLine,
   Settings,
   ShieldCheck,
+  ShoppingCart,
   Stethoscope,
   UserPlus,
   Users,
@@ -154,12 +155,7 @@ const navSections: NavSection[] = [
     label: "Pharmacy",
     items: [
       { title: "Dispensing", href: "/pharmacy", icon: Pill },
-      {
-        title: "OTC Drug Sales",
-        href: "/pharmacy/otc-sales",
-        icon: ShoppingCart,
-        allowedRoles: otcSaleRoles,
-      },
+      { title: "OTC Sales", href: "/pharmacy/otc-sales", icon: ShoppingCart },
       { title: "Stock", href: "/pharmacy-stock", icon: Warehouse },
       { title: "Pricing", href: "/pharmacy-pricing", icon: Pill },
       { title: "Central Store", href: "/central-store", icon: Warehouse },
