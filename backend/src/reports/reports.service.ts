@@ -1252,6 +1252,286 @@ export class ReportsService {
     };
   }
 
+  async getOtcSalesReport(filter?: ReportFilterDto) {
+    const dateRange = this.buildDateRange(filter);
+    const saleWhere: any = {
+      ...this.facilityBranchWhere(filter),
+    };
+
+    if (dateRange) {
+      saleWhere.createdAt = dateRange;
+    }
+
+    const paymentWhere = {
+      sale: saleWhere,
+    };
+
+    const [
+      totalSales,
+      paidSales,
+      pendingInsuranceSales,
+      cancelledSales,
+      saleMoney,
+      paymentsByMethod,
+      insuranceByStatus,
+      itemRows,
+      recentSales,
+    ] = await Promise.all([
+      this.prisma.otcSale.count({ where: saleWhere }),
+      this.prisma.otcSale.count({
+        where: { ...saleWhere, paymentStatus: 'PAID' },
+      }),
+      this.prisma.otcSale.count({
+        where: { ...saleWhere, paymentStatus: 'PENDING_INSURANCE' },
+      }),
+      this.prisma.otcSale.count({
+        where: { ...saleWhere, status: 'CANCELLED' },
+      }),
+      this.prisma.otcSale.aggregate({
+        where: saleWhere,
+        _sum: {
+          subtotal: true,
+          discountAmount: true,
+          taxAmount: true,
+          totalAmount: true,
+          paidAmount: true,
+          balanceAmount: true,
+        },
+      }),
+      this.prisma.otcSalePayment.groupBy({
+        by: ['paymentMethod'],
+        where: paymentWhere,
+        _sum: {
+          amount: true,
+          insuranceCoveredAmount: true,
+          patientCoPayAmount: true,
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.otcSalePayment.groupBy({
+        by: ['insuranceClaimStatus'],
+        where: {
+          ...paymentWhere,
+          paymentMethod: 'INSURANCE',
+        },
+        _sum: {
+          insuranceCoveredAmount: true,
+          patientCoPayAmount: true,
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.otcSaleItem.findMany({
+        where: {
+          sale: saleWhere,
+        },
+        select: {
+          id: true,
+          medicineId: true,
+          medicineNameSnapshot: true,
+          quantity: true,
+          lineTotal: true,
+          medicine: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          sale: {
+            select: {
+              branchId: true,
+              branch: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+        take: 10000,
+      }),
+      this.prisma.otcSale.findMany({
+        where: saleWhere,
+        select: {
+          id: true,
+          saleNumber: true,
+          customerName: true,
+          status: true,
+          paymentStatus: true,
+          totalAmount: true,
+          paidAmount: true,
+          balanceAmount: true,
+          soldAt: true,
+          createdAt: true,
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          patient: {
+            select: {
+              id: true,
+              patientNumber: true,
+              firstName: true,
+              middleName: true,
+              lastName: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              staffCode: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          _count: {
+            select: { items: true, payments: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 40,
+      }),
+    ]);
+
+    const byMedicine = new Map<
+      string,
+      {
+        medicineId: number;
+        medicineCode: string | null;
+        medicineName: string;
+        branchId: number | null;
+        branchName: string | null;
+        quantity: number;
+        revenue: number;
+      }
+    >();
+
+    for (const item of itemRows) {
+      const branchId = item.sale.branchId ?? null;
+      const key = `${branchId ?? 'facility'}:${item.medicineId}`;
+      const current = byMedicine.get(key) ?? {
+        medicineId: item.medicineId,
+        medicineCode: item.medicine?.code ?? null,
+        medicineName:
+          item.medicineNameSnapshot ||
+          item.medicine?.name ||
+          `Medicine #${item.medicineId}`,
+        branchId,
+        branchName: item.sale.branch?.name ?? null,
+        quantity: 0,
+        revenue: 0,
+      };
+
+      current.quantity += item.quantity;
+      current.revenue += item.lineTotal;
+      byMedicine.set(key, current);
+    }
+
+    return {
+      filters: {
+        startDate: filter?.startDate ?? null,
+        endDate: filter?.endDate ?? null,
+        facilityId: filter?.facilityId ?? null,
+        branchId: filter?.branchId ?? null,
+      },
+      summary: {
+        totalSales,
+        paidSales,
+        pendingInsuranceSales,
+        cancelledSales,
+        subtotal: saleMoney._sum.subtotal ?? 0,
+        discountAmount: saleMoney._sum.discountAmount ?? 0,
+        taxAmount: saleMoney._sum.taxAmount ?? 0,
+        totalAmount: saleMoney._sum.totalAmount ?? 0,
+        paidAmount: saleMoney._sum.paidAmount ?? 0,
+        balanceAmount: saleMoney._sum.balanceAmount ?? 0,
+        grossSales: saleMoney._sum.subtotal ?? 0,
+        discounts: saleMoney._sum.discountAmount ?? 0,
+        taxes: saleMoney._sum.taxAmount ?? 0,
+        netSales: saleMoney._sum.totalAmount ?? 0,
+        outstandingBalance: saleMoney._sum.balanceAmount ?? 0,
+        itemsSold: itemRows.reduce((sum, item) => sum + item.quantity, 0),
+      },
+      paymentsByMethod: paymentsByMethod.map((item) => ({
+        paymentMethod: item.paymentMethod,
+        method: item.paymentMethod,
+        count: item._count._all,
+        amount: item._sum.amount ?? 0,
+        insuranceCoveredAmount: item._sum.insuranceCoveredAmount ?? 0,
+        patientCoPayAmount: item._sum.patientCoPayAmount ?? 0,
+      })),
+      insuranceByStatus: insuranceByStatus.map((item) => ({
+        status: item.insuranceClaimStatus ?? 'UNSPECIFIED',
+        count: item._count._all,
+        coveredAmount: item._sum.insuranceCoveredAmount ?? 0,
+        coPayAmount: item._sum.patientCoPayAmount ?? 0,
+        patientCoPayAmount: item._sum.patientCoPayAmount ?? 0,
+      })),
+      topMedicines: Array.from(byMedicine.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 30),
+      recentSales: recentSales.map((sale) => ({
+        id: sale.id,
+        saleNumber: sale.saleNumber,
+        customerName: sale.patient
+          ? this.displayPatientName(sale.patient)
+          : sale.customerName || 'Walk-in customer',
+        branchName: sale.branch?.name ?? null,
+        status: sale.status,
+        paymentStatus: sale.paymentStatus,
+        totalAmount: sale.totalAmount,
+        paidAmount: sale.paidAmount,
+        balanceAmount: sale.balanceAmount,
+        soldAt: sale.soldAt,
+        createdAt: sale.createdAt,
+        createdBy: sale.createdBy
+          ? [sale.createdBy.firstName, sale.createdBy.lastName]
+              .filter(Boolean)
+              .join(' ') || sale.createdBy.staffCode
+          : null,
+        itemCount: sale._count.items,
+        paymentCount: sale._count.payments,
+      })),
+    };
+  }
+
+  async getOtcSalesReportExport(filter?: ReportFilterDto) {
+    const report = await this.getOtcSalesReport(filter);
+    const rows: unknown[][] = [
+      ['section', 'label', 'value'],
+      ...Object.entries(report.summary).map(([label, value]) => [
+        'summary',
+        label,
+        value,
+      ]),
+      ...report.paymentsByMethod.map((item) => [
+        'paymentsByMethod',
+        item.paymentMethod,
+        item.amount,
+      ]),
+      ...report.insuranceByStatus.map((item) => [
+        'insuranceByStatus',
+        item.status,
+        item.coveredAmount,
+      ]),
+      ...report.topMedicines.map((item) => [
+        'topMedicines',
+        `${item.branchName ?? 'Facility'} / ${item.medicineName}`,
+        item.revenue,
+      ]),
+    ];
+
+    return {
+      fileName: `otc-sales-${new Date().toISOString().slice(0, 10)}.csv`,
+      rowCount: rows.length - 1,
+      csvText: toCsv(rows),
+    };
+  }
+
   async getProfitAnalytics(filter?: ReportFilterDto) {
     const dateRange = this.buildDateRange(filter);
     const dispenseWhere: any = {

@@ -109,6 +109,26 @@ export class ReportsController {
     );
   }
 
+  @Get('otc-sales')
+  getOtcSalesReport(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getOtcSalesReport(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
+  @Get('otc-sales/export')
+  getOtcSalesReportExport(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getOtcSalesReportExport(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
   @Get('profit')
   getProfitAnalytics(
     @Query() filter: ReportFilterDto,
