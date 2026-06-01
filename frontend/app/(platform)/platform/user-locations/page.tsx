@@ -588,7 +588,7 @@ export default function PlatformUserLocationsPage() {
                           {profile.region || "Unknown region"} /{" "}
                           {profile.country || "Unknown country"}
                         </p>
-                        <p className="mt-2 font-mono text-xs text-cyan-600 dark:text-cyan-300">
+                        <p className="mt-2 font-mono text-xs text-cyan-600">
                           confidence {confidenceLabel(profile.confidence)}
                         </p>
                       </div>
@@ -608,7 +608,7 @@ export default function PlatformUserLocationsPage() {
                         <Badge
                           className={`mb-2 rounded-full border-0 ${
                             profile.isOnline
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              ? "bg-emerald-500/10 text-emerald-700"
                               : "bg-slate-500/10 text-muted-foreground"
                           }`}
                         >
@@ -653,7 +653,7 @@ export default function PlatformUserLocationsPage() {
                         {event.method || "GET"} {event.route || "route unknown"}
                       </p>
                     </div>
-                    <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200">
+                    <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700">
                       {event.eventType}
                     </Badge>
                   </div>

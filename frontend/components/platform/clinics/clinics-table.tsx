@@ -147,7 +147,7 @@ export function ClinicsTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Stethoscope className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                            <Stethoscope className="h-5 w-5 text-cyan-600" />
                           </div>
                           <div>
                             <p className="font-semibold">{clinic.name}</p>
@@ -191,12 +191,12 @@ export function ClinicsTable() {
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
                           {clinic.isWalkInAllowed ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
                               Walk-in
                             </span>
                           ) : null}
                           {clinic.isReferralRequired ? (
-                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600">
                               Referral
                             </span>
                           ) : null}

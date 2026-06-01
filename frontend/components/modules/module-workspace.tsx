@@ -31,13 +31,13 @@ import { appSelectClass } from "@/lib/select-class";
 
 const accentClasses = {
   amber:
-    "from-amber-500/18 via-orange-500/8 to-transparent text-amber-700 dark:text-amber-300",
-  cyan: "from-cyan-500/18 via-sky-500/8 to-transparent text-cyan-700 dark:text-cyan-300",
+    "from-amber-500/18 via-orange-500/8 to-transparent text-amber-700",
+  cyan: "from-cyan-500/18 via-sky-500/8 to-transparent text-cyan-700",
   emerald:
-    "from-emerald-500/18 via-teal-500/8 to-transparent text-emerald-700 dark:text-emerald-300",
-  rose: "from-rose-500/18 via-red-500/8 to-transparent text-rose-700 dark:text-rose-300",
+    "from-emerald-500/18 via-teal-500/8 to-transparent text-emerald-700",
+  rose: "from-rose-500/18 via-red-500/8 to-transparent text-rose-700",
   blue:
-    "from-cyan-500/18 via-blue-500/8 to-transparent text-cyan-700 dark:text-cyan-300",
+    "from-cyan-500/18 via-blue-500/8 to-transparent text-cyan-700",
 };
 
 function formatDate(value?: string | null) {
@@ -49,27 +49,27 @@ function formatDate(value?: string | null) {
 
 function statusClass(status: string) {
   if (["COMPLETED", "CLOSED"].includes(status)) {
-    return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+    return "bg-emerald-500/10 text-emerald-700";
   }
 
   if (["ESCALATED", "CANCELLED"].includes(status)) {
-    return "bg-rose-500/10 text-rose-700 dark:text-rose-300";
+    return "bg-rose-500/10 text-rose-700";
   }
 
   if (status === "WAITING") {
-    return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    return "bg-amber-500/10 text-amber-700";
   }
 
-  return "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300";
+  return "bg-cyan-500/10 text-cyan-700";
 }
 
 function priorityClass(priority: string) {
   if (priority === "CRITICAL") {
-    return "bg-rose-500/10 text-rose-700 dark:text-rose-300";
+    return "bg-rose-500/10 text-rose-700";
   }
 
   if (priority === "URGENT") {
-    return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+    return "bg-amber-500/10 text-amber-700";
   }
 
   return "bg-muted text-muted-foreground";
@@ -332,7 +332,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700 dark:text-cyan-200">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
           {message}
         </div>
       ) : null}
@@ -472,7 +472,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                     key={template.title}
                     type="button"
                     onClick={() => handleApplyTemplate(template)}
-                    className="rounded-xl border border-sky-200 bg-background/75 p-4 text-left transition hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10"
+                    className="rounded-xl border border-sky-200 bg-background/75 p-4 text-left transition hover:border-sky-400 hover:bg-sky-50"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>

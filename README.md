@@ -13,6 +13,7 @@ The project is built as critical healthcare software. Facility and branch scopin
 - Audit logs for critical hospital, payment, pharmacy, clinical, and administrative actions.
 - Official PDF/printout foundations for invoices, receipts, medical summaries, reports, and SHA workflows.
 - Patient portal, AI assistant, communication, reporting, and data warehouse foundations behind safe feature flags.
+- Fixed professional light-theme HMS interface with no runtime theme switching.
 
 ## What It Does
 
@@ -67,6 +68,7 @@ Frontend:
 - TypeScript
 - TanStack Query
 - Tailwind-style component system
+- Fixed light-theme design system for stable clinical/admin use
 
 Repository:
 
@@ -136,6 +138,8 @@ npm run prisma:generate
 npm run build
 npm run test
 npm run prisma:migrate:deploy
+npm run db:storage:audit
+npm run db:cleanup:dry-run
 ```
 
 Frontend:
@@ -160,8 +164,14 @@ npm audit --audit-level=moderate --omit=dev
 
 - Run database backups before production migrations.
 - Deploy backend and frontend through their configured platforms.
-- Configure Railway backend environment variables securely.
-- Configure Vercel frontend `NEXT_PUBLIC_API_BASE_URL` to the Railway backend URL.
+- Render production migration is prepared in [docs/deployment/render.md](docs/deployment/render.md) and [render.yaml](render.yaml).
+- Render PostgreSQL migration planning is documented in [docs/deployment/mysql-to-render-postgres.md](docs/deployment/mysql-to-render-postgres.md).
+- Version 2 release validation is tracked in [docs/release-checklist.md](docs/release-checklist.md), with release notes in [docs/releases/v2.0.0.md](docs/releases/v2.0.0.md).
+- Keep Railway and Vercel active until Render backend, frontend, database connectivity, health checks, and payment callbacks are verified.
+- Configure Render backend environment variables securely in the Render dashboard.
+- Configure Render frontend `NEXT_PUBLIC_API_BASE_URL` to the Render backend URL.
+- If Railway/Vercel remain active during cutover, keep their existing environment variables intact for rollback.
+- Do not point production at Render PostgreSQL until MySQL data has been backed up, imported, validated, and rollback-tested.
 - Configure Daraja callback URLs to point to the deployed backend.
 - Run queue workers when queue-backed jobs are enabled.
 - Check `/health/live`, `/health/ready`, and `/health/deep` after deployment.
@@ -173,6 +183,7 @@ Start with [docs/README.md](docs/README.md).
 Important guides:
 
 - [Performance and scalability](docs/performance-scalability.md)
+- [Database storage efficiency and retention](docs/database-storage-efficiency.md)
 - [Production security checklist](docs/production-security-checklist.md)
 - [HMS benchmark gap analysis](docs/hms-benchmark-gap-analysis.md)
 - [Repository audit](docs/repository-audit.md)
@@ -183,6 +194,8 @@ Important guides:
 - [SHA and insurance workflow](docs/sha-insurance-workflow.md)
 - [Load testing](docs/load-testing.md)
 - [Security testing](docs/security-testing.md)
+- [Render production deployment](docs/deployment/render.md)
+- [MySQL to Render PostgreSQL migration](docs/deployment/mysql-to-render-postgres.md)
 
 ## Security
 

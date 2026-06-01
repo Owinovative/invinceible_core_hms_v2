@@ -22,6 +22,18 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:schema:postgres": "node scripts/create-postgres-prisma-schema.mjs",
+    "prisma:generate:postgres": "npm run prisma:schema:postgres && prisma generate --schema prisma-postgresql/schema.prisma",
+    "prisma:migrate:postgres": "npm run prisma:schema:postgres && prisma migrate deploy --schema prisma-postgresql/schema.prisma",
+    "db:validate": "node scripts/validate-critical-data.mjs",
+    "db:validate:dry-run": "node scripts/validate-critical-data.mjs --dry-run",
+    "db:seed:safe": "node scripts/safe-seed.mjs",
+    "db:backup:notes": "node scripts/render-db-backup-notes.mjs",
+    "db:storage:audit": "node scripts/storage-audit.mjs",
+    "db:cleanup:dry-run": "node scripts/storage-cleanup.mjs --dry-run",
+    "db:cleanup": "node scripts/storage-cleanup.mjs --execute",
+    "db:large-fields:report": "node scripts/large-fields-report.mjs",
+    "db:index:audit": "node scripts/index-audit.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

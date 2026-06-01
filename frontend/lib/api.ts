@@ -40,7 +40,7 @@ export async function apiFetch<T>(
 
   if (isLocalApiUrl(API_BASE_URL) && !isLocalBrowser()) {
     throw new ApiError(
-      "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL in Vercel to the Railway backend URL.",
+      "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL to the deployed backend URL.",
       0,
     );
   }
@@ -69,13 +69,13 @@ export async function apiFetch<T>(
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new ApiError(
-        "The hospital server took too long to respond. Please retry, and check Railway if this continues.",
+        "The hospital server took too long to respond. Please retry, and check the backend host if this continues.",
         0,
       );
     }
 
     throw new ApiError(
-      "Unable to reach the hospital server. Verify the Railway backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
+      "Unable to reach the hospital server. Verify the backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
       0,
     );
   } finally {
@@ -127,7 +127,7 @@ export async function apiDownload(path: string, fileName: string) {
 
   if (isLocalApiUrl(API_BASE_URL) && !isLocalBrowser()) {
     throw new ApiError(
-      "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL in Vercel to the Railway backend URL.",
+      "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL to the deployed backend URL.",
       0,
     );
   }
@@ -153,7 +153,7 @@ export async function apiDownload(path: string, fileName: string) {
     }
 
     throw new ApiError(
-      "Unable to reach the hospital server. Verify the Railway backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
+      "Unable to reach the hospital server. Verify the backend is online and NEXT_PUBLIC_API_BASE_URL points to it.",
       0,
     );
   } finally {

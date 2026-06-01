@@ -14,7 +14,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) with your browser when using the repository's default local frontend port.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
@@ -29,8 +29,14 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The frontend can remain on Vercel while Render is validated, or run as a Render Node web service with:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Root directory: `frontend`
+- Build command: `npm ci && npm run build`
+- Start command: `npm run start`
+- Required public env: `NEXT_PUBLIC_API_BASE_URL`
+- Required public app URL: `NEXT_PUBLIC_APP_URL`
+
+See [../docs/deployment/render.md](../docs/deployment/render.md) for Render production migration details. Check the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for framework-level deployment behavior.

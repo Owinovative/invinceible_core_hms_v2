@@ -366,10 +366,10 @@ export const adminCriticalFunctions: AdminCriticalFunction[] = [
 
 const urgencyClasses = {
   critical:
-    "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-200",
-  high: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-200",
+    "border-red-500/25 bg-red-500/10 text-red-700",
+  high: "border-amber-500/25 bg-amber-500/10 text-amber-700",
   standard:
-    "border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200",
+    "border-cyan-500/25 bg-cyan-500/10 text-cyan-700",
 };
 
 export function AdminCommandCenter({
@@ -448,7 +448,7 @@ export function AdminCommandCenter({
                 className="group rounded-lg border border-border bg-background/72 p-4 transition hover:-translate-y-0.5 hover:border-cyan-400/45 hover:bg-cyan-500/5"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600">
                     <Icon className="h-5 w-5" />
                   </div>
                   <Badge

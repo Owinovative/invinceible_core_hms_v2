@@ -90,7 +90,7 @@ export function ClinicalAiAssistant({
       <CardHeader className="relative border-b border-border/70 px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
               <Bot className="h-5 w-5" />
             </div>
             <div>
@@ -106,14 +106,14 @@ export function ClinicalAiAssistant({
               className={cn(
                 "rounded-md border px-2.5 py-1",
                 isConfigured
-                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                  : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
+                  : "border-amber-500/20 bg-amber-500/10 text-amber-700",
               )}
             >
               {isConfigured ? "AI online" : "API key needed"}
             </Badge>
             {status.data?.model ? (
-              <Badge className="rounded-md border border-slate-500/20 bg-slate-500/10 text-slate-700 dark:text-slate-200">
+              <Badge className="rounded-md border border-slate-500/20 bg-slate-500/10 text-slate-700">
                 {status.data.model}
               </Badge>
             ) : null}
@@ -179,8 +179,8 @@ export function ClinicalAiAssistant({
           ) : null}
 
           {!isConfigured && !status.isLoading ? (
-            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-700 dark:text-amber-200">
-              Set `GEMINI_API_KEY` on the Railway backend to enable Google
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-700">
+              Set `GEMINI_API_KEY` on the backend service to enable Google
               Gemini drafting. The browser never receives the key.
             </div>
           ) : null}
@@ -233,7 +233,7 @@ export function ClinicalAiAssistant({
           </div>
 
           {errorMessage ? (
-            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200">
+            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
               {errorMessage}
             </div>
           ) : output ? (

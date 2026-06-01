@@ -297,7 +297,7 @@ export default function BillingTariffsPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-500/14 via-cyan-500/8 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-300">
+            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700">
               Facility pricing
             </Badge>
             <div className="flex items-center gap-4">
@@ -326,7 +326,7 @@ export default function BillingTariffsPage() {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700 dark:text-cyan-200">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
           {message}
         </div>
       ) : null}
@@ -588,7 +588,7 @@ export default function BillingTariffsPage() {
                           <Badge
                             className={
                               tariff.isActive
-                                ? "rounded-full border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                ? "rounded-full border-0 bg-emerald-500/10 text-emerald-700"
                                 : "rounded-full border-0 bg-muted text-muted-foreground"
                             }
                           >

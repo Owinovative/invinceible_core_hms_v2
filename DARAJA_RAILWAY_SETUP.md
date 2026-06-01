@@ -2,6 +2,11 @@
 
 This backend supports M-PESA STK Push through Safaricom Daraja.
 
+Render migration note: Railway remains supported while Render is being
+validated. When the backend is moved to Render, set the same `MPESA_*`
+variables on the Render backend service and update `MPESA_CALLBACK_URL` in
+Safaricom and facility settings to the Render backend URL.
+
 ## Required Railway variables
 
 Set these on the Railway backend service:
@@ -44,7 +49,7 @@ The STK Push request is resolved from the invoice, not from the frontend form al
 6. Safaricom calls the Railway callback URL.
 7. The callback updates the pending payment, records the receipt/reference, and recalculates the invoice balance.
 
-Do not put Daraja secrets in Vercel or any frontend `.env` file. Only the Railway backend should know consumer keys, consumer secrets, and passkeys.
+Do not put Daraja secrets in Vercel, Render frontend, or any frontend `.env` file. Only the backend deployment environment should know consumer keys, consumer secrets, and passkeys.
 
 ## App flow
 
@@ -100,3 +105,14 @@ https://your-railway-domain.up.railway.app/billing/payments/mpesa/callback
 ```
 
 The same path is used for global Railway variables and facility-specific callback URLs.
+
+## Render callback URL
+
+After Render backend validation, use the public Render backend URL:
+
+```text
+https://your-render-backend.onrender.com/billing/payments/mpesa/callback
+```
+
+Keep the Railway callback active until production traffic and Daraja callbacks
+are confirmed on Render.

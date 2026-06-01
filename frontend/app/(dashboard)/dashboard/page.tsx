@@ -557,7 +557,7 @@ export default function DashboardPage() {
             <CardContent className="relative flex flex-col items-center justify-center px-6 py-14 text-center">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-cyan-500/5" />
               <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-emerald-500/10">
-                <Activity className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+                <Activity className="h-7 w-7 text-emerald-600" />
               </div>
               <h2 className="relative text-2xl font-bold tracking-tight">
                 System is healthy

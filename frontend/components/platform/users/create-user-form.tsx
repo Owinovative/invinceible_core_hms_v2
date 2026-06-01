@@ -138,7 +138,7 @@ export function CreateUserForm() {
     <Card className="rounded-[1.8rem] gradient-border panel-shadow">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+          <UserPlus className="h-5 w-5 text-cyan-600" />
           New User
         </CardTitle>
       </CardHeader>
@@ -327,13 +327,13 @@ export function CreateUserForm() {
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createUserMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   Failed to create user.
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {successMessage}
                 </div>
               ) : null}

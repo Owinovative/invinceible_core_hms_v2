@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 
 type PdfValue = string | number | Date | null | undefined;
+const MAX_PDF_IMAGE_BYTES = Number(process.env.PDF_IMAGE_MAX_BYTES ?? 512_000);
 
 export interface HospitalPdfParty {
   name?: string | null;
@@ -150,7 +151,9 @@ export async function loadLogoBuffer(logoUrl?: string | null) {
   try {
     if (logoUrl.startsWith('data:image/')) {
       const [, payload] = logoUrl.split(',', 2);
-      return payload ? Buffer.from(payload, 'base64') : undefined;
+      if (!payload) return undefined;
+      const buffer = Buffer.from(payload, 'base64');
+      return buffer.length <= MAX_PDF_IMAGE_BYTES ? buffer : undefined;
     }
 
     if (!/^https?:\/\//i.test(logoUrl)) {
@@ -164,12 +167,18 @@ export async function loadLogoBuffer(logoUrl?: string | null) {
 
     if (!response.ok) return undefined;
 
+    const contentLength = Number(response.headers.get('content-length') ?? 0);
+    if (contentLength > MAX_PDF_IMAGE_BYTES) {
+      return undefined;
+    }
+
     const contentType = response.headers.get('content-type') ?? '';
     if (!contentType.toLowerCase().startsWith('image/')) {
       return undefined;
     }
 
-    return Buffer.from(await response.arrayBuffer());
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return buffer.length <= MAX_PDF_IMAGE_BYTES ? buffer : undefined;
   } catch {
     return undefined;
   }

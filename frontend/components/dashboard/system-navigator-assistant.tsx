@@ -91,7 +91,7 @@ function SuggestedRoute({ item }: { item: AdminCriticalFunction }) {
       className="group rounded-lg border border-border bg-background/75 p-3 transition hover:border-cyan-400/45 hover:bg-cyan-500/5"
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -99,7 +99,7 @@ function SuggestedRoute({ item }: { item: AdminCriticalFunction }) {
           <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
             {item.impact}
           </p>
-          <div className="mt-2 flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-300">
+          <div className="mt-2 flex items-center gap-1 text-xs text-cyan-600">
             Open module
             <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
           </div>
@@ -186,7 +186,7 @@ export function SystemNavigatorAssistant({
       <CardHeader className="relative">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <Badge className="rounded-md border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+            <Badge className="rounded-md border-0 bg-emerald-500/10 text-emerald-700">
               AI system navigator
             </Badge>
             <CardTitle className="mt-3 flex items-center gap-2 text-2xl">
@@ -275,7 +275,7 @@ export function SystemNavigatorAssistant({
               <p className="text-sm font-semibold">AI guidance</p>
             </div>
             {errorMessage ? (
-              <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200">
+              <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
                 {errorMessage}
               </div>
             ) : mutation.data?.output ? (

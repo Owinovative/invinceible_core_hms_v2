@@ -75,7 +75,7 @@ export class AiAssistantService {
 
     if (!this.apiKey) {
       throw new ServiceUnavailableException(
-        'AI assistant is not configured. Set GEMINI_API_KEY on the Railway backend environment.',
+        'AI assistant is not configured. Set GEMINI_API_KEY on the backend environment.',
       );
     }
 
@@ -160,7 +160,7 @@ export class AiAssistantService {
 
     if (!this.apiKey) {
       throw new ServiceUnavailableException(
-        'AI identity reading is not configured. Set GEMINI_API_KEY on the Railway backend environment.',
+        'AI identity reading is not configured. Set GEMINI_API_KEY on the backend environment.',
       );
     }
 

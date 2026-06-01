@@ -260,7 +260,7 @@ export function CreateFacilityForm() {
     <Card className="rounded-[1.8rem] gradient-border panel-shadow">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+          <Building2 className="h-5 w-5 text-cyan-600" />
           New Facility
         </CardTitle>
       </CardHeader>
@@ -690,7 +690,7 @@ export function CreateFacilityForm() {
               <p className="font-semibold">Facility Daraja setup</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Use these only when this facility has its own Safaricom app.
-                Empty credential fields fall back to Railway variables.
+                Empty credential fields fall back to backend environment variables.
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField
@@ -779,7 +779,7 @@ export function CreateFacilityForm() {
                     <FormItem className="md:col-span-2">
                       <FormLabel>Callback URL</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="https://backend.up.railway.app/billing/payments/mpesa/callback" {...field} />
+                        <Input className="h-11 rounded-xl" placeholder="https://your-backend.example.com/billing/payments/mpesa/callback" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -863,13 +863,13 @@ export function CreateFacilityForm() {
               </FormDescription>
 
               {createFacilityMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   Failed to create facility.
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {successMessage}
                   {createdCode ? ` Facility Code: ${createdCode}` : ""}
                 </div>

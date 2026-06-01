@@ -44,6 +44,7 @@ import {
 } from '../common/pagination/pagination';
 import { CacheService } from '../resilience/cache.service';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
+import { serializeMaybeJsonCompact } from '../common/storage/compact-payload';
 
 type TariffCsvRow = Record<string, string>;
 type InvoiceChargeType = 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
@@ -327,6 +328,14 @@ export class BillingService {
     private readonly cacheService: CacheService,
     private readonly safeLogger: SafeLoggerService,
   ) {}
+
+  private compactPaymentPayload(value: unknown) {
+    return serializeMaybeJsonCompact(value, {
+      maxBytes: 3_000,
+      maxStringLength: 600,
+      maxArrayItems: 20,
+    });
+  }
 
   private async generateInvoiceNumber() {
     const latestInvoice = await this.prisma.invoice.findFirst({
@@ -3634,7 +3643,7 @@ export class BillingService {
         phoneNumber: normalizedPhone,
         checkoutRequestId: stk.data.CheckoutRequestID,
         merchantRequestId: stk.data.MerchantRequestID,
-        callbackPayload: JSON.stringify({
+        callbackPayload: this.compactPaymentPayload({
           request: stk.data,
           requestedAt: new Date().toISOString(),
         }),
@@ -3746,7 +3755,7 @@ export class BillingService {
         checkoutRequestId: stk.data.CheckoutRequestID,
         merchantRequestId: stk.data.MerchantRequestID,
         requestedAt: new Date(),
-        callbackPayload: JSON.stringify({
+        callbackPayload: this.compactPaymentPayload({
           resend: stk.data,
           resentAt: new Date().toISOString(),
           previousCheckoutRequestId: payment.checkoutRequestId,
@@ -3854,8 +3863,8 @@ export class BillingService {
           confirmedAt: new Date(),
           paidAt: new Date(),
           transactionRef: payment.transactionRef || payment.checkoutRequestId,
-          callbackPayload: JSON.stringify({
-            previous: payment.callbackPayload,
+          callbackPayload: this.compactPaymentPayload({
+            previousStatus: payment.callbackPayload ? 'stored' : 'none',
             statusQuery: daraja,
             queriedAt: new Date().toISOString(),
           }),
@@ -3894,8 +3903,8 @@ export class BillingService {
     if (resultCode && resultCode !== '0') {
       const failed = await this.failMpesaPayment(
         checkoutRequestId,
-        JSON.stringify({
-          previous: payment.callbackPayload,
+        this.compactPaymentPayload({
+          previousStatus: payment.callbackPayload ? 'stored' : 'none',
           statusQuery: daraja,
           queriedAt: new Date().toISOString(),
         }),
@@ -3986,7 +3995,7 @@ export class BillingService {
         merchantRequestId: dto.merchantRequestId ?? payment.merchantRequestId,
         mpesaReceiptNumber,
         transactionRef: dto.transactionRef,
-        callbackPayload: dto.callbackPayload,
+        callbackPayload: this.compactPaymentPayload(dto.callbackPayload),
       },
     });
 
@@ -4060,7 +4069,7 @@ export class BillingService {
       where: { id: payment.id },
       data: {
         statusCode: 'FAILED',
-        callbackPayload,
+        callbackPayload: this.compactPaymentPayload(callbackPayload),
       },
     });
 
@@ -4102,7 +4111,10 @@ export class BillingService {
     }
 
     if (Number(callback.ResultCode) !== 0) {
-      await this.failMpesaPayment(checkoutRequestId, JSON.stringify(payload));
+      await this.failMpesaPayment(
+        checkoutRequestId,
+        this.compactPaymentPayload(payload),
+      );
       return { message: 'M-PESA callback recorded as failed' };
     }
 
@@ -4121,7 +4133,7 @@ export class BillingService {
       merchantRequestId: callback.MerchantRequestID,
       mpesaReceiptNumber: String(metadata.MpesaReceiptNumber || ''),
       transactionRef: String(metadata.MpesaReceiptNumber || checkoutRequestId),
-      callbackPayload: JSON.stringify(payload),
+      callbackPayload: this.compactPaymentPayload(payload),
     }, undefined, 'CALLBACK');
 
     return { message: 'M-PESA callback confirmed' };

@@ -298,11 +298,20 @@ export class NotificationService {
               { staff: { is: { facilityId: user.homeFacilityId ?? -1 } } },
             ],
           },
-      include: {
-        role: true,
-        staff: true,
-        homeBranch: true,
-        homeFacility: true,
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        homeFacilityId: true,
+        homeBranchId: true,
+        role: { select: { code: true } },
+        staff: {
+          select: {
+            facilityId: true,
+            branchId: true,
+            passportPhotoUrl: true,
+          },
+        },
       },
       orderBy: [{ username: 'asc' }],
       take: 500,
@@ -340,10 +349,15 @@ export class NotificationService {
                 ],
               },
             },
-      include: {
-        role: true,
-        branch: true,
-        facility: true,
+      select: {
+        id: true,
+        staffCode: true,
+        firstName: true,
+        lastName: true,
+        designation: true,
+        facilityId: true,
+        branchId: true,
+        passportPhotoUrl: true,
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
       take: 500,
@@ -411,14 +425,7 @@ export class NotificationService {
 
     return this.prisma.notification.findMany({
       where,
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -440,14 +447,7 @@ export class NotificationService {
 
     return this.prisma.notification.findMany({
       where,
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -470,14 +470,7 @@ export class NotificationService {
 
     return this.prisma.notification.findMany({
       where,
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -565,14 +558,7 @@ export class NotificationService {
           { targetStaffId: null, targetUserId: null },
         ],
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -602,14 +588,7 @@ export class NotificationService {
           { targetStaffId: null, targetUserId: null },
         ],
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -655,14 +634,7 @@ export class NotificationService {
           },
         ],
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -707,14 +679,7 @@ export class NotificationService {
       where: {
         targetUserId: userId,
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },
@@ -728,14 +693,7 @@ export class NotificationService {
       where: {
         targetStaffId: staffId,
       },
-      include: {
-        facility: true,
-        branch: true,
-        targetUser: true,
-        targetStaff: true,
-        resolvedByUser: true,
-        resolvedByStaff: true,
-      },
+      include: this.includeRelations(),
       orderBy: {
         id: 'desc',
       },

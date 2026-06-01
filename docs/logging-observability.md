@@ -1,6 +1,6 @@
 # Logging And Observability
 
-Invinceible Core HMS logs operational, clinical workflow, financial, and security events with a request ID where available. Logs are designed for Railway and similar production hosts where stdout/stderr are the main observability stream.
+Invinceible Core HMS logs operational, clinical workflow, financial, and security events with a request ID where available. Logs are designed for managed production hosts such as Railway and Render where stdout/stderr are the main observability stream.
 
 ## What Is Logged
 
@@ -36,8 +36,9 @@ Use `SafeLoggerService` for backend logs. It redacts known secret-like keys and 
 - Queue worker failures.
 - Stock administration failures or negative-stock prevention events.
 
-## Railway Notes
+## Production Host Notes
 
 - Set `LOG_LEVEL=info` in production.
 - Set `SLOW_REQUEST_MS=1000`, `SLOW_LIST_MS=750`, and tune lower after observing real traffic.
-- Keep Railway variables private. Do not paste secrets into logs, comments, PRs, or screenshots.
+- Keep deployment variables private. Do not paste secrets into logs, comments, PRs, or screenshots.
+- On Render, verify service logs after deploy and confirm `/health/live` and `/health/ready` status before moving traffic.

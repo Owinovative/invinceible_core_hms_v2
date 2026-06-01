@@ -214,7 +214,7 @@ export default function LoginPageClient() {
                 />
 
                 {error ? (
-                  <div className="rounded-xl border border-red-300/25 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-200">
+                  <div className="rounded-xl border border-red-300/25 bg-red-500/10 px-4 py-3 text-sm text-red-600">
                     {error}
                   </div>
                 ) : null}

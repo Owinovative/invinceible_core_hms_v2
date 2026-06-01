@@ -1,0 +1,141 @@
+# Render Blueprint for production migration.
+# This branch prepares the PostgreSQL cutover path. Keep the existing MySQL
+# database available until the PostgreSQL import and validation checklist pass.
+databases:
+  - name: invinceible-core-hms-postgres
+    databaseName: invinceible_core_hms
+    user: invinceible_core_hms
+    region: frankfurt
+    plan: basic-1gb
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: invinceible-core-hms-api
+    runtime: node
+    rootDir: backend
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci && npm run prisma:generate:postgres && npm run build
+    preDeployCommand: npm run prisma:migrate:postgres
+    startCommand: npm run start:prod
+    healthCheckPath: /health/live
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_PROVIDER
+        value: postgresql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invinceible-core-hms-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: FRONTEND_URL
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: TRUST_PROXY
+        value: "true"
+      - key: BODY_LIMIT
+        value: 4mb
+      - key: REQUEST_TIMEOUT_MS
+        value: "30000"
+      - key: CACHE_PREFIX
+        value: inv_hms
+      - key: CACHE_DEFAULT_TTL_SECONDS
+        value: "60"
+      - key: CACHE_DASHBOARD_TTL_SECONDS
+        value: "30"
+      - key: CACHE_REFERENCE_TTL_SECONDS
+        value: "300"
+      - key: CACHE_IN_MEMORY_MAX_ITEMS
+        value: "10000"
+      - key: RATE_LIMIT_TTL_SECONDS
+        value: "60"
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "10"
+      - key: SEARCH_RATE_LIMIT_MAX
+        value: "60"
+      - key: DASHBOARD_RATE_LIMIT_MAX
+        value: "120"
+      - key: PDF_RATE_LIMIT_MAX
+        value: "20"
+      - key: MPESA_RATE_LIMIT_MAX
+        value: "5"
+      - key: PUBLIC_VERIFY_RATE_LIMIT_MAX
+        value: "30"
+      - key: QUEUE_ENABLED
+        value: "true"
+      - key: QUEUE_CONCURRENCY
+        value: "5"
+      - key: QUEUE_PREFIX
+        value: inv_hms
+      - key: WORKER_MODE
+        value: "false"
+      - key: MPESA_ENV
+        value: production
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_SHORTCODE
+        sync: false
+      - key: MPESA_CALLBACK_URL
+        sync: false
+      - key: MPESA_TRANSACTION_TYPE
+        value: CustomerPayBillOnline
+      - key: MPESA_PROMPT_LOCK_SECONDS
+        value: "90"
+      - key: MPESA_MAX_CONCURRENT_PROMPTS
+        value: "20"
+      - key: MPESA_REQUEST_TIMEOUT_MS
+        value: "15000"
+      - key: MPESA_STATUS_CACHE_SECONDS
+        value: "10"
+      - key: PASSWORD_RESET_BASE_URL
+        sync: false
+      - key: AI_ENABLED
+        value: "false"
+      - key: SMS_ENABLED
+        value: "false"
+      - key: WHATSAPP_ENABLED
+        value: "false"
+      - key: PATIENT_PORTAL_ENABLED
+        value: "false"
+      - key: SHA_ENABLED
+        value: "true"
+      - key: DATA_WAREHOUSE_ENABLED
+        value: "false"
+      - key: CLINICAL_DECISION_SUPPORT_ENABLED
+        value: "true"
+      - key: MOBILE_OPTIMIZED_VIEWS_ENABLED
+        value: "true"
+
+  - type: web
+    name: invinceible-core-hms-web
+    runtime: node
+    rootDir: frontend
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false

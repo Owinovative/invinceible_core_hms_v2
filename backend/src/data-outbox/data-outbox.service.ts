@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FeatureFlagService } from '../enterprise/feature-flag.service';
+import { sanitizeForCompactStorage } from '../common/storage/compact-payload';
 
 export type DataOutboxEventInput = {
   eventType: string;
@@ -31,7 +32,13 @@ export class DataOutboxService {
         entityId: String(event.entityId),
         facilityId: event.facilityId ?? null,
         branchId: event.branchId ?? null,
-        payload: event.payload as Prisma.InputJsonValue | undefined,
+        payload: event.payload
+          ? (sanitizeForCompactStorage(event.payload, {
+              maxStringLength: 600,
+              maxArrayItems: 25,
+              maxDepth: 5,
+            }) as Prisma.InputJsonValue)
+          : undefined,
       },
     });
   }
