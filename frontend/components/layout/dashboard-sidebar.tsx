@@ -31,7 +31,6 @@ import {
   ScanLine,
   Settings,
   ShieldCheck,
-  ShoppingCart,
   Stethoscope,
   UserPlus,
   Users,
