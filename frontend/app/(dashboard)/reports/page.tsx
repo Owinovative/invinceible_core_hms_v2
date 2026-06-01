@@ -16,8 +16,10 @@ import {
 import { useReportsDashboard } from "@/hooks/use-reports-dashboard";
 import { useModuleOperationsReport } from "@/hooks/use-module-operations-report";
 import { useProfitAnalytics } from "@/hooks/use-profit-analytics";
+import { useOtcSalesReport } from "@/hooks/use-otc-sales-report";
 import { useScope } from "@/providers/scope-provider";
 import {
+  getOtcSalesReportExport,
   getProfitAnalyticsExport,
   getModuleOperationsExport,
   getReportsDashboardExport,
@@ -86,8 +88,12 @@ export default function ReportsPage() {
     appliedDateFrom,
     appliedDateTo,
   );
+  const { data: otcReport } = useOtcSalesReport(
+    appliedDateFrom,
+    appliedDateTo,
+  );
   const [downloadState, setDownloadState] = React.useState<
-    "dashboard" | "modules" | "profit" | null
+    "dashboard" | "modules" | "profit" | "otc" | null
   >(null);
 
   const counts = data?.counts;
@@ -157,6 +163,17 @@ export default function ReportsPage() {
     }
   };
 
+  const handleDownloadOtc = async () => {
+    setDownloadState("otc");
+    try {
+      downloadCsvExport(
+        await getOtcSalesReportExport(appliedDateFrom, appliedDateTo),
+      );
+    } finally {
+      setDownloadState(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
@@ -214,7 +231,7 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Report Filters</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
             <div>
               <label className="mb-2 block text-sm font-medium">
                 Date From
@@ -323,6 +340,23 @@ export default function ReportsPage() {
                   <Download className="mr-2 h-4 w-4" />
                 )}
                 Profit CSV
+              </Button>
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 w-full rounded-2xl"
+                onClick={handleDownloadOtc}
+                disabled={downloadState === "otc"}
+              >
+                {downloadState === "otc" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                OTC CSV
               </Button>
             </div>
           </CardContent>
@@ -704,6 +738,181 @@ export default function ReportsPage() {
                 <p className="mt-2 text-sm text-muted-foreground">
                   Gross margin on dispensed drugs
                 </p>
+              </CardContent>
+            </Card>
+          </section>
+
+          <section>
+            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <CardHeader>
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <CardTitle>OTC Drug Sales</CardTitle>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      One-page pharmacy sales, payment mix, stock deduction, and
+                      insurance claim position for the selected date range.
+                    </p>
+                  </div>
+                  <Badge className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-muted-foreground">
+                    {otcReport?.summary.totalSales ?? 0} sales
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-muted-foreground">Net OTC Sales</p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {formatMoney(otcReport?.summary.netSales)}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-muted-foreground">Collected</p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {formatMoney(otcReport?.summary.paidAmount)}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-muted-foreground">Balance</p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {formatMoney(otcReport?.summary.outstandingBalance)}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-muted-foreground">
+                      Pending Insurance
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {otcReport?.summary.pendingInsuranceSales ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-muted-foreground">Paid Sales</p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {otcReport?.summary.paidSales ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 xl:grid-cols-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="font-semibold">Payments by Method</p>
+                    <div className="mt-3 space-y-3">
+                      {(otcReport?.paymentsByMethod ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No OTC payments in this period.
+                        </p>
+                      ) : null}
+                      {(otcReport?.paymentsByMethod ?? []).map((item) => (
+                        <div
+                          key={item.method}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <span>{item.method.replace(/_/g, " ")}</span>
+                          <span className="text-right font-semibold">
+                            {formatMoney(item.amount)}
+                            <span className="ml-2 text-muted-foreground">
+                              ({item.count})
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="font-semibold">Insurance Claims</p>
+                    <div className="mt-3 space-y-3">
+                      {(otcReport?.insuranceByStatus ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No OTC insurance claim lines in this period.
+                        </p>
+                      ) : null}
+                      {(otcReport?.insuranceByStatus ?? []).map((item) => (
+                        <div
+                          key={item.status}
+                          className="rounded-[0.8rem] border border-white/10 bg-white/[0.03] p-3 text-sm"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">
+                              {item.status.replace(/_/g, " ")}
+                            </span>
+                            <span>{item.count}</span>
+                          </div>
+                          <p className="mt-1 text-muted-foreground">
+                            Covered {formatMoney(item.coveredAmount)} / Co-pay{" "}
+                            {formatMoney(item.coPayAmount)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                    <p className="font-semibold">Top OTC Medicines</p>
+                    <div className="mt-3 space-y-3">
+                      {(otcReport?.topMedicines ?? []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No OTC medicine movement in this period.
+                        </p>
+                      ) : null}
+                      {(otcReport?.topMedicines ?? []).slice(0, 8).map((item) => (
+                        <div
+                          key={item.medicineId}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <span className="truncate">{item.medicineName}</span>
+                          <span className="shrink-0 text-right font-semibold">
+                            {item.quantity} / {formatMoney(item.revenue)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="font-semibold">Recent OTC Sales</p>
+                  {(otcReport?.recentSales ?? []).length === 0 ? (
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                      No OTC sales found in this date range.
+                    </div>
+                  ) : null}
+                  {(otcReport?.recentSales ?? []).slice(0, 8).map((sale) => (
+                    <div
+                      key={sale.id}
+                      className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <p className="font-semibold">{sale.saleNumber}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {sale.patientName ||
+                              sale.customerName ||
+                              "Walk-in customer"}{" "}
+                            / {sale.branchName || "Branch"}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {sale.itemCount} item(s) /{" "}
+                            {formatDate(sale.soldAt || sale.createdAt)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">
+                            {formatMoney(sale.totalAmount)}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Paid {formatMoney(sale.paidAmount)} / Balance{" "}
+                            {formatMoney(sale.balanceAmount)}
+                          </p>
+                          <Badge className="mt-2 rounded-full border px-3 py-1 border-white/10 bg-white/[0.04] text-muted-foreground">
+                            {sale.paymentStatus.replace(/_/g, " ")}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </section>

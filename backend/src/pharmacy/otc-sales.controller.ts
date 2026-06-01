@@ -8,9 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { Permissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -108,6 +110,22 @@ export class OtcSalesController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.otcSalesService.completeSale(id, user);
+  }
+
+  @Get('sales/:id/receipt.pdf')
+  async downloadReceiptPdf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+    @Res() response: Response,
+  ) {
+    const receipt = await this.otcSalesService.getReceiptPdf(id, user);
+
+    response.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${receipt.fileName}"`,
+      'Cache-Control': 'private, no-store',
+    });
+    response.end(receipt.buffer);
   }
 
   @Post('sales/:id/cancel')
