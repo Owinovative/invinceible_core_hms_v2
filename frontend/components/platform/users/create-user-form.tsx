@@ -49,6 +49,7 @@ export function CreateUserForm() {
   const { data: branchesData } = useBranches();
 
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const roles = Array.isArray(rolesData) ? rolesData.filter((role) => role.isActive !== false) : [];
   const facilities = Array.isArray(facilitiesData)
@@ -97,6 +98,7 @@ export function CreateUserForm() {
 
   const onSubmit = async (values: UserFormValues) => {
     setSuccessMessage(null);
+    setErrorMessage(null);
 
     try {
       await createUserMutation.mutateAsync({
@@ -129,8 +131,12 @@ export function CreateUserForm() {
         canAccessAllBranchesInFacility: "false",
         isActive: "true",
       });
-    } catch {
+    } catch (error: any) {
       setSuccessMessage(null);
+      // Extract a readable message from the backend error, if available
+      const backendMessage = error?.response?.data?.message || error?.message || "An unknown error occurred.";
+      setErrorMessage(`Failed to create user: ${backendMessage}`);
+      console.error("USER CREATION FAILED:", error?.response?.data || error.message || error);
     }
   };
 
@@ -326,7 +332,11 @@ export function CreateUserForm() {
             />
 
             <div className="md:col-span-2 space-y-3 pt-2">
-              {createUserMutation.isError ? (
+              {errorMessage ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {errorMessage}
+                </div>
+              ) : createUserMutation.isError ? (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   Failed to create user.
                 </div>
