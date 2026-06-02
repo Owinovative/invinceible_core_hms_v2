@@ -38,7 +38,9 @@ function InvoiceVerifyContent() {
 
   useEffect(() => {
     if (!invoiceNumber || !code) {
-      setError("Invoice verification details are missing.");
+      setTimeout(() => {
+        setError("Invoice verification details are missing.");
+      }, 0);
       return;
     }
 
