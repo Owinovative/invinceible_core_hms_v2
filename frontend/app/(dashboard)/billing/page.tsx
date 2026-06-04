@@ -4,8 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import {
   BedDouble,
-  CreditCard,
   Clock3,
+  CreditCard,
   FileText,
   FlaskConical,
   Loader2,
@@ -190,7 +190,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-140px)] flex-col gap-6 animate-fade-in">
+    <div className="flex flex-col gap-6 animate-fade-in pb-12">
       
       {/* --- MINIMALIST TOP KPI BAR --- */}
       <div className="flex items-end justify-between px-2">
@@ -216,11 +216,11 @@ export default function BillingPage() {
         )}
       </div>
 
-      {/* --- TWO-COLUMN WORKSPACE --- */}
-      <div className="grid h-full min-h-0 grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+      {/* --- STACKED WORKSPACE --- */}
+      <div className="flex flex-col gap-8">
         
-        {/* LEFT PANE: PATIENT QUEUE */}
-        <div className="flex flex-col rounded-[2rem] glass panel-shadow overflow-hidden">
+        {/* TOP CARD: PATIENT QUEUE */}
+        <div className="flex flex-col rounded-[2rem] glass panel-shadow overflow-hidden max-h-[380px] shrink-0">
           <div className="border-b border-slate-100/50 p-4 bg-white/50">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -232,9 +232,9 @@ export default function BillingPage() {
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {patientsLoading ? (
-              <p className="p-4 text-center text-xs text-slate-400">Loading...</p>
+              <p className="p-4 text-center text-xs text-slate-400 col-span-full">Loading...</p>
             ) : filteredPatients.map((patient) => {
               const patientInvoices = invoices.filter((i) => i.patientId === patient.id);
               const active = patient.id === selectedPatientId;
@@ -267,18 +267,18 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* RIGHT PANE: ACTIVE INVOICE & PAYMENTS */}
-        <div className="flex flex-col min-h-0 rounded-[2rem] glass panel-shadow overflow-hidden bg-white/60">
+        {/* BOTTOM CARD: ACTIVE INVOICE & PAYMENTS */}
+        <div className="flex flex-col rounded-[2rem] glass panel-shadow overflow-hidden bg-white/60">
           {!selectedPatient ? (
-            <div className="flex h-full flex-col items-center justify-center text-slate-400">
+            <div className="flex flex-col items-center justify-center text-slate-400 py-16">
               <CreditCard className="h-12 w-12 opacity-20 mb-4" />
-              <p className="text-sm font-medium">Select a patient to view financials</p>
+              <p className="text-sm font-medium">Select a patient above to view financials</p>
             </div>
           ) : (
-            <div className="flex h-full flex-col overflow-y-auto custom-scrollbar">
+            <div className="flex flex-col">
               
               {/* Patient Header & Quick Actions */}
-              <div className="flex items-center justify-between border-b border-slate-100 p-6 bg-white/40">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 p-6 bg-white/40 gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">{patientName(selectedPatient)}</h2>
                   <div className="flex gap-4 mt-2 text-xs font-medium text-slate-500">
@@ -286,7 +286,7 @@ export default function BillingPage() {
                     <span className="flex items-center gap-1"><Clock3 className="h-3 w-3" /> Open: {(patientWorkspace?.summary.pendingLabOrders ?? 0) + (patientWorkspace?.summary.openPrescriptions ?? 0)}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-slate-200 bg-white shadow-sm" asChild>
                     <Link href="/pharmacy"><Pill className="h-4 w-4 text-emerald-600" /></Link>
                   </Button>
@@ -300,19 +300,20 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <div className="p-6 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8">
+              {/* Stacked Invoice Details and Payment Cards */}
+              <div className="p-6 flex flex-col gap-8">
                 
-                {/* INVOICE DETAILS */}
+                {/* INVOICE DETAILS BLOCK */}
                 <div className="space-y-6">
                   {/* Invoice Tab Selector */}
                   {filteredInvoices.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-slate-100">
                       {filteredInvoices.map((inv) => (
                         <button
                           key={inv.id}
                           onClick={() => setSelectedInvoiceId(inv.id)}
-                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                            selectedInvoiceId === inv.id ? "bg-white border-slate-200 shadow-sm text-slate-800" : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100"
+                          className={`flex-shrink-0 px-6 py-3 rounded-t-xl text-xs font-bold transition-all border border-b-0 ${
+                            selectedInvoiceId === inv.id ? "bg-white border-slate-200 shadow-sm text-slate-800 translate-y-[1px]" : "bg-transparent border-transparent text-slate-500 hover:bg-slate-50"
                           }`}
                         >
                           {inv.invoiceNumber}
@@ -327,18 +328,18 @@ export default function BillingPage() {
                     <div className="space-y-6">
                       {/* Sub-header */}
                       <div className="flex items-center justify-between">
-                        <Badge className={`rounded-md px-2 shadow-none border ${statusTone(invoice.statusCode)}`}>
+                        <Badge className={`rounded-md px-3 py-1 shadow-none border ${statusTone(invoice.statusCode)}`}>
                           {invoice.statusCode}
                         </Badge>
                         <div className="text-right">
-                          <p className="text-xs text-slate-400">Balance Due</p>
-                          <p className="text-2xl font-black text-rose-600">{formatMoney(invoice.balanceAmount)}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Balance Due</p>
+                          <p className="text-3xl font-black text-rose-600">{formatMoney(invoice.balanceAmount)}</p>
                         </div>
                       </div>
 
                       {/* Items Table (Minimalist) */}
                       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-                        <div className="grid grid-cols-[1fr_80px_100px_40px] gap-4 bg-slate-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           <div>Item</div>
                           <div className="text-right">Price</div>
                           <div className="text-right">Total</div>
@@ -346,17 +347,17 @@ export default function BillingPage() {
                         </div>
                         <div className="divide-y divide-slate-50">
                           {items.length === 0 ? (
-                            <div className="p-4 text-center text-xs text-slate-400">No items on this invoice.</div>
+                            <div className="p-6 text-center text-sm font-medium text-slate-400">No items on this invoice.</div>
                           ) : items.map((item) => (
-                            <div key={item.id} className="grid grid-cols-[1fr_80px_100px_40px] gap-4 px-4 py-3 items-center group hover:bg-slate-50/50 transition-colors">
-                              <div>
-                                <p className="text-sm font-semibold text-slate-800 truncate">{item.description}</p>
-                                <p className="text-[10px] text-slate-400">Qty: {item.quantity}</p>
+                            <div key={item.id} className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 px-6 py-4 items-center group hover:bg-slate-50/50 transition-colors">
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-slate-800 truncate">{item.description}</p>
+                                <p className="text-xs font-medium text-slate-400 mt-1">Qty: {item.quantity}</p>
                               </div>
-                              <div className="text-right text-sm text-slate-600">{formatMoney(item.unitPrice)}</div>
-                              <div className="text-right text-sm font-bold text-slate-800">{formatMoney(item.lineTotal)}</div>
+                              <div className="text-right text-sm font-medium text-slate-600">{formatMoney(item.unitPrice)}</div>
+                              <div className="text-right text-base font-black text-slate-800">{formatMoney(item.lineTotal)}</div>
                               <div className="text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => startEdit(item)} className="text-slate-400 hover:text-cyan-600"><Edit2 className="h-4 w-4" /></button>
+                                <button onClick={() => startEdit(item)} className="text-slate-400 hover:text-cyan-600 p-2"><Edit2 className="h-4 w-4" /></button>
                               </div>
                             </div>
                           ))}
@@ -365,17 +366,17 @@ export default function BillingPage() {
 
                       {/* Edit Inline Box */}
                       {editingItemId && (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm animate-fade-in">
-                          <div className="grid grid-cols-3 gap-3 mb-3">
-                            <Input value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} type="number" placeholder="Qty" className="h-9 bg-white" />
-                            <Input value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} type="number" placeholder="Price" className="h-9 bg-white" />
-                            <Input value={editDiscountPercent} onChange={(e) => setEditDiscountPercent(e.target.value)} type="number" placeholder="Disc %" className="h-9 bg-white" />
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm animate-fade-in">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <Input value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} type="number" placeholder="Qty" className="h-11 bg-white" />
+                            <Input value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} type="number" placeholder="Price" className="h-11 bg-white" />
+                            <Input value={editDiscountPercent} onChange={(e) => setEditDiscountPercent(e.target.value)} type="number" placeholder="Disc %" className="h-11 bg-white" />
                           </div>
-                          <Textarea value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} placeholder="Reason for removal (if deleting)" className="min-h-[40px] mb-3 bg-white text-xs" />
-                          <div className="flex gap-2">
-                            <Button onClick={handleUpdateItem} disabled={updateInvoiceItemMutation.isPending} className="h-9 text-xs rounded-xl bg-slate-900 text-white hover:bg-slate-800 flex-1">Save</Button>
-                            <Button onClick={handleRemoveItem} disabled={removeInvoiceItemMutation.isPending} variant="destructive" className="h-9 text-xs rounded-xl flex-1"><Trash2 className="h-3 w-3 mr-2"/> Remove</Button>
-                            <Button onClick={() => setEditingItemId(null)} variant="outline" className="h-9 text-xs rounded-xl">Cancel</Button>
+                          <Textarea value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} placeholder="Reason for removal (if deleting)" className="min-h-[50px] mb-4 bg-white text-sm" />
+                          <div className="flex gap-3">
+                            <Button onClick={handleUpdateItem} disabled={updateInvoiceItemMutation.isPending} className="h-11 text-sm rounded-xl bg-slate-900 text-white hover:bg-slate-800 px-8">Save Changes</Button>
+                            <Button onClick={handleRemoveItem} disabled={removeInvoiceItemMutation.isPending} variant="destructive" className="h-11 text-sm rounded-xl px-6"><Trash2 className="h-4 w-4 mr-2"/> Remove Item</Button>
+                            <Button onClick={() => setEditingItemId(null)} variant="outline" className="h-11 text-sm rounded-xl px-6">Cancel</Button>
                           </div>
                         </div>
                       )}
@@ -385,47 +386,50 @@ export default function BillingPage() {
                   )}
                 </div>
 
-                {/* PAYMENTS & RECEIPT (Right Side of Right Pane) */}
+                {/* PAYMENTS & RECEIPT BLOCK */}
                 {invoice && (
-                  <div className="space-y-6">
-                    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                      <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Wallet className="h-4 w-4 text-emerald-600"/> Receive Payment</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-slate-100 pt-8">
+                    
+                    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                      <h3 className="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2"><Wallet className="h-5 w-5 text-emerald-600"/> Receive Payment</h3>
                       
-                      <div className="space-y-4">
-                        <div className="flex gap-2">
-                          <Input value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} type="number" placeholder="Cash Amt" className="h-10 bg-slate-50 border-none flex-1" />
-                          <Button onClick={handleCashPayment} disabled={createCashPaymentMutation.isPending} className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">Cash</Button>
+                      <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Input value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} type="number" placeholder="Cash Amount" className="h-12 bg-slate-50 border-none flex-1 text-base font-semibold" />
+                          <Button onClick={handleCashPayment} disabled={createCashPaymentMutation.isPending} className="h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-8 text-base">Cash</Button>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex gap-2">
-                            <Input value={mpesaAmount} onChange={(e) => setMpesaAmount(e.target.value)} type="number" placeholder="M-PESA Amt" className="h-10 bg-slate-50 border-none w-1/3" />
-                            <Input value={mpesaPhoneNumber} onChange={(e) => setMpesaPhoneNumber(e.target.value)} placeholder="Phone" className="h-10 bg-slate-50 border-none flex-1" />
+                        <div className="flex flex-col gap-3 border-t border-slate-50 pt-6">
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <Input value={mpesaAmount} onChange={(e) => setMpesaAmount(e.target.value)} type="number" placeholder="M-PESA Amount" className="h-12 bg-slate-50 border-none sm:w-1/3 text-base font-semibold" />
+                            <Input value={mpesaPhoneNumber} onChange={(e) => setMpesaPhoneNumber(e.target.value)} placeholder="Phone Number" className="h-12 bg-slate-50 border-none flex-1 text-base font-semibold" />
                           </div>
-                          <Button onClick={handleMpesaPayment} disabled={createMpesaPaymentRequestMutation.isPending} className="h-10 rounded-xl bg-[#25D366] hover:bg-[#1DA851] text-white w-full"><Smartphone className="mr-2 h-4 w-4"/> Push STK</Button>
+                          <Button onClick={handleMpesaPayment} disabled={createMpesaPaymentRequestMutation.isPending} className="h-12 rounded-xl bg-[#25D366] hover:bg-[#1DA851] text-white w-full text-base"><Smartphone className="mr-2 h-5 w-5"/> Push STK Prompt</Button>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                       <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-sm font-bold text-slate-800">History</h3>
-                          <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg border-slate-200" asChild>
-                            <Link href={`/billing/${invoice.id}`}><Printer className="mr-1 h-3 w-3"/> Print Invoice</Link>
+                    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                       <div className="flex justify-between items-center mb-5">
+                          <h3 className="text-sm font-bold text-slate-800">Payment History</h3>
+                          <Button variant="outline" size="sm" className="h-9 text-xs font-semibold rounded-xl border-slate-200" asChild>
+                            <Link href={`/billing/${invoice.id}`}><Printer className="mr-2 h-4 w-4"/> Print Final Invoice</Link>
                           </Button>
                        </div>
-                       <div className="space-y-3">
+                       <div className="space-y-4">
                         {payments.length === 0 ? (
-                          <p className="text-xs text-slate-400">No payments yet.</p>
+                          <div className="p-6 bg-slate-50 rounded-xl text-center">
+                             <p className="text-sm font-medium text-slate-400">No payments collected yet.</p>
+                          </div>
                         ) : payments.map(p => (
-                          <div key={p.id} className="text-xs flex justify-between items-start pb-2 border-b border-slate-50 last:border-0 last:pb-0">
+                          <div key={p.id} className="text-sm flex justify-between items-center pb-4 border-b border-slate-50 last:border-0 last:pb-0">
                             <div>
-                              <p className="font-bold text-slate-700">{p.paymentMethod}</p>
-                              <p className="text-slate-400">{formatDate(p.paidAt)}</p>
+                              <p className="font-bold text-slate-800">{p.paymentMethod}</p>
+                              <p className="text-xs font-medium text-slate-400 mt-0.5">{formatDate(p.paidAt)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-emerald-600">+{formatMoney(p.amount)}</p>
+                              <p className="text-lg font-black text-emerald-600">+{formatMoney(p.amount)}</p>
                               {p.statusCode === "COMPLETED" && (
-                                <button onClick={() => void downloadPaymentReceiptPdf(p.id, p.receiptNumber)} className="text-[9px] text-cyan-600 hover:underline mt-1">Receipt</button>
+                                <button onClick={() => void downloadPaymentReceiptPdf(p.id, p.receiptNumber)} className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 hover:text-cyan-800 transition-colors mt-1">Download Receipt</button>
                               )}
                             </div>
                           </div>
@@ -434,6 +438,7 @@ export default function BillingPage() {
                     </div>
                   </div>
                 )}
+
               </div>
             </div>
           )}
