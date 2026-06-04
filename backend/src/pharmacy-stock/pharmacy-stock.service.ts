@@ -642,11 +642,11 @@ export class PharmacyStockService {
       
       const query = search.trim();
       return [
-        { medicine: { code: { contains: query, mode: 'insensitive' } } },
-        { medicine: { name: { contains: query, mode: 'insensitive' } } },
-        { medicine: { dosageForm: { contains: query, mode: 'insensitive' } } },
-        { medicine: { strength: { contains: query, mode: 'insensitive' } } },
-        { medicine: { manufacturer: { contains: query, mode: 'insensitive' } } },
+        { medicine: { code: { contains: query } } },
+        { medicine: { name: { contains: query } } },
+        { medicine: { dosageForm: { contains: query } } },
+        { medicine: { strength: { contains: query } } },
+        { medicine: { manufacturer: { contains: query } } },
       ];
     }
 
