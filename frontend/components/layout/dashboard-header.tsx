@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,12 @@ import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 import { AppLogo } from "@/components/shared/app-logo";
 
 export function DashboardHeader() {
+  const router = useRouter();
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  
   const {
     facilityId,
     facilityName,
@@ -50,6 +54,14 @@ export function DashboardHeader() {
 
   const unreadCount = counts?.counts.unread ?? 0;
 
+  const handleGlobalSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(""); // Optional: clear after search
+    }
+  };
+
   return (
     <header className="clinical-header-bg shrink-0 rounded-[1.5rem] border border-white/20 text-white panel-shadow">
       <div className="flex min-h-[4.5rem] items-center gap-4 px-4 py-2 md:px-6">
@@ -66,17 +78,20 @@ export function DashboardHeader() {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-5 py-2.5 transition-all focus-within:bg-white/15 md:flex">
-          <Search className="h-4 w-4 shrink-0 text-cyan-100" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">
-              {selectedBranchName || facilityName || "Active workspace"}
-            </p>
-            <p className="truncate text-xs font-medium text-cyan-100/80">
-              Patients, billing, lab, pharmacy, and admissions
-            </p>
-          </div>
-        </div>
+        {/* --- ACTUAL WORKING SEARCH BAR --- */}
+        <form 
+          onSubmit={handleGlobalSearch}
+          className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1 transition-all focus-within:bg-white/20 md:flex"
+        >
+          <Search className="h-5 w-5 shrink-0 text-cyan-100" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search patients, billing, lab, pharmacy..."
+            className="w-full h-10 bg-transparent border-none text-white placeholder-cyan-100/60 focus:outline-none focus:ring-0 text-sm font-medium"
+          />
+        </form>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
           <div className="hidden min-w-0 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 shadow-sm md:flex md:items-center">
