@@ -51,8 +51,8 @@ export function DashboardHeader() {
   const unreadCount = counts?.counts.unread ?? 0;
 
   return (
-    <header className="clinical-header-bg sticky top-0 z-40 shrink-0 border-b border-[#2db6ff] border-t-4 border-t-red-600 text-white shadow-[0_12px_28px_rgba(3,76,126,0.22)]">
-      <div className="flex min-h-20 items-center gap-4 px-4 py-3 md:px-6">
+    <header className="clinical-header-bg shrink-0 rounded-[1.5rem] border border-white/20 text-white panel-shadow">
+      <div className="flex min-h-[4.5rem] items-center gap-4 px-4 py-2 md:px-6">
         <div className="hidden min-w-[260px] shrink-0 items-center lg:flex">
           <AppLogo light />
         </div>
@@ -60,28 +60,28 @@ export function DashboardHeader() {
         <Button
           variant="outline"
           size="icon"
-          className="rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd] lg:hidden"
+          className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-5 py-3 md:flex">
-          <Search className="h-4 w-4 shrink-0 text-white" />
+        <div className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-5 py-2.5 transition-all focus-within:bg-white/15 md:flex">
+          <Search className="h-4 w-4 shrink-0 text-cyan-100" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
               {selectedBranchName || facilityName || "Active workspace"}
             </p>
-            <p className="truncate text-xs font-medium text-[#e8f6ff]">
+            <p className="truncate text-xs font-medium text-cyan-100/80">
               Patients, billing, lab, pharmacy, and admissions
             </p>
           </div>
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className="hidden min-w-0 rounded-lg border border-sky-300/60 bg-[#004f91] px-4 py-2.5 shadow-sm md:flex md:items-center">
+          <div className="hidden min-w-0 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 shadow-sm md:flex md:items-center">
             <div className="text-right">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[#e8f6ff]">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
                 Facility
               </p>
               <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
@@ -90,8 +90,8 @@ export function DashboardHeader() {
             </div>
           </div>
 
-          <div className="hidden min-w-[260px] max-w-[340px] rounded-lg border border-sky-300/60 bg-[#004f91] px-4 py-2.5 shadow-sm md:block">
-            <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-[#e8f6ff]">
+          <div className="hidden min-w-[260px] max-w-[340px] rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 shadow-sm md:block">
+            <p className="mb-0.5 text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
               Branch
             </p>
 
@@ -102,13 +102,13 @@ export function DashboardHeader() {
                   setSelectedBranchId(value === "all" ? undefined : Number(value))
                 }
               >
-                <SelectTrigger className="h-8 border-0 bg-transparent px-0 text-white shadow-none focus:ring-0">
+                <SelectTrigger className="h-6 border-0 bg-transparent px-0 text-white shadow-none focus:ring-0 text-sm font-semibold">
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All branches</SelectItem>
+                <SelectContent className="rounded-xl glass border-white/40">
+                  <SelectItem value="all" className="rounded-lg">All branches</SelectItem>
                   {availableBranches.map((branch) => (
-                    <SelectItem key={branch.id} value={String(branch.id)}>
+                    <SelectItem key={branch.id} value={String(branch.id)} className="rounded-lg">
                       {branch.name}
                     </SelectItem>
                   ))}
@@ -125,33 +125,33 @@ export function DashboardHeader() {
             asChild
             variant="outline"
             size="icon"
-            className="relative rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd]"
+            className="relative rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md transition-all"
           >
             <Link href="/notifications" aria-label="Notifications">
               <Bell className="h-4 w-4" />
               {isCountsLoading ? (
-                <Skeleton className="absolute -right-2 -top-2 h-5 w-5 rounded-full" />
+                <Skeleton className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-white/30" />
               ) : unreadCount > 0 ? (
-                <Badge className="absolute -right-2 -top-2 h-5 min-w-5 rounded-full border-0 bg-red-500 px-1 text-[10px] text-white shadow">
+                <Badge className="absolute -right-2 -top-2 h-5 min-w-5 rounded-full border-2 border-cyan-800 bg-rose-500 px-1 text-[10px] text-white shadow-md">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </Badge>
               ) : null}
             </Link>
           </Button>
 
-          <div className="flex min-w-0 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-3 py-2 shadow-sm transition-all hover:bg-white/15">
             <div className="hidden min-w-0 text-right sm:block">
               <p className="max-w-[210px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
                 {user?.username || "User"}
               </p>
-              <p className="truncate text-xs font-medium text-[#e8f6ff]">
+              <p className="truncate text-xs font-medium text-cyan-100/80">
                 {user?.roleCode || "Role"}
               </p>
             </div>
 
             <button
               type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white text-sm font-bold text-[#005a9c]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-gradient-to-tr from-cyan-400 to-blue-500 text-xs font-bold text-white shadow-sm transition-transform hover:scale-105"
               onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
             >
               {user?.staffPassportPhotoUrl ? (
@@ -169,7 +169,7 @@ export function DashboardHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-md text-white hover:bg-[#006fbd] hover:text-white"
+              className="rounded-xl text-cyan-100 hover:bg-white/20 hover:text-white"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />
@@ -177,16 +177,18 @@ export function DashboardHeader() {
           </div>
         </div>
       </div>
+      
+      {/* Photo Modal */}
       {photoOpen && user?.staffPassportPhotoUrl ? (
         <div
-          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/80 p-4"
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in"
           onClick={() => setPhotoOpen(false)}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={user.staffPassportPhotoUrl}
             alt=""
-            className="max-h-[86vh] max-w-[92vw] rounded-lg border-4 border-white bg-white object-contain shadow-2xl"
+            className="max-h-[86vh] max-w-[92vw] rounded-2xl border-4 border-white/80 bg-white object-contain shadow-2xl"
           />
         </div>
       ) : null}
