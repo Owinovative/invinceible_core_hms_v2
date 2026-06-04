@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BedDouble,
   CreditCard,
+  Clock3,
   FileText,
   FlaskConical,
   Loader2,
