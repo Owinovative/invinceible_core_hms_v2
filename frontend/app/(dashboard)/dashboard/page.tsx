@@ -5,7 +5,7 @@ import type * as React from "react";
 import {
   Activity, ArrowRight, BedDouble, ClipboardCheck, Clock3, FlaskConical,
   MessageCircle, PhoneCall, RefreshCw, ShieldAlert, Sparkles, TrendingUp, 
-  Wallet, CheckCircle2, User, Loader2, Users, FileText, Pill, CalendarPlus, Stethescope,
+  Wallet, CheckCircle2, User, Loader2, Users, FileText, Pill, CalendarPlus, Stethescope
 } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from "recharts";
 
