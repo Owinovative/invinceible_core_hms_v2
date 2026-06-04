@@ -19,16 +19,21 @@ export function DashboardShell({
 
   return (
     <div className="clinical-shell-bg relative flex h-screen flex-col overflow-hidden text-foreground">
-      <DashboardHeader />
-      <FacilitySubscriptionBanner />
+      {/* Floating Header */}
+      <div className="px-3 pt-3 md:px-4 md:pt-4 z-40">
+        <DashboardHeader />
+        <FacilitySubscriptionBanner />
+      </div>
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      {/* Floating Body Area */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden p-3 md:p-4 gap-4">
         <DashboardSidebar />
+        
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="clinical-sidebar-bg w-[21rem] border-[#0b5f9e] p-0 lg:hidden"
+            className="clinical-sidebar-bg w-[21rem] border-white/10 p-0 lg:hidden rounded-r-[2rem] panel-shadow"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
@@ -37,9 +42,10 @@ export function DashboardShell({
           </SheetContent>
         </Sheet>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Main Workspace wrapped in glass */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] glass panel-shadow border border-white/60 animate-fade-in">
           <main className="clinical-workspace-bg min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto min-h-full max-w-[1700px] px-4 py-4 md:px-6 md:py-6 xl:px-8">
+            <div className="mx-auto min-h-full max-w-[1700px] px-4 py-6 md:px-8 md:py-8">
               {children}
             </div>
           </main>
