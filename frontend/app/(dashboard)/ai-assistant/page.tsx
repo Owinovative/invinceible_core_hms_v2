@@ -1,118 +1,121 @@
 "use client";
 
-import { Bot, FileCheck2, FlaskConical, Pill, Stethoscope } from "lucide-react";
+import { Bot, FileCheck2, FlaskConical, Pill, Stethoscope, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
 import { SystemNavigatorAssistant } from "@/components/dashboard/system-navigator-assistant";
 import { useSystemHealth, useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
+import { cn } from "@/lib/utils";
 
 const useCases = [
   {
-    title: "Doctor notes",
-    text: "Draft SOAP notes, assessment wording, plans, and follow-up instructions.",
+    title: "SOAP Notes",
+    text: "Draft assessments, plans, and follow-ups.",
     icon: Stethoscope,
   },
   {
-    title: "Lab summaries",
-    text: "Summarize provided lab context in a clean review format.",
+    title: "Lab Analysis",
+    text: "Summarize raw lab context instantly.",
     icon: FlaskConical,
   },
   {
-    title: "Pharmacy counselling",
-    text: "Prepare medication counselling text for pharmacist review.",
+    title: "Pharmacy Scripts",
+    text: "Generate medication counselling text.",
     icon: Pill,
   },
   {
-    title: "Reports and letters",
-    text: "Turn rough staff text into polished hospital-ready language.",
+    title: "Document Polish",
+    text: "Format text into hospital-ready language.",
     icon: FileCheck2,
   },
 ];
 
 export default function AiAssistantPage() {
   const { user } = useAuth();
-  const { facilityId, facilityName, selectedBranchId, selectedBranchName } =
-    useScope();
-  const systemHealth = useSystemHealth({
-    facilityId,
-    branchId: selectedBranchId,
-  });
-  const unresolvedCounts = useUnresolvedCounts({
-    facilityId,
-    branchId: selectedBranchId,
-  });
+  const { facilityId, facilityName, selectedBranchId, selectedBranchName } = useScope();
+  
+  const systemHealth = useSystemHealth({ facilityId, branchId: selectedBranchId });
+  const unresolvedCounts = useUnresolvedCounts({ facilityId, branchId: selectedBranchId });
 
   const health = systemHealth.data;
   const counts = unresolvedCounts.data;
-  const scopeText = facilityName
-    ? `${facilityName} - ${selectedBranchName || "All allowed branches"}`
-    : "No facility scope";
+  const scopeText = facilityName ? `${facilityName} / ${selectedBranchName || "Global"}` : "System Wide";
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-sky-200 bg-white p-6 shadow-sm md:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
-              Two AI workspaces
+    <div className="flex flex-col gap-8 animate-fade-in pb-12 max-w-[1600px] mx-auto">
+      
+      {/* PREMIUM HEADER */}
+      <div className="rounded-[2.5rem] glass panel-shadow overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 text-white relative">
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+          <Bot className="w-64 h-64 text-cyan-400 blur-2xl" />
+        </div>
+        
+        <div className="relative p-10 md:p-14 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="max-w-2xl">
+            <Badge className="bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 border-0 shadow-none px-3 py-1 mb-6 font-bold uppercase tracking-widest text-[10px]">
+              <Sparkles className="h-3 w-3 mr-2" /> Intelligence Layer
             </Badge>
-            <div className="flex items-center gap-3">
-              <div className="flex h-13 w-13 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700">
-                <Bot className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                  AI Assistant
-                </h1>
-                <p className="mt-1 max-w-3xl text-sm leading-7 text-muted-foreground">
-                  Clinical AI drafts medical text. System AI guides users to
-                  the correct module and next step. The clinician still reviews
-                  all clinical output before use.
-                </p>
-              </div>
-            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
+              System AI Assistant
+            </h1>
+            <p className="text-sm font-medium text-slate-400 leading-relaxed max-w-xl">
+              Engineered to process clinical summaries and navigate operational queues. Dual-engine architecture separates clinical drafting from system navigation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 shrink-0">
+            {useCases.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                  <Icon className="h-5 w-5 text-cyan-400 mb-3" />
+                  <p className="text-xs font-bold text-slate-200">{item.title}</p>
+                  <p className="text-[10px] font-medium text-slate-500 mt-1">{item.text}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-3 rounded-lg border border-sky-200 bg-sky-50/70 p-4">
-        {useCases.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.title} className="flex items-start gap-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="font-semibold">{item.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {item.text}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </section>
+      {/* WORKSPACES GRID */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+        
+        {/* Clinical Engine */}
+        <div className="rounded-[2rem] glass panel-shadow bg-white/60 border border-white/60 flex flex-col">
+          <div className="p-6 md:p-8 border-b border-slate-100/50">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-600 mb-1">Engine 01</p>
+            <h2 className="text-xl font-black text-slate-800">Clinical Drafting</h2>
+          </div>
+          <div className="p-4 md:p-6 flex-1">
+            <ClinicalAiAssistant
+              defaultTask="GENERAL_DRAFT"
+              subtitle="Operates in a strict clinical context mode. Review all outputs before saving to patient records."
+            />
+          </div>
+        </div>
 
-      <section className="space-y-6">
-        <ClinicalAiAssistant
-          defaultTask="GENERAL_DRAFT"
-          subtitle="Use this workspace for notes, summaries, patient instructions, pharmacy counselling, report text, and discharge wording."
-        />
+        {/* System Engine */}
+        <div className="rounded-[2rem] glass panel-shadow bg-white/60 border border-white/60 flex flex-col">
+          <div className="p-6 md:p-8 border-b border-slate-100/50">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-1">Engine 02</p>
+            <h2 className="text-xl font-black text-slate-800">System Navigator</h2>
+          </div>
+          <div className="p-4 md:p-6 flex-1">
+            <SystemNavigatorAssistant
+              user={user}
+              scopeText={scopeText}
+              healthScore={health?.healthScore ?? "--"}
+              openAlerts={counts?.counts.total ?? 0}
+              activeAdmissions={health?.summary.activeAdmissions ?? 0}
+              pendingLabs={health?.summary.pendingLabQueue ?? 0}
+            />
+          </div>
+        </div>
 
-        <SystemNavigatorAssistant
-          user={user}
-          scopeText={scopeText}
-          healthScore={health?.healthScore ?? "--"}
-          openAlerts={counts?.counts.total ?? 0}
-          activeAdmissions={health?.summary.activeAdmissions ?? 0}
-          pendingLabs={health?.summary.pendingLabQueue ?? 0}
-        />
-      </section>
+      </div>
     </div>
   );
 }
