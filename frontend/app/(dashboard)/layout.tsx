@@ -3,9 +3,7 @@ import Link from "next/link";
 import { Activity, Users, Pill, LayoutDashboard, Settings, Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-// IMPORTANT: Double-check that this path matches where your AuthGuard is actually located!
-// If it was imported differently in your original file, use that import instead.
-import { AuthGuard } from "@/components/auth/auth-guard"; 
+import { AuthGuard } from "@/components/shared/auth-guard"; 
 
 export default function DashboardLayout({
   children,
