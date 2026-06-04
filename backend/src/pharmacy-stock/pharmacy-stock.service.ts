@@ -638,16 +638,17 @@ export class PharmacyStockService {
   }
 
   private buildStockSearchWhere(search?: string): Prisma.BranchMedicineStockWhereInput[] {
-    if (!search) return [];
-
-    return [
-      { medicine: { code: { contains: search } } },
-      { medicine: { name: { contains: search } } },
-      { medicine: { dosageForm: { contains: search } } },
-      { medicine: { strength: { contains: search } } },
-      { medicine: { manufacturer: { contains: search } } },
-    ];
-  }
+      if (!search) return [];
+      
+      const query = search.trim();
+      return [
+        { medicine: { code: { contains: query } } },
+        { medicine: { name: { contains: query } } },
+        { medicine: { dosageForm: { contains: query } } },
+        { medicine: { strength: { contains: query } } },
+        { medicine: { manufacturer: { contains: query } } },
+      ];
+    }
 
   private branchStockListSelect() {
     return {

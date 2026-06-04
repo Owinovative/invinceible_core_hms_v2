@@ -9,7 +9,6 @@ import { useBranchPharmacyStock } from "@/hooks/use-branch-pharmacy-stock";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { useServiceTariffs } from "@/hooks/use-service-tariffs";
 import type { ServiceTariffRecord } from "@/services/billing-service";
-import { appSelectClass } from "@/lib/select-class";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,15 +63,6 @@ export function AddInvoiceLinePanel({
   const { data: billingServicesData = [] } = useBillingServices();
   const { data: labTestsData = [] } = useLabTests();
   const { data: tariffsData } = useServiceTariffs({ pageSize: 100 });
-  const { data: branchStockData = [] } = useBranchPharmacyStock(
-    branchId ?? undefined,
-    { pageSize: 100 },
-  );
-
-  const billingServices = React.useMemo(() => (Array.isArray(billingServicesData) ? billingServicesData : []), [billingServicesData]);
-  const labTests = React.useMemo(() => (Array.isArray(labTestsData) ? labTestsData : []), [labTestsData]);
-  const tariffs = React.useMemo(() => Array.isArray(tariffsData) ? tariffsData : (tariffsData?.data ?? []), [tariffsData]);
-  const branchStock = React.useMemo(() => Array.isArray(branchStockData) ? branchStockData : (branchStockData?.data ?? []), [branchStockData]);
 
   const [chargeType, setChargeType] = React.useState<ChargeType>("SERVICE");
   const [selectedId, setSelectedId] = React.useState("");
@@ -84,6 +74,19 @@ export function AddInvoiceLinePanel({
   const [chargedAt, setChargedAt] = React.useState(todayKey());
   const [notes, setNotes] = React.useState("");
 
+  const normalizedSearch = itemSearch.trim().toLowerCase();
+  const deferredItemSearch = React.useDeferredValue(normalizedSearch);
+
+  const { data: branchStockData = [] } = useBranchPharmacyStock(
+    branchId ?? undefined,
+    { pageSize: 50, search: deferredItemSearch },
+  );
+
+  const billingServices = React.useMemo(() => (Array.isArray(billingServicesData) ? billingServicesData : []), [billingServicesData]);
+  const labTests = React.useMemo(() => (Array.isArray(labTestsData) ? labTestsData : []), [labTestsData]);
+  const tariffs = React.useMemo(() => Array.isArray(tariffsData) ? tariffsData : (tariffsData?.data ?? []), [tariffsData]);
+  const branchStock = React.useMemo(() => Array.isArray(branchStockData) ? branchStockData : (branchStockData?.data ?? []), [branchStockData]);
+
   React.useEffect(() => {
     setSelectedId("");
     setItemSearch("");
@@ -94,8 +97,6 @@ export function AddInvoiceLinePanel({
     setNotes("");
   }, [chargeType]);
 
-  const normalizedSearch = itemSearch.trim().toLowerCase();
-  
   const filteredBillingServices = React.useMemo(() => {
     if (!normalizedSearch) return billingServices.slice(0, 50);
     return billingServices.filter((s) => [s.name, s.code, s.category].join(" ").toLowerCase().includes(normalizedSearch)).slice(0, 50);
