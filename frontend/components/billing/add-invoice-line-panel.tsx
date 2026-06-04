@@ -64,11 +64,14 @@ export function AddInvoiceLinePanel({
   const { data: billingServicesData = [] } = useBillingServices();
   const { data: labTestsData = [] } = useLabTests();
   const { data: tariffsData } = useServiceTariffs({ pageSize: 100 });
-  const { data: branchStockData = [] } = useBranchPharmacyStock(
-    branchId ?? undefined,
-    { pageSize: 100 },
-  );
-
+  const [itemSearch, setItemSearch] = React.useState("");
+    const normalizedSearch = itemSearch.trim().toLowerCase();
+    
+    const deferredItemSearch = React.useDeferredValue(normalizedSearch);
+    const { data: branchStockData = [] } = useBranchPharmacyStock(
+      branchId ?? undefined,
+      { pageSize: 50, search: deferredItemSearch },
+    );
   const billingServices = React.useMemo(() => (Array.isArray(billingServicesData) ? billingServicesData : []), [billingServicesData]);
   const labTests = React.useMemo(() => (Array.isArray(labTestsData) ? labTestsData : []), [labTestsData]);
   const tariffs = React.useMemo(() => Array.isArray(tariffsData) ? tariffsData : (tariffsData?.data ?? []), [tariffsData]);
