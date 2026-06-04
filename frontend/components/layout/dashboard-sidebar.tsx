@@ -3,46 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
-  Ambulance,
-  Baby,
-  Banknote,
-  BedDouble,
-  Bell,
-  Bot,
-  CalendarPlus,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  CreditCard,
-  Dumbbell,
-  FileCheck2,
-  FlaskConical,
-  HeartPulse,
-  LayoutDashboard,
-  Monitor,
-  MessageSquareText,
-  PackageCheck,
-  PackageSearch,
-  Pill,
-  Plus,
-  RadioTower,
-  Receipt,
-  ScanLine,
-  Settings,
-  ShieldCheck,
-  Stethoscope,
-  UserPlus,
-  Users,
-  Warehouse,
-  BriefcaseBusiness,
-  Building2,
-  Microscope,
-  Syringe,
-  TabletSmartphone,
-  Truck,
-  ShoppingCart,
-  type LucideIcon,
+  Activity, Ambulance, Baby, Banknote, BedDouble, Bell, Bot, CalendarPlus,
+  ChevronLeft, ChevronRight, Clock3, CreditCard, Dumbbell, FileCheck2,
+  FlaskConical, HeartPulse, LayoutDashboard, Monitor, MessageSquareText,
+  PackageCheck, PackageSearch, Pill, Plus, RadioTower, Receipt, ScanLine,
+  Settings, ShieldCheck, Stethoscope, UserPlus, Users, Warehouse,
+  BriefcaseBusiness, Building2, Microscope, Syringe, TabletSmartphone, Truck,
+  ShoppingCart, type LucideIcon,
 } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
@@ -67,14 +34,8 @@ type NavSection = {
 };
 
 const otcSaleRoles = [
-  "SUPER_ADMIN",
-  "ADMIN",
-  "FACILITY_ADMIN",
-  "BRANCH_ADMIN",
-  "PHARMACIST",
-  "PHARMACY_MANAGER",
-  "CASHIER",
-  "BILLING_OFFICER",
+  "SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN", "BRANCH_ADMIN",
+  "PHARMACIST", "PHARMACY_MANAGER", "CASHIER", "BILLING_OFFICER",
 ];
 
 const navSections: NavSection[] = [
@@ -141,11 +102,7 @@ const navSections: NavSection[] = [
       { title: "Billing", href: "/billing", icon: CreditCard },
       { title: "Invoices", href: "/invoices", icon: Receipt },
       { title: "Tariffs", href: "/billing/tariffs", icon: Banknote },
-      {
-        title: "Revenue Integrity",
-        href: "/revenue-integrity",
-        icon: CreditCard,
-      },
+      { title: "Revenue Integrity", href: "/revenue-integrity", icon: CreditCard },
       { title: "SHA Claims", href: "/sha-claims", icon: FileCheck2 },
       { title: "Insurance", href: "/insurance", icon: Banknote },
     ],
@@ -179,22 +136,10 @@ const navSections: NavSection[] = [
   {
     label: "Digital & Quality",
     items: [
-      {
-        title: "Patient Portal",
-        href: "/patient-portal",
-        icon: TabletSmartphone,
-      },
-      {
-        title: "Infection Control",
-        href: "/infection-control",
-        icon: ShieldCheck,
-      },
+      { title: "Patient Portal", href: "/patient-portal", icon: TabletSmartphone },
+      { title: "Infection Control", href: "/infection-control", icon: ShieldCheck },
       { title: "Compliance", href: "/compliance", icon: ShieldCheck },
-      {
-        title: "Quality Assurance",
-        href: "/quality-assurance",
-        icon: ShieldCheck,
-      },
+      { title: "Quality Assurance", href: "/quality-assurance", icon: ShieldCheck },
     ],
   },
 ];
@@ -222,9 +167,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   const { user } = useAuth();
   const compact = collapsed && !mobile;
   const roleCode = user?.roleCode ?? "";
-  const canManageSettings = ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(
-    roleCode,
-  );
+  const canManageSettings = ["SUPER_ADMIN", "ADMIN", "FACILITY_ADMIN"].includes(roleCode);
   const isSuperAdmin = roleCode === "SUPER_ADMIN";
   const visibleIndependentActions = independentActions.filter((item) =>
     item.allowedRoles.includes(roleCode),
@@ -233,23 +176,19 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "clinical-sidebar-bg flex h-full shrink-0 flex-col overflow-hidden border-r border-[#0b5f9e] text-white transition-all duration-300",
-        mobile ? "w-full" : "hidden h-full lg:flex",
+        "clinical-sidebar-bg flex h-full shrink-0 flex-col overflow-hidden text-white transition-all duration-300",
+        mobile ? "w-full" : "hidden h-full lg:flex rounded-[2rem] panel-shadow border border-white/10",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
     >
-      <div className="shrink-0 border-b border-[#113b63] px-4 py-4">
+      <div className="shrink-0 border-b border-white/10 px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 overflow-hidden">
             {mobile ? (
-              compact ? (
-                <AppLogo iconOnly light />
-              ) : (
-                <AppLogo light />
-              )
+              compact ? <AppLogo iconOnly light /> : <AppLogo light />
             ) : (
               <div className="min-w-0">
-                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300">
+                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
                   Menu
                 </p>
                 {!compact ? (
@@ -265,45 +204,33 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 rounded-md border-[#2c6fa4] bg-[#071d33] text-white hover:bg-[#0b3154]"
+              className="shrink-0 rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/20 backdrop-blur-sm"
               onClick={toggleSidebar}
             >
-              {compact ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
+              {compact ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
           ) : null}
         </div>
       </div>
 
-      <div className="shrink-0 px-3 py-4">
-        <div className="rounded-lg border border-[#113b63] bg-[#06192d] p-3 shadow-[0_14px_35px_rgba(0,0,0,0.25)]">
+      <div className="shrink-0 px-4 py-4">
+        <div className="rounded-[1.2rem] border border-white/10 bg-black/20 backdrop-blur-md p-3 shadow-inner">
           {compact ? (
             <div className="space-y-2 text-center text-xs font-semibold text-white">
-              <div className="rounded-md bg-[#0b3154] px-2 py-2 text-white">
-                F
-              </div>
-              <div className="rounded-md bg-[#0b3154] px-2 py-2 text-white">
-                B
-              </div>
+              <div className="rounded-lg bg-white/10 px-2 py-2 text-cyan-100">F</div>
+              <div className="rounded-lg bg-white/10 px-2 py-2 text-cyan-100">B</div>
             </div>
           ) : (
             <div className="grid gap-2">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-300">
-                  Facility
-                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-200/80">Facility</p>
                 <p className="truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
                   {facilityName || "No facility"}
                 </p>
               </div>
-              <Separator className="bg-[#113b63]" />
+              <Separator className="bg-white/10" />
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-sky-300">
-                  Branch
-                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-200/80">Branch</p>
                 <p className="truncate text-sm font-semibold text-white" title={selectedBranchName || "No branch"}>
                   {selectedBranchName || "No branch"}
                 </p>
@@ -313,13 +240,10 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
         </div>
       </div>
 
-      <div className="shrink-0 px-3 pb-4">
-        <div
-          className={cn("grid gap-2", compact ? "grid-cols-1" : "grid-cols-3")}
-        >
+      <div className="shrink-0 px-4 pb-4">
+        <div className={cn("grid gap-2", compact ? "grid-cols-1" : "grid-cols-3")}>
           {quickActions.map((item) => {
             const Icon = item.icon;
-
             return (
               <Link
                 key={item.href}
@@ -327,11 +251,11 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 aria-label={item.title}
                 onClick={mobile ? closeMobileSidebar : undefined}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-md border border-[#164d7d] bg-[#071d33] px-3 py-2 text-xs font-semibold text-white transition hover:border-sky-400 hover:bg-[#0b3154]",
+                  "flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-cyan-50 transition-all hover:bg-white/20 hover:text-white hover:scale-105",
                   compact && "px-2",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0 text-white" />
+                <Icon className="h-4 w-4 shrink-0" />
                 {!compact ? <span className="min-w-0 truncate">{item.title}</span> : null}
               </Link>
             );
@@ -342,9 +266,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
           <div className="mt-3 grid gap-2">
             {visibleIndependentActions.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
@@ -352,25 +274,20 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                   aria-label={item.title}
                   onClick={mobile ? closeMobileSidebar : undefined}
                   className={cn(
-                    "group flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-all duration-200",
+                    "group flex items-center gap-3 rounded-[1.2rem] border px-3 py-3 text-sm font-semibold transition-all duration-300",
                     compact && "justify-center px-2",
                     isActive
-                      ? "border-[#28e486] bg-[#0aa35c] text-white shadow-[0_0_24px_rgba(10,163,92,0.34)]"
-                      : "border-cyan-400/35 bg-cyan-500/10 text-cyan-50 hover:border-cyan-300 hover:bg-cyan-500/18 hover:text-white",
+                      ? "border-transparent bg-gradient-to-r from-emerald-500 to-teal-400 text-white shadow-lg shadow-emerald-500/30"
+                      : "border-white/10 bg-white/5 text-cyan-50 hover:border-white/30 hover:bg-white/10 hover:text-white",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                      isActive ? "bg-white/15" : "bg-cyan-300/10",
-                    )}
-                  >
-                    <Icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                  <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", isActive ? "bg-white/20" : "bg-white/10")}>
+                    <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                   </span>
                   {!compact ? (
                     <span className="min-w-0">
                       <span className="block truncate">{item.title}</span>
-                      <span className="block truncate text-[11px] font-medium text-cyan-100/80">
+                      <span className="block truncate text-[10px] font-medium text-white/80">
                         {item.subtitle}
                       </span>
                     </span>
@@ -382,12 +299,12 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
         ) : null}
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">
-        <div className="space-y-5">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 custom-scrollbar">
+        <div className="space-y-6">
           {navSections.map((section) => (
             <div key={section.label} className="space-y-2">
               {!compact ? (
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+                <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
                   {section.label}
                 </p>
               ) : null}
@@ -396,17 +313,10 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 {section.items
                   .filter((item) => !item.adminOnly || canManageSettings)
                   .filter((item) => !item.superAdminOnly || isSuperAdmin)
-                  .filter(
-                    (item) =>
-                      !item.allowedRoles ||
-                      item.allowedRoles.includes(roleCode),
-                  )
+                  .filter((item) => !item.allowedRoles || item.allowedRoles.includes(roleCode))
                   .map((item) => {
                     const Icon = item.icon;
-                    const isActive =
-                      pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
-
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                     return (
                       <Link
                         key={item.href}
@@ -414,19 +324,14 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                         aria-label={item.title}
                         onClick={mobile ? closeMobileSidebar : undefined}
                         className={cn(
-                          "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           compact && "justify-center px-2",
                           isActive
-                            ? "bg-[#0aa35c] text-white ring-1 ring-[#28e486] shadow-[0_0_22px_rgba(10,163,92,0.28)]"
-                            : "text-sky-50 hover:bg-[#071d33] hover:text-white",
+                            ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md"
+                            : "text-cyan-50/80 hover:bg-white/10 hover:text-white",
                         )}
                       >
-                        <Icon
-                          className={cn(
-                            "h-4 w-4 shrink-0 transition-transform duration-200",
-                            !isActive && "group-hover:scale-110",
-                          )}
-                        />
+                        <Icon className={cn("h-4 w-4 shrink-0 transition-transform duration-200", !isActive && "group-hover:scale-110")} />
                         {!compact ? <span className="min-w-0 truncate">{item.title}</span> : null}
                       </Link>
                     );
