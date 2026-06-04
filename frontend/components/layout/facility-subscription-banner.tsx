@@ -56,10 +56,10 @@ export function FacilitySubscriptionBanner() {
 
   return (
     <div
-      className={`border-b px-4 py-3 text-sm ${
+      className={`mt-4 rounded-[1.5rem] border px-5 py-4 text-sm panel-shadow animate-fade-in ${
         isRed
-          ? "border-red-300 bg-red-50 text-red-900"
-          : "border-amber-300 bg-amber-50 text-amber-950"
+          ? "border-red-200 bg-red-50/90 backdrop-blur-md text-red-900"
+          : "border-amber-200 bg-amber-50/90 backdrop-blur-md text-amber-950"
       }`}
     >
       <div className="mx-auto flex max-w-[1700px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -70,10 +70,10 @@ export function FacilitySubscriptionBanner() {
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           )}
           <div className="min-w-0">
-            <p className="font-semibold">
+            <p className="font-semibold text-base">
               {isRed ? "Subscription payment is urgent" : "Subscription payment is approaching"}
             </p>
-            <p className="leading-6">
+            <p className="leading-6 opacity-90 mt-1">
               Facility monthly access is {formatMoney(status.monthlyFee)}.{" "}
               {isRed
                 ? `Countdown: ${formatCountdown(secondsRemaining)}. Data entry locks when it reaches zero.`
@@ -87,7 +87,7 @@ export function FacilitySubscriptionBanner() {
             type="button"
             variant="outline"
             size="sm"
-            className="h-9 rounded-md border-amber-400 bg-white text-amber-900 hover:bg-amber-100"
+            className="h-10 rounded-xl border-amber-300 bg-white text-amber-900 hover:bg-amber-100 shadow-sm"
             onClick={() => {
               const key = `facility-subscription-dismissed:${status.facilityId}:${todayKey()}`;
               localStorage.setItem(key, "1");
