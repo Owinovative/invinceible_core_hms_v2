@@ -210,6 +210,7 @@ Security basics:
 - Guard report exports, payment changes, user management, and facility settings.
 - Keep audit logging enabled for critical actions.
 
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
