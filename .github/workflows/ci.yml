@@ -26,10 +26,77 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
-      - run: npm ci
-      - run: npm run prisma:generate
-      - run: npm run build
-      - run: npx jest src/auth/password-policy.spec.ts src/auth/permissions.spec.ts --runInBand
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      - name: Lint (integration layer)
+        run: npm run lint:integration
+      - name: Type check and build
+        run: npm run build
+      - name: Unit tests
+        run: npx jest src/auth/password-policy.spec.ts src/auth/permissions.spec.ts --runInBand
+
+  integration-tests:
+    name: Integration layer tests (mock DHA + eTIMS) with coverage gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://user:password@localhost:3306/invinceible_core_hms_v2
+      JWT_SECRET: ci-only-secret-with-more-than-48-characters-for-tests
+      FRONTEND_URL: http://localhost:3001
+      # Exercise the full mock-adapter paths, as production would with
+      # ETIMS_MODE/DHA_MODE=mock.
+      ETIMS_ENABLED: 'true'
+      ETIMS_MODE: mock
+      DHA_ENABLED: 'true'
+      DHA_MODE: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      - name: Integration, billing-flow and failure tests with coverage thresholds
+        run: npm run test:integration:cov
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: backend/coverage-integration
+          retention-days: 7
+
+  security:
+    name: Security scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+      - name: Dependency audit (production, high severity and above)
+        working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   frontend:
     name: Frontend build
