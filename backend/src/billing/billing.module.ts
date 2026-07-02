@@ -18,6 +18,7 @@ import { StaffModule } from '../staff/staff.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthModule } from '../auth/auth.module';
+import { IntegrationModule } from '../integration/integration.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AuthModule } from '../auth/auth.module';
     AuditLogModule,
     NotificationModule,
     AuthModule,
+    IntegrationModule,
   ],
   controllers: [
     BillingController,
