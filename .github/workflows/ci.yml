@@ -24,7 +24,7 @@ jobs:
       JWT_SECRET: ci-only-secret-with-more-than-48-characters-for-tests
       FRONTEND_URL: http://localhost:3001
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -59,7 +59,7 @@ jobs:
       DHA_ENABLED: 'true'
       DHA_MODE: mock
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -83,7 +83,7 @@ jobs:
     name: Security scanning
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
@@ -112,7 +112,7 @@ jobs:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3001
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
