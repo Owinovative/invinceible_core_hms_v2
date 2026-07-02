@@ -44,7 +44,7 @@ export class TokenManager {
     this.accessToken = result.accessToken;
     const lifetimeSeconds = Math.max(
       result.expiresInSeconds - this.refreshSkewSeconds,
-      5,
+      1,
     );
     this.expiresAtMs = Date.now() + lifetimeSeconds * 1_000;
     return this.accessToken;
