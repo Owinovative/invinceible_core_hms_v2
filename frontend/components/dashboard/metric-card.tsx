@@ -25,10 +25,10 @@ export function MetricCard({
   isLoading = false,
 }: MetricCardProps) {
   return (
-    <Card className="group relative overflow-hidden rounded-lg border-sky-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md">
+    <Card className="group relative overflow-hidden rounded-lg border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md">
       <CardHeader className="relative flex flex-row items-start justify-between space-y-0 pb-4">
         <div className="space-y-3">
-          <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             {title}
           </CardTitle>
 
@@ -36,14 +36,14 @@ export function MetricCard({
             <Skeleton className="h-10 w-28 rounded-md" />
           ) : (
             <div className="flex items-end gap-2">
-              <div className="text-4xl font-bold tracking-tight text-sky-700">{value}</div>
-              <ArrowUpRight className="mb-1 h-4 w-4 text-sky-500 opacity-80 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <div className="text-4xl font-bold tracking-tight text-module">{value}</div>
+              <ArrowUpRight className="mb-1 h-4 w-4 text-module opacity-80 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
           )}
         </div>
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-sky-200 bg-sky-50">
-          <Icon className="h-5 w-5 text-sky-700" />
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface-2">
+          <Icon className="h-5 w-5 text-module" />
         </div>
       </CardHeader>
 
@@ -59,15 +59,15 @@ export function MetricCard({
         ) : (
           <>
             <div className="space-y-1">
-              <p className="text-sm text-slate-600">{subtitle}</p>
-              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-sky-100">
-                <div className="h-full w-3/4 rounded-full bg-sky-500" />
+              <p className="text-sm text-muted-foreground">{subtitle}</p>
+              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-accent">
+                <div className="h-full w-3/4 rounded-full bg-primary" />
               </div>
             </div>
 
             <span
               className={cn(
-                "shrink-0 rounded-md border border-sky-200 px-3 py-1 text-xs font-semibold shadow-sm",
+                "shrink-0 rounded-md border border-border px-3 py-1 text-xs font-semibold shadow-sm",
                 chipClassName,
               )}
             >

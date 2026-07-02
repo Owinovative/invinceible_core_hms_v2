@@ -115,11 +115,11 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6 panel-shadow md:p-8">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-cyan-400/70 to-cyan-400/0" />
+      <section className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-card/[0.03] p-6 shadow-md md:p-8">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-pulse/0 via-cyan-400/70 to-cyan-400/0" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
+            <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-module">
               Live alerts
             </Badge>
 
@@ -166,7 +166,7 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="border border-sky-200 bg-white p-5 shadow-sm">
+      <section className="border border-border bg-card p-5 shadow-sm">
         <div className="grid gap-4 xl:grid-cols-[0.75fr_1.25fr_auto] xl:items-end">
           <div>
             <label className="mb-2 block text-sm font-medium">Recipient</label>
@@ -198,7 +198,7 @@ export default function NotificationsPage() {
             />
           </div>
           <Button
-            className="h-11 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+            className="h-11 rounded-md bg-primary text-white hover:bg-brand-strong"
             disabled={
               createNotificationMutation.isPending ||
               !recipient ||
@@ -210,19 +210,19 @@ export default function NotificationsPage() {
             Send
           </Button>
         </div>
-        {notice ? <p className="mt-3 text-sm text-sky-800">{notice}</p> : null}
+        {notice ? <p className="mt-3 text-sm text-module">{notice}</p> : null}
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4 panel-shadow">
+        <div className="rounded-[1.25rem] border border-white/10 bg-card/[0.03] p-4 shadow-md">
           <p className="text-sm text-muted-foreground">Critical</p>
           <p className="mt-2 text-3xl font-bold">{stats?.severity.critical ?? 0}</p>
         </div>
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4 panel-shadow">
+        <div className="rounded-[1.25rem] border border-white/10 bg-card/[0.03] p-4 shadow-md">
           <p className="text-sm text-muted-foreground">Warnings</p>
           <p className="mt-2 text-3xl font-bold">{stats?.severity.warning ?? 0}</p>
         </div>
-        <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4 panel-shadow">
+        <div className="rounded-[1.25rem] border border-white/10 bg-card/[0.03] p-4 shadow-md">
           <p className="text-sm text-muted-foreground">Resolved</p>
           <p className="mt-2 flex items-center gap-2 text-3xl font-bold">
             <CheckCircle2 className="h-6 w-6 text-emerald-400" />
@@ -231,7 +231,7 @@ export default function NotificationsPage() {
         </div>
       </section>
 
-      <section className="border border-sky-200 bg-white p-4 shadow-sm">
+      <section className="border border-border bg-card p-4 shadow-sm">
         <label className="mb-2 block text-sm font-medium">
           Search notifications
         </label>
@@ -245,7 +245,7 @@ export default function NotificationsPage() {
 
       <NotificationsList items={notifications} isLoading={isLoading} scope={scope} />
 
-      <div className="flex flex-col gap-3 border border-sky-200 bg-white p-4 text-sm shadow-sm md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 border border-border bg-card p-4 text-sm shadow-sm md:flex-row md:items-center md:justify-between">
         <span className="text-muted-foreground">
           Showing page {notificationMeta?.page ?? page} of{" "}
           {notificationMeta?.totalPages ?? 1}.{" "}

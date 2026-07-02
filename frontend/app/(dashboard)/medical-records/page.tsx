@@ -151,16 +151,16 @@ export default function MedicalRecordsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="border border-sky-200 bg-white p-6 shadow-sm">
+      <section className="border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <Badge className="rounded-md border-0 bg-sky-100 text-sky-800">
+            <Badge className="rounded-md border-0 bg-accent text-module">
               Letterhead report builder
             </Badge>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 md:text-5xl">
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-5xl">
               Medical Reports
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
               Write patient notes, format them with AI, add signer details, and
               preview a draft letterhead report. Official PDFs are generated
               from saved clinical records.
@@ -170,7 +170,7 @@ export default function MedicalRecordsPage() {
           <div className="flex flex-wrap gap-3">
             <Button
               type="button"
-              className="rounded-md bg-sky-700 text-white hover:bg-sky-800"
+              className="rounded-md bg-primary text-white hover:bg-brand-strong"
               onClick={handlePrint}
             >
               <Printer className="h-4 w-4" />
@@ -181,15 +181,15 @@ export default function MedicalRecordsPage() {
       </section>
 
       {message ? (
-        <div className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
           {message}
         </div>
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-        <div className="space-y-5 border border-sky-200 bg-white p-5 shadow-sm">
+        <div className="space-y-5 border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2">
-            <FileSignature className="h-5 w-5 text-sky-700" />
+            <FileSignature className="h-5 w-5 text-module" />
             <h2 className="text-xl font-bold">Report fields</h2>
           </div>
 
@@ -323,19 +323,19 @@ export default function MedicalRecordsPage() {
             />
           </div>
 
-          <div className="border border-sky-200 bg-sky-50 p-4">
+          <div className="border border-border bg-surface-2 p-4">
             <div className="mb-3 flex items-center gap-2">
-              <Bot className="h-5 w-5 text-sky-700" />
+              <Bot className="h-5 w-5 text-module" />
               <p className="font-semibold">AI formatting</p>
             </div>
             <Textarea
               value={aiInstruction}
               onChange={(event) => setAiInstruction(event.target.value)}
-              className="min-h-24 rounded-md bg-white"
+              className="min-h-24 rounded-md bg-card"
             />
             <Button
               type="button"
-              className="mt-3 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+              className="mt-3 rounded-md bg-primary text-white hover:bg-brand-strong"
               onClick={handleGenerate}
               disabled={aiMutation.isPending}
             >

@@ -23,7 +23,7 @@ export function PlatformHeader() {
   }, [user]);
 
   return (
-    <header className="clinical-header-bg sticky top-0 z-40 shrink-0 border-b border-[#2db6ff] border-t-4 border-t-red-600 text-white shadow-[0_12px_28px_rgba(3,76,126,0.22)]">
+    <header className="bg-surface-1 border-b border-border sticky top-0 z-40 shrink-0 border-b border-[#2db6ff] border-t-4 border-t-red-600 text-white shadow-[0_12px_28px_rgba(3,76,126,0.22)]">
       <div className="flex min-h-20 items-center gap-4 px-4 py-3 md:px-6">
         <div className="hidden min-w-[260px] shrink-0 items-center lg:flex">
           <AppLogo light />
@@ -32,14 +32,14 @@ export function PlatformHeader() {
         <Button
           variant="outline"
           size="icon"
-          className="rounded-md border-sky-300/70 bg-[#004b88] text-white hover:bg-[#006fbd] lg:hidden"
+          className="rounded-md border-border-strong/70 bg-[#004b88] text-white hover:bg-[#006fbd] lg:hidden"
           onClick={openMobileSidebar}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="hidden min-w-0 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-5 py-3 md:flex">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/15">
+        <div className="hidden min-w-0 items-center gap-3 rounded-lg border border-border-strong/60 bg-[#004f91] px-5 py-3 md:flex">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-card/15">
             <Shield className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0">
@@ -49,7 +49,7 @@ export function PlatformHeader() {
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className="flex min-w-0 items-center gap-3 rounded-lg border border-sky-300/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3 rounded-lg border border-border-strong/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
             <div className="hidden min-w-0 text-right sm:block">
               <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
                 {user?.username || "User"}
@@ -61,7 +61,7 @@ export function PlatformHeader() {
 
             <button
               type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white font-semibold text-[#005a9c]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-card font-semibold text-[#005a9c]"
               onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
             >
               {user?.staffPassportPhotoUrl ? (
@@ -96,7 +96,7 @@ export function PlatformHeader() {
           <img
             src={user.staffPassportPhotoUrl}
             alt=""
-            className="max-h-[86vh] max-w-[92vw] rounded-lg border-4 border-white bg-white object-contain shadow-2xl"
+            className="max-h-[86vh] max-w-[92vw] rounded-lg border-4 border-white bg-card object-contain shadow-2xl"
           />
         </div>
       ) : null}

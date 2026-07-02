@@ -56,18 +56,18 @@ export function FacilitySubscriptionBanner() {
 
   return (
     <div
-      className={`mt-4 rounded-[1.5rem] border px-5 py-4 text-sm panel-shadow animate-fade-in ${
+      className={`mt-4 rounded-[1.5rem] border px-5 py-4 text-sm shadow-md animate-enter ${
         isRed
-          ? "border-red-200 bg-red-50/90 backdrop-blur-md text-red-900"
-          : "border-amber-200 bg-amber-50/90 backdrop-blur-md text-amber-950"
+          ? "border-destructive/25 bg-destructive-soft/90 backdrop-blur-md text-red-900"
+          : "border-warning/30 bg-warning-soft/90 backdrop-blur-md text-amber-950"
       }`}
     >
       <div className="mx-auto flex max-w-[1700px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           {isRed ? (
-            <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
           ) : (
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
           )}
           <div className="min-w-0">
             <p className="font-semibold text-base">
@@ -87,7 +87,7 @@ export function FacilitySubscriptionBanner() {
             type="button"
             variant="outline"
             size="sm"
-            className="h-10 rounded-xl border-amber-300 bg-white text-amber-900 hover:bg-amber-100 shadow-sm"
+            className="h-10 rounded-xl border-warning/35 bg-card text-warning hover:bg-warning-soft shadow-sm"
             onClick={() => {
               const key = `facility-subscription-dismissed:${status.facilityId}:${todayKey()}`;
               localStorage.setItem(key, "1");

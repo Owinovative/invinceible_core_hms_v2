@@ -52,7 +52,7 @@ const controlLines = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-slate-950">
+    <main className="min-h-screen bg-[#eef8ff] text-foreground">
       <section
         className="relative min-h-screen overflow-hidden bg-cover bg-center"
         style={{
@@ -63,22 +63,22 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[#061d35]/82" />
 
         <div className="relative mx-auto flex min-h-screen max-w-[1540px] flex-col px-5 py-5 md:px-8">
-          <header className="flex items-center justify-between gap-4 border border-sky-300/30 bg-[#06365f]/94 px-4 py-4 shadow-2xl">
+          <header className="flex items-center justify-between gap-4 border border-border-strong/30 bg-[#06365f]/94 px-4 py-4 shadow-2xl">
             <AppLogo light />
             <nav className="hidden items-center gap-7 text-sm font-semibold text-sky-50 lg:flex">
-              <Link href="/workflow" className="hover:text-sky-200">
+              <Link href="/workflow" className="hover:text-muted-foreground">
                 Workflow
               </Link>
-              <Link href="/facilities" className="hover:text-sky-200">
+              <Link href="/facilities" className="hover:text-muted-foreground">
                 Facilities
               </Link>
-              <Link href="/inspiration" className="hover:text-sky-200">
+              <Link href="/inspiration" className="hover:text-muted-foreground">
                 Inspiration
               </Link>
-              <Link href="/reviews" className="hover:text-sky-200">
+              <Link href="/reviews" className="hover:text-muted-foreground">
                 Reviews
               </Link>
-              <Link href="/creators" className="hover:text-sky-200">
+              <Link href="/creators" className="hover:text-muted-foreground">
                 Creators
               </Link>
             </nav>
@@ -92,7 +92,7 @@ export default function HomePage() {
 
           <div className="grid flex-1 gap-8 py-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <section className="space-y-7">
-              <div className="inline-flex items-center gap-2 border border-sky-300/35 bg-[#0a4778]/88 px-3 py-2 text-sm font-semibold text-sky-50">
+              <div className="inline-flex items-center gap-2 border border-border-strong/35 bg-[#0a4778]/88 px-3 py-2 text-sm font-semibold text-sky-50">
                 <ShieldCheck className="h-4 w-4" />
                 Hospital operating system
               </div>
@@ -113,8 +113,8 @@ export default function HomePage() {
                   ["24/7", "audit trail"],
                   ["15", "day facility grace"],
                 ].map(([value, label]) => (
-                  <div key={label} className="border border-sky-300/30 bg-[#082b4d]/90 p-4">
-                    <p className="text-3xl font-bold text-sky-300">{value}</p>
+                  <div key={label} className="border border-border-strong/30 bg-[#082b4d]/90 p-4">
+                    <p className="text-3xl font-bold text-muted-foreground">{value}</p>
                     <p className="mt-1 text-xs font-semibold uppercase text-sky-50/70">
                       {label}
                     </p>
@@ -133,7 +133,7 @@ export default function HomePage() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="rounded-md border-sky-300/45 bg-[#082b4d]/70 text-white hover:bg-sky-400/15"
+                  className="rounded-md border-border-strong/45 bg-[#082b4d]/70 text-white hover:bg-sky-400/15"
                 >
                   <Link href="/workflow">View workflow</Link>
                 </Button>
@@ -146,7 +146,7 @@ export default function HomePage() {
                   <Link
                     href="/workflow"
                     key={photo.title}
-                    className="group border border-sky-300/35 bg-[#082b4d]/92 p-2 shadow-2xl"
+                    className="group border border-border-strong/35 bg-[#082b4d]/92 p-2 shadow-2xl"
                   >
                     <div
                       className="h-[310px] bg-cover bg-center transition duration-300 group-hover:scale-[1.01]"
@@ -159,9 +159,9 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <div className="grid gap-3 border border-sky-300/30 bg-[#082b4d]/92 p-4 md:grid-cols-4">
+              <div className="grid gap-3 border border-border-strong/30 bg-[#082b4d]/92 p-4 md:grid-cols-4">
                 {controlLines.map(([title, detail]) => (
-                  <div key={title} className="border border-sky-300/20 bg-[#06365f] p-4">
+                  <div key={title} className="border border-border-strong/20 bg-[#06365f] p-4">
                     <p className="text-sm font-bold text-white">{title}</p>
                     <p className="mt-2 text-xs leading-5 text-sky-50/72">
                       {detail}
@@ -174,7 +174,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-b border-sky-200 bg-white">
+      <section className="border-b border-border bg-card">
         <div className="mx-auto grid max-w-[1540px] gap-5 px-5 py-10 md:px-8 lg:grid-cols-6">
           {flow.map((item) => {
             const Icon = item.icon;
@@ -182,13 +182,13 @@ export default function HomePage() {
               <Link
                 href="/workflow"
                 key={item.title}
-                className="border border-sky-200 bg-[#f7fcff] p-5 shadow-sm hover:border-sky-400"
+                className="border border-border bg-[#f7fcff] p-5 shadow-sm hover:border-border-strong"
               >
-                <Icon className="h-6 w-6 text-sky-700" />
-                <p className="mt-5 text-lg font-bold text-slate-950">
+                <Icon className="h-6 w-6 text-module" />
+                <p className="mt-5 text-lg font-bold text-foreground">
                   {item.title}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {item.detail}
                 </p>
               </Link>
@@ -201,25 +201,25 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-[1540px] gap-6 px-5 py-12 md:px-8 xl:grid-cols-[1.05fr_0.95fr]">
           <Link
             href="/inspiration"
-            className="group grid overflow-hidden border border-sky-200 bg-white shadow-xl md:grid-cols-[340px_1fr]"
+            className="group grid overflow-hidden border border-border bg-card shadow-xl md:grid-cols-[340px_1fr]"
           >
             <div
               className="min-h-[460px] bg-cover bg-center"
               style={{ backgroundImage: "url('/inspiration/rev-dr-nelson-mandela.png')" }}
             />
             <div className="flex flex-col justify-center p-7">
-              <HeartHandshake className="mb-5 h-9 w-9 text-sky-700" />
-              <p className="text-sm font-semibold uppercase text-sky-700">
+              <HeartHandshake className="mb-5 h-9 w-9 text-module" />
+              <p className="text-sm font-semibold uppercase text-module">
                 Inspired by
               </p>
-              <h2 className="mt-2 text-4xl font-bold leading-tight text-slate-950">
+              <h2 className="mt-2 text-4xl font-bold leading-tight text-foreground">
                 Rev. Dr Nelson Mandela
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
+              <p className="mt-4 max-w-xl text-base leading-8 text-muted-foreground">
                 Director of St Francis Hillside Medicare KSM and sponsor of the
                 system build.
               </p>
-              <span className="mt-7 inline-flex items-center gap-2 font-semibold text-sky-700 group-hover:text-sky-900">
+              <span className="mt-7 inline-flex items-center gap-2 font-semibold text-module group-hover:text-foreground">
                 View page
                 <ArrowRight className="h-4 w-4" />
               </span>
@@ -229,16 +229,16 @@ export default function HomePage() {
           <div className="grid gap-6">
             <Link
               href="/reviews"
-              className="group border border-sky-200 bg-white p-6 shadow-xl"
+              className="group border border-border bg-card p-6 shadow-xl"
             >
-              <MessageSquareText className="mb-4 h-8 w-8 text-sky-700" />
-              <h2 className="text-3xl font-bold text-slate-950">
+              <MessageSquareText className="mb-4 h-8 w-8 text-module" />
+              <h2 className="text-3xl font-bold text-foreground">
                 Staff reviews
               </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 Ratings and comments from system users after real logins.
               </p>
-              <span className="mt-6 inline-flex items-center gap-2 font-semibold text-sky-700 group-hover:text-sky-900">
+              <span className="mt-6 inline-flex items-center gap-2 font-semibold text-module group-hover:text-foreground">
                 Open reviews
                 <ArrowRight className="h-4 w-4" />
               </span>
@@ -246,17 +246,17 @@ export default function HomePage() {
 
             <Link
               href="/creators"
-              className="grid overflow-hidden border border-sky-200 bg-white shadow-xl md:grid-cols-[240px_1fr]"
+              className="grid overflow-hidden border border-border bg-card shadow-xl md:grid-cols-[240px_1fr]"
             >
               <div
                 className="min-h-[280px] bg-cover bg-center"
                 style={{ backgroundImage: "url('/creators/eng-otieno.png')" }}
               />
               <div className="p-6">
-                <p className="text-sm font-semibold uppercase text-sky-700">
+                <p className="text-sm font-semibold uppercase text-module">
                   Creators
                 </p>
-                <h2 className="mt-2 text-3xl font-bold text-slate-950">
+                <h2 className="mt-2 text-3xl font-bold text-foreground">
                   Built by Eng. Otieno Owino and Eng. Moikoyo Paul
                 </h2>
                 <div className="mt-5 grid gap-3">
@@ -266,10 +266,10 @@ export default function HomePage() {
                       href={getWhatsappLink(creator.whatsappNumber, creator.message)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-between border border-sky-200 bg-[#f7fcff] px-4 py-3 text-sm font-semibold text-slate-900"
+                      className="flex items-center justify-between border border-border bg-[#f7fcff] px-4 py-3 text-sm font-semibold text-foreground"
                     >
                       <span>{creator.name}</span>
-                      <span className="text-sky-700">{creator.phone}</span>
+                      <span className="text-module">{creator.phone}</span>
                     </a>
                   ))}
                 </div>

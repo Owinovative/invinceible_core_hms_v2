@@ -126,7 +126,7 @@ export function UsersTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1320px]">
             <thead className="bg-muted/40">
@@ -190,7 +190,7 @@ export function UsersTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Users className="h-5 w-5 text-cyan-600" />
+                            <Users className="h-5 w-5 text-module" />
                           </div>
                           <div>
                             <p className="font-semibold">
@@ -217,7 +217,7 @@ export function UsersTable() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
+                        <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-module">
                           {user.canAccessAllBranchesInFacility
                             ? "All branches"
                             : "Limited"}
@@ -230,8 +230,8 @@ export function UsersTable() {
                             className={cn(
                               "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold",
                               user.lockedAt || user.isActive === false
-                                ? "status-critical"
-                                : "status-success",
+                                ? "bg-destructive-soft text-destructive"
+                                : "bg-success-soft text-success",
                             )}
                           >
                             {user.lockedAt ? (
@@ -382,7 +382,7 @@ export function UsersTable() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+                            className="rounded-xl border-destructive/25 text-destructive hover:bg-destructive-soft"
                             disabled={
                               deleteUserMutation.isPending ||
                               user.isActive !== false ||

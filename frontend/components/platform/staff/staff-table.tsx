@@ -115,7 +115,7 @@ export function StaffTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1240px]">
             <thead className="bg-muted/40">
@@ -199,7 +199,7 @@ export function StaffTable() {
                                 className="h-full w-full rounded-full object-cover"
                               />
                             ) : (
-                              <UserCog className="h-5 w-5 text-cyan-600" />
+                              <UserCog className="h-5 w-5 text-module" />
                             )}
                           </div>
                           <div>
@@ -240,17 +240,17 @@ export function StaffTable() {
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
                           {staff.isClinician ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Clinician
                             </span>
                           ) : null}
                           {staff.isPrescriber ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Prescriber
                             </span>
                           ) : null}
                           {staff.canLogin ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Login Enabled
                             </span>
                           ) : null}
@@ -262,8 +262,8 @@ export function StaffTable() {
                           className={cn(
                             "rounded-full px-3 py-1 text-xs font-semibold",
                             staff.isActive === false
-                              ? "status-critical"
-                              : "status-success",
+                              ? "bg-destructive-soft text-destructive"
+                              : "bg-success-soft text-success",
                           )}
                         >
                           {staff.isActive === false ? "Inactive" : "Active"}
@@ -490,7 +490,7 @@ export function StaffTable() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+                            className="rounded-xl border-destructive/25 text-destructive hover:bg-destructive-soft"
                             disabled={
                               deleteStaffMutation.isPending ||
                               staff.isActive !== false ||

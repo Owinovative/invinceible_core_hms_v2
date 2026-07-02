@@ -88,11 +88,11 @@ export default function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.6rem] border gradient-border p-6 panel-shadow md:p-8">
+      <section className="relative overflow-hidden rounded-[1.6rem] border surface-spotlight p-6 shadow-md md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(14,165,233,.12),transparent_48%,rgba(16,185,129,.09))]" />
         <div className="relative grid gap-6 xl:grid-cols-[1.2fr_0.8fr] xl:items-end">
           <div className="space-y-4">
-            <Badge className="rounded-full border-0 bg-emerald-500/10 px-3 py-1 text-emerald-600">
+            <Badge className="rounded-full border-0 bg-success/10 px-3 py-1 text-success">
               Audit and accountability
             </Badge>
             <div className="flex items-center gap-4">
@@ -131,7 +131,7 @@ export default function AuditPage() {
         </div>
       </section>
 
-      <Card className="rounded-[1.4rem] gradient-border panel-shadow">
+      <Card className="rounded-[1.4rem] surface-spotlight shadow-md">
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle>Trace Explorer</CardTitle>
@@ -177,7 +177,7 @@ export default function AuditPage() {
                 onClick={() => setModuleName(item === moduleName ? "" : item)}
                 className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                   moduleName === item
-                    ? "border-cyan-400 bg-cyan-400/10 text-cyan-700"
+                    ? "border-cyan-400 bg-cyan-400/10 text-module"
                     : "border-border bg-background/70 text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -212,7 +212,7 @@ export default function AuditPage() {
                     className="grid grid-cols-[1fr_1fr_1fr_1.2fr_1.2fr] gap-4 border-b border-border px-4 py-4 text-sm last:border-0"
                   >
                     <div>
-                      <Badge className="mb-2 rounded-full border-0 bg-cyan-500/10 text-cyan-700">
+                      <Badge className="mb-2 rounded-full border-0 bg-cyan-500/10 text-module">
                         {log.moduleName}
                       </Badge>
                       <p className="font-semibold">{log.actionName}</p>

@@ -34,31 +34,31 @@ function getStatusClass(status?: string | null) {
   const value = (status || "").toUpperCase();
 
   if (["WAITING", "SCHEDULED", "BOOKED", "PENDING", "CHECKED_IN"].includes(value)) {
-    return "status-info";
+    return "bg-info-soft text-info";
   }
 
   if (["IN_PROGRESS", "STARTED"].includes(value)) {
-    return "status-warning";
+    return "bg-warning-soft text-warning";
   }
 
   if (["COMPLETED", "DONE"].includes(value)) {
-    return "status-success";
+    return "bg-success-soft text-success";
   }
 
   if (["CANCELLED", "MISSED", "NO_SHOW"].includes(value)) {
-    return "status-critical";
+    return "bg-destructive-soft text-destructive";
   }
 
-  return "status-info";
+  return "bg-info-soft text-info";
 }
 
 function getPriorityClass(priority?: string | null) {
   const value = (priority || "").toUpperCase();
 
-  if (["URGENT", "HIGH"].includes(value)) return "status-critical";
-  if (["MEDIUM"].includes(value)) return "status-warning";
-  if (["LOW", "NORMAL"].includes(value)) return "status-success";
-  return "status-info";
+  if (["URGENT", "HIGH"].includes(value)) return "bg-destructive-soft text-destructive";
+  if (["MEDIUM"].includes(value)) return "bg-warning-soft text-warning";
+  if (["LOW", "NORMAL"].includes(value)) return "bg-success-soft text-success";
+  return "bg-info-soft text-info";
 }
 
 export function QueueTable({
@@ -133,7 +133,7 @@ export function QueueTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1150px]">
             <thead className="bg-muted/40">

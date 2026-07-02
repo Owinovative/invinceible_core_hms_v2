@@ -107,21 +107,21 @@ const signalCards = [
 export default function PlatformHomePage() {
   return (
     <div className="space-y-6">
-      <section className="border border-sky-200 bg-white p-6 shadow-sm md:p-8">
+      <section className="border border-border bg-card p-6 shadow-sm md:p-8">
         <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr] xl:items-center">
           <div className="space-y-5">
-            <Badge className="rounded-md border-0 bg-sky-100 px-3 py-1 text-sky-800">
+            <Badge className="rounded-md border-0 bg-accent px-3 py-1 text-module">
               Platform control
             </Badge>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-border bg-surface-2 text-module">
                 <ShieldCheck className="h-7 w-7" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold leading-tight text-slate-950 md:text-5xl">
+                <h1 className="text-3xl font-bold leading-tight text-foreground md:text-5xl">
                   Platform Administration
                 </h1>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
                   Control the system structure from one bright workspace:
                   facilities, branches, staff, users, clinics, master catalogs,
                   audit evidence, notifications, and location intelligence.
@@ -129,7 +129,7 @@ export default function PlatformHomePage() {
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+              <Button asChild className="rounded-md bg-primary text-white hover:bg-brand-strong">
                 <Link href="/platform/admin-control">
                   Open admin control
                   <ArrowRight className="h-4 w-4" />
@@ -138,7 +138,7 @@ export default function PlatformHomePage() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-md border-sky-300 bg-white text-sky-800 hover:bg-sky-50"
+                className="rounded-md border-border-strong bg-card text-module hover:bg-surface-2"
               >
                 <Link href="/dashboard">Return to hospital dashboard</Link>
               </Button>
@@ -149,10 +149,10 @@ export default function PlatformHomePage() {
             {signalCards.map((item) => {
               const Icon = item.icon;
               return (
-              <div key={item.title} className="border border-sky-200 bg-[#f8fcff] p-5">
-                <Icon className="mb-4 h-6 w-6 text-sky-700" />
-                <p className="text-2xl font-bold text-slate-950">{item.title}</p>
-                <p className="mt-1 text-sm font-semibold uppercase text-slate-500">
+              <div key={item.title} className="border border-border bg-[#f8fcff] p-5">
+                <Icon className="mb-4 h-6 w-6 text-module" />
+                <p className="text-2xl font-bold text-foreground">{item.title}</p>
+                <p className="mt-1 text-sm font-semibold uppercase text-muted-foreground">
                   {item.label}
                 </p>
               </div>
@@ -169,18 +169,18 @@ export default function PlatformHomePage() {
             <Link
               key={item.href}
               href={item.href}
-              className="group border border-sky-200 bg-white p-5 shadow-sm transition hover:border-sky-400 hover:bg-sky-50"
+              className="group border border-border bg-card p-5 shadow-sm transition hover:border-border-strong hover:bg-surface-2"
             >
               <div className="mb-5 flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+                <div className="flex h-12 w-12 items-center justify-center border border-border bg-surface-2 text-module">
                   <Icon className="h-5 w-5" />
                 </div>
-                <ArrowRight className="h-4 w-4 text-sky-700 transition group-hover:translate-x-1" />
+                <ArrowRight className="h-4 w-4 text-module transition group-hover:translate-x-1" />
               </div>
-              <h2 className="text-lg font-semibold text-slate-950">
+              <h2 className="text-lg font-semibold text-foreground">
                 {item.title}
               </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
                 {item.text}
               </p>
             </Link>
@@ -189,56 +189,56 @@ export default function PlatformHomePage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-        <div className="border border-sky-200 bg-white p-5 shadow-sm">
+        <div className="border border-border bg-card p-5 shadow-sm">
           <div className="mb-5 flex items-center gap-3">
-            <LockKeyhole className="h-5 w-5 text-sky-700" />
-            <h2 className="text-xl font-semibold text-slate-950">
+            <LockKeyhole className="h-5 w-5 text-module" />
+            <h2 className="text-xl font-semibold text-foreground">
               Admin Discipline
             </h2>
           </div>
-          <p className="text-sm leading-7 text-slate-600">
+          <p className="text-sm leading-7 text-muted-foreground">
             Platform work stays separate from daily facility work. Super admin
             controls belong here, while hospital staff use the dashboard for
             patient care and operations.
           </p>
         </div>
 
-        <div className="border border-sky-200 bg-white p-5 shadow-sm">
+        <div className="border border-border bg-card p-5 shadow-sm">
           <div className="mb-5 flex items-center gap-3">
-            <Activity className="h-5 w-5 text-sky-700" />
-            <h2 className="text-xl font-semibold text-slate-950">
+            <Activity className="h-5 w-5 text-module" />
+            <h2 className="text-xl font-semibold text-foreground">
               What This Area Controls
             </h2>
           </div>
-          <div className="overflow-hidden border border-sky-200">
+          <div className="overflow-hidden border border-border">
             {controlRows.map(([label, detail]) => (
               <div
                 key={label}
-                className="grid gap-2 border-b border-sky-100 p-4 last:border-b-0 md:grid-cols-[190px_1fr]"
+                className="grid gap-2 border-b border-border p-4 last:border-b-0 md:grid-cols-[190px_1fr]"
               >
-                <p className="font-semibold text-sky-900">{label}</p>
-                <p className="text-sm leading-6 text-slate-600">{detail}</p>
+                <p className="font-semibold text-foreground">{label}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border border-sky-200 bg-[#eaf7ff] p-5 shadow-sm">
+      <section className="border border-border bg-[#eaf7ff] p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-3">
-              <ServerCog className="h-5 w-5 text-sky-700" />
-              <h2 className="text-xl font-semibold text-slate-950">
+              <ServerCog className="h-5 w-5 text-module" />
+              <h2 className="text-xl font-semibold text-foreground">
                 Platform is the system owner area.
               </h2>
             </div>
-            <p className="max-w-3xl text-sm leading-7 text-slate-600">
+            <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
               Facility admins can run facility-level settings. Super admins can
               control the whole installation from this platform.
             </p>
           </div>
-          <Button asChild className="rounded-md bg-sky-700 text-white hover:bg-sky-800">
+          <Button asChild className="rounded-md bg-primary text-white hover:bg-brand-strong">
             <Link href="/platform/settings">Open settings</Link>
           </Button>
         </div>

@@ -92,24 +92,24 @@ function extractError(error: unknown) {
 function stockTone(status: string) {
   switch (status) {
     case "IN_STOCK":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+      return "bg-success-soft text-success ring-emerald-200";
     case "LOW_STOCK":
-      return "bg-amber-50 text-amber-700 ring-amber-200";
+      return "bg-warning-soft text-warning ring-amber-200";
     default:
-      return "bg-rose-50 text-rose-700 ring-rose-200";
+      return "bg-destructive-soft text-destructive ring-rose-200";
   }
 }
 
 function paymentStatusTone(status?: string | null) {
   switch ((status || "").toUpperCase()) {
     case "PAID":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+      return "bg-success-soft text-success ring-emerald-200";
     case "PENDING_INSURANCE":
-      return "bg-amber-50 text-amber-700 ring-amber-200";
+      return "bg-warning-soft text-warning ring-amber-200";
     case "PARTIALLY_PAID":
-      return "bg-blue-50 text-blue-700 ring-blue-200";
+      return "bg-blue-50 text-module ring-blue-200";
     default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
+      return "bg-muted text-muted-foreground ring-slate-200";
   }
 }
 
@@ -407,9 +407,9 @@ export default function OtcSalesPage() {
 
   if (!isAllowed) {
     return (
-      <div className="rounded-2xl border bg-white p-8 shadow-sm">
+      <div className="rounded-2xl border bg-card p-8 shadow-sm">
         <h1 className="text-2xl font-semibold">OTC Drug Sales</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-muted-foreground">
           Your role does not have access to over-the-counter sale operations.
         </p>
       </div>
@@ -418,19 +418,19 @@ export default function OtcSalesPage() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="bg-cyan-50 text-cyan-700">Pharmacy POS</Badge>
+            <Badge className="bg-cyan-50 text-module">Pharmacy POS</Badge>
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50">
-                <Pill className="h-6 w-6 text-cyan-700" />
+                <Pill className="h-6 w-6 text-module" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
                   Over Counter Drug Sale
                 </h1>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   Search medicine, build cart, record payment, complete sale,
                   and deduct stock on one page.
                 </p>
@@ -439,16 +439,16 @@ export default function OtcSalesPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:w-[700px]">
-            <div className="rounded-xl border bg-slate-50 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <div className="rounded-xl border bg-surface-2 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Facility
               </p>
               <p className="mt-1 truncate text-sm font-semibold">
                 {facilityName || "No facility"}
               </p>
             </div>
-            <div className="rounded-xl border bg-slate-50 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <div className="rounded-xl border bg-surface-2 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Branch
               </p>
               {canSwitchBranches && availableBranches.length > 0 ? (
@@ -459,7 +459,7 @@ export default function OtcSalesPage() {
                       event.target.value ? Number(event.target.value) : undefined,
                     )
                   }
-                  className="mt-1 h-8 w-full rounded-lg border bg-white px-2 text-sm"
+                  className="mt-1 h-8 w-full rounded-lg border bg-card px-2 text-sm"
                 >
                   <option value="">Select branch</option>
                   {availableBranches.map((branch) => (
@@ -474,8 +474,8 @@ export default function OtcSalesPage() {
                 </p>
               )}
             </div>
-            <div className="rounded-xl border bg-slate-50 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <div className="rounded-xl border bg-surface-2 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Sale
               </p>
               <p className="mt-1 truncate text-sm font-semibold">
@@ -487,30 +487,30 @@ export default function OtcSalesPage() {
       </section>
 
       {branchRequired ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
           Select a branch before searching stock or creating an OTC sale.
         </div>
       ) : null}
       {message ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
           {message}
         </div>
       ) : null}
       {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-rose-800">
           {error}
         </div>
       ) : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(320px,0.9fr)_minmax(420px,1.2fr)_minmax(330px,0.85fr)]">
-        <Card className="rounded-2xl border bg-white shadow-sm">
+        <Card className="rounded-2xl border bg-card shadow-sm">
           <CardHeader>
             <CardTitle>Search and add drug</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Customer name
                 </label>
                 <Input
@@ -522,7 +522,7 @@ export default function OtcSalesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Customer phone
                 </label>
                 <Input
@@ -536,11 +536,11 @@ export default function OtcSalesPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Medicine search
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-subtle" />
                 <Input
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
@@ -553,7 +553,7 @@ export default function OtcSalesPage() {
 
             <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
               {medicineQuery.isFetching ? (
-                <div className="flex items-center gap-2 rounded-xl border bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="flex items-center gap-2 rounded-xl border bg-surface-2 p-3 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Searching medicines...
                 </div>
@@ -561,7 +561,7 @@ export default function OtcSalesPage() {
               {queryEnabled &&
               !medicineQuery.isFetching &&
               (medicineQuery.data?.data.length ?? 0) === 0 ? (
-                <div className="rounded-xl border bg-slate-50 p-3 text-sm text-slate-600">
+                <div className="rounded-xl border bg-surface-2 p-3 text-sm text-muted-foreground">
                   No matching branch stock found.
                 </div>
               ) : null}
@@ -571,7 +571,7 @@ export default function OtcSalesPage() {
                   key={medicine.branchStockId}
                   onClick={() => setSelectedMedicine(medicine)}
                   className={cn(
-                    "w-full rounded-xl border p-3 text-left transition hover:border-cyan-300 hover:bg-cyan-50/40",
+                    "w-full rounded-xl border p-3 text-left transition hover:border-border-strong hover:bg-cyan-50/40",
                     selectedMedicine?.branchStockId === medicine.branchStockId &&
                       "border-cyan-400 bg-cyan-50",
                   )}
@@ -579,7 +579,7 @@ export default function OtcSalesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{medicine.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {[medicine.code, medicine.dosageForm, medicine.strength]
                           .filter(Boolean)
                           .join(" / ") || "No medicine details"}
@@ -595,18 +595,18 @@ export default function OtcSalesPage() {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                    <div className="rounded-lg bg-white p-2">
-                      <p className="text-slate-500">Stock</p>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-muted-foreground">Stock</p>
                       <p className="font-semibold">{medicine.currentStock}</p>
                     </div>
-                    <div className="rounded-lg bg-white p-2">
-                      <p className="text-slate-500">Price</p>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-muted-foreground">Price</p>
                       <p className="font-semibold">
                         {formatMoney(medicine.unitPrice)}
                       </p>
                     </div>
-                    <div className="rounded-lg bg-white p-2">
-                      <p className="text-slate-500">Reorder</p>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-muted-foreground">Reorder</p>
                       <p className="font-semibold">{medicine.reorderLevel}</p>
                     </div>
                   </div>
@@ -614,21 +614,21 @@ export default function OtcSalesPage() {
               ))}
             </div>
 
-            <div className="rounded-xl border bg-slate-50 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <div className="rounded-xl border bg-surface-2 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Selected drug
               </p>
               {selectedMedicine ? (
                 <div className="mt-2 space-y-3">
                   <div>
                     <p className="font-semibold">{selectedMedicine.name}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       {selectedMedicine.currentStock} units available
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">
+                      <label className="mb-1 block text-xs text-muted-foreground">
                         Quantity
                       </label>
                       <Input
@@ -643,7 +643,7 @@ export default function OtcSalesPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">
+                      <label className="mb-1 block text-xs text-muted-foreground">
                         Unit price
                       </label>
                       <Input
@@ -657,10 +657,10 @@ export default function OtcSalesPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">
+                      <label className="mb-1 block text-xs text-muted-foreground">
                         Line total
                       </label>
-                      <div className="flex h-10 items-center rounded-lg border bg-white px-3 text-sm font-semibold">
+                      <div className="flex h-10 items-center rounded-lg border bg-card px-3 text-sm font-semibold">
                         {formatMoney(lineTotal)}
                       </div>
                     </div>
@@ -680,7 +680,7 @@ export default function OtcSalesPage() {
                   </Button>
                 </div>
               ) : (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Search and select a medicine to add it to the cart.
                 </p>
               )}
@@ -688,7 +688,7 @@ export default function OtcSalesPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border bg-white shadow-sm">
+        <Card className="rounded-2xl border bg-card shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle>Sale cart</CardTitle>
@@ -706,7 +706,7 @@ export default function OtcSalesPage() {
             {sale?.items.length ? (
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.12em] text-slate-500">
+                  <thead className="bg-surface-2 text-left text-xs uppercase tracking-[0.12em] text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2">Medicine</th>
                       <th className="px-3 py-2">Qty</th>
@@ -722,7 +722,7 @@ export default function OtcSalesPage() {
                           <p className="font-medium">
                             {item.medicineNameSnapshot}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {[item.dosageFormSnapshot, item.strengthSnapshot]
                               .filter(Boolean)
                               .join(" / ") || "No form"}
@@ -777,7 +777,7 @@ export default function OtcSalesPage() {
                             onClick={() => handleRemoveItem(item.id)}
                             aria-label="Remove item"
                           >
-                            <Trash2 className="h-4 w-4 text-rose-600" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </td>
                       </tr>
@@ -786,7 +786,7 @@ export default function OtcSalesPage() {
                 </table>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed bg-slate-50 p-6 text-center text-sm text-slate-600">
+              <div className="rounded-xl border border-dashed bg-surface-2 p-6 text-center text-sm text-muted-foreground">
                 No drugs in the sale yet.
               </div>
             )}
@@ -800,20 +800,20 @@ export default function OtcSalesPage() {
             />
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Subtotal</p>
+              <div className="rounded-xl border bg-surface-2 p-3">
+                <p className="text-xs text-muted-foreground">Subtotal</p>
                 <p className="text-lg font-bold">
                   {formatMoney(sale?.subtotal ?? optimisticSubtotal)}
                 </p>
               </div>
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Paid</p>
+              <div className="rounded-xl border bg-surface-2 p-3">
+                <p className="text-xs text-muted-foreground">Paid</p>
                 <p className="text-lg font-bold">
                   {formatMoney(sale?.paidAmount ?? 0)}
                 </p>
               </div>
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Balance</p>
+              <div className="rounded-xl border bg-surface-2 p-3">
+                <p className="text-xs text-muted-foreground">Balance</p>
                 <p className="text-lg font-bold">
                   {formatMoney(sale?.balanceAmount ?? totalDue)}
                 </p>
@@ -822,24 +822,24 @@ export default function OtcSalesPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border bg-white shadow-sm">
+        <Card className="rounded-2xl border bg-card shadow-sm">
           <CardHeader>
             <CardTitle>Payment and completion</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border bg-cyan-50 p-3">
-                <p className="text-xs text-cyan-700">Total due</p>
-                <p className="text-xl font-bold text-cyan-950">
+                <p className="text-xs text-module">Total due</p>
+                <p className="text-xl font-bold text-foreground">
                   {formatMoney(totalDue)}
                 </p>
               </div>
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <p className="text-xs text-slate-500">Payment preview</p>
+              <div className="rounded-xl border bg-surface-2 p-3">
+                <p className="text-xs text-muted-foreground">Payment preview</p>
                 <p className="text-xl font-bold">
                   {formatMoney(paymentPreview.amount)}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Balance {formatMoney(paymentPreview.balance)}
                 </p>
               </div>
@@ -861,7 +861,7 @@ export default function OtcSalesPage() {
                         }
                         aria-label="Remove payment line"
                       >
-                        <Trash2 className="h-4 w-4 text-rose-600" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     ) : null}
                   </div>
@@ -878,7 +878,7 @@ export default function OtcSalesPage() {
                               : undefined,
                         })
                       }
-                      className="h-10 rounded-lg border bg-white px-3 text-sm"
+                      className="h-10 rounded-lg border bg-card px-3 text-sm"
                     >
                       {PAYMENT_METHODS.map((method) => (
                         <option key={method.value} value={method.value}>
@@ -943,7 +943,7 @@ export default function OtcSalesPage() {
                                   event.target.value as InsuranceClaimStatus,
                               })
                             }
-                            className="h-10 rounded-lg border bg-white px-3 text-sm"
+                            className="h-10 rounded-lg border bg-card px-3 text-sm"
                           >
                             {CLAIM_STATUSES.map((status) => (
                               <option key={status} value={status}>
@@ -1085,10 +1085,10 @@ export default function OtcSalesPage() {
               </Button>
             </div>
 
-            <div className="rounded-xl border bg-slate-50 p-3">
+            <div className="rounded-xl border bg-surface-2 p-3">
               <div className="flex items-start gap-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 text-cyan-700" />
-                <div className="text-xs text-slate-600">
+                <ShieldCheck className="mt-0.5 h-4 w-4 text-module" />
+                <div className="text-xs text-muted-foreground">
                   Backend decides final payment state. Stock deducts only after
                   the backend confirms the sale is fully paid and completed.
                 </div>
@@ -1097,7 +1097,7 @@ export default function OtcSalesPage() {
 
             <div className="rounded-xl border p-3">
               <p className="text-sm font-semibold">Receipt actions</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Receipt PDFs are server-generated. Pending insurance receipts
                 remain marked as pending.
               </p>

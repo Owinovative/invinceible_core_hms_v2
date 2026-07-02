@@ -58,7 +58,7 @@ function statusTone(status?: string | null) {
   switch ((status || "").toUpperCase()) {
     case "CLOSED":
     case "PAID":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     case "PARTIALLY_PAID":
       return "border-amber-500/20 bg-amber-500/10 text-amber-300";
     default:
@@ -90,12 +90,12 @@ function buildInvoiceVerificationCode(invoice?: { id: number; invoiceNumber: str
 
 function VerificationBarcode({ code }: { code: string }) {
   return (
-    <div className="rounded-sm border border-slate-300 bg-white p-1">
+    <div className="rounded-sm border border-border-strong bg-card p-1">
       <div
         className="h-9 w-44 bg-[repeating-linear-gradient(90deg,#111827_0_2px,#ffffff_2px_4px,#111827_4px_5px,#ffffff_5px_8px,#111827_8px_11px,#ffffff_11px_14px)]"
         aria-hidden="true"
       />
-      <p className="mt-1 text-center text-[10px] font-bold tracking-[0.18em] text-slate-950">
+      <p className="mt-1 text-center text-[10px] font-bold tracking-[0.18em] text-foreground">
         {code}
       </p>
     </div>
@@ -185,14 +185,14 @@ export default function InvoiceDetailPage() {
         }
       `}</style>
 
-      <section className="print-hide relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="print-hide relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700">
+            <Badge className="rounded-full border-0 bg-success/10 px-3 py-1 text-success">
               Invoice Viewer
             </Badge>
 
@@ -244,7 +244,7 @@ export default function InvoiceDetailPage() {
       </section>
 
       {isLoading || !invoice ? (
-        <Card className="print-card rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="print-card rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="p-6 text-sm text-muted-foreground print-text-ink">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -253,7 +253,7 @@ export default function InvoiceDetailPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card id="invoice-document" className="print-card rounded-[1.8rem] gradient-border panel-shadow">
+        <Card id="invoice-document" className="print-card rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="p-6 md:p-10">
             <div className="space-y-8 print-text-ink">
               <div className="flex flex-col gap-6 border-b border-white/10 pb-8 print-muted">
@@ -267,11 +267,11 @@ export default function InvoiceDetailPage() {
                           width={56}
                           height={56}
                           unoptimized
-                          className="h-14 w-14 rounded-lg border border-slate-200 bg-white object-contain p-1"
+                          className="h-14 w-14 rounded-lg border border-border bg-card object-contain p-1"
                         />
                       ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-white">
-                          <CreditCard className="h-7 w-7 text-sky-700" />
+                        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-card">
+                          <CreditCard className="h-7 w-7 text-module" />
                         </div>
                       )}
 
@@ -356,7 +356,7 @@ export default function InvoiceDetailPage() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 print-card">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4 print-card">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                     Bill To
                   </p>
@@ -370,7 +370,7 @@ export default function InvoiceDetailPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 print-card">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4 print-card">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                     Visit Reference
                   </p>
@@ -386,7 +386,7 @@ export default function InvoiceDetailPage() {
               <div className="overflow-x-auto rounded-[1.2rem] border border-white/10 print-card">
                 <table className="print-table min-w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/[0.03]">
+                    <tr className="border-b border-white/10 bg-card/[0.03]">
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground print-muted">
                         Date
                       </th>
@@ -464,7 +464,7 @@ export default function InvoiceDetailPage() {
               </div>
 
               <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 print-card">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4 print-card">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                     Notes
                   </p>
@@ -492,7 +492,7 @@ export default function InvoiceDetailPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 print-card">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4 print-card">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground print-muted">
@@ -553,7 +553,7 @@ export default function InvoiceDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4 print-card">
+              <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4 print-card">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground print-muted">
                   Payment History
                 </p>

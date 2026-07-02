@@ -81,7 +81,7 @@ export function DepartmentsTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px]">
             <thead className="bg-muted/40">
@@ -135,7 +135,7 @@ export function DepartmentsTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Building2 className="h-5 w-5 text-cyan-600" />
+                            <Building2 className="h-5 w-5 text-module" />
                           </div>
                           <div>
                             <p className="font-semibold">{department.name}</p>
@@ -165,8 +165,8 @@ export function DepartmentsTable() {
                           className={cn(
                             "rounded-full px-3 py-1 text-xs font-semibold",
                             department.isActive === false
-                              ? "status-critical"
-                              : "status-success",
+                              ? "bg-destructive-soft text-destructive"
+                              : "bg-success-soft text-success",
                           )}
                         >
                           {department.isActive === false ? "Inactive" : "Active"}

@@ -54,7 +54,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       className={cn(
-        "clinical-sidebar-bg flex h-full shrink-0 flex-col border-r border-[#0b5f9e] text-white transition-all duration-300",
+        "bg-surface-1 border-r border-border flex h-full shrink-0 flex-col border-r border-[#0b5f9e] text-white transition-all duration-300",
         mobile ? "w-full" : "hidden h-full lg:flex",
         !mobile && (compact ? "w-24" : "w-80"),
       )}
@@ -70,7 +70,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
               )
             ) : (
               <div className="min-w-0">
-                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-300">
+                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                   Platform
                 </p>
                 {!compact ? (
@@ -109,7 +109,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Platform Access
               </p>
 
@@ -121,7 +121,7 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
               </div>
 
               <div>
-                <p className="text-xs font-medium text-sky-300">Area</p>
+                <p className="text-xs font-medium text-muted-foreground">Area</p>
                 <p className="truncate font-semibold text-white" title="Platform Administration">
                   Platform Administration
                 </p>

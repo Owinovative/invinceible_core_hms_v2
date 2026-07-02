@@ -10,8 +10,8 @@ export default function PatientAccessPage() {
           "Released lab results",
           "Prescriptions",
         ].map((item) => (
-          <div key={item} className="border border-sky-200 bg-[#f7fcff] p-5">
-            <p className="text-lg font-bold text-slate-950">{item}</p>
+          <div key={item} className="border border-border bg-[#f7fcff] p-5">
+            <p className="text-lg font-bold text-foreground">{item}</p>
           </div>
         ))}
       </div>

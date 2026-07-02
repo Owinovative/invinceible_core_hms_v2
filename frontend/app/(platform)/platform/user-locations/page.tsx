@@ -287,21 +287,21 @@ export default function PlatformUserLocationsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-lg border border-sky-100 bg-white p-6 text-slate-900 shadow-xl md:p-8">
+      <section className="overflow-hidden rounded-lg border border-border bg-card p-6 text-foreground shadow-xl md:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr] xl:items-end">
           <div className="space-y-5">
-            <Badge className="rounded-md border border-sky-200 bg-sky-50 px-3 py-1 font-mono text-sky-800">
+            <Badge className="rounded-md border border-border bg-surface-2 px-3 py-1 font-mono text-module">
               super-admin-only / live-location-intelligence
             </Badge>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-sky-100 bg-sky-50">
-                <Radar className="h-7 w-7 text-sky-700" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2">
+                <Radar className="h-7 w-7 text-module" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
                   User Location Control
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
                   Tracks authenticated sessions by user, session version,
                   request route, device, network, and cached IP geolocation.
                   The last captured location remains available after logout.
@@ -311,34 +311,34 @@ export default function PlatformUserLocationsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
-              <Wifi className="mb-3 h-5 w-5 text-emerald-600" />
+            <div className="rounded-lg border border-border bg-surface-2 p-4">
+              <Wifi className="mb-3 h-5 w-5 text-success" />
               <p className="text-3xl font-bold">
                 {data?.summary.liveUsers ?? 0}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 live within {data?.liveWindowMinutes ?? 10} min
               </p>
             </div>
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
-              <Activity className="mb-3 h-5 w-5 text-sky-700" />
+            <div className="rounded-lg border border-border bg-surface-2 p-4">
+              <Activity className="mb-3 h-5 w-5 text-module" />
               <p className="text-3xl font-bold">
                 {data?.summary.events24h ?? 0}
               </p>
-              <p className="text-xs text-slate-500">events in 24h</p>
+              <p className="text-xs text-muted-foreground">events in 24h</p>
             </div>
-            <div className="rounded-lg border border-sky-100 bg-sky-50 p-4">
-              <Globe2 className="mb-3 h-5 w-5 text-amber-600" />
+            <div className="rounded-lg border border-border bg-surface-2 p-4">
+              <Globe2 className="mb-3 h-5 w-5 text-warning" />
               <p className="text-3xl font-bold">
                 {data?.summary.cities ?? 0}
               </p>
-              <p className="text-xs text-slate-500">cities detected</p>
+              <p className="text-xs text-muted-foreground">cities detected</p>
             </div>
           </div>
         </div>
       </section>
 
-      <Card className="rounded-lg border border-sky-200 bg-white">
+      <Card className="rounded-lg border border-border bg-card">
         <CardContent className="grid gap-3 p-4 md:grid-cols-[1.2fr_0.55fr_0.55fr_auto_auto] md:items-end">
           <div>
             <label className="mb-2 block text-sm font-medium">
@@ -385,7 +385,7 @@ export default function PlatformUserLocationsPage() {
           </Button>
           <Button
             type="button"
-            className="h-11 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+            className="h-11 rounded-md bg-primary text-white hover:bg-brand-strong"
             onClick={handleDownloadCsv}
             disabled={filteredProfiles.length === 0}
           >
@@ -396,7 +396,7 @@ export default function PlatformUserLocationsPage() {
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="overflow-hidden rounded-[1.3rem] gradient-border panel-shadow">
+        <Card className="overflow-hidden rounded-[1.3rem] surface-spotlight shadow-md">
           <CardHeader className="gap-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -423,7 +423,7 @@ export default function PlatformUserLocationsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-              <div className="min-h-[390px] overflow-hidden rounded-md border border-border bg-slate-100">
+              <div className="min-h-[390px] overflow-hidden rounded-md border border-border bg-muted">
                 {selectedProfile && selectedHasCoordinates ? (
                   <iframe
                     title={`Google map for ${userName(selectedProfile)}`}
@@ -460,8 +460,8 @@ export default function PlatformUserLocationsPage() {
                         onClick={() => setSelectedProfileId(profile.id)}
                         className={`mb-2 w-full border px-3 py-2 text-left text-sm transition last:mb-0 ${
                           selectedProfile?.id === profile.id
-                            ? "border-sky-400 bg-sky-50 text-sky-950"
-                            : "border-border bg-white hover:border-sky-300"
+                            ? "border-border-strong bg-surface-2 text-foreground"
+                            : "border-border bg-card hover:border-border-strong"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -471,7 +471,7 @@ export default function PlatformUserLocationsPage() {
                           <span
                             className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                               profile.isOnline
-                                ? "bg-emerald-500"
+                                ? "bg-success"
                                 : "bg-slate-400"
                             }`}
                           />
@@ -522,7 +522,7 @@ export default function PlatformUserLocationsPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="rounded-[1.3rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.3rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -559,7 +559,7 @@ export default function PlatformUserLocationsPage() {
                           <span
                             className={`h-2.5 w-2.5 rounded-full ${
                               profile.isOnline
-                                ? "bg-emerald-500"
+                                ? "bg-success"
                                 : "bg-slate-400"
                             }`}
                           />
@@ -588,7 +588,7 @@ export default function PlatformUserLocationsPage() {
                           {profile.region || "Unknown region"} /{" "}
                           {profile.country || "Unknown country"}
                         </p>
-                        <p className="mt-2 font-mono text-xs text-cyan-600">
+                        <p className="mt-2 font-mono text-xs text-module">
                           confidence {confidenceLabel(profile.confidence)}
                         </p>
                       </div>
@@ -608,7 +608,7 @@ export default function PlatformUserLocationsPage() {
                         <Badge
                           className={`mb-2 rounded-full border-0 ${
                             profile.isOnline
-                              ? "bg-emerald-500/10 text-emerald-700"
+                              ? "bg-success/10 text-success"
                               : "bg-slate-500/10 text-muted-foreground"
                           }`}
                         >
@@ -630,7 +630,7 @@ export default function PlatformUserLocationsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.3rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.3rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Network className="h-5 w-5 text-cyan-500" />
@@ -653,7 +653,7 @@ export default function PlatformUserLocationsPage() {
                         {event.method || "GET"} {event.route || "route unknown"}
                       </p>
                     </div>
-                    <Badge className="rounded-full border-0 bg-cyan-500/10 text-cyan-700">
+                    <Badge className="rounded-full border-0 bg-cyan-500/10 text-module">
                       {event.eventType}
                     </Badge>
                   </div>
@@ -679,7 +679,7 @@ export default function PlatformUserLocationsPage() {
         </Card>
       </section>
 
-      <section className="rounded-[1.2rem] border border-amber-300/20 bg-amber-500/8 p-4 text-sm leading-6 text-muted-foreground">
+      <section className="rounded-[1.2rem] border border-warning/35/20 bg-amber-500/8 p-4 text-sm leading-6 text-muted-foreground">
         Optional browser-precise location is supported by the backend endpoint,
         but the system does not force browser GPS prompts. IP location is cached
         and linked to authenticated session IDs, not treated as user identity.

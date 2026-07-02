@@ -166,13 +166,13 @@ export default function ShaClaimsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge className="rounded-md bg-sky-100 text-sky-800">
+          <Badge className="rounded-md bg-accent text-module">
             Social Health Authority
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-[#07345f]">
             SHA claims
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
             Create claims from patient invoices, track paid and rejected
             amounts, and keep the official SHIF claim template available for
             download.
@@ -196,8 +196,8 @@ export default function ShaClaimsPage() {
           ["Rejected", formatMoney(summary?.rejectedAmount)],
           ["Losses", formatMoney(summary?.lossAmount ?? summary?.rejectedAmount)],
         ].map(([label, value]) => (
-          <div key={String(label)} className="rounded-md border bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <div key={String(label)} className="rounded-md border bg-card p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {label}
             </p>
             <p className="mt-2 text-xl font-bold text-[#07345f]">{value}</p>
@@ -206,7 +206,7 @@ export default function ShaClaimsPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="rounded-md border-sky-100 bg-white shadow-sm">
+        <Card className="rounded-md border-border bg-card shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#07345f]">
               <FileCheck2 className="h-5 w-5" />
@@ -219,7 +219,7 @@ export default function ShaClaimsPage() {
                 Search patient
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-subtle" />
                 <Input
                   value={patientQuery}
                   onChange={(event) => setPatientQuery(event.target.value)}
@@ -306,12 +306,12 @@ export default function ShaClaimsPage() {
                 placeholder="Type one letter or code"
               />
               {diagnosisQuery ? (
-                <div className="mt-2 max-h-52 overflow-y-auto rounded-md border bg-white">
+                <div className="mt-2 max-h-52 overflow-y-auto rounded-md border bg-card">
                   {diagnosisMatches.map((diagnosis) => (
                     <button
                       key={diagnosis.code}
                       type="button"
-                      className="block w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-surface-2"
                       onClick={() => {
                         setDiagnosisCode(diagnosis.code);
                         setDiagnosisText(diagnosis.label);
@@ -376,7 +376,7 @@ export default function ShaClaimsPage() {
             </div>
 
             {message ? (
-              <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+              <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm text-module">
                 {message}
               </p>
             ) : null}
@@ -394,7 +394,7 @@ export default function ShaClaimsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-md border-sky-100 bg-white shadow-sm">
+        <Card className="rounded-md border-border bg-card shadow-sm">
           <CardHeader>
             <CardTitle className="text-[#07345f]">Claim tracker</CardTitle>
           </CardHeader>
@@ -419,19 +419,19 @@ export default function ShaClaimsPage() {
                     <tr key={claim.id} className="border-t">
                       <td className="px-3 py-3 font-semibold">
                         {claim.claimNumber}
-                        <p className="text-xs font-normal text-slate-500">
+                        <p className="text-xs font-normal text-muted-foreground">
                           FID {claim.fidCode || claim.facility?.shaFidCode || "-"}
                         </p>
                       </td>
                       <td className="px-3 py-3">
                         {patientName(claim.patient)}
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           {claim.patient?.patientNumber}
                         </p>
                       </td>
                       <td className="px-3 py-3">
                         {claim.diagnosisCode || "-"}
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           {claim.diagnosisText || ""}
                         </p>
                       </td>
@@ -508,7 +508,7 @@ export default function ShaClaimsPage() {
                         />
                       </td>
                       <td className="px-3 py-3">
-                        <Badge className="rounded-md bg-sky-100 text-sky-800">
+                        <Badge className="rounded-md bg-accent text-module">
                           {claim.statusCode}
                         </Badge>
                       </td>

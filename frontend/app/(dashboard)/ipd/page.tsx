@@ -49,22 +49,22 @@ function statusTone(status?: string | null) {
     case "ADMITTED":
       return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300";
     case "DISCHARGED":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     default:
-      return "border-white/10 bg-white/[0.04] text-muted-foreground";
+      return "border-white/10 bg-card/[0.04] text-muted-foreground";
   }
 }
 
 function bedStatusTone(status?: string | null) {
   switch ((status || "").toUpperCase()) {
     case "AVAILABLE":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     case "OCCUPIED":
       return "border-amber-500/20 bg-amber-500/10 text-amber-300";
     case "MAINTENANCE":
-      return "border-rose-500/20 bg-rose-500/10 text-rose-300";
+      return "border-rose-500/20 bg-destructive/10 text-rose-300";
     default:
-      return "border-white/10 bg-white/[0.04] text-muted-foreground";
+      return "border-white/10 bg-card/[0.04] text-muted-foreground";
   }
 }
 
@@ -385,14 +385,14 @@ export default function IpdPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
+            <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-module">
               Inpatient Department
             </Badge>
 
@@ -413,7 +413,7 @@ export default function IpdPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:w-[560px]">
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
@@ -422,7 +422,7 @@ export default function IpdPage() {
               </p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
@@ -431,7 +431,7 @@ export default function IpdPage() {
               </p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Active Admissions
               </p>
@@ -448,7 +448,7 @@ export default function IpdPage() {
       ) : null}
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Total Wards</p>
@@ -460,7 +460,7 @@ export default function IpdPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Total Beds</p>
@@ -472,7 +472,7 @@ export default function IpdPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Occupied Beds</p>
@@ -484,7 +484,7 @@ export default function IpdPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Available Beds</p>
@@ -498,7 +498,7 @@ export default function IpdPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Create Ward</CardTitle>
           </CardHeader>
@@ -563,7 +563,7 @@ export default function IpdPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Create Bed</CardTitle>
           </CardHeader>
@@ -638,7 +638,7 @@ export default function IpdPage() {
       </section>
 
       <section>
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BedDouble className="h-5 w-5 text-cyan-300" />
@@ -651,27 +651,27 @@ export default function IpdPage() {
 
           <CardContent className="space-y-4">
             {wardOccupancy.length === 0 ? (
-              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No wards found.
               </div>
             ) : (
               wardOccupancy.map((ward) => (
                 <div
                   key={ward.id}
-                  className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                  className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{ward.name}</p>
-                        <Badge className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs">
+                        <Badge className="rounded-full border border-white/10 bg-card/[0.04] px-3 py-1 text-xs">
                           {ward.code}
                         </Badge>
                         <Badge
                           className={`rounded-full border px-3 py-1 text-xs ${
                             ward.isActive === false
-                              ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
-                              : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                              ? "border-rose-500/20 bg-destructive/10 text-rose-300"
+                              : "border-emerald-500/20 bg-success/10 text-emerald-300"
                           }`}
                         >
                           {ward.isActive === false ? "Inactive" : "Active"}
@@ -699,7 +699,7 @@ export default function IpdPage() {
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
-                      <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                      <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                         <p className="text-xs text-muted-foreground">Total Beds</p>
                         <p className="mt-1 text-sm font-semibold">{ward.totalBeds}</p>
                       </div>
@@ -711,7 +711,7 @@ export default function IpdPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-[1rem] border border-emerald-500/20 bg-emerald-500/10 p-3">
+                      <div className="rounded-[1rem] border border-emerald-500/20 bg-success/10 p-3">
                         <p className="text-xs text-emerald-200/80">Available</p>
                         <p className="mt-1 text-sm font-semibold text-emerald-300">
                           {ward.availableBeds}
@@ -975,7 +975,7 @@ export default function IpdPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="mt-4 rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                    <div className="mt-4 rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                       No beds in this ward yet.
                     </div>
                   )}
@@ -987,7 +987,7 @@ export default function IpdPage() {
       </section>
 
       <section>
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Admission Filters</CardTitle>
           </CardHeader>
@@ -1041,7 +1041,7 @@ export default function IpdPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Admissions</CardTitle>
             <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-300">
@@ -1054,14 +1054,14 @@ export default function IpdPage() {
               Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                  className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                 >
-                  <div className="h-5 w-40 rounded bg-white/10" />
-                  <div className="mt-3 h-4 w-56 rounded bg-white/10" />
+                  <div className="h-5 w-40 rounded bg-card/10" />
+                  <div className="mt-3 h-4 w-56 rounded bg-card/10" />
                 </div>
               ))
             ) : filteredAdmissions.length === 0 ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No admissions match your filters.
               </div>
             ) : (
@@ -1075,7 +1075,7 @@ export default function IpdPage() {
                       "w-full rounded-[1.3rem] border p-4 text-left transition-all",
                       active
                         ? "border-cyan-400/40 bg-cyan-500/10"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                        : "border-white/10 bg-card/[0.03] hover:bg-card/[0.05]",
                     )}
                   >
                     <button
@@ -1139,19 +1139,19 @@ export default function IpdPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Admission Details</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-5">
             {!selectedAdmission ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 Select an admission from the list.
               </div>
             ) : (
               <>
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                       <UserRound className="h-5 w-5 text-primary" />
@@ -1169,7 +1169,7 @@ export default function IpdPage() {
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">
                         Admission Number
                       </p>
@@ -1178,28 +1178,28 @@ export default function IpdPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Status</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedAdmission.statusCode}
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Ward</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedAdmission.ward?.name || "—"}
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Bed</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedAdmission.bed?.bedNumber || "—"}
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">
                         Admitted At
                       </p>
@@ -1208,7 +1208,7 @@ export default function IpdPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">
                         Expected Discharge
                       </p>
@@ -1219,7 +1219,7 @@ export default function IpdPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs text-muted-foreground">
                     Admission Reason
                   </p>

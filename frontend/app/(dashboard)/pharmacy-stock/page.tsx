@@ -32,7 +32,7 @@ function stockTone(item: BranchMedicineStockItem) {
     return "border-amber-500/20 bg-amber-500/10 text-amber-300";
   }
 
-  return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  return "border-emerald-500/20 bg-success/10 text-emerald-300";
 }
 
 function stockLabel(item: BranchMedicineStockItem) {
@@ -137,12 +137,12 @@ export default function PharmacyStockPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-600/10 via-cyan-500/5 to-transparent" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-module">
               Pharmacy Stock
             </Badge>
 
@@ -163,14 +163,14 @@ export default function PharmacyStockPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
               <p className="mt-2 text-sm font-semibold">{facilityName || "No facility"}</p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
@@ -189,7 +189,7 @@ export default function PharmacyStockPage() {
       ) : null}
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Stock Items</p>
@@ -201,7 +201,7 @@ export default function PharmacyStockPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">In Stock</p>
@@ -213,7 +213,7 @@ export default function PharmacyStockPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Low Stock</p>
@@ -225,7 +225,7 @@ export default function PharmacyStockPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Out of Stock</p>
@@ -237,7 +237,7 @@ export default function PharmacyStockPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Stock Value</p>
@@ -245,7 +245,7 @@ export default function PharmacyStockPage() {
                 {formatMoney(totalStockValue)}
               </p>
               {missingPriceCount > 0 ? (
-                <p className="mt-1 text-xs text-amber-600">
+                <p className="mt-1 text-xs text-warning">
                   {missingPriceCount} missing prices
                 </p>
               ) : null}
@@ -258,7 +258,7 @@ export default function PharmacyStockPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle>Branch Stock List</CardTitle>
@@ -278,7 +278,7 @@ export default function PharmacyStockPage() {
             {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading stock...</div>
             ) : stocks.length === 0 ? (
-              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No branch medicine stock records matched.
               </div>
             ) : (
@@ -286,7 +286,7 @@ export default function PharmacyStockPage() {
                 {stocks.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                    className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="space-y-2">
@@ -301,23 +301,23 @@ export default function PharmacyStockPage() {
                         </p>
 
                         <div className="grid gap-3 md:grid-cols-3">
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">Stock Quantity</p>
                             <p className="mt-1 text-sm font-medium">{item.stockQuantity}</p>
                           </div>
 
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">Reorder Level</p>
                             <p className="mt-1 text-sm font-medium">{item.reorderLevel}</p>
                           </div>
 
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">Unit Price</p>
                             <p className="mt-1 text-sm font-medium">
                               {formatMoney(item.unitPrice)}
                             </p>
                             {item.unitPrice <= 0 ? (
-                              <p className="mt-1 text-xs text-amber-600">
+                              <p className="mt-1 text-xs text-warning">
                                 Fix before dispensing
                               </p>
                             ) : null}
@@ -344,7 +344,7 @@ export default function PharmacyStockPage() {
                   </div>
                 ))}
                 {stockMeta ? (
-                  <div className="flex flex-col gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-3 text-sm md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-col gap-3 rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-3 text-sm md:flex-row md:items-center md:justify-between">
                     <span className="text-muted-foreground">
                       Page {stockMeta.page} of {stockMeta.totalPages} /
                       showing {stocks.length} of {stockMeta.total}
@@ -377,19 +377,19 @@ export default function PharmacyStockPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle>Restock Medicine</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
               {!activeStock ? (
-                <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                   Select a medicine stock item and click Restock.
                 </div>
               ) : (
                 <>
-                  <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="font-semibold">
                       {activeStock.medicine?.name || `Medicine #${activeStock.medicineId}`}
                     </p>
@@ -449,14 +449,14 @@ export default function PharmacyStockPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle>Low Stock Monitor</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-3">
               {!(lowStockData?.lowStockItems?.length || lowStockData?.outOfStockItems?.length) ? (
-                <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                   No low-stock alerts right now.
                 </div>
               ) : (

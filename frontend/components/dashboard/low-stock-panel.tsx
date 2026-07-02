@@ -8,7 +8,7 @@ export function LowStockPanel({
   items: SystemHealthSummaryResponse["panels"]["lowStockItems"];
 }) {
   return (
-    <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] via-transparent to-orange-500/[0.03]" />
 
       <CardHeader className="relative flex flex-row items-center justify-between">
@@ -19,16 +19,16 @@ export function LowStockPanel({
           </p>
         </div>
 
-        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="rounded-full border border-white/10 bg-card/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
           Pharmacy
         </div>
       </CardHeader>
 
       <CardContent className="relative space-y-4">
         {items.length === 0 ? (
-          <div className="rounded-[1.35rem] border border-emerald-500/20 bg-emerald-500/8 p-5">
+          <div className="rounded-[1.35rem] border border-emerald-500/20 bg-success/8 p-5">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-card/[0.04]">
                 <ShieldCheck className="h-5 w-5 text-emerald-400" />
               </div>
 
@@ -44,11 +44,11 @@ export function LowStockPanel({
           items.map((item) => (
             <div
               key={item.id}
-              className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.05]"
+              className="rounded-[1.35rem] border border-white/10 bg-card/[0.03] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/[0.05]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-card/[0.04]">
                     <PackageSearch className="h-5 w-5 text-amber-400" />
                   </div>
 

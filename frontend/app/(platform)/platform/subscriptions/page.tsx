@@ -28,9 +28,9 @@ function formatDate(value?: string | null) {
 }
 
 function statusClass(level?: string) {
-  if (level === "LOCKED" || level === "RED") return "bg-red-100 text-red-800";
-  if (level === "YELLOW") return "bg-amber-100 text-amber-800";
-  return "bg-emerald-100 text-emerald-800";
+  if (level === "LOCKED" || level === "RED") return "bg-destructive-soft text-destructive";
+  if (level === "YELLOW") return "bg-warning-soft text-warning";
+  return "bg-success-soft text-success";
 }
 
 export default function PlatformSubscriptionsPage() {
@@ -60,19 +60,19 @@ export default function PlatformSubscriptionsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="border border-sky-200 bg-white p-6 shadow-sm">
-        <Badge className="rounded-md bg-sky-100 text-sky-800">
+      <section className="border border-border bg-card p-6 shadow-sm">
+        <Badge className="rounded-md bg-accent text-module">
           Facility billing
         </Badge>
         <div className="mt-4 flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-border bg-surface-2 text-module">
             <CreditCard className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-[#07345f]">
               Monthly facility subscriptions
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
               Each facility pays KES 5,000 monthly. Super admins record payments
               here; admin dashboards warn before due date and data entry locks
               when payment expires.
@@ -82,7 +82,7 @@ export default function PlatformSubscriptionsPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
-        <div className="border border-sky-200 bg-white p-5 shadow-sm">
+        <div className="border border-border bg-card p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-[#07345f]">
             Record payment
           </h2>
@@ -130,12 +130,12 @@ export default function PlatformSubscriptionsPage() {
               placeholder="Notes"
             />
             {notice ? (
-              <p className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <p className="border border-success/25 bg-success-soft px-3 py-2 text-sm text-success">
                 {notice}
               </p>
             ) : null}
             <Button
-              className="h-11 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+              className="h-11 rounded-md bg-primary text-white hover:bg-brand-strong"
               onClick={recordPayment}
               disabled={mutation.isPending || !facilityId || Number(amount || 0) <= 0}
             >
@@ -147,15 +147,15 @@ export default function PlatformSubscriptionsPage() {
           </div>
         </div>
 
-        <div className="border border-sky-200 bg-white shadow-sm">
-          <div className="border-b border-sky-100 p-5">
+        <div className="border border-border bg-card shadow-sm">
+          <div className="border-b border-border p-5">
             <h2 className="text-lg font-semibold text-[#07345f]">
               Facility payment control
             </h2>
           </div>
           <div className="max-h-[680px] overflow-auto">
             <table className="w-full min-w-[920px] text-sm">
-              <thead className="sticky top-0 bg-[#eef7ff] text-left text-sky-950">
+              <thead className="sticky top-0 bg-[#eef7ff] text-left text-foreground">
                 <tr>
                   <th className="px-4 py-3">Facility</th>
                   <th className="px-4 py-3">Status</th>
@@ -166,10 +166,10 @@ export default function PlatformSubscriptionsPage() {
               </thead>
               <tbody>
                 {data.map((facility) => (
-                  <tr key={facility.id} className="border-t border-sky-100">
+                  <tr key={facility.id} className="border-t border-border">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-950">{facility.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-semibold text-foreground">{facility.name}</p>
+                      <p className="text-xs text-muted-foreground">
                         {facility.code} / {facility.town || facility.county || "-"}
                       </p>
                     </td>
@@ -177,7 +177,7 @@ export default function PlatformSubscriptionsPage() {
                       <Badge className={`rounded-md ${statusClass(facility.subscription.warningLevel)}`}>
                         {facility.subscription.warningLevel}
                       </Badge>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {facility.subscription.loginBlocked
                           ? "Facility logins blocked"
                           : facility.subscription.locked
@@ -187,14 +187,14 @@ export default function PlatformSubscriptionsPage() {
                               : "Active"}
                       </p>
                       {facility.subscription.lockReason ? (
-                        <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                        <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
                           {facility.subscription.lockReason}
                         </p>
                       ) : null}
                     </td>
                     <td className="px-4 py-3">
                       {formatDate(facility.subscription.paidThrough)}
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {Math.ceil(facility.subscription.daysRemaining)} days left
                       </p>
                     </td>
@@ -203,7 +203,7 @@ export default function PlatformSubscriptionsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {(facility.subscriptionPayments || []).slice(0, 2).map((payment) => (
-                        <p key={payment.id} className="text-xs text-slate-600">
+                        <p key={payment.id} className="text-xs text-muted-foreground">
                           {payment.paymentNumber}: {formatMoney(payment.amount)} / {formatDate(payment.paidAt)}
                         </p>
                       ))}

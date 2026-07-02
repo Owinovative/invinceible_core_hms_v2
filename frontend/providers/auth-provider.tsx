@@ -281,7 +281,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={value}>
       {children}
       {autoLogoutWarning && value.isAuthenticated ? (
-        <div className="fixed bottom-5 right-5 z-[80] w-[min(24rem,calc(100vw-2rem))] rounded-lg border border-amber-300/25 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur">
+        <div className="fixed bottom-5 right-5 z-[80] w-[min(24rem,calc(100vw-2rem))] rounded-lg border border-warning/35/25 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur">
           <p className="font-semibold">Session almost inactive</p>
           <p className="mt-1 text-sm text-white/70">
             For patient privacy, this portal signs out after 20 minutes without
@@ -290,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           <div className="mt-4 flex gap-2">
             <Button
               size="sm"
-              className="rounded-lg bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+              className="rounded-lg bg-cyan-400 text-foreground hover:bg-cyan-300"
               onClick={resetInactivityTimer}
             >
               Stay signed in
@@ -298,7 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-lg border-white/15 bg-white/5"
+              className="rounded-lg border-white/15 bg-card/5"
               onClick={logout}
             >
               Sign out now
@@ -308,9 +308,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) : null}
       {user?.pendingDeactivationAt ? (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/65 p-4">
-          <div className="w-[min(28rem,100%)] rounded-lg border bg-white p-5 text-slate-950 shadow-2xl">
+          <div className="w-[min(28rem,100%)] rounded-lg border bg-card p-5 text-foreground shadow-2xl">
             <p className="text-lg font-bold">Super admin deactivation request</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Another authorized administrator has requested to deactivate this
               super admin account. For security, it will only take effect after
               you accept it.
@@ -334,7 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </Button>
               <Button
                 type="button"
-                className="rounded-lg bg-red-600 text-white hover:bg-red-700"
+                className="rounded-lg bg-destructive text-white hover:bg-red-700"
                 onClick={async () => {
                   await acceptOwnDeactivation();
                   logout();

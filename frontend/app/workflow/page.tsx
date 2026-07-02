@@ -13,22 +13,22 @@ const steps = [
 
 export default function WorkflowPage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-slate-900">
+    <main className="min-h-screen bg-[#eef8ff] text-foreground">
       <PublicSiteHeader />
-      <section className="border-b border-sky-200 bg-white text-slate-950">
+      <section className="border-b border-border bg-card text-foreground">
         <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1500px] gap-8 px-5 py-8 md:px-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
           <div className="space-y-5">
-            <p className="text-sm font-semibold uppercase text-sky-700">
+            <p className="text-sm font-semibold uppercase text-module">
               System workflow
             </p>
             <h1 className="max-w-2xl text-4xl font-bold leading-tight md:text-6xl">
               The hospital flow is built around the patient visit.
             </h1>
-            <p className="max-w-2xl text-base leading-8 text-slate-600">
+            <p className="max-w-2xl text-base leading-8 text-muted-foreground">
               The system connects front desk, doctors, lab, pharmacy, IPD,
               billing, and reports so work does not disappear between desks.
             </p>
-            <Button asChild className="mt-6 rounded-md bg-sky-700 text-white hover:bg-sky-800">
+            <Button asChild className="mt-6 rounded-md bg-primary text-white hover:bg-brand-strong">
               <Link href="/login">
                 Enter the system
                 <ArrowRight className="h-4 w-4" />
@@ -37,7 +37,7 @@ export default function WorkflowPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-[1.25fr_0.75fr]">
             <div
-              className="min-h-[520px] border border-sky-200 bg-cover bg-center shadow-xl"
+              className="min-h-[520px] border border-border bg-cover bg-center shadow-xl"
               style={{
                 backgroundImage:
                   "url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1800&q=86')",
@@ -45,14 +45,14 @@ export default function WorkflowPage() {
             />
             <div className="grid gap-4">
               <div
-                className="min-h-[250px] border border-sky-200 bg-cover bg-center"
+                className="min-h-[250px] border border-border bg-cover bg-center"
                 style={{
                   backgroundImage:
                     "url('https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=900&q=86')",
                 }}
               />
               <div
-                className="min-h-[250px] border border-sky-200 bg-cover bg-center"
+                className="min-h-[250px] border border-border bg-cover bg-center"
                 style={{
                   backgroundImage:
                     "url('https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=86')",
@@ -68,11 +68,11 @@ export default function WorkflowPage() {
           {steps.map(([number, area, detail]) => (
             <div
               key={number}
-              className="border border-sky-200 bg-white p-5 shadow-sm"
+              className="border border-border bg-card p-5 shadow-sm"
             >
-              <p className="text-2xl font-bold text-sky-700">{number}</p>
-              <p className="mt-4 font-semibold text-slate-950">{area}</p>
-              <p className="text-sm leading-6 text-slate-600">{detail}</p>
+              <p className="text-2xl font-bold text-module">{number}</p>
+              <p className="mt-4 font-semibold text-foreground">{area}</p>
+              <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
             </div>
           ))}
         </div>

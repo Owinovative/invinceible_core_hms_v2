@@ -18,7 +18,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="rounded-3xl border glass-panel panel-shadow px-8 py-6 text-center">
+        <div className="rounded-3xl border bg-card/85 backdrop-blur-md border border-border shadow-md px-8 py-6 text-center">
           <p className="text-lg font-semibold">Loading session...</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Please wait while we verify access.

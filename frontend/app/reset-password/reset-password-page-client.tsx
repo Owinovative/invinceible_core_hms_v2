@@ -78,22 +78,22 @@ export default function ResetPasswordPageClient() {
   return (
     <main className="min-h-screen bg-[#f5fbff]">
       <div className="relative flex min-h-screen items-center justify-center px-6 py-10">
-        <Card className="w-full max-w-md rounded-lg border-sky-100 bg-white text-slate-900 shadow-xl">
+        <Card className="w-full max-w-md rounded-lg border-border bg-card text-foreground shadow-xl">
           <CardContent className="p-8 md:p-10">
             <div className="mb-8 flex flex-col items-center text-center">
               <AppLogo className="mb-4" />
               <h1 className="text-3xl font-bold tracking-tight">New password</h1>
-              <p className="mt-2 text-sm text-slate-600">Create a fresh password.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Create a fresh password.</p>
             </div>
 
             {isDone ? (
               <div className="space-y-4">
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
+                <div className="rounded-md border border-success/25 bg-success-soft px-4 py-4 text-sm text-success">
                   Password updated successfully.
                 </div>
                 <Button
                   asChild
-                  className="h-12 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                  className="h-12 w-full rounded-md bg-primary text-white hover:bg-brand-strong"
                 >
                   <Link href="/login">Go to sign in</Link>
                 </Button>
@@ -109,10 +109,10 @@ export default function ResetPasswordPageClient() {
                         <FormLabel>New password</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
                             <Input
                               type="password"
-                              className="h-12 rounded-md border-sky-100 bg-white pl-10"
+                              className="h-12 rounded-md border-border bg-card pl-10"
                               placeholder="Enter new password"
                               {...field}
                             />
@@ -131,10 +131,10 @@ export default function ResetPasswordPageClient() {
                         <FormLabel>Confirm password</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
                             <Input
                               type="password"
-                              className="h-12 rounded-md border-sky-100 bg-white pl-10"
+                              className="h-12 rounded-md border-border bg-card pl-10"
                               placeholder="Confirm password"
                               {...field}
                             />
@@ -146,14 +146,14 @@ export default function ResetPasswordPageClient() {
                   />
 
                   {error ? (
-                    <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="rounded-md border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive">
                       {error}
                     </div>
                   ) : null}
 
                   <Button
                     type="submit"
-                    className="h-12 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                    className="h-12 w-full rounded-md bg-primary text-white hover:bg-brand-strong"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Please wait..." : "Reset password"}
@@ -163,7 +163,7 @@ export default function ResetPasswordPageClient() {
                   <Button
                     asChild
                     variant="ghost"
-                    className="h-11 w-full rounded-md text-slate-700 hover:bg-sky-50 hover:text-sky-800"
+                    className="h-11 w-full rounded-md text-muted-foreground hover:bg-surface-2 hover:text-module"
                   >
                     <Link href="/login">
                       <ArrowLeft className="mr-2 h-4 w-4" />

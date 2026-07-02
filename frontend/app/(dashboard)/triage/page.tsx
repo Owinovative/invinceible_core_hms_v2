@@ -44,7 +44,7 @@ function TriageStat({
   value: string | number;
 }) {
   return (
-    <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </p>
@@ -276,7 +276,7 @@ export default function TriagePage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
@@ -284,7 +284,7 @@ export default function TriagePage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-module">
               Triage Station
             </Badge>
 
@@ -324,7 +324,7 @@ export default function TriagePage() {
 
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">Waiting Patients</CardTitle>
           </CardHeader>
@@ -335,14 +335,14 @@ export default function TriagePage() {
               Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                  className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                 >
-                  <div className="h-5 w-40 rounded bg-white/10" />
-                  <div className="mt-3 h-4 w-56 rounded bg-white/10" />
+                  <div className="h-5 w-40 rounded bg-card/10" />
+                  <div className="mt-3 h-4 w-56 rounded bg-card/10" />
                 </div>
               ))
             ) : queue.length === 0 ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No patients are currently waiting for triage.
               </div>
             ) : (
@@ -359,7 +359,7 @@ export default function TriagePage() {
                       "w-full rounded-[1.3rem] border p-4 text-left transition-all",
                       active
                         ? "border-cyan-400/40 bg-cyan-500/10"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                        : "border-white/10 bg-card/[0.03] hover:bg-card/[0.05]",
                     )}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -386,7 +386,7 @@ export default function TriagePage() {
         </Card>
 
 
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Triage Assessment</CardTitle>
 
@@ -427,12 +427,12 @@ export default function TriagePage() {
 
           <CardContent className="space-y-5">
             {!selected ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 Select a patient from the waiting queue.
               </div>
             ) : (
               <>
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     Current Patient
                   </p>
@@ -443,7 +443,7 @@ export default function TriagePage() {
                 </div>
 
 
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-cyan-300" />

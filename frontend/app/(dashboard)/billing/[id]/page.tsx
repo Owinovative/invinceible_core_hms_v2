@@ -228,11 +228,11 @@ export default function InvoiceDetailPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-cyan-500/5 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700">
+            <Badge className="rounded-full border-0 bg-success/10 px-3 py-1 text-success">
               Invoice Details
             </Badge>
 
@@ -298,7 +298,7 @@ export default function InvoiceDetailPage() {
       ) : null}
 
       {isLoading || !invoice ? (
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="p-6 text-sm text-muted-foreground">
             Loading invoice...
           </CardContent>
@@ -310,25 +310,25 @@ export default function InvoiceDetailPage() {
           </div>
 
           <section className="print:hidden">
-            <div className="overflow-hidden rounded-[1.2rem] border border-sky-200 bg-white shadow-sm">
-              <div className="flex flex-col gap-2 border-b border-sky-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="overflow-hidden rounded-[1.2rem] border border-border bg-card shadow-sm">
+              <div className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-950">
+                  <h2 className="text-base font-semibold text-foreground">
                     Invoice Line Control
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Edit wrong lines, remove unnecessary billing lines, then
                     download the approved PDF invoice.
                   </p>
                 </div>
-                <Badge className="w-fit rounded border-0 bg-sky-100 text-sky-800">
+                <Badge className="w-fit rounded border-0 bg-accent text-module">
                   {items.filter((item) => !item.isRemoved).length} active lines
                 </Badge>
               </div>
 
               <div className="max-h-[360px] overflow-auto">
                 <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead className="sticky top-0 z-10 bg-sky-50 text-xs uppercase text-sky-900">
+                  <thead className="sticky top-0 z-10 bg-surface-2 text-xs uppercase text-foreground">
                     <tr>
                       <th className="px-4 py-3">Date</th>
                       <th className="px-4 py-3">Item</th>
@@ -343,16 +343,16 @@ export default function InvoiceDetailPage() {
                     {items.map((item) => (
                       <tr
                         key={item.id}
-                        className="border-t border-sky-100"
+                        className="border-t border-border"
                       >
-                        <td className="px-4 py-3 text-slate-600">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {formatDate(item.createdAt)}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-slate-950">
+                          <p className="font-medium text-foreground">
                             {item.description}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {item.sourceModule || item.billingService?.category || "Manual"}
                           </p>
                         </td>
@@ -367,8 +367,8 @@ export default function InvoiceDetailPage() {
                           <Badge
                             className={`rounded border-0 ${
                               item.isRemoved
-                                ? "bg-red-100 text-red-700"
-                                : "bg-emerald-100 text-emerald-700"
+                                ? "bg-destructive-soft text-destructive"
+                                : "bg-success-soft text-success"
                             }`}
                           >
                             {item.isRemoved ? "Removed" : "Active"}
@@ -395,7 +395,7 @@ export default function InvoiceDetailPage() {
 
           {editItemId ? (
             <section>
-              <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
                 <CardHeader>
                   <CardTitle>Edit Invoice Line</CardTitle>
                 </CardHeader>
@@ -497,7 +497,7 @@ export default function InvoiceDetailPage() {
           ) : null}
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Add Invoice Line</CardTitle>
               </CardHeader>
@@ -514,13 +514,13 @@ export default function InvoiceDetailPage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-3">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Cash Payment</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <p className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+                <p className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-foreground">
                   Receipt number is generated by the system.
                 </p>
                 <Input
@@ -544,13 +544,13 @@ export default function InvoiceDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>M-PESA Payment</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <p className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+                <p className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-foreground">
                   STK requests are protected from duplicate sends. Use resend
                   from the payment list if the patient did not receive it.
                 </p>
@@ -581,13 +581,13 @@ export default function InvoiceDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>SHA Cover</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <p className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+                <p className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-foreground">
                   SHA can cover the full bill or part of it. Any remaining
                   balance stays open for cash, M-PESA, or another method.
                 </p>
@@ -620,21 +620,21 @@ export default function InvoiceDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Payments</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
                 {payments.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No payments recorded yet.
                   </div>
                 ) : (
                   payments.map((payment) => (
                     <div
                       key={payment.id}
-                      className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <p className="font-semibold">
                         {payment.receiptNumber} / {payment.paymentMethod}

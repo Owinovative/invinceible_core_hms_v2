@@ -293,11 +293,11 @@ export default function BillingTariffsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.4rem] border gradient-border p-6 panel-shadow md:p-8">
+      <section className="relative overflow-hidden rounded-[1.4rem] border surface-spotlight p-6 shadow-md md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-500/14 via-cyan-500/8 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700">
+            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-warning">
               Facility pricing
             </Badge>
             <div className="flex items-center gap-4">
@@ -326,14 +326,14 @@ export default function BillingTariffsPage() {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-module">
           {message}
         </div>
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
         <div className="space-y-4">
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-cyan-500" />
@@ -385,7 +385,7 @@ export default function BillingTariffsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -551,7 +551,7 @@ export default function BillingTariffsPage() {
         </Card>
         </div>
 
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardHeader>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <CardTitle>Tariff Register</CardTitle>
@@ -588,7 +588,7 @@ export default function BillingTariffsPage() {
                           <Badge
                             className={
                               tariff.isActive
-                                ? "rounded-full border-0 bg-emerald-500/10 text-emerald-700"
+                                ? "rounded-full border-0 bg-success/10 text-success"
                                 : "rounded-full border-0 bg-muted text-muted-foreground"
                             }
                           >

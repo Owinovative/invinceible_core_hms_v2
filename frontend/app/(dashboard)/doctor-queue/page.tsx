@@ -233,14 +233,14 @@ export default function DoctorQueuePage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-module">
               Doctor Queue
             </Badge>
 
@@ -261,7 +261,7 @@ export default function DoctorQueuePage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:w-[560px]">
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
@@ -270,7 +270,7 @@ export default function DoctorQueuePage() {
               </p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
@@ -279,14 +279,14 @@ export default function DoctorQueuePage() {
               </p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Ready Cases
               </p>
               <p className="mt-2 text-sm font-semibold">{readyCases.length}</p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Started
               </p>
@@ -305,7 +305,7 @@ export default function DoctorQueuePage() {
       ) : null}
 
       <section>
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -323,7 +323,7 @@ export default function DoctorQueuePage() {
                     My Patients Only
                   </Badge>
                 ) : (
-                  <Badge className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-muted-foreground">
+                  <Badge className="rounded-full border border-white/10 bg-card/[0.04] px-3 py-1 text-muted-foreground">
                     All Visible Patients
                   </Badge>
                 )}
@@ -409,7 +409,7 @@ export default function DoctorQueuePage() {
                     "rounded-full px-2 py-1 text-[10px] font-semibold",
                     myPatientsOnly
                       ? "bg-cyan-500/20 text-cyan-200"
-                      : "bg-white/10 text-muted-foreground",
+                      : "bg-card/10 text-muted-foreground",
                   )}
                 >
                   {myPatientsOnly ? "ON" : "OFF"}
@@ -421,7 +421,7 @@ export default function DoctorQueuePage() {
       </section>
 
       <section>
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">
               Already Started Consultations
@@ -429,7 +429,7 @@ export default function DoctorQueuePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {activeConsultations.length === 0 ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                 No active consultations are currently open.
               </div>
             ) : (
@@ -475,7 +475,7 @@ export default function DoctorQueuePage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">Doctor Queue</CardTitle>
           </CardHeader>
@@ -485,14 +485,14 @@ export default function DoctorQueuePage() {
               Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                  className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                 >
-                  <div className="h-5 w-40 rounded bg-white/10" />
-                  <div className="mt-3 h-4 w-56 rounded bg-white/10" />
+                  <div className="h-5 w-40 rounded bg-card/10" />
+                  <div className="mt-3 h-4 w-56 rounded bg-card/10" />
                 </div>
               ))
             ) : readyCases.length === 0 ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No patients are currently ready for doctor.
               </div>
             ) : (
@@ -510,7 +510,7 @@ export default function DoctorQueuePage() {
                       "w-full rounded-[1.3rem] border p-4 text-left transition-all",
                       active
                         ? "border-cyan-400/40 bg-cyan-500/10"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                        : "border-white/10 bg-card/[0.03] hover:bg-card/[0.05]",
                     )}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -557,7 +557,7 @@ export default function DoctorQueuePage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <UserRound className="h-5 w-5 text-cyan-300" />
@@ -567,12 +567,12 @@ export default function DoctorQueuePage() {
 
           <CardContent className="space-y-5">
             {!selectedCase ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 Select a patient from the doctor queue.
               </div>
             ) : (
               <>
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                       <UserRound className="h-5 w-5 text-primary" />
@@ -590,7 +590,7 @@ export default function DoctorQueuePage() {
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">
                         Chief Complaint
                       </p>
@@ -599,21 +599,21 @@ export default function DoctorQueuePage() {
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Priority</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedCase.triagePriority || "NORMAL"}
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Clinic</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedCase.clinic?.name || "Not assigned"}
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">
                         Appointment ID
                       </p>
@@ -622,7 +622,7 @@ export default function DoctorQueuePage() {
                       </p>
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3 md:col-span-2">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3 md:col-span-2">
                       <p className="text-xs text-muted-foreground">
                         Routed Doctor
                       </p>

@@ -183,7 +183,7 @@ export function CreatePatientForm() {
   };
 
   return (
-    <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="h-5 w-5 text-primary" />
@@ -351,13 +351,13 @@ export function CreatePatientForm() {
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createPatientMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive">
                   Failed to register patient.
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
                   {successMessage}
                   {createdNumber ? ` Patient Number: ${createdNumber}` : ""}
                 </div>

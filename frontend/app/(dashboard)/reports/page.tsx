@@ -176,14 +176,14 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-emerald-600/10 px-3 py-1 text-emerald-700">
+            <Badge className="rounded-full border-0 bg-success/10 px-3 py-1 text-success">
               Reports V2
             </Badge>
 
@@ -205,7 +205,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
@@ -214,7 +214,7 @@ export default function ReportsPage() {
               </p>
             </div>
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
@@ -227,7 +227,7 @@ export default function ReportsPage() {
       </section>
 
       <section>
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Report Filters</CardTitle>
           </CardHeader>
@@ -364,7 +364,7 @@ export default function ReportsPage() {
       </section>
 
       {isLoading ? (
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading reports dashboard...
@@ -379,7 +379,7 @@ export default function ReportsPage() {
           ) : null}
 
           <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Patients</p>
@@ -393,7 +393,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Appointments</p>
@@ -407,7 +407,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -423,7 +423,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -441,7 +441,7 @@ export default function ReportsPage() {
           </section>
 
           <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Prescriptions</p>
@@ -455,7 +455,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Invoices</p>
@@ -469,7 +469,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
@@ -483,7 +483,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>
@@ -499,7 +499,7 @@ export default function ReportsPage() {
           </section>
 
           <section className="grid gap-6 md:grid-cols-3">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Total Invoiced</CardTitle>
               </CardHeader>
@@ -510,7 +510,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Total Collected</CardTitle>
               </CardHeader>
@@ -521,7 +521,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Outstanding Balance</CardTitle>
               </CardHeader>
@@ -534,7 +534,7 @@ export default function ReportsPage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-3">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Appointments by Status</CardTitle>
               </CardHeader>
@@ -548,7 +548,7 @@ export default function ReportsPage() {
                         <span>{item.label}</span>
                         <span className="font-medium">{item.value}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-white/10">
+                      <div className="h-2 rounded-full bg-card/10">
                         <div
                           className="h-2 rounded-full bg-cyan-400"
                           style={{
@@ -562,7 +562,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Invoices by Status</CardTitle>
               </CardHeader>
@@ -576,7 +576,7 @@ export default function ReportsPage() {
                         <span>{item.label}</span>
                         <span className="font-medium">{item.value}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-white/10">
+                      <div className="h-2 rounded-full bg-card/10">
                         <div
                           className="h-2 rounded-full bg-emerald-400"
                           style={{
@@ -590,7 +590,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Payments by Method</CardTitle>
               </CardHeader>
@@ -606,7 +606,7 @@ export default function ReportsPage() {
                           {formatMoney(item.value)}
                         </span>
                       </div>
-                      <div className="h-2 rounded-full bg-white/10">
+                      <div className="h-2 rounded-full bg-card/10">
                         <div
                           className="h-2 rounded-full bg-emerald-400"
                           style={{
@@ -622,24 +622,24 @@ export default function ReportsPage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Bed Occupancy</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm text-muted-foreground">Total Beds</p>
                   <p className="mt-1 text-2xl font-bold">
                     {beds?.totalBeds ?? 0}
                   </p>
                 </div>
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm text-muted-foreground">Occupied Beds</p>
                   <p className="mt-1 text-2xl font-bold">
                     {beds?.occupiedBeds ?? 0}
                   </p>
                 </div>
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm text-muted-foreground">
                     Available Beds
                   </p>
@@ -650,13 +650,13 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Critical Stock Items</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {lowStockList.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                     No stock alerts for this period.
                   </div>
                 ) : (
@@ -685,7 +685,7 @@ export default function ReportsPage() {
           </section>
 
           <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Drug Revenue</CardTitle>
               </CardHeader>
@@ -699,7 +699,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Drug Cost</CardTitle>
               </CardHeader>
@@ -713,7 +713,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Gross Profit</CardTitle>
               </CardHeader>
@@ -727,7 +727,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Margin</CardTitle>
               </CardHeader>
@@ -743,7 +743,7 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -753,32 +753,32 @@ export default function ReportsPage() {
                       insurance claim position for the selected date range.
                     </p>
                   </div>
-                  <Badge className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-muted-foreground">
+                  <Badge className="w-fit rounded-full border border-white/10 bg-card/[0.04] px-3 py-1 text-muted-foreground">
                     {otcReport?.summary.totalSales ?? 0} sales
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="text-sm text-muted-foreground">Net OTC Sales</p>
                     <p className="mt-1 text-2xl font-bold">
                       {formatMoney(otcReport?.summary.netSales)}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="text-sm text-muted-foreground">Collected</p>
                     <p className="mt-1 text-2xl font-bold">
                       {formatMoney(otcReport?.summary.paidAmount)}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="text-sm text-muted-foreground">Balance</p>
                     <p className="mt-1 text-2xl font-bold">
                       {formatMoney(otcReport?.summary.outstandingBalance)}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="text-sm text-muted-foreground">
                       Pending Insurance
                     </p>
@@ -786,7 +786,7 @@ export default function ReportsPage() {
                       {otcReport?.summary.pendingInsuranceSales ?? 0}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="text-sm text-muted-foreground">Paid Sales</p>
                     <p className="mt-1 text-2xl font-bold">
                       {otcReport?.summary.paidSales ?? 0}
@@ -795,7 +795,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="grid gap-5 xl:grid-cols-3">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="font-semibold">Payments by Method</p>
                     <div className="mt-3 space-y-3">
                       {(otcReport?.paymentsByMethod ?? []).length === 0 ? (
@@ -820,7 +820,7 @@ export default function ReportsPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="font-semibold">Insurance Claims</p>
                     <div className="mt-3 space-y-3">
                       {(otcReport?.insuranceByStatus ?? []).length === 0 ? (
@@ -831,7 +831,7 @@ export default function ReportsPage() {
                       {(otcReport?.insuranceByStatus ?? []).map((item) => (
                         <div
                           key={item.status}
-                          className="rounded-[0.8rem] border border-white/10 bg-white/[0.03] p-3 text-sm"
+                          className="rounded-[0.8rem] border border-white/10 bg-card/[0.03] p-3 text-sm"
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium">
@@ -848,7 +848,7 @@ export default function ReportsPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                     <p className="font-semibold">Top OTC Medicines</p>
                     <div className="mt-3 space-y-3">
                       {(otcReport?.topMedicines ?? []).length === 0 ? (
@@ -874,14 +874,14 @@ export default function ReportsPage() {
                 <div className="space-y-3">
                   <p className="font-semibold">Recent OTC Sales</p>
                   {(otcReport?.recentSales ?? []).length === 0 ? (
-                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                       No OTC sales found in this date range.
                     </div>
                   ) : null}
                   {(otcReport?.recentSales ?? []).slice(0, 8).map((sale) => (
                     <div
                       key={sale.id}
-                      className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
@@ -905,7 +905,7 @@ export default function ReportsPage() {
                             Paid {formatMoney(sale.paidAmount)} / Balance{" "}
                             {formatMoney(sale.balanceAmount)}
                           </p>
-                          <Badge className="mt-2 rounded-full border px-3 py-1 border-white/10 bg-white/[0.04] text-muted-foreground">
+                          <Badge className="mt-2 rounded-full border px-3 py-1 border-white/10 bg-card/[0.04] text-muted-foreground">
                             {sale.paymentStatus.replace(/_/g, " ")}
                           </Badge>
                         </div>
@@ -918,20 +918,20 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Profit by Medicine</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {(profitReport?.byMedicine ?? []).length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                     No dispensed drug profit data for this period.
                   </div>
                 ) : (
                   profitReport?.byMedicine.slice(0, 12).map((item) => (
                     <div
                       key={`${item.branchId ?? "facility"}-${item.medicineId}`}
-                      className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
@@ -957,7 +957,7 @@ export default function ReportsPage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-3">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Module Work by Area</CardTitle>
               </CardHeader>
@@ -973,7 +973,7 @@ export default function ReportsPage() {
                         <span>{item.label}</span>
                         <span className="font-medium">{item.value}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-white/10">
+                      <div className="h-2 rounded-full bg-card/10">
                         <div
                           className="h-2 rounded-full bg-cyan-400"
                           style={{
@@ -987,7 +987,7 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Module Work by Status</CardTitle>
               </CardHeader>
@@ -1003,7 +1003,7 @@ export default function ReportsPage() {
                         <span>{item.label}</span>
                         <span className="font-medium">{item.value}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-white/10">
+                      <div className="h-2 rounded-full bg-card/10">
                         <div
                           className="h-2 rounded-full bg-emerald-400"
                           style={{
@@ -1017,24 +1017,24 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Module Totals</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3">
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm text-muted-foreground">All Records</p>
                   <p className="mt-1 text-2xl font-bold">
                     {counts?.moduleRecords ?? 0}
                   </p>
                 </div>
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm text-muted-foreground">Active</p>
                   <p className="mt-1 text-2xl font-bold">
                     {counts?.activeModuleRecords ?? 0}
                   </p>
                 </div>
-                <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm text-muted-foreground">Completed</p>
                   <p className="mt-1 text-2xl font-bold">
                     {counts?.completedModuleRecords ?? 0}
@@ -1045,20 +1045,20 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Recent Module Work</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {recentModuleRecords.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                     No module records found in this date range.
                   </div>
                 ) : (
                   recentModuleRecords.map((record) => (
                     <div
                       key={record.id}
-                      className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
@@ -1073,7 +1073,7 @@ export default function ReportsPage() {
                         </div>
 
                         <div className="text-right">
-                          <Badge className="rounded-full border px-3 py-1 border-white/10 bg-white/[0.04] text-muted-foreground">
+                          <Badge className="rounded-full border px-3 py-1 border-white/10 bg-card/[0.04] text-muted-foreground">
                             {record.statusCode}
                           </Badge>
                           <p className="mt-2 text-sm text-muted-foreground">
@@ -1089,20 +1089,20 @@ export default function ReportsPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Recent Invoices</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {recentInvoices.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                     No invoices found in this date range.
                   </div>
                 ) : (
                   recentInvoices.map((invoice) => (
                     <div
                       key={invoice.id}
-                      className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div>
@@ -1124,7 +1124,7 @@ export default function ReportsPage() {
                           <p className="mt-1 text-sm text-muted-foreground">
                             Balance: {formatMoney(invoice.balanceAmount)}
                           </p>
-                          <Badge className="mt-2 rounded-full border px-3 py-1 border-white/10 bg-white/[0.04] text-muted-foreground">
+                          <Badge className="mt-2 rounded-full border px-3 py-1 border-white/10 bg-card/[0.04] text-muted-foreground">
                             {invoice.statusCode}
                           </Badge>
                         </div>

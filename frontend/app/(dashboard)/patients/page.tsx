@@ -49,7 +49,7 @@ function ReceptionSummaryCard({
   value: string;
 }) {
   return (
-    <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
         {title}
       </p>
@@ -187,14 +187,14 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
+            <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-module">
               Reception Desk
             </Badge>
 
@@ -236,13 +236,13 @@ export default function PatientsPage() {
       </section>
 
       {successMessage ? (
-        <div className="rounded-[1.4rem] border border-emerald-500/20 bg-emerald-500/8 px-4 py-4 text-sm text-emerald-300">
+        <div className="rounded-[1.4rem] border border-emerald-500/20 bg-success/8 px-4 py-4 text-sm text-emerald-300">
           {successMessage}
         </div>
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">Find Returning Patient</CardTitle>
           </CardHeader>
@@ -263,14 +263,14 @@ export default function PatientsPage() {
                 Array.from({ length: 5 }).map((_, index) => (
                   <div
                     key={index}
-                    className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                    className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                   >
-                    <div className="h-5 w-40 rounded bg-white/10" />
-                    <div className="mt-3 h-4 w-56 rounded bg-white/10" />
+                    <div className="h-5 w-40 rounded bg-card/10" />
+                    <div className="mt-3 h-4 w-56 rounded bg-card/10" />
                   </div>
                 ))
               ) : filteredPatients.length === 0 ? (
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-5 text-sm text-muted-foreground">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-5 text-sm text-muted-foreground">
                   No matching patient found. Use the registration form to create one.
                 </div>
               ) : (
@@ -286,7 +286,7 @@ export default function PatientsPage() {
                         "w-full rounded-[1.3rem] border p-4 text-left transition-all duration-200",
                         isSelected
                           ? "border-cyan-400/40 bg-cyan-500/10"
-                          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                          : "border-white/10 bg-card/[0.03] hover:bg-card/[0.05]",
                       )}
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -315,14 +315,14 @@ export default function PatientsPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">Selected Patient / New Visit</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-4">
             {selectedPatient ? (
-              <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Returning Patient
                 </p>
@@ -334,14 +334,14 @@ export default function PatientsPage() {
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Phone</p>
                     <p className="mt-1 text-sm font-medium">
                       {selectedPatient.phonePrimary || "No phone"}
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Gender</p>
                     <p className="mt-1 text-sm font-medium">
                       {selectedPatient.gender || "—"}
@@ -350,7 +350,7 @@ export default function PatientsPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No returning patient selected yet.
               </div>
             )}
@@ -421,7 +421,7 @@ export default function PatientsPage() {
       </section>
 
       <section>
-        <Card className="relative overflow-hidden rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="text-lg">Register New Patient & Send to Triage</CardTitle>
           </CardHeader>

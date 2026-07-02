@@ -66,11 +66,11 @@ function patientName(patient?: { firstName?: string; middleName?: string | null;
 function statusTone(status?: string | null) {
   switch ((status || "").toUpperCase()) {
     case "CLOSED":
-    case "PAID": return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "PARTIALLY_PAID": return "border-amber-200 bg-amber-50 text-amber-700";
-    case "PENDING": return "border-cyan-200 bg-cyan-50 text-cyan-700";
-    case "REMOVED": return "border-red-200 bg-red-50 text-red-700";
-    default: return "border-slate-200 bg-slate-50 text-slate-600";
+    case "PAID": return "border-success/25 bg-success-soft text-success";
+    case "PARTIALLY_PAID": return "border-warning/30 bg-warning-soft text-warning";
+    case "PENDING": return "border-border bg-cyan-50 text-module";
+    case "REMOVED": return "border-destructive/25 bg-destructive-soft text-destructive";
+    default: return "border-border bg-surface-2 text-muted-foreground";
   }
 }
 
@@ -190,22 +190,22 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in pb-12">
+    <div className="flex flex-col gap-6 animate-enter pb-12">
       
       {/* --- MINIMALIST TOP KPI BAR --- */}
       <div className="flex items-end justify-between px-2">
         <div className="flex gap-8">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Outstanding</p>
-            <p className="text-3xl font-black tracking-tight text-slate-800">{formatMoney(dashboardData?.sums?.balanceAmount ?? 0)}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Total Outstanding</p>
+            <p className="text-3xl font-black tracking-tight text-foreground">{formatMoney(dashboardData?.sums?.balanceAmount ?? 0)}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending</p>
-            <p className="text-3xl font-black tracking-tight text-cyan-600">{dashboardData?.counts?.pendingInvoices ?? 0}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Pending</p>
+            <p className="text-3xl font-black tracking-tight text-module">{dashboardData?.counts?.pendingInvoices ?? 0}</p>
           </div>
           <div className="hidden sm:block">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Paid Today</p>
-            <p className="text-3xl font-black tracking-tight text-emerald-600">{dashboardData?.counts?.paidInvoices ?? 0}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-subtle">Paid Today</p>
+            <p className="text-3xl font-black tracking-tight text-success">{dashboardData?.counts?.paidInvoices ?? 0}</p>
           </div>
         </div>
         
@@ -220,21 +220,21 @@ export default function BillingPage() {
       <div className="flex flex-col gap-8">
         
         {/* TOP CARD: PATIENT QUEUE */}
-        <div className="flex flex-col rounded-[2rem] glass panel-shadow overflow-hidden max-h-[380px] shrink-0">
-          <div className="border-b border-slate-100/50 p-4 bg-white/50">
+        <div className="flex flex-col rounded-[2rem] bg-card/85 backdrop-blur-md shadow-md overflow-hidden max-h-[380px] shrink-0">
+          <div className="border-b border-border/50 p-4 bg-card/50">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
               <Input
                 value={patientSearch}
                 onChange={(e) => setPatientSearch(e.target.value)}
-                className="h-10 rounded-xl border-none bg-slate-100/50 pl-9 text-sm focus-visible:bg-white"
+                className="h-10 rounded-xl border-none bg-muted/50 pl-9 text-sm focus-visible:bg-card"
                 placeholder="Search patients..."
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 custom-scrollbar grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="flex-1 overflow-y-auto p-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {patientsLoading ? (
-              <p className="p-4 text-center text-xs text-slate-400 col-span-full">Loading...</p>
+              <p className="p-4 text-center text-xs text-subtle col-span-full">Loading...</p>
             ) : filteredPatients.map((patient) => {
               const patientInvoices = invoices.filter((i) => i.patientId === patient.id);
               const active = patient.id === selectedPatientId;
@@ -247,17 +247,17 @@ export default function BillingPage() {
                     setMessage(null);
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-2xl transition-all ${
-                    active ? "bg-cyan-50 shadow-sm border border-cyan-100/50" : "hover:bg-slate-50 border border-transparent"
+                    active ? "bg-cyan-50 shadow-sm border border-cyan-100/50" : "hover:bg-surface-2 border border-transparent"
                   }`}
                 >
                   <div className="text-left min-w-0">
-                    <p className={`truncate text-sm font-bold ${active ? "text-cyan-900" : "text-slate-700"}`}>
+                    <p className={`truncate text-sm font-bold ${active ? "text-foreground" : "text-muted-foreground"}`}>
                       {patientName(patient)}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">{patient.patientNumber}</p>
+                    <p className="text-xs text-subtle truncate">{patient.patientNumber}</p>
                   </div>
                   {patientInvoices.length > 0 && (
-                    <Badge className="bg-white border-slate-200 text-slate-600 shadow-none hover:bg-white">
+                    <Badge className="bg-card border-border text-muted-foreground shadow-none hover:bg-card">
                       {patientInvoices.length}
                     </Badge>
                   )}
@@ -268,9 +268,9 @@ export default function BillingPage() {
         </div>
 
         {/* BOTTOM CARD: ACTIVE INVOICE & PAYMENTS */}
-        <div className="flex flex-col rounded-[2rem] glass panel-shadow overflow-hidden bg-white/60">
+        <div className="flex flex-col rounded-[2rem] bg-card/85 backdrop-blur-md shadow-md overflow-hidden bg-card/60">
           {!selectedPatient ? (
-            <div className="flex flex-col items-center justify-center text-slate-400 py-16">
+            <div className="flex flex-col items-center justify-center text-subtle py-16">
               <CreditCard className="h-12 w-12 opacity-20 mb-4" />
               <p className="text-sm font-medium">Select a patient above to view financials</p>
             </div>
@@ -278,20 +278,20 @@ export default function BillingPage() {
             <div className="flex flex-col">
               
               {/* Patient Header & Quick Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 p-6 bg-white/40 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border p-6 bg-card/40 gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">{patientName(selectedPatient)}</h2>
-                  <div className="flex gap-4 mt-2 text-xs font-medium text-slate-500">
+                  <h2 className="text-2xl font-bold text-foreground">{patientName(selectedPatient)}</h2>
+                  <div className="flex gap-4 mt-2 text-xs font-medium text-muted-foreground">
                     <span className="flex items-center gap-1"><Banknote className="h-3 w-3" /> Bal: {formatMoney(patientWorkspace?.summary.openBalance ?? 0)}</span>
                     <span className="flex items-center gap-1"><Clock3 className="h-3 w-3" /> Open: {(patientWorkspace?.summary.pendingLabOrders ?? 0) + (patientWorkspace?.summary.openPrescriptions ?? 0)}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-slate-200 bg-white shadow-sm" asChild>
-                    <Link href="/pharmacy"><Pill className="h-4 w-4 text-emerald-600" /></Link>
+                  <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-border bg-card shadow-sm" asChild>
+                    <Link href="/pharmacy"><Pill className="h-4 w-4 text-success" /></Link>
                   </Button>
-                  <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-slate-200 bg-white shadow-sm" asChild>
-                    <Link href="/lab"><FlaskConical className="h-4 w-4 text-cyan-600" /></Link>
+                  <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-border bg-card shadow-sm" asChild>
+                    <Link href="/lab"><FlaskConical className="h-4 w-4 text-module" /></Link>
                   </Button>
                   <Button onClick={handleOpenPatientInvoice} disabled={openPatientInvoiceMutation.isPending} className="rounded-xl h-10 px-4 shadow-sm bg-slate-900 text-white hover:bg-slate-800">
                     {openPatientInvoiceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
@@ -307,13 +307,13 @@ export default function BillingPage() {
                 <div className="space-y-6">
                   {/* Invoice Tab Selector */}
                   {filteredInvoices.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar border-b border-slate-100">
+                    <div className="flex gap-2 overflow-x-auto pb-2 border-b border-border">
                       {filteredInvoices.map((inv) => (
                         <button
                           key={inv.id}
                           onClick={() => setSelectedInvoiceId(inv.id)}
                           className={`flex-shrink-0 px-6 py-3 rounded-t-xl text-xs font-bold transition-all border border-b-0 ${
-                            selectedInvoiceId === inv.id ? "bg-white border-slate-200 shadow-sm text-slate-800 translate-y-[1px]" : "bg-transparent border-transparent text-slate-500 hover:bg-slate-50"
+                            selectedInvoiceId === inv.id ? "bg-card border-border shadow-sm text-foreground translate-y-[1px]" : "bg-transparent border-transparent text-muted-foreground hover:bg-surface-2"
                           }`}
                         >
                           {inv.invoiceNumber}
@@ -322,8 +322,8 @@ export default function BillingPage() {
                     </div>
                   )}
 
-                  {detailLoading ? <div className="text-xs text-slate-400">Loading invoice...</div> : !invoice ? (
-                    <div className="text-xs text-slate-400">No active invoice.</div>
+                  {detailLoading ? <div className="text-xs text-subtle">Loading invoice...</div> : !invoice ? (
+                    <div className="text-xs text-subtle">No active invoice.</div>
                   ) : (
                     <div className="space-y-6">
                       {/* Sub-header */}
@@ -332,14 +332,14 @@ export default function BillingPage() {
                           {invoice.statusCode}
                         </Badge>
                         <div className="text-right">
-                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Balance Due</p>
-                          <p className="text-3xl font-black text-rose-600">{formatMoney(invoice.balanceAmount)}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider text-subtle">Balance Due</p>
+                          <p className="text-3xl font-black text-destructive">{formatMoney(invoice.balanceAmount)}</p>
                         </div>
                       </div>
 
                       {/* Items Table (Minimalist) */}
-                      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-                        <div className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 bg-slate-50 px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+                        <div className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 bg-surface-2 px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-subtle">
                           <div>Item</div>
                           <div className="text-right">Price</div>
                           <div className="text-right">Total</div>
@@ -347,17 +347,17 @@ export default function BillingPage() {
                         </div>
                         <div className="divide-y divide-slate-50">
                           {items.length === 0 ? (
-                            <div className="p-6 text-center text-sm font-medium text-slate-400">No items on this invoice.</div>
+                            <div className="p-6 text-center text-sm font-medium text-subtle">No items on this invoice.</div>
                           ) : items.map((item) => (
-                            <div key={item.id} className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 px-6 py-4 items-center group hover:bg-slate-50/50 transition-colors">
+                            <div key={item.id} className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 px-6 py-4 items-center group hover:bg-surface-2/50 transition-colors">
                               <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-800 truncate">{item.description}</p>
-                                <p className="text-xs font-medium text-slate-400 mt-1">Qty: {item.quantity}</p>
+                                <p className="text-sm font-bold text-foreground truncate">{item.description}</p>
+                                <p className="text-xs font-medium text-subtle mt-1">Qty: {item.quantity}</p>
                               </div>
-                              <div className="text-right text-sm font-medium text-slate-600">{formatMoney(item.unitPrice)}</div>
-                              <div className="text-right text-base font-black text-slate-800">{formatMoney(item.lineTotal)}</div>
+                              <div className="text-right text-sm font-medium text-muted-foreground">{formatMoney(item.unitPrice)}</div>
+                              <div className="text-right text-base font-black text-foreground">{formatMoney(item.lineTotal)}</div>
                               <div className="text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => startEdit(item)} className="text-slate-400 hover:text-cyan-600 p-2"><Edit2 className="h-4 w-4" /></button>
+                                <button onClick={() => startEdit(item)} className="text-subtle hover:text-module p-2"><Edit2 className="h-4 w-4" /></button>
                               </div>
                             </div>
                           ))}
@@ -366,13 +366,13 @@ export default function BillingPage() {
 
                       {/* Edit Inline Box */}
                       {editingItemId && (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm animate-fade-in">
+                        <div className="rounded-2xl border border-border bg-surface-2 p-6 shadow-sm animate-enter">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <Input value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} type="number" placeholder="Qty" className="h-11 bg-white" />
-                            <Input value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} type="number" placeholder="Price" className="h-11 bg-white" />
-                            <Input value={editDiscountPercent} onChange={(e) => setEditDiscountPercent(e.target.value)} type="number" placeholder="Disc %" className="h-11 bg-white" />
+                            <Input value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} type="number" placeholder="Qty" className="h-11 bg-card" />
+                            <Input value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} type="number" placeholder="Price" className="h-11 bg-card" />
+                            <Input value={editDiscountPercent} onChange={(e) => setEditDiscountPercent(e.target.value)} type="number" placeholder="Disc %" className="h-11 bg-card" />
                           </div>
-                          <Textarea value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} placeholder="Reason for removal (if deleting)" className="min-h-[50px] mb-4 bg-white text-sm" />
+                          <Textarea value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} placeholder="Reason for removal (if deleting)" className="min-h-[50px] mb-4 bg-card text-sm" />
                           <div className="flex gap-3">
                             <Button onClick={handleUpdateItem} disabled={updateInvoiceItemMutation.isPending} className="h-11 text-sm rounded-xl bg-slate-900 text-white hover:bg-slate-800 px-8">Save Changes</Button>
                             <Button onClick={handleRemoveItem} disabled={removeInvoiceItemMutation.isPending} variant="destructive" className="h-11 text-sm rounded-xl px-6"><Trash2 className="h-4 w-4 mr-2"/> Remove Item</Button>
@@ -388,48 +388,48 @@ export default function BillingPage() {
 
                 {/* PAYMENTS & RECEIPT BLOCK */}
                 {invoice && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-slate-100 pt-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-border pt-8">
                     
-                    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-                      <h3 className="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2"><Wallet className="h-5 w-5 text-emerald-600"/> Receive Payment</h3>
+                    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                      <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2"><Wallet className="h-5 w-5 text-success"/> Receive Payment</h3>
                       
                       <div className="space-y-6">
                         <div className="flex flex-col sm:flex-row gap-3">
-                          <Input value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} type="number" placeholder="Cash Amount" className="h-12 bg-slate-50 border-none flex-1 text-base font-semibold" />
-                          <Button onClick={handleCashPayment} disabled={createCashPaymentMutation.isPending} className="h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-8 text-base">Cash</Button>
+                          <Input value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} type="number" placeholder="Cash Amount" className="h-12 bg-surface-2 border-none flex-1 text-base font-semibold" />
+                          <Button onClick={handleCashPayment} disabled={createCashPaymentMutation.isPending} className="h-12 rounded-xl bg-success hover:bg-emerald-700 text-white px-8 text-base">Cash</Button>
                         </div>
                         <div className="flex flex-col gap-3 border-t border-slate-50 pt-6">
                           <div className="flex flex-col sm:flex-row gap-3">
-                            <Input value={mpesaAmount} onChange={(e) => setMpesaAmount(e.target.value)} type="number" placeholder="M-PESA Amount" className="h-12 bg-slate-50 border-none sm:w-1/3 text-base font-semibold" />
-                            <Input value={mpesaPhoneNumber} onChange={(e) => setMpesaPhoneNumber(e.target.value)} placeholder="Phone Number" className="h-12 bg-slate-50 border-none flex-1 text-base font-semibold" />
+                            <Input value={mpesaAmount} onChange={(e) => setMpesaAmount(e.target.value)} type="number" placeholder="M-PESA Amount" className="h-12 bg-surface-2 border-none sm:w-1/3 text-base font-semibold" />
+                            <Input value={mpesaPhoneNumber} onChange={(e) => setMpesaPhoneNumber(e.target.value)} placeholder="Phone Number" className="h-12 bg-surface-2 border-none flex-1 text-base font-semibold" />
                           </div>
                           <Button onClick={handleMpesaPayment} disabled={createMpesaPaymentRequestMutation.isPending} className="h-12 rounded-xl bg-[#25D366] hover:bg-[#1DA851] text-white w-full text-base"><Smartphone className="mr-2 h-5 w-5"/> Push STK Prompt</Button>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                        <div className="flex justify-between items-center mb-5">
-                          <h3 className="text-sm font-bold text-slate-800">Payment History</h3>
-                          <Button variant="outline" size="sm" className="h-9 text-xs font-semibold rounded-xl border-slate-200" asChild>
+                          <h3 className="text-sm font-bold text-foreground">Payment History</h3>
+                          <Button variant="outline" size="sm" className="h-9 text-xs font-semibold rounded-xl border-border" asChild>
                             <Link href={`/billing/${invoice.id}`}><Printer className="mr-2 h-4 w-4"/> Print Final Invoice</Link>
                           </Button>
                        </div>
                        <div className="space-y-4">
                         {payments.length === 0 ? (
-                          <div className="p-6 bg-slate-50 rounded-xl text-center">
-                             <p className="text-sm font-medium text-slate-400">No payments collected yet.</p>
+                          <div className="p-6 bg-surface-2 rounded-xl text-center">
+                             <p className="text-sm font-medium text-subtle">No payments collected yet.</p>
                           </div>
                         ) : payments.map(p => (
                           <div key={p.id} className="text-sm flex justify-between items-center pb-4 border-b border-slate-50 last:border-0 last:pb-0">
                             <div>
-                              <p className="font-bold text-slate-800">{p.paymentMethod}</p>
-                              <p className="text-xs font-medium text-slate-400 mt-0.5">{formatDate(p.paidAt)}</p>
+                              <p className="font-bold text-foreground">{p.paymentMethod}</p>
+                              <p className="text-xs font-medium text-subtle mt-0.5">{formatDate(p.paidAt)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-lg font-black text-emerald-600">+{formatMoney(p.amount)}</p>
+                              <p className="text-lg font-black text-success">+{formatMoney(p.amount)}</p>
                               {p.statusCode === "COMPLETED" && (
-                                <button onClick={() => void downloadPaymentReceiptPdf(p.id, p.receiptNumber)} className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 hover:text-cyan-800 transition-colors mt-1">Download Receipt</button>
+                                <button onClick={() => void downloadPaymentReceiptPdf(p.id, p.receiptNumber)} className="text-[10px] font-bold uppercase tracking-wider text-module hover:text-module transition-colors mt-1">Download Receipt</button>
                               )}
                             </div>
                           </div>
