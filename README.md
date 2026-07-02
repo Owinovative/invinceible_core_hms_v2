@@ -178,25 +178,25 @@ npm audit --audit-level=moderate --omit=dev
 
 ## Documentation
 
-Start with [docs/README.md](docs/README.md).
+Start with the **[documentation index](docs/README.md)** or the
+consolidated **[Master System Documentation](docs/master/MASTER_SYSTEM_DOCUMENTATION.md)**
+([PDF edition](docs/master/Invinceible-Core-HMS-System-Documentation.pdf)).
 
-Important guides:
+Core documentation:
 
-- [Government integrations: DHA & KRA eTIMS](docs/integrations/README.md)
-- [Performance and scalability](docs/performance-scalability.md)
-- [Database storage efficiency and retention](docs/database-storage-efficiency.md)
-- [Production security checklist](docs/production-security-checklist.md)
-- [HMS benchmark gap analysis](docs/hms-benchmark-gap-analysis.md)
-- [Repository audit](docs/repository-audit.md)
-- [Prescriptions and pharmacy workflow](docs/prescriptions-pharmacy.md)
-- [Reports and printouts](docs/reports-printouts.md)
-- [Multi-tenant facility isolation](docs/multi-tenant-facility-isolation.md)
-- [M-Pesa reconciliation](docs/mpesa-reconciliation.md)
-- [SHA and insurance workflow](docs/sha-insurance-workflow.md)
-- [Load testing](docs/load-testing.md)
-- [Security testing](docs/security-testing.md)
-- [Render production deployment](docs/deployment/render.md)
-- [MySQL to Render PostgreSQL migration](docs/deployment/mysql-to-render-postgres.md)
+| Area | Documents |
+| --- | --- |
+| Architecture | [System architecture](docs/SYSTEM_ARCHITECTURE.md) · [Backend](docs/BACKEND.md) · [Frontend](docs/FRONTEND.md) · [Database](docs/DATABASE.md) · [Workflows](docs/WORKFLOWS.md) |
+| API | [API reference (341 endpoints, auto-generated)](docs/API_REFERENCE.md) |
+| Security | [Authentication](docs/AUTHENTICATION.md) · [Authorization](docs/AUTHORIZATION.md) · [Security & threat model](docs/SECURITY.md) |
+| Integrations | [Overview](docs/INTEGRATIONS.md) · [KRA eTIMS & DHA deep dive](docs/integrations/README.md) |
+| Operations | [Deployment](docs/DEPLOYMENT.md) · [Configuration](docs/CONFIGURATION.md) · [Monitoring](docs/MONITORING.md) · [Error handling](docs/ERROR_HANDLING.md) · [Performance](docs/PERFORMANCE.md) |
+| Development | [Development guide](docs/DEVELOPMENT_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Testing](docs/TESTING.md) |
+| Product | [UI/UX guide](docs/UI_UX_GUIDE.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Roadmap](docs/ROADMAP.md) · [Changelog](docs/CHANGELOG.md) |
+
+Topic deep-dives (security checklists, SHA/M-PESA workflows, load
+testing, Render deployment, and more) are indexed in
+[docs/README.md](docs/README.md).
 
 ## Security
 
