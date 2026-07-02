@@ -1,5 +1,6 @@
 # Invinceible Core HMS Documentation
 
+- [Government integrations: DHA & KRA eTIMS](integrations/README.md)
 - [Version 2.0.0 release notes](releases/v2.0.0.md)
 - [Release checklist](release-checklist.md)
 - [Performance and scalability](performance-scalability.md)

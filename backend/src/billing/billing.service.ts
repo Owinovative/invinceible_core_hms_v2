@@ -45,6 +45,7 @@ import {
 import { CacheService } from '../resilience/cache.service';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
 import { serializeMaybeJsonCompact } from '../common/storage/compact-payload';
+import { EtimsService } from '../integration/etims/etims.service';
 
 type TariffCsvRow = Record<string, string>;
 type InvoiceChargeType = 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
@@ -327,7 +328,33 @@ export class BillingService {
     private readonly scopeService: ScopeService,
     private readonly cacheService: CacheService,
     private readonly safeLogger: SafeLoggerService,
+    private readonly etimsService: EtimsService,
   ) {}
+
+  /**
+   * Routes a finalized billing event through the eTIMS integration layer.
+   * Fiscalization is queued durably and retried in the background, so a KRA
+   * outage never blocks or fails the underlying billing operation.
+   */
+  private async triggerEtimsFiscalization(
+    invoiceId: number,
+    trigger: string,
+    user?: RequestUser,
+  ) {
+    try {
+      await this.etimsService.onBillingFinalized(invoiceId, {
+        trigger,
+        actorUserId: user?.userId,
+        actorStaffId: user?.staffId ?? undefined,
+      });
+    } catch (error) {
+      this.safeLogger.error('eTIMS fiscalization trigger failed safely', {
+        invoiceId,
+        trigger,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   private compactPaymentPayload(value: unknown) {
     return serializeMaybeJsonCompact(value, {
@@ -1690,6 +1717,8 @@ export class BillingService {
       beforeData: JSON.stringify(invoice),
       afterData: JSON.stringify(updated),
     });
+
+    await this.triggerEtimsFiscalization(id, 'CLOSE_INVOICE', user);
 
     return updated;
   }
@@ -3329,6 +3358,7 @@ export class BillingService {
     });
 
     await this.recalculateInvoice(dto.invoiceId);
+    await this.triggerEtimsFiscalization(dto.invoiceId, 'CASH_PAYMENT', user);
 
     await this.auditLogService.create({
       moduleName: 'BILLING',
@@ -3452,6 +3482,9 @@ export class BillingService {
         });
 
     await this.recalculateInvoice(params.invoiceId);
+    if (!cancelled) {
+      await this.triggerEtimsFiscalization(params.invoiceId, 'SHA_COVERAGE');
+    }
 
     await this.auditLogService.create({
       moduleName: 'BILLING',
@@ -4000,6 +4033,11 @@ export class BillingService {
     });
 
     await this.recalculateInvoice(payment.invoiceId);
+    await this.triggerEtimsFiscalization(
+      payment.invoiceId,
+      'MPESA_PAYMENT',
+      user,
+    );
 
     await this.auditLogService.create({
       moduleName: 'BILLING',

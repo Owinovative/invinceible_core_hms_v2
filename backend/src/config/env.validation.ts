@@ -60,6 +60,30 @@ export function validateEnvironment(
     );
   }
 
+  const etimsEnabled = String(config.ETIMS_ENABLED ?? 'false') === 'true';
+  const etimsMode = String(config.ETIMS_MODE ?? 'mock').toLowerCase();
+  if (etimsEnabled && (etimsMode === 'sandbox' || etimsMode === 'production')) {
+    for (const key of ['ETIMS_BASE_URL', 'ETIMS_TIN', 'ETIMS_CMC_KEY']) {
+      if (!hasValue(config, key)) {
+        throw new Error(
+          `${key} is required when ETIMS_ENABLED=true and ETIMS_MODE=${etimsMode}`,
+        );
+      }
+    }
+  }
+
+  const dhaEnabled = String(config.DHA_ENABLED ?? 'false') === 'true';
+  const dhaMode = String(config.DHA_MODE ?? 'mock').toLowerCase();
+  if (dhaEnabled && (dhaMode === 'sandbox' || dhaMode === 'production')) {
+    for (const key of ['DHA_BASE_URL', 'DHA_CLIENT_ID', 'DHA_CLIENT_SECRET']) {
+      if (!hasValue(config, key)) {
+        throw new Error(
+          `${key} is required when DHA_ENABLED=true and DHA_MODE=${dhaMode}`,
+        );
+      }
+    }
+  }
+
   return {
     ...config,
     NODE_ENV: nodeEnv,
@@ -105,5 +129,29 @@ export function validateEnvironment(
     STEP_UP_TTL_SECONDS: config.STEP_UP_TTL_SECONDS ?? '300',
     STEP_UP_ENFORCEMENT_ENABLED:
       config.STEP_UP_ENFORCEMENT_ENABLED ?? 'false',
+    // Government integrations (KRA eTIMS + DHA). Disabled by default so
+    // existing deployments keep their behavior until explicitly enabled.
+    ETIMS_ENABLED: config.ETIMS_ENABLED ?? 'false',
+    ETIMS_MODE: config.ETIMS_MODE ?? 'mock',
+    ETIMS_BHF_ID: config.ETIMS_BHF_ID ?? '00',
+    ETIMS_TIMEOUT_MS: config.ETIMS_TIMEOUT_MS ?? '15000',
+    ETIMS_MAX_ATTEMPTS: config.ETIMS_MAX_ATTEMPTS ?? '8',
+    ETIMS_DEFAULT_TAX_CODE: config.ETIMS_DEFAULT_TAX_CODE ?? 'A',
+    ETIMS_VAT_RATE: config.ETIMS_VAT_RATE ?? '16',
+    DHA_ENABLED: config.DHA_ENABLED ?? 'false',
+    DHA_MODE: config.DHA_MODE ?? 'mock',
+    DHA_API_VERSION: config.DHA_API_VERSION ?? 'v1',
+    DHA_TIMEOUT_MS: config.DHA_TIMEOUT_MS ?? '15000',
+    DHA_MAX_ATTEMPTS: config.DHA_MAX_ATTEMPTS ?? '8',
+    INTEGRATION_WORKER_ENABLED: config.INTEGRATION_WORKER_ENABLED ?? 'true',
+    INTEGRATION_WORKER_POLL_MS: config.INTEGRATION_WORKER_POLL_MS ?? '5000',
+    INTEGRATION_QUEUE_BATCH_SIZE:
+      config.INTEGRATION_QUEUE_BATCH_SIZE ?? '10',
+    INTEGRATION_RETRY_BASE_DELAY_MS:
+      config.INTEGRATION_RETRY_BASE_DELAY_MS ?? '30000',
+    INTEGRATION_RETRY_MAX_DELAY_MS:
+      config.INTEGRATION_RETRY_MAX_DELAY_MS ?? '3600000',
+    INTEGRATION_STUCK_REQUEST_MS:
+      config.INTEGRATION_STUCK_REQUEST_MS ?? '600000',
   };
 }

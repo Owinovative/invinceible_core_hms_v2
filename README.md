@@ -182,6 +182,7 @@ Start with [docs/README.md](docs/README.md).
 
 Important guides:
 
+- [Government integrations: DHA & KRA eTIMS](docs/integrations/README.md)
 - [Performance and scalability](docs/performance-scalability.md)
 - [Database storage efficiency and retention](docs/database-storage-efficiency.md)
 - [Production security checklist](docs/production-security-checklist.md)

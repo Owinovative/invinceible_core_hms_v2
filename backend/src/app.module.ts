@@ -51,6 +51,7 @@ import { ClinicalSafetyModule } from './clinical-safety/clinical-safety.module';
 import { PatientPortalModule } from './patient-portal/patient-portal.module';
 import { CommunicationModule } from './communication/communication.module';
 import { DataOutboxModule } from './data-outbox/data-outbox.module';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { DataOutboxModule } from './data-outbox/data-outbox.module';
     PatientPortalModule,
     CommunicationModule,
     DataOutboxModule,
+    IntegrationModule,
     PrismaModule,
     FacilityModule,
     RoleModule,
