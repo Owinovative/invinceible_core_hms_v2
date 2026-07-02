@@ -1,58 +1,84 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { FacilitySubscriptionBanner } from "@/components/layout/facility-subscription-banner";
 import { ShellStatusFooter } from "@/components/layout/shell-status-footer";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  CommandPalette,
+  useCommandPalette,
+} from "@/components/ui/command-palette";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { moduleForPath } from "@/lib/navigation";
 import { useScope } from "@/providers/scope-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
 
-export function DashboardShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+/**
+ * Meridian app shell: fixed sidebar + glass header + scrollable canvas +
+ * slim status footer. The active module family sets data-module so every
+ * page inherits its accent. Includes skip link and ⌘K palette.
+ */
+export function DashboardShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { mobileOpen, setMobileOpen } = useSidebar();
   const { facilityName, selectedBranchName } = useScope();
-  const scope = [facilityName, selectedBranchName].filter(Boolean).join(" / ");
+  const palette = useCommandPalette();
+
+  const scope = [facilityName, selectedBranchName].filter(Boolean).join(" · ");
+  const moduleFamily = moduleForPath(pathname);
 
   return (
-    <div className="clinical-shell-bg relative flex h-screen flex-col overflow-hidden text-foreground">
-      {/* Floating Header */}
-      <div className="px-3 pt-3 md:px-4 md:pt-4 z-40">
-        <DashboardHeader />
+    <div
+      data-module={moduleFamily}
+      className="flex h-screen overflow-hidden text-foreground"
+    >
+      <a
+        href="#main-content"
+        className="sr-only z-100 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Skip to main content
+      </a>
+
+      <DashboardSidebar />
+
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="w-80 border-border p-0 lg:hidden"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation</SheetTitle>
+          </SheetHeader>
+          <DashboardSidebar mobile />
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <DashboardHeader onOpenPalette={() => palette.setOpen(true)} />
         <FacilitySubscriptionBanner />
+        <main
+          id="main-content"
+          className="min-h-0 flex-1 overflow-y-auto"
+          tabIndex={-1}
+        >
+          <div className="mx-auto min-h-full w-full max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
+        <ShellStatusFooter
+          label="Hospital operations console"
+          scope={scope}
+        />
       </div>
 
-      {/* Floating Body Area */}
-      <div className="relative flex min-h-0 flex-1 overflow-hidden p-3 md:p-4 gap-4">
-        <DashboardSidebar />
-        
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent
-            side="left"
-            showCloseButton={false}
-            className="clinical-sidebar-bg w-[21rem] border-white/10 p-0 lg:hidden rounded-r-[2rem] panel-shadow"
-          >
-            <SheetHeader className="sr-only">
-              <SheetTitle>Navigation</SheetTitle>
-            </SheetHeader>
-            <DashboardSidebar mobile />
-          </SheetContent>
-        </Sheet>
-
-        {/* Main Workspace wrapped in glass */}
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] glass panel-shadow border border-white/60 animate-fade-in">
-          <main className="clinical-workspace-bg min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto min-h-full max-w-[1700px] px-4 py-6 md:px-8 md:py-8">
-              {children}
-            </div>
-          </main>
-        </div>
-      </div>
-
-      <ShellStatusFooter label="Hospital operations console" scope={scope} />
+      <CommandPalette open={palette.open} onOpenChange={palette.setOpen} />
     </div>
   );
 }
