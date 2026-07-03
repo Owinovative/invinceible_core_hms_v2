@@ -83,7 +83,7 @@ export default function IntegrationDashboardPage() {
               <div className="flex items-center">
                 <div className="flex-1">
                   <div className="text-sm font-medium">Pending Jobs</div>
-                  <div className="text-2xl font-bold mt-1 text-slate-700 dark:text-slate-300">0</div>
+                  <div className="text-2xl font-bold mt-1 text-foreground">0</div>
                 </div>
                 <div className="h-16 w-16 rounded-full border-4 border-border flex items-center justify-center">
                   <span className="text-muted-foreground">0%</span>
@@ -92,7 +92,7 @@ export default function IntegrationDashboardPage() {
               <div className="flex items-center">
                 <div className="flex-1">
                   <div className="text-sm font-medium">Failed / Dead Letter</div>
-                  <div className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">0</div>
+                  <div className="text-2xl font-bold mt-1 text-emerald-500">0</div>
                 </div>
                 <div className="h-16 w-16 rounded-full border-4 border-emerald-500/20 flex items-center justify-center">
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
