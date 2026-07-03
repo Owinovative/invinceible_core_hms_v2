@@ -7,8 +7,6 @@ import { ClientRegistryService } from './client-registry/client-registry.service
 import { FacilityRegistryService } from './facility-registry/facility-registry.service';
 import { PractitionerRegistryService } from './practitioner-registry/practitioner-registry.service';
 import { TerminologyService } from './terminology/terminology.service';
-import { ClaimsIntegrationService } from './claims/claims-integration.service';
-
 @Module({
   imports: [ConfigModule, CoreIntegrationModule],
   providers: [
@@ -18,14 +16,12 @@ import { ClaimsIntegrationService } from './claims/claims-integration.service';
     FacilityRegistryService,
     PractitionerRegistryService,
     TerminologyService,
-    ClaimsIntegrationService,
   ],
   exports: [
     ClientRegistryService,
     FacilityRegistryService,
     PractitionerRegistryService,
     TerminologyService,
-    ClaimsIntegrationService,
   ],
 })
 export class IntegrationsModule {}

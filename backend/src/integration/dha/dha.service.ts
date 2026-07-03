@@ -35,6 +35,7 @@ import type {
 } from './dha.types';
 import { FhirMapperService } from './fhir-mapper';
 import type { FhirBundle } from './fhir.types';
+import { FhirSystemsService } from './fhir-systems';
 
 interface DhaOperationOptions {
   correlationId?: string;
@@ -62,6 +63,7 @@ export class DhaService implements OnModuleInit {
     private readonly mapper: FhirMapperService,
     private readonly audit: IntegrationAuditService,
     private readonly logger: IntegrationLoggerService,
+    private readonly systems: FhirSystemsService,
     @Inject(DHA_CLIENT) private readonly client: DhaClientPort,
   ) {}
 
@@ -229,7 +231,7 @@ export class DhaService implements OnModuleInit {
                     coding: claim.diagnosisCode
                       ? [
                           {
-                            system: 'http://hl7.org/fhir/sid/icd-10',
+                            system: this.systems.icd11,
                             code: claim.diagnosisCode,
                           },
                         ]

@@ -6,6 +6,7 @@ import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
 import { DhaService } from './dha/dha.service';
 import { FhirMapperService } from './dha/fhir-mapper';
+import { FhirSystemsService } from './dha/fhir-systems';
 import { EtimsHttpClient } from './etims/adapters/etims-http.client';
 import { EtimsMockClient } from './etims/adapters/etims-mock.client';
 import { EtimsController } from './etims/etims.controller';
@@ -39,6 +40,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     IntegrationQueueWorker,
     EtimsInvoiceBuilder,
     FhirMapperService,
+    FhirSystemsService,
     {
       provide: ETIMS_CLIENT,
       useFactory: (
@@ -70,6 +72,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     IntegrationQueueService,
     IntegrationQueueWorker,
     IntegrationConfigService,
+    FhirSystemsService,
   ],
 })
 export class IntegrationModule {}
