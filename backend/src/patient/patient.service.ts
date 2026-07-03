@@ -16,6 +16,7 @@ import {
   type PaginationQuery,
 } from '../common/pagination/pagination';
 import { CacheService } from '../resilience/cache.service';
+import { ClientRegistryService } from '../integrations/client-registry/client-registry.service';
 
 @Injectable()
 export class PatientService {
@@ -24,6 +25,7 @@ export class PatientService {
     private readonly facilityService: FacilityService,
     private readonly scopeService: ScopeService,
     private readonly cacheService: CacheService,
+    private readonly clientRegistryService: ClientRegistryService,
   ) {}
 
   private async generatePatientNumber(facilityId: number) {
@@ -81,7 +83,7 @@ export class PatientService {
       throw new BadRequestException('Patient number already exists');
     }
 
-    return this.prisma.patient.create({
+    const patient = await this.prisma.patient.create({
       data: {
         patientNumber,
         firstName: createPatientDto.firstName,
@@ -103,6 +105,19 @@ export class PatientService {
         facility: true,
       },
     });
+
+    // Attempt to register in HIE CR asynchronously
+    this.clientRegistryService.registerPatient({
+      id: String(patient.id),
+      firstName: patient.firstName,
+      middleName: patient.middleName || undefined,
+      lastName: patient.lastName,
+      gender: patient.gender || 'unknown',
+      dateOfBirth: patient.dateOfBirth || new Date(),
+      phone: patient.phonePrimary || undefined,
+    }).catch((err) => console.error('Failed to register patient in HIE CR', err));
+
+    return patient;
   }
 
   async createScoped(createPatientDto: CreatePatientDto, user: RequestUser) {
