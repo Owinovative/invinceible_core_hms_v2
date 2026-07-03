@@ -3,7 +3,7 @@ import {
   Clock3, CreditCard, Dumbbell, FileCheck2, FlaskConical, HeartPulse,
   LayoutDashboard, Microscope, Monitor, Pill, Plus, Receipt, ScanLine,
   Settings, ShieldCheck, ShoppingCart, Sparkles, Stethoscope, Truck,
-  UserPlus, Users, Warehouse, type LucideIcon,
+  UserPlus, Users, Warehouse, Network, Link2, type LucideIcon,
 } from "lucide-react";
 
 /**
@@ -97,6 +97,14 @@ export const navSections: NavSection[] = [
       { title: "Oncology", href: "/oncology", icon: Activity },
       { title: "Renal / Dialysis", href: "/renal-dialysis", icon: HeartPulse },
       { title: "Mental Health", href: "/mental-health", icon: HeartPulse },
+    ],
+  },
+  {
+    label: "Integrations",
+    module: "operations",
+    items: [
+      { title: "Integration Hub", href: "/integration", icon: Network, keywords: ["dha", "sha", "kra", "api"] },
+      { title: "Sync Status", href: "/integration/sync", icon: Link2, keywords: ["sync", "errors"] },
     ],
   },
   {

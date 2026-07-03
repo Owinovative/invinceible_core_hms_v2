@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function IntegrationDashboardPage() {
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 bg-slate-50/50 dark:bg-slate-950/50 min-h-[calc(100vh-4rem)]">
+    <div className="flex-1 space-y-8 p-8 pt-6 min-h-[calc(100vh-4rem)]">
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
@@ -36,7 +36,7 @@ export default function IntegrationDashboardPage() {
       <IntegrationStats />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 mt-8">
-        <Card className="col-span-4 shadow-sm border-blue-100 dark:border-blue-900/30 overflow-hidden relative">
+        <Card className="col-span-4 overflow-hidden relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -50,9 +50,9 @@ export default function IntegrationDashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center p-4 rounded-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 transition-colors hover:bg-slate-100 dark:hover:bg-slate-900">
-                  <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-full mr-4">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <div key={i} className="flex items-center p-4 rounded-lg bg-surface-2/50 border border-border/50 transition-colors hover:bg-surface-2">
+                  <div className="bg-emerald-500/10 p-2 rounded-full mr-4">
+                    <ShieldCheck className="h-4 w-4 text-emerald-500" />
                   </div>
                   <div className="flex-1 space-y-1">
                     <p className="text-sm font-medium leading-none">Claim #SHA-{54289 + i}</p>
@@ -67,7 +67,7 @@ export default function IntegrationDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-3 shadow-sm border-indigo-100 dark:border-indigo-900/30 overflow-hidden relative">
+        <Card className="col-span-3 overflow-hidden relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-500"></div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -85,8 +85,8 @@ export default function IntegrationDashboardPage() {
                   <div className="text-sm font-medium">Pending Jobs</div>
                   <div className="text-2xl font-bold mt-1 text-slate-700 dark:text-slate-300">0</div>
                 </div>
-                <div className="h-16 w-16 rounded-full border-4 border-slate-100 dark:border-slate-800 flex items-center justify-center">
-                  <span className="text-slate-400">0%</span>
+                <div className="h-16 w-16 rounded-full border-4 border-border flex items-center justify-center">
+                  <span className="text-muted-foreground">0%</span>
                 </div>
               </div>
               <div className="flex items-center">
@@ -94,7 +94,7 @@ export default function IntegrationDashboardPage() {
                   <div className="text-sm font-medium">Failed / Dead Letter</div>
                   <div className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">0</div>
                 </div>
-                <div className="h-16 w-16 rounded-full border-4 border-emerald-100 dark:border-emerald-900/30 flex items-center justify-center">
+                <div className="h-16 w-16 rounded-full border-4 border-emerald-500/20 flex items-center justify-center">
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 </div>
               </div>

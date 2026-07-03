@@ -75,7 +75,7 @@ export function DashboardHeader({
 
   return (
     <header
-      className="glass-chrome sticky top-0 flex h-(--header-height) shrink-0 items-center gap-2 px-3 md:px-5"
+      className="glass-chrome sticky top-0 flex h-(--header-height) shrink-0 items-center gap-2 px-3 md:px-5 border-b border-border/50"
       style={{ zIndex: "var(--z-header)" }}
     >
       <Button

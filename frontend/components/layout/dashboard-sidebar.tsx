@@ -148,8 +148,8 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                       "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring",
                       compact && "justify-center px-0 py-2.5",
                       active
-                        ? "bg-module-soft font-semibold text-module"
-                        : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                        ? "bg-surface-2 shadow-xs border border-border/50 font-semibold text-module"
+                        : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent",
                     )}
                   >
                     {active ? (
