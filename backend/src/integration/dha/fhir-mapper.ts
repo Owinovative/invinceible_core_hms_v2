@@ -97,7 +97,9 @@ export class FhirMapperService {
   toFhirOrganization(facility: HmsFacilityLike): FhirOrganization {
     return {
       resourceType: 'Organization',
-      identifier: [{ system: this.systems.facilityIdentifier, value: facility.code }],
+      identifier: [
+        { system: this.systems.facilityIdentifier, value: facility.code },
+      ],
       name: facility.name,
       type: facility.facilityType
         ? [{ text: facility.facilityType }]
@@ -116,7 +118,12 @@ export class FhirMapperService {
     return {
       resourceType: 'Practitioner',
       identifier: staff.registrationNumber
-        ? [{ system: this.systems.practitionerRegistry, value: staff.registrationNumber }]
+        ? [
+            {
+              system: this.systems.practitionerRegistry,
+              value: staff.registrationNumber,
+            },
+          ]
         : undefined,
       name: [
         {

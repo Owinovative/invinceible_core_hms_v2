@@ -24,9 +24,12 @@ export class FhirSystemsService {
   public readonly practitionerRegistry: string;
 
   constructor(config: ConfigService) {
-    const baseUrl = config.get<string>('DHA_FHIR_BASE_URL', DEFAULT_FHIR_BASE_URL);
+    const baseUrl = config.get<string>(
+      'DHA_FHIR_BASE_URL',
+      DEFAULT_FHIR_BASE_URL,
+    );
     const base = baseUrl.replace(/\/+$/, '');
-    
+
     this.shaNumber = `${base}/fhir/identifier/shanumber`;
     this.nationalId = `${base}/fhir/identifier/nationalid`;
     this.interventionCodes = `${base}/fhir/CodeSystem/intervention-codes`;
