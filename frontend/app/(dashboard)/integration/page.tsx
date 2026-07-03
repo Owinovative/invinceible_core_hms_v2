@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { IntegrationStats } from './components/integration-stats';
-import { Network, Search, Zap, ShieldCheck } from 'lucide-react';
+import { Network, Search, Zap, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 

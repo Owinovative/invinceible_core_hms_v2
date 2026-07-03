@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { BillingService } from '../billing/billing.service';
 import { DhaService } from '../integration/dha/dha.service';
 import { ClaimsIntegrationService } from '../integrations/claims/claims-integration.service';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
@@ -34,6 +35,7 @@ const SHA_CLAIM_INCLUDE = {
 export class ShaClaimsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly scopeService: ScopeService,
     private readonly auditLogService: AuditLogService,
     private readonly billingService: BillingService,
     private readonly dhaService: DhaService,
@@ -60,11 +62,11 @@ export class ShaClaimsService {
         memberNumber: claim.memberNumber || undefined,
         diagnosisCodes: [claim.diagnosisCode].filter(Boolean) as string[],
         items: claim.invoice?.items.map(i => ({
-          serviceCode: i.serviceCode || 'Unknown',
-          description: i.itemName || 'Unknown Service',
+          serviceCode: String(i.id),
+          description: i.description || 'Unknown Service',
           quantity: i.quantity,
           unitPrice: i.unitPrice,
-          netAmount: i.totalAmount,
+          netAmount: (i.quantity * i.unitPrice) - (i.discountAmount || 0),
         })) || [],
         totalAmount: claim.claimedAmount,
         visitType: claim.invoice?.admissionId ? 'IPD' : 'OPD',
