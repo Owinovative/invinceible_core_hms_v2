@@ -5,6 +5,7 @@ import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { BillingService } from '../billing/billing.service';
+import { DhaService } from '../integration/dha/dha.service';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import {
@@ -36,7 +37,24 @@ export class ShaClaimsService {
     private readonly scopeService: ScopeService,
     private readonly auditLogService: AuditLogService,
     private readonly billingService: BillingService,
+    private readonly dhaService: DhaService,
   ) {}
+
+  /**
+   * Routes a submitted claim through the DHA integration layer. The
+   * submission is queued durably with automatic retries; failures here must
+   * never break local claim handling, so errors are only logged.
+   */
+  private async triggerDhaClaimSubmission(claimId: number, user?: RequestUser) {
+    try {
+      await this.dhaService.onShaClaimSubmitted(claimId, {
+        actorUserId: user?.userId,
+        actorStaffId: user?.staffId ?? undefined,
+      });
+    } catch {
+      // DhaService records the failure in its own transaction/audit trail.
+    }
+  }
 
   private resolveCoverageAmount(claim: {
     claimedAmount: number;
@@ -277,6 +295,10 @@ export class ShaClaimsService {
     });
 
     await this.syncClaimPayment(updated, user);
+
+    if (nextStatus === 'SUBMITTED' && !claim.submittedAt) {
+      await this.triggerDhaClaimSubmission(updated.id, user);
+    }
 
     await this.auditLogService.create({
       moduleName: 'SHA',
