@@ -16,7 +16,7 @@ export class FhirBundleBuilder {
     };
 
     this.entries.push({
-      fullUrl: `urn:uuid:${patientData.id}`,
+      fullUrl: `Patient/${patientData.id}`,
       resource: patient,
     });
     return this;
@@ -31,7 +31,7 @@ export class FhirBundleBuilder {
     };
 
     this.entries.push({
-      fullUrl: `urn:uuid:${facilityData.code}`,
+      fullUrl: `Organization/${facilityData.code}`,
       resource: org,
     });
     return this;
@@ -50,15 +50,15 @@ export class FhirBundleBuilder {
       status: 'active',
       type: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/claim-type', code: 'institutional' }] },
       use: 'claim',
-      patient: { reference: `urn:uuid:${claimRequest.patientId}` },
+      patient: { reference: `Patient/${claimRequest.patientId}` },
       created: new Date().toISOString(),
-      provider: { reference: `urn:uuid:${claimRequest.facilityCode}` },
+      provider: { reference: `Organization/${claimRequest.facilityCode}` },
       priority: { coding: [{ code: 'normal' }] },
       insurance: [
         {
           sequence: 1,
           focal: true,
-          coverage: { reference: `urn:uuid:coverage-${claimRequest.patientId}` },
+          coverage: { reference: `Coverage/${claimRequest.patientId}` },
         },
       ],
       item: claimRequest.items.map((item, index) => ({
@@ -75,7 +75,7 @@ export class FhirBundleBuilder {
     };
 
     this.entries.push({
-      fullUrl: `urn:uuid:claim-${claimRequest.claimId}`,
+      fullUrl: `Claim/claim-${claimRequest.claimId}`,
       resource: claim,
     });
     return this;

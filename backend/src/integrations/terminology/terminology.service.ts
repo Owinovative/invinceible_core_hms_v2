@@ -4,6 +4,7 @@ import { ITerminology, TerminologyRecord } from '../interfaces/terminology.inter
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationCacheService } from '../caching/integration-cache.service';
+import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 
 @Injectable()
 export class TerminologyService implements ITerminology {
@@ -14,6 +15,7 @@ export class TerminologyService implements ITerminology {
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
     private readonly cache: IntegrationCacheService,
+    private readonly httpClient: IntegrationHttpClient,
   ) {}
 
   private get baseUrl(): string {
@@ -25,16 +27,15 @@ export class TerminologyService implements ITerminology {
     const params = new URLSearchParams({ q: query });
 
     try {
-      const response = await fetch(`${this.baseUrl}/ValueSet/$expand?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/ValueSet/$expand?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error(`Terminology search failed: ${response.statusText}`);
-
-      const data = await response.json();
+      const data = response.data as any;
       return data.expansion?.contains?.map((c: any) => ({
         code: c.code,
         display: c.display,
@@ -42,7 +43,7 @@ export class TerminologyService implements ITerminology {
         version: c.version,
       })) || [];
     } catch (error: any) {
-      this.logger.error('Terminology search failed', { integration: 'DHA_TERMINOLOGY', query, error: error.message });
+      this.logger.error('Terminology search failed', { integration: 'DHA_TERMINOLOGY', query, error });
       throw error;
     }
   }
@@ -54,19 +55,15 @@ export class TerminologyService implements ITerminology {
 
     const token = await this.authService.getValidToken();
     try {
-      const response = await fetch(`${this.baseUrl}/CodeSystem/$lookup?code=${code}&system=http://hl7.org/fhir/sid/icd-11`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/CodeSystem/$lookup?code=${code}&system=http://hl7.org/fhir/sid/icd-11`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error(`Terminology lookup failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = response.data as any;
       const record: TerminologyRecord = {
         code,
         display: data.parameter?.find((p: any) => p.name === 'display')?.valueString || '',
@@ -76,7 +73,8 @@ export class TerminologyService implements ITerminology {
       await this.cache.set(cacheKey, record, 604800); // 7 days
       return record;
     } catch (error: any) {
-      this.logger.error('Terminology lookup failed', { integration: 'DHA_TERMINOLOGY', code, error: error.message });
+      if (error.status === 404) return null;
+      this.logger.error('Terminology lookup failed', { integration: 'DHA_TERMINOLOGY', code, error });
       throw error;
     }
   }

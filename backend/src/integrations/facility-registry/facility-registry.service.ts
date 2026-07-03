@@ -4,6 +4,7 @@ import { IFacilityRegistry, FacilityRegistryRecord } from '../interfaces/facilit
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationCacheService } from '../caching/integration-cache.service';
+import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 
 @Injectable()
 export class FacilityRegistryService implements IFacilityRegistry {
@@ -12,6 +13,7 @@ export class FacilityRegistryService implements IFacilityRegistry {
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
     private readonly cache: IntegrationCacheService,
+    private readonly httpClient: IntegrationHttpClient,
   ) {}
 
   private get baseUrl(): string {
@@ -26,19 +28,18 @@ export class FacilityRegistryService implements IFacilityRegistry {
     if (query.county) params.append('county', query.county);
 
     try {
-      const response = await fetch(`${this.baseUrl}/facilities?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/facilities?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error(`FR Search failed: ${response.statusText}`);
-
-      const data = await response.json();
+      const data = response.data as any;
       return data.entry?.map((e: any) => this.mapToRecord(e.resource)) || [];
     } catch (error: any) {
-      this.logger.error('Facility Registry search failed', { integration: 'DHA_FR', query, error: error.message });
+      this.logger.error('Facility Registry search failed', { integration: 'DHA_FR', query, error });
       throw error;
     }
   }

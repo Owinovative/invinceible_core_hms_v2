@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IntegrationCacheService } from '../caching/integration-cache.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
+import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 
 @Injectable()
 export class DhaAuthService {
@@ -11,6 +12,7 @@ export class DhaAuthService {
     private readonly configService: ConfigService,
     private readonly cache: IntegrationCacheService,
     private readonly logger: IntegrationLoggerService,
+    private readonly httpClient: IntegrationHttpClient,
   ) {}
 
   async getValidToken(): Promise<string> {
@@ -35,23 +37,20 @@ export class DhaAuthService {
     }
 
     try {
-      const response = await fetch(tokenUrl, {
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: tokenUrl,
+        path: '',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'client_credentials',
           client_id: clientId,
           client_secret: clientSecret,
-        }),
+        }).toString(),
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch DHA token: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = response.data as any;
       const accessToken = data.access_token;
       const expiresIn = data.expires_in || 3600;
 
@@ -61,7 +60,7 @@ export class DhaAuthService {
 
       return accessToken;
     } catch (error: any) {
-      this.logger.error('Error refreshing DHA token', { integration: 'DHA', error: error.message });
+      this.logger.error('Error refreshing DHA token', { integration: 'DHA', error });
       throw new UnauthorizedException('Failed to authenticate with DHA HIE');
     }
   }

@@ -4,6 +4,7 @@ import { IPractitionerRegistry, PractitionerRegistryRecord } from '../interfaces
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationCacheService } from '../caching/integration-cache.service';
+import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 
 @Injectable()
 export class PractitionerRegistryService implements IPractitionerRegistry {
@@ -12,6 +13,7 @@ export class PractitionerRegistryService implements IPractitionerRegistry {
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
     private readonly cache: IntegrationCacheService,
+    private readonly httpClient: IntegrationHttpClient,
   ) {}
 
   private get baseUrl(): string {
@@ -26,19 +28,18 @@ export class PractitionerRegistryService implements IPractitionerRegistry {
     if (query.name) params.append('name', query.name);
 
     try {
-      const response = await fetch(`${this.baseUrl}/practitioners?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/practitioners?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error(`PR Search failed: ${response.statusText}`);
-
-      const data = await response.json();
+      const data = response.data as any;
       return data.entry?.map((e: any) => this.mapToRecord(e.resource)) || [];
     } catch (error: any) {
-      this.logger.error('Practitioner Registry search failed', { integration: 'DHA_PR', query, error: error.message });
+      this.logger.error('Practitioner Registry search failed', { integration: 'DHA_PR', query, error });
       throw error;
     }
   }

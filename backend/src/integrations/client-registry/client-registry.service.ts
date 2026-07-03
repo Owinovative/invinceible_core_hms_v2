@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { IClientRegistry, PatientRegistryRecord, PatientEligibility } from '../interfaces/client-registry.interface';
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
+import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 
 @Injectable()
 export class ClientRegistryService implements IClientRegistry {
@@ -10,6 +11,7 @@ export class ClientRegistryService implements IClientRegistry {
     private readonly configService: ConfigService,
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
+    private readonly httpClient: IntegrationHttpClient,
   ) {}
 
   private get baseUrl(): string {
@@ -24,23 +26,19 @@ export class ClientRegistryService implements IClientRegistry {
     if (query.phone) params.append('phone', query.phone);
 
     try {
-      const response = await fetch(`${this.baseUrl}/patients?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/patients?${params.toString()}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        if (response.status === 404) return [];
-        throw new Error(`CR Search failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      // Assuming FHIR Bundle or custom JSON response
+      const data = response.data as any;
       return data.entry?.map((e: any) => this.mapToRecord(e.resource)) || [];
     } catch (error: any) {
-      this.logger.error('Client Registry search failed', { integration: 'DHA_CR', query, error: error.message });
+      if (error.status === 404) return [];
+      this.logger.error('Client Registry search failed', { integration: 'DHA_CR', query, error });
       throw error;
     }
   }
@@ -49,19 +47,15 @@ export class ClientRegistryService implements IClientRegistry {
     const token = await this.authService.getValidToken();
 
     try {
-      const response = await fetch(`${this.baseUrl}/patients/${patientId}/eligibility`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/patients/${patientId}/eligibility`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) {
-        if (response.status === 404) throw new NotFoundException('Patient eligibility not found');
-        throw new Error(`CR Eligibility check failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = response.data as any;
       return {
         status: data.status || 'PENDING',
         shaStatus: data.shaStatus || 'INACTIVE',
@@ -73,7 +67,8 @@ export class ClientRegistryService implements IClientRegistry {
         lastVerifiedAt: new Date(),
       };
     } catch (error: any) {
-      this.logger.error('Client Registry eligibility check failed', { integration: 'DHA_CR', patientId, error: error.message });
+      if (error.status === 404) throw new NotFoundException('Patient eligibility not found');
+      this.logger.error('Client Registry eligibility check failed', { integration: 'DHA_CR', patientId, error });
       throw error;
     }
   }
@@ -81,21 +76,18 @@ export class ClientRegistryService implements IClientRegistry {
   async registerPatient(patientData: Partial<PatientRegistryRecord>): Promise<PatientRegistryRecord> {
     const token = await this.authService.getValidToken();
     try {
-      const response = await fetch(`${this.baseUrl}/patients`, {
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: '/patients',
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(this.mapToFhir(patientData)),
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: this.mapToFhir(patientData),
       });
 
-      if (!response.ok) throw new Error(`CR Registration failed: ${response.statusText}`);
-
-      const data = await response.json();
-      return this.mapToRecord(data);
+      return this.mapToRecord(response.data);
     } catch (error: any) {
-      this.logger.error('Client Registry registration failed', { integration: 'DHA_CR', error: error.message });
+      this.logger.error('Client Registry registration failed', { integration: 'DHA_CR', error });
       throw error;
     }
   }
@@ -103,21 +95,18 @@ export class ClientRegistryService implements IClientRegistry {
   async updatePatient(patientId: string, updates: Partial<PatientRegistryRecord>): Promise<PatientRegistryRecord> {
     const token = await this.authService.getValidToken();
     try {
-      const response = await fetch(`${this.baseUrl}/patients/${patientId}`, {
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/patients/${patientId}`,
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(this.mapToFhir(updates)),
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: this.mapToFhir(updates),
       });
 
-      if (!response.ok) throw new Error(`CR Update failed: ${response.statusText}`);
-
-      const data = await response.json();
-      return this.mapToRecord(data);
+      return this.mapToRecord(response.data);
     } catch (error: any) {
-      this.logger.error('Client Registry update failed', { integration: 'DHA_CR', patientId, error: error.message });
+      this.logger.error('Client Registry update failed', { integration: 'DHA_CR', patientId, error });
       throw error;
     }
   }
@@ -128,6 +117,9 @@ export class ClientRegistryService implements IClientRegistry {
     const identifier = fhirResource.identifier?.find((i: any) => i.system?.includes('national-id'));
     const memberId = fhirResource.identifier?.find((i: any) => i.system?.includes('sha-member'));
 
+    const parsedDate = fhirResource.birthDate ? new Date(fhirResource.birthDate) : undefined;
+    const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+
     return {
       id: fhirResource.id,
       nationalId: identifier?.value,
@@ -135,9 +127,9 @@ export class ClientRegistryService implements IClientRegistry {
       firstName: name?.given?.[0] || '',
       lastName: name?.family || '',
       gender: fhirResource.gender || 'unknown',
-      dateOfBirth: new Date(fhirResource.birthDate),
+      dateOfBirth: isValidDate ? parsedDate : undefined,
       phone: fhirResource.telecom?.find((t: any) => t.system === 'phone')?.value,
-    };
+    } as unknown as PatientRegistryRecord;
   }
 
   private mapToFhir(record: Partial<PatientRegistryRecord>): any {

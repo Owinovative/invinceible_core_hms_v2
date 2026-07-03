@@ -6,6 +6,7 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { BillingService } from '../billing/billing.service';
 import { DhaService } from '../integration/dha/dha.service';
+import { IntegrationLoggerService } from '../integration/integration-logger.service';
 import { ClaimsIntegrationService } from '../integrations/claims/claims-integration.service';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
@@ -40,6 +41,7 @@ export class ShaClaimsService {
     private readonly billingService: BillingService,
     private readonly dhaService: DhaService,
     private readonly claimsIntegrationService: ClaimsIntegrationService,
+    private readonly integrationLoggerService: IntegrationLoggerService,
   ) {}
 
   private async triggerDhaClaimSubmission(claimId: number, user?: RequestUser) {
@@ -80,7 +82,11 @@ export class ShaClaimsService {
         actorStaffId: user?.staffId ?? undefined,
       });
     } catch (error) {
-      console.error('Failed to submit claim via ClaimsIntegrationService', error);
+      this.integrationLoggerService.error('Failed to submit claim via ClaimsIntegrationService', {
+        error,
+        claimId,
+        actorUserId: user?.userId,
+      });
       // DhaService records the failure in its own transaction/audit trail.
     }
   }

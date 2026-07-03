@@ -17,6 +17,7 @@ import {
 } from '../common/pagination/pagination';
 import { CacheService } from '../resilience/cache.service';
 import { ClientRegistryService } from '../integrations/client-registry/client-registry.service';
+import { IntegrationLoggerService } from '../integration/integration-logger.service';
 
 @Injectable()
 export class PatientService {
@@ -26,6 +27,7 @@ export class PatientService {
     private readonly scopeService: ScopeService,
     private readonly cacheService: CacheService,
     private readonly clientRegistryService: ClientRegistryService,
+    private readonly integrationLoggerService: IntegrationLoggerService,
   ) {}
 
   private async generatePatientNumber(facilityId: number) {
@@ -113,9 +115,9 @@ export class PatientService {
       middleName: patient.middleName || undefined,
       lastName: patient.lastName,
       gender: patient.gender || 'unknown',
-      dateOfBirth: patient.dateOfBirth || new Date(),
+      dateOfBirth: patient.dateOfBirth || undefined,
       phone: patient.phonePrimary || undefined,
-    }).catch((err) => console.error('Failed to register patient in HIE CR', err));
+    }).catch((err) => this.integrationLoggerService.error('Failed to register patient in HIE CR', { error: err, patientId: patient.id }));
 
     return patient;
   }

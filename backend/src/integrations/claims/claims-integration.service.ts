@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { IClaimsIntegration, ClaimPreauthRequest, ClaimPreauthResponse, ClaimSubmissionRequest, ClaimSubmissionResponse } from '../interfaces/claims.interface';
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
+import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 import { FhirBundleBuilder } from '../fhir/fhir-bundle.builder';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class ClaimsIntegrationService implements IClaimsIntegration {
     private readonly configService: ConfigService,
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
+    private readonly httpClient: IntegrationHttpClient,
   ) {}
 
   private get baseUrl(): string {
@@ -37,18 +39,16 @@ export class ClaimsIntegrationService implements IClaimsIntegration {
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/Claim/$preauth`, {
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: '/Claim/$preauth',
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/fhir+json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: payload,
       });
 
-      if (!response.ok) throw new Error(`Preauth request failed: ${response.statusText}`);
-
-      const data = await response.json(); // Expected FHIR ClaimResponse
+      const data = response.data as any; // Expected FHIR ClaimResponse
       return {
         preauthId: data.preAuthRef || data.id,
         status: data.outcome === 'complete' ? 'APPROVED' : data.outcome === 'queued' ? 'PENDING' : 'DENIED',
@@ -57,7 +57,7 @@ export class ClaimsIntegrationService implements IClaimsIntegration {
         requiresReview: data.outcome === 'queued',
       };
     } catch (error: any) {
-      this.logger.error('Claim Preauthorization failed', { integration: 'DHA_CLAIMS', error: error.message });
+      this.logger.error('Claim Preauthorization failed', { integration: 'DHA_CLAIMS', error });
       throw error;
     }
   }
@@ -70,28 +70,23 @@ export class ClaimsIntegrationService implements IClaimsIntegration {
     const bundle = builder.build();
 
     try {
-      const response = await fetch(`${this.baseUrl}/Claim`, {
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: '/Claim',
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/fhir+json',
-        },
-        body: JSON.stringify(bundle),
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: bundle,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Claim submission failed: ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
+      const data = response.data as any;
       return {
         externalClaimId: data.id,
         status: 'SUBMITTED',
         timestamp: new Date(),
       };
     } catch (error: any) {
-      this.logger.error('Claim Submission failed', { integration: 'DHA_CLAIMS', claimId: request.claimId, error: error.message });
+      this.logger.error('Claim Submission failed', { integration: 'DHA_CLAIMS', claimId: request.claimId, error });
       throw error;
     }
   }
@@ -100,16 +95,15 @@ export class ClaimsIntegrationService implements IClaimsIntegration {
     const token = await this.authService.getValidToken();
 
     try {
-      const response = await fetch(`${this.baseUrl}/ClaimResponse?request=${externalClaimId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/fhir+json',
-        },
+      const response = await this.httpClient.request({
+        integration: 'DHA',
+        baseUrl: this.baseUrl,
+        path: `/ClaimResponse?request=${externalClaimId}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error(`Status check failed: ${response.statusText}`);
-
-      const data = await response.json();
+      const data = response.data as any;
       const claimResponse = data.entry?.[0]?.resource;
 
       if (!claimResponse) return { status: 'PENDING' };
@@ -120,7 +114,7 @@ export class ClaimsIntegrationService implements IClaimsIntegration {
         reason: claimResponse.disposition,
       };
     } catch (error: any) {
-      this.logger.error('Claim Status check failed', { integration: 'DHA_CLAIMS', externalClaimId, error: error.message });
+      this.logger.error('Claim Status check failed', { integration: 'DHA_CLAIMS', externalClaimId, error });
       throw error;
     }
   }
