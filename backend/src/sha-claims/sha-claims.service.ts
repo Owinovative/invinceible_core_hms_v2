@@ -6,6 +6,8 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { BillingService } from '../billing/billing.service';
 import { DhaService } from '../integration/dha/dha.service';
+import { IntegrationLoggerService } from '../integration/integration-logger.service';
+import { ClaimsIntegrationService } from '../integrations/claims/claims-integration.service';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import {
@@ -38,20 +40,53 @@ export class ShaClaimsService {
     private readonly auditLogService: AuditLogService,
     private readonly billingService: BillingService,
     private readonly dhaService: DhaService,
+    private readonly claimsIntegrationService: ClaimsIntegrationService,
+    private readonly integrationLoggerService: IntegrationLoggerService,
   ) {}
 
-  /**
-   * Routes a submitted claim through the DHA integration layer. The
-   * submission is queued durably with automatic retries; failures here must
-   * never break local claim handling, so errors are only logged.
-   */
   private async triggerDhaClaimSubmission(claimId: number, user?: RequestUser) {
     try {
+      const claim = await this.prisma.shaClaim.findUnique({
+        where: { id: claimId },
+        include: {
+          facility: true,
+          patient: true,
+          invoice: { include: { items: true } }
+        }
+      });
+      if (!claim || !claim.facility || !claim.patient) return;
+
+      await this.claimsIntegrationService.submitClaim({
+        claimId: claim.id,
+        localClaimNumber: claim.claimNumber,
+        facilityCode: claim.facility.code,
+        patientId: String(claim.patient.id),
+        memberNumber: claim.memberNumber || undefined,
+        diagnosisCodes: [claim.diagnosisCode].filter(Boolean) as string[],
+        items: claim.invoice?.items.map(i => ({
+          serviceCode: String(i.id),
+          description: i.description || 'Unknown Service',
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          netAmount: (i.quantity * i.unitPrice) - (i.discountAmount || 0),
+        })) || [],
+        totalAmount: claim.claimedAmount,
+        visitType: claim.invoice?.admissionId ? 'IPD' : 'OPD',
+        startDate: claim.servicePeriodStart || claim.createdAt,
+        endDate: claim.servicePeriodEnd || claim.updatedAt,
+      });
+
+      // Keep legacy call as a fallback/parallel during migration
       await this.dhaService.onShaClaimSubmitted(claimId, {
         actorUserId: user?.userId,
         actorStaffId: user?.staffId ?? undefined,
       });
-    } catch {
+    } catch (error) {
+      this.integrationLoggerService.error('Failed to submit claim via ClaimsIntegrationService', {
+        error,
+        claimId,
+        actorUserId: user?.userId,
+      });
       // DhaService records the failure in its own transaction/audit trail.
     }
   }
