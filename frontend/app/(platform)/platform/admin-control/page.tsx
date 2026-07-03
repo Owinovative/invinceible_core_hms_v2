@@ -65,9 +65,9 @@ export default function PlatformAdminControlPage() {
   if (!canManage) {
     return (
       <div className="space-y-6">
-        <Card className="rounded-lg border border-amber-200 bg-white">
+        <Card className="rounded-lg border border-warning/30 bg-card">
           <CardContent className="p-8">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center border border-amber-200 bg-amber-50 text-amber-700">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center border border-warning/30 bg-warning-soft text-warning">
               <ShieldCheck className="h-6 w-6" />
             </div>
             <h1 className="text-2xl font-bold">Admin access required</h1>
@@ -83,21 +83,21 @@ export default function PlatformAdminControlPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden border border-sky-200 bg-white p-6 shadow-sm md:p-8">
+      <section className="overflow-hidden border border-border bg-card p-6 shadow-sm md:p-8">
         <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr] xl:items-end">
           <div className="space-y-4">
-            <Badge className="rounded border border-sky-200 bg-sky-50 px-3 py-1 text-sky-800">
+            <Badge className="rounded border border-border bg-surface-2 px-3 py-1 text-module">
               platform-control / admin-intelligence
             </Badge>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-sky-200 bg-sky-50">
-                <ShieldCheck className="h-7 w-7 text-sky-700" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-border bg-surface-2">
+                <ShieldCheck className="h-7 w-7 text-module" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-slate-950 md:text-5xl">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-5xl">
                   Platform Admin Control Center
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+                <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
                   The platform control layer for users, facilities, catalogs,
                   audit, location evidence, pricing paths, reports, and AI user
                   guidance.
@@ -106,39 +106,39 @@ export default function PlatformAdminControlPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 border-y border-sky-200 bg-sky-50/70 p-4 sm:grid-cols-3">
-            <div className="border-l-2 border-sky-300 pl-3">
-              <Activity className="mb-3 h-5 w-5 text-sky-700" />
-              <p className="text-3xl font-bold text-slate-950">
+          <div className="grid gap-3 border-y border-border bg-surface-2/70 p-4 sm:grid-cols-3">
+            <div className="border-l-2 border-border-strong pl-3">
+              <Activity className="mb-3 h-5 w-5 text-module" />
+              <p className="text-3xl font-bold text-foreground">
                 {health?.healthScore ?? "--"}
               </p>
-              <p className="text-xs text-slate-500">health score</p>
+              <p className="text-xs text-muted-foreground">health score</p>
             </div>
-            <div className="border-l-2 border-sky-300 pl-3">
-              <ShieldCheck className="mb-3 h-5 w-5 text-sky-700" />
-              <p className="text-3xl font-bold text-slate-950">{counts?.counts.total ?? 0}</p>
-              <p className="text-xs text-slate-500">open alerts</p>
+            <div className="border-l-2 border-border-strong pl-3">
+              <ShieldCheck className="mb-3 h-5 w-5 text-module" />
+              <p className="text-3xl font-bold text-foreground">{counts?.counts.total ?? 0}</p>
+              <p className="text-xs text-muted-foreground">open alerts</p>
             </div>
-            <div className="border-l-2 border-sky-300 pl-3">
-              <Receipt className="mb-3 h-5 w-5 text-sky-700" />
-              <p className="text-3xl font-bold text-slate-950">
+            <div className="border-l-2 border-border-strong pl-3">
+              <Receipt className="mb-3 h-5 w-5 text-module" />
+              <p className="text-3xl font-bold text-foreground">
                 {health?.summary.billingFailures ?? 0}
               </p>
-              <p className="text-xs text-slate-500">billing failures</p>
+              <p className="text-xs text-muted-foreground">billing failures</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 border-y border-sky-200 bg-sky-50/70 p-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 border-y border-border bg-surface-2/70 p-4 md:grid-cols-2 xl:grid-cols-4">
         {controlSignals.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.title} className="flex items-start gap-3 border-l-2 border-sky-300 pl-3">
-              <Icon className="mt-1 h-5 w-5 shrink-0 text-sky-700" />
+            <div key={item.title} className="flex items-start gap-3 border-l-2 border-border-strong pl-3">
+              <Icon className="mt-1 h-5 w-5 shrink-0 text-module" />
               <div>
-                <p className="font-semibold text-slate-950">{item.title}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{item.text}</p>
+                <p className="font-semibold text-foreground">{item.title}</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.text}</p>
               </div>
             </div>
           );

@@ -31,13 +31,13 @@ import { appSelectClass } from "@/lib/select-class";
 
 const accentClasses = {
   amber:
-    "from-amber-500/18 via-orange-500/8 to-transparent text-amber-700",
-  cyan: "from-cyan-500/18 via-sky-500/8 to-transparent text-cyan-700",
+    "from-amber-500/18 via-orange-500/8 to-transparent text-warning",
+  cyan: "from-pulse/18 via-sky-500/8 to-transparent text-module",
   emerald:
-    "from-emerald-500/18 via-teal-500/8 to-transparent text-emerald-700",
-  rose: "from-rose-500/18 via-red-500/8 to-transparent text-rose-700",
+    "from-emerald-500/18 via-teal-500/8 to-transparent text-success",
+  rose: "from-rose-500/18 via-red-500/8 to-transparent text-destructive",
   blue:
-    "from-cyan-500/18 via-blue-500/8 to-transparent text-cyan-700",
+    "from-pulse/18 via-blue-500/8 to-transparent text-module",
 };
 
 function formatDate(value?: string | null) {
@@ -49,27 +49,27 @@ function formatDate(value?: string | null) {
 
 function statusClass(status: string) {
   if (["COMPLETED", "CLOSED"].includes(status)) {
-    return "bg-emerald-500/10 text-emerald-700";
+    return "bg-success/10 text-success";
   }
 
   if (["ESCALATED", "CANCELLED"].includes(status)) {
-    return "bg-rose-500/10 text-rose-700";
+    return "bg-destructive/10 text-destructive";
   }
 
   if (status === "WAITING") {
-    return "bg-amber-500/10 text-amber-700";
+    return "bg-amber-500/10 text-warning";
   }
 
-  return "bg-cyan-500/10 text-cyan-700";
+  return "bg-cyan-500/10 text-module";
 }
 
 function priorityClass(priority: string) {
   if (priority === "CRITICAL") {
-    return "bg-rose-500/10 text-rose-700";
+    return "bg-destructive/10 text-destructive";
   }
 
   if (priority === "URGENT") {
-    return "bg-amber-500/10 text-amber-700";
+    return "bg-amber-500/10 text-warning";
   }
 
   return "bg-muted text-muted-foreground";
@@ -284,7 +284,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.4rem] border gradient-border p-6 panel-shadow md:p-8">
+      <section className="relative overflow-hidden rounded-[1.4rem] border surface-spotlight p-6 shadow-md md:p-8">
         <div
           className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${
             accentClasses[moduleConfig.accent]
@@ -332,30 +332,30 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-module">
           {message}
         </div>
       ) : null}
 
-      <section className="grid gap-3 border-y border-sky-200 bg-sky-50/70 px-4 py-4 md:grid-cols-4">
+      <section className="grid gap-3 border-y border-border bg-surface-2/70 px-4 py-4 md:grid-cols-4">
         {[
           ["Total", summary?.total ?? 0],
           ["Active", summary?.active ?? 0],
           ["Completed", summary?.completed ?? 0],
           ["Overdue", summary?.overdue ?? 0],
         ].map(([label, value]) => (
-          <div key={label} className="border-l-2 border-sky-300 px-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <div key={label} className="border-l-2 border-border-strong px-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {label}
             </p>
-            <p className="mt-1 text-2xl font-black text-sky-800">{value}</p>
+            <p className="mt-1 text-2xl font-black text-module">{value}</p>
           </div>
         ))}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="space-y-5">
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5 text-cyan-500" />
@@ -459,7 +459,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
           </Card>
 
           {moduleConfig.quickTemplates?.length ? (
-            <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-cyan-500" />
@@ -472,7 +472,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
                     key={template.title}
                     type="button"
                     onClick={() => handleApplyTemplate(template)}
-                    className="rounded-xl border border-sky-200 bg-background/75 p-4 text-left transition hover:border-sky-400 hover:bg-sky-50"
+                    className="rounded-xl border border-border bg-background/75 p-4 text-left transition hover:border-border-strong hover:bg-surface-2"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -491,7 +491,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
             </Card>
           ) : null}
 
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -513,7 +513,7 @@ export function ModuleWorkspace({ slug }: { slug: string }) {
         </div>
 
         <div className="space-y-5">
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div className="flex items-center gap-3">

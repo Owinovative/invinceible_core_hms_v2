@@ -366,10 +366,10 @@ export const adminCriticalFunctions: AdminCriticalFunction[] = [
 
 const urgencyClasses = {
   critical:
-    "border-red-500/25 bg-red-500/10 text-red-700",
-  high: "border-amber-500/25 bg-amber-500/10 text-amber-700",
+    "border-red-500/25 bg-red-500/10 text-destructive",
+  high: "border-amber-500/25 bg-amber-500/10 text-warning",
   standard:
-    "border-cyan-500/25 bg-cyan-500/10 text-cyan-700",
+    "border-cyan-500/25 bg-cyan-500/10 text-module",
 };
 
 export function AdminCommandCenter({
@@ -389,14 +389,14 @@ export function AdminCommandCenter({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden rounded-[1.4rem] gradient-border panel-shadow",
+        "relative overflow-hidden rounded-[1.4rem] surface-spotlight shadow-md",
         className,
       )}
     >
       <CardHeader className="relative gap-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <Badge className="rounded-md border border-sky-200 bg-sky-50 text-sky-800">
+            <Badge className="rounded-md border border-border bg-surface-2 text-module">
               {adminCriticalFunctions.length}+ admin critical functions
             </Badge>
             <CardTitle className="mt-3 text-2xl">
@@ -448,7 +448,7 @@ export function AdminCommandCenter({
                 className="group rounded-lg border border-border bg-background/72 p-4 transition hover:-translate-y-0.5 hover:border-cyan-400/45 hover:bg-cyan-500/5"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-module">
                     <Icon className="h-5 w-5" />
                   </div>
                   <Badge

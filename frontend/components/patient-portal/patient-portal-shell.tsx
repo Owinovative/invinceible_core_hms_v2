@@ -35,21 +35,21 @@ export function PatientPortalShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-slate-950">
-      <header className="border-b border-sky-200 bg-white">
+    <main className="min-h-screen bg-[#eef8ff] text-foreground">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-4 md:px-8">
           <AppLogo />
           <div className="flex items-center gap-2">
             <Button
               asChild
               variant="outline"
-              className="rounded-md border-sky-200"
+              className="rounded-md border-border"
             >
               <Link href="/">Home</Link>
             </Button>
             <Button
               asChild
-              className="rounded-md bg-sky-700 text-white hover:bg-sky-800"
+              className="rounded-md bg-primary text-white hover:bg-brand-strong"
             >
               <Link href="/login">
                 Staff login
@@ -61,8 +61,8 @@ export function PatientPortalShell({
       </header>
 
       <section className="mx-auto grid max-w-[1400px] gap-6 px-5 py-8 md:px-8 lg:grid-cols-[280px_1fr]">
-        <aside className="border border-sky-200 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-xs font-bold uppercase text-sky-700">
+        <aside className="border border-border bg-card p-4 shadow-sm">
+          <p className="mb-3 text-xs font-bold uppercase text-module">
             Patient portal
           </p>
           <nav className="grid gap-2">
@@ -72,9 +72,9 @@ export function PatientPortalShell({
                 <Link
                   href={item.href}
                   key={item.href}
-                  className="flex items-center gap-3 border border-sky-100 bg-[#f7fcff] px-3 py-3 text-sm font-semibold text-slate-800 hover:border-sky-300"
+                  className="flex items-center gap-3 border border-border bg-[#f7fcff] px-3 py-3 text-sm font-semibold text-foreground hover:border-border-strong"
                 >
-                  <Icon className="h-4 w-4 text-sky-700" />
+                  <Icon className="h-4 w-4 text-module" />
                   {item.title}
                 </Link>
               );
@@ -82,11 +82,11 @@ export function PatientPortalShell({
           </nav>
         </aside>
 
-        <section className="min-h-[620px] border border-sky-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase text-sky-700">
+        <section className="min-h-[620px] border border-border bg-card p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase text-module">
             Secure patient access
           </p>
-          <h1 className="mt-2 text-4xl font-bold text-slate-950">{title}</h1>
+          <h1 className="mt-2 text-4xl font-bold text-foreground">{title}</h1>
           <div className="mt-6">{children}</div>
         </section>
       </section>

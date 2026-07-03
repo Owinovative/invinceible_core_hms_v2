@@ -823,7 +823,7 @@ export default function ConsultationDetailPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-600/10 via-cyan-500/5 to-transparent" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-3">
@@ -848,13 +848,13 @@ export default function ConsultationDetailPage() {
 
           {data ? (
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Consultation No
                 </p>
                 <p className="mt-2 text-sm font-semibold">{data.consultationNumber}</p>
               </div>
-              <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Status
                 </p>
@@ -865,7 +865,7 @@ export default function ConsultationDetailPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-full min-h-[76px] rounded-[1.2rem] justify-start border-white/10 bg-white/[0.03]"
+                className="h-full min-h-[76px] rounded-[1.2rem] justify-start border-white/10 bg-card/[0.03]"
                 onClick={handleDownloadMedicalReport}
                 disabled={reportDownloading}
               >
@@ -890,7 +890,7 @@ export default function ConsultationDetailPage() {
 
 
       {isLoading || !data ? (
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="p-6 text-sm text-muted-foreground">
             Loading consultation...
           </CardContent>
@@ -907,14 +907,14 @@ export default function ConsultationDetailPage() {
           />
 
           <section className="space-y-6">
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Patient Snapshot</CardTitle>
               </CardHeader>
 
 
               <CardContent className="space-y-4">
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-lg font-bold">
                     {[data.patient?.firstName, data.patient?.middleName, data.patient?.lastName]
                       .filter(Boolean)
@@ -927,23 +927,23 @@ export default function ConsultationDetailPage() {
 
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Gender</p>
                     <p className="mt-1 text-sm font-medium">{data.patient?.gender || "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Phone</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.patient?.phonePrimary || "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Appointment</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.appointment?.appointmentNumber || "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Priority</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.triagePriority || data.appointment?.triagePriority || "NORMAL"}
@@ -952,7 +952,7 @@ export default function ConsultationDetailPage() {
                 </div>
 
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs text-muted-foreground">Chief Complaint</p>
                   <p className="mt-1 text-sm font-medium">
                     {triageData?.chiefComplaint || data.chiefComplaint || "—"}
@@ -961,15 +961,15 @@ export default function ConsultationDetailPage() {
 
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Arrival Type</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.arrivalType || "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Clinic</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.clinic?.name || "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Routed Doctor</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.routedDoctor
@@ -979,7 +979,7 @@ export default function ConsultationDetailPage() {
                         : "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Triage Status</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.statusCode || "—"}</p>
                   </div>
@@ -987,11 +987,11 @@ export default function ConsultationDetailPage() {
 
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Temperature °C</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.temperatureC ?? "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Blood Pressure</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.systolicBp || triageData?.diastolicBp
@@ -999,31 +999,31 @@ export default function ConsultationDetailPage() {
                         : "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Pulse Rate</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.pulseRate ?? "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Respiratory Rate</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.respiratoryRate ?? "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Oxygen Saturation</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.oxygenSaturation ?? "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Weight (kg)</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.weightKg ?? "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Height (cm)</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.heightCm ?? "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">BMI</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.bmi ?? "—"}</p>
                   </div>
@@ -1031,11 +1031,11 @@ export default function ConsultationDetailPage() {
 
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Pain Score</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.painScore ?? "—"}</p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Triage Number</p>
                     <p className="mt-1 text-sm font-medium">{triageData?.triageNumber || "—"}</p>
                   </div>
@@ -1043,13 +1043,13 @@ export default function ConsultationDetailPage() {
 
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Triage Started</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.startedAt ? new Date(triageData.startedAt).toLocaleString() : "—"}
                     </p>
                   </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Triage Completed</p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.completedAt
@@ -1060,7 +1060,7 @@ export default function ConsultationDetailPage() {
                 </div>
 
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs text-muted-foreground">Triage Notes</p>
                   <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                     {triageData?.notes || "—"}
@@ -1070,7 +1070,7 @@ export default function ConsultationDetailPage() {
             </Card>
 
 
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Doctor Notes</CardTitle>
               </CardHeader>
@@ -1124,7 +1124,7 @@ export default function ConsultationDetailPage() {
                           <button
                             key={item.code}
                             type="button"
-                            className="block w-full px-3 py-2 text-left text-sm hover:bg-sky-500/10"
+                            className="block w-full px-3 py-2 text-left text-sm hover:bg-primary/10"
                             onClick={() => {
                               const next = `${item.code} - ${item.label}`;
                               setDiagnosis((current) =>
@@ -1207,7 +1207,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BedDouble className="h-5 w-5 text-cyan-300" />
@@ -1219,7 +1219,7 @@ export default function ConsultationDetailPage() {
               <CardContent className="space-y-5">
                 {existingAdmission ? (
                <>
-                <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 p-5">
+                <div className="rounded-[1.2rem] border border-emerald-500/20 bg-success/10 p-5">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="space-y-2">
                       <p className="text-base font-semibold text-emerald-300">
@@ -1237,7 +1237,7 @@ export default function ConsultationDetailPage() {
                       </p>
                     </div>
 
-                    <Badge className="w-fit rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-300">
+                    <Badge className="w-fit rounded-full border border-emerald-500/20 bg-success/10 px-3 py-1 text-emerald-300">
                       ADMITTED
                     </Badge>
                   </div>
@@ -1268,7 +1268,7 @@ export default function ConsultationDetailPage() {
 
                 ) : (
                   <>
-                    <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                       <p className="text-sm font-medium">Admission Decision</p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         Admit this patient directly from the consultation into inpatient care.
@@ -1410,7 +1410,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Pill className="h-5 w-5 text-cyan-300" />
@@ -1420,7 +1420,7 @@ export default function ConsultationDetailPage() {
 
 
               <CardContent className="space-y-5">
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm font-medium">Current Consultation Prescription</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {activePrescription
@@ -1484,10 +1484,10 @@ export default function ConsultationDetailPage() {
                       <div
                         className={`rounded-[1.2rem] border p-4 ${
                           selectedStockStatus === "OUT_OF_STOCK"
-                            ? "border-rose-500/20 bg-rose-500/10"
+                            ? "border-rose-500/20 bg-destructive/10"
                             : selectedStockStatus === "LOW_STOCK"
                               ? "border-amber-500/20 bg-amber-500/10"
-                              : "border-emerald-500/20 bg-emerald-500/10"
+                              : "border-emerald-500/20 bg-success/10"
                         }`}
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -1509,10 +1509,10 @@ export default function ConsultationDetailPage() {
                           <Badge
                             className={`w-fit rounded-full border px-3 py-1 ${
                               selectedStockStatus === "OUT_OF_STOCK"
-                                ? "border-rose-500/20 bg-rose-500/10 text-rose-300"
+                                ? "border-rose-500/20 bg-destructive/10 text-rose-300"
                                 : selectedStockStatus === "LOW_STOCK"
                                   ? "border-amber-500/20 bg-amber-500/10 text-amber-300"
-                                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                                  : "border-emerald-500/20 bg-success/10 text-emerald-300"
                             }`}
                           >
                             {selectedStockStatus}
@@ -1535,7 +1535,7 @@ export default function ConsultationDetailPage() {
                                   <button
                                     key={item.id}
                                     type="button"
-                                    className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
+                                    className="rounded-xl border border-white/10 bg-card/[0.04] p-3 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
                                     onClick={() => {
                                       setAcceptedAlternativeForMedicineId(
                                         selectedMedicineIdNumber,
@@ -1716,7 +1716,7 @@ export default function ConsultationDetailPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold">Draft medicine items</p>
@@ -1729,7 +1729,7 @@ export default function ConsultationDetailPage() {
                         </Badge>
                       </div>
                       {draftPrescriptionItems.length === 0 ? (
-                        <div className="rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                        <div className="rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                           Search and add at least one medicine before sending to pharmacy.
                         </div>
                       ) : (
@@ -1769,7 +1769,7 @@ export default function ConsultationDetailPage() {
                                   </td>
                                   <td className="px-3 py-2">{item.quantity}</td>
                                   <td className="px-3 py-2">
-                                    <Badge className="rounded-full border border-white/10 bg-white/[0.04] text-xs">
+                                    <Badge className="rounded-full border border-white/10 bg-card/[0.04] text-xs">
                                       {item.stockStatus} - {item.stockQuantity}
                                     </Badge>
                                   </td>
@@ -1817,7 +1817,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Current Consultation Prescriptions</CardTitle>
               </CardHeader>
@@ -1825,7 +1825,7 @@ export default function ConsultationDetailPage() {
 
               <CardContent className="space-y-4">
                 {consultationPrescriptionList.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No prescriptions created for this consultation yet.
                   </div>
                 ) : (
@@ -1835,7 +1835,7 @@ export default function ConsultationDetailPage() {
                       className={`rounded-[1.2rem] border p-4 transition-all ${
                         activePrescription?.id === prescription.id
                           ? "border-cyan-500/30 bg-cyan-500/[0.06]"
-                          : "border-white/10 bg-white/[0.03]"
+                          : "border-white/10 bg-card/[0.03]"
                       }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1860,14 +1860,14 @@ export default function ConsultationDetailPage() {
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {(prescription.items ?? []).length === 0 ? (
-                          <div className="rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-3 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+                          <div className="rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-3 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
                             No items yet.
                           </div>
                         ) : (
                           prescription.items?.map((item: PrescriptionItemSummary) => (
                             <div
                               key={item.id}
-                              className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3"
+                              className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3"
                             >
                               <p className="font-medium">
                                 {item.medicineNameSnapshot ||
@@ -1907,7 +1907,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FlaskConical className="h-5 w-5 text-cyan-300" />
@@ -1967,14 +1967,14 @@ export default function ConsultationDetailPage() {
 
                 <div className="space-y-3">
                   {selectedLabItems.length === 0 ? (
-                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                       No tests selected yet.
                     </div>
                   ) : (
                     selectedLabItems.map((item) => (
                       <div
                         key={item.testId}
-                        className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-3"
+                        className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-3"
                       >
                         <div>
                           <p className="font-medium">{item.testName}</p>
@@ -2043,7 +2043,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <FlaskConical className="h-5 w-5 text-cyan-300" />
@@ -2063,14 +2063,14 @@ export default function ConsultationDetailPage() {
                 {labOrdersLoading ? (
                   <div className="text-sm text-muted-foreground">Loading lab orders...</div>
                 ) : consultationLabOrders.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No lab orders found for this consultation yet.
                   </div>
                 ) : (
                   consultationLabOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
@@ -2087,7 +2087,7 @@ export default function ConsultationDetailPage() {
                         </div>
 
 
-                        <div className="min-w-[260px] rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                        <div className="min-w-[260px] rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                           <p className="text-xs text-muted-foreground">Clinical Notes</p>
                           <p className="mt-1 text-sm font-medium">
                             {order.clinicalNotes || "—"}
@@ -2098,7 +2098,7 @@ export default function ConsultationDetailPage() {
 
                       <div className="mt-4 space-y-3">
                         {(order.items ?? []).length === 0 ? (
-                          <div className="rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-3 text-sm text-muted-foreground">
+                          <div className="rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-3 text-sm text-muted-foreground">
                             No test items in this order.
                           </div>
                         ) : (
@@ -2127,7 +2127,7 @@ export default function ConsultationDetailPage() {
                             return (
                               <div
                                 key={item.id}
-                                className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                                className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4"
                               >
                                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                   <div className="space-y-2">
@@ -2146,7 +2146,7 @@ export default function ConsultationDetailPage() {
                                   <Badge
                                     className={`rounded-full border px-3 py-1 ${
                                       item.status === "RESULTED"
-                                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                                        ? "border-emerald-500/20 bg-success/10 text-emerald-300"
                                         : "border-amber-500/20 bg-amber-500/10 text-amber-300"
                                     }`}
                                   >
@@ -2200,7 +2200,7 @@ export default function ConsultationDetailPage() {
                                             itemResult?.attachmentFileName ||
                                             "Lab result PDF"
                                           }
-                                          className="h-[420px] w-full rounded-xl border border-white/10 bg-white"
+                                          className="h-[420px] w-full rounded-xl border border-white/10 bg-card"
                                         />
                                       ) : null}
                                       {isImageAttachment ? (
@@ -2236,7 +2236,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-cyan-300" />
@@ -2254,14 +2254,14 @@ export default function ConsultationDetailPage() {
                     Loading patient history...
                   </div>
                 ) : patientHistory.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No previous consultations found for this patient.
                   </div>
                 ) : (
                   patientHistory.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
@@ -2281,7 +2281,7 @@ export default function ConsultationDetailPage() {
                         </div>
 
 
-                        <div className="min-w-[220px] rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                        <div className="min-w-[220px] rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                           <p className="text-xs text-muted-foreground">Diagnosis</p>
                           <p className="mt-1 text-sm font-medium">{item.diagnosis || "—"}</p>
                           <p className="mt-3 text-xs text-muted-foreground">Treatment Plan</p>
@@ -2299,7 +2299,7 @@ export default function ConsultationDetailPage() {
 
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Pill className="h-5 w-5 text-cyan-300" />
@@ -2319,14 +2319,14 @@ export default function ConsultationDetailPage() {
                     Loading prescription history...
                   </div>
                 ) : patientPrescriptionHistory.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No previous prescriptions found for this patient.
                   </div>
                 ) : (
                   patientPrescriptionHistory.map((prescription) => (
                     <div
                       key={prescription.id}
-                      className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
@@ -2346,7 +2346,7 @@ export default function ConsultationDetailPage() {
                         </div>
 
 
-                        <div className="min-w-[260px] space-y-2 rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                        <div className="min-w-[260px] space-y-2 rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                           {(prescription.items ?? []).length === 0 ? (
                             <p className="text-sm text-muted-foreground">No items</p>
                           ) : (

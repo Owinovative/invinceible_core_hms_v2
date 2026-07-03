@@ -99,7 +99,7 @@ export function FacilitiesTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1180px]">
             <thead className="bg-muted/40">
@@ -177,7 +177,7 @@ export function FacilitiesTable() {
                                 className="h-full w-full rounded-xl object-contain"
                               />
                             ) : (
-                              <Building2 className="h-5 w-5 text-cyan-600" />
+                              <Building2 className="h-5 w-5 text-module" />
                             )}
                           </div>
                           <div>
@@ -221,13 +221,13 @@ export function FacilitiesTable() {
                               }
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 underline underline-offset-4"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-module underline underline-offset-4"
                             >
                               <MapPin className="h-3 w-3" />
                               {facility.mapLocationLabel || "Open map"}
                             </a>
                           ) : (
-                            <span className="text-xs text-rose-600">
+                            <span className="text-xs text-destructive">
                               Coordinates missing
                             </span>
                           )}
@@ -244,8 +244,8 @@ export function FacilitiesTable() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-semibold",
                               facility.isActive === false
-                                ? "status-critical"
-                                : "status-success",
+                                ? "bg-destructive-soft text-destructive"
+                                : "bg-success-soft text-success",
                             )}
                           >
                             {facility.isActive === false
@@ -254,25 +254,25 @@ export function FacilitiesTable() {
                           </span>
 
                           {facility.isDefault ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Default
                             </span>
                           ) : null}
 
                           {facility.isHeadOffice ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Head Office
                             </span>
                           ) : null}
 
                           {facility.accessStatus?.complianceWriteLocked ? (
-                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-warning">
                               Read-only grace
                             </span>
                           ) : null}
 
                           {facility.accessStatus?.loginBlocked ? (
-                            <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700">
+                            <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-destructive">
                               Login blocked
                             </span>
                           ) : null}

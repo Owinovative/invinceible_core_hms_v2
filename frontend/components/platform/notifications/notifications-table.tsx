@@ -20,12 +20,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function severityClass(severity?: string | null) {
   if (severity === "CRITICAL") {
-    return "bg-red-500/10 text-red-600";
+    return "bg-red-500/10 text-destructive";
   }
   if (severity === "WARNING") {
-    return "bg-amber-500/10 text-amber-600";
+    return "bg-amber-500/10 text-warning";
   }
-  return "bg-cyan-500/10 text-cyan-600";
+  return "bg-cyan-500/10 text-module";
 }
 
 export function NotificationsTable() {
@@ -99,7 +99,7 @@ export function NotificationsTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1300px]">
             <thead className="bg-muted/40">
@@ -153,7 +153,7 @@ export function NotificationsTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-start gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Bell className="h-5 w-5 text-cyan-600" />
+                            <Bell className="h-5 w-5 text-module" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold">{item.title}</p>
@@ -199,8 +199,8 @@ export function NotificationsTable() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-semibold",
                               item.isRead
-                                ? "bg-emerald-500/10 text-emerald-600"
-                                : "bg-amber-500/10 text-amber-600",
+                                ? "bg-success/10 text-success"
+                                : "bg-amber-500/10 text-warning",
                             )}
                           >
                             {item.isRead ? "Read" : "Unread"}
@@ -210,8 +210,8 @@ export function NotificationsTable() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-semibold",
                               item.isResolved
-                                ? "bg-cyan-500/10 text-cyan-600"
-                                : "bg-red-500/10 text-red-600",
+                                ? "bg-cyan-500/10 text-module"
+                                : "bg-red-500/10 text-destructive",
                             )}
                           >
                             {item.isResolved ? "Resolved" : "Open"}

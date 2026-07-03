@@ -232,7 +232,7 @@ export function SettingsManager({
   if (!canManageSettings) {
     return (
       <div className="flex min-h-[55vh] items-center justify-center">
-        <Card className="w-full max-w-xl rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="w-full max-w-xl rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="px-6 py-10 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-500">
               <ShieldAlert className="h-7 w-7" />
@@ -251,13 +251,13 @@ export function SettingsManager({
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-600/10 via-emerald-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-module">
               {badge}
             </Badge>
             <div className="flex items-center gap-3">
@@ -294,13 +294,13 @@ export function SettingsManager({
       </section>
 
       {message ? (
-        <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+        <div className="rounded-[1.2rem] border border-emerald-500/20 bg-success/10 px-4 py-3 text-sm text-emerald-300">
           {message}
         </div>
       ) : null}
 
       {isLoading ? (
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading settings...
@@ -314,7 +314,7 @@ export function SettingsManager({
             return (
               <Card
                 key={section.category}
-                className="rounded-[1.8rem] gradient-border panel-shadow"
+                className="rounded-[1.8rem] surface-spotlight shadow-md"
               >
                 <CardHeader className="flex flex-row items-center justify-between gap-4">
                   <CardTitle className="flex items-center gap-3 text-lg">
@@ -323,7 +323,7 @@ export function SettingsManager({
                     </span>
                     {section.title}
                   </CardTitle>
-                  <Badge className="rounded-full border-0 bg-white/[0.06] text-muted-foreground">
+                  <Badge className="rounded-full border-0 bg-card/[0.06] text-muted-foreground">
                     {section.category}
                   </Badge>
                 </CardHeader>

@@ -178,12 +178,12 @@ export function FacilityMpesaSettingsPanel() {
   };
 
   return (
-    <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-emerald-600" />
+              <CreditCard className="h-5 w-5 text-success" />
               Facility M-Pesa / Daraja Settings
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -191,7 +191,7 @@ export function FacilityMpesaSettingsPanel() {
               the Paybill/shortcode of the invoice facility.
             </p>
           </div>
-          <Badge className="w-fit rounded-full border-0 bg-emerald-600/10 text-emerald-700">
+          <Badge className="w-fit rounded-full border-0 bg-success/10 text-success">
             Per facility
           </Badge>
         </div>
@@ -218,7 +218,7 @@ export function FacilityMpesaSettingsPanel() {
           {selectedFacility ? (
             <div className="rounded-xl border bg-muted/30 p-4 text-sm md:col-span-2">
               <div className="flex flex-wrap items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                <ShieldCheck className="h-4 w-4 text-success" />
                 <span className="font-semibold">Credential status:</span>
                 <span>Consumer key: {credentialStatus(selectedFacility.hasMpesaConsumerKey)}</span>
                 <span className="text-muted-foreground">•</span>
@@ -397,13 +397,13 @@ export function FacilityMpesaSettingsPanel() {
           </div>
 
           {errorMessage ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 md:col-span-2">
+            <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive md:col-span-2">
               {errorMessage}
             </div>
           ) : null}
 
           {successMessage ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 md:col-span-2">
+            <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success md:col-span-2">
               {successMessage}
             </div>
           ) : null}

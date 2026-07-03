@@ -19,23 +19,23 @@ const facilityCards = [
 
 export default function FacilitiesPage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-slate-900">
+    <main className="min-h-screen bg-[#eef8ff] text-foreground">
       <PublicSiteHeader />
-      <section className="border-b border-sky-200 bg-white">
+      <section className="border-b border-border bg-card">
         <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1500px] gap-8 px-5 py-8 md:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div className="space-y-5">
-            <p className="text-sm font-semibold uppercase text-sky-700">
+            <p className="text-sm font-semibold uppercase text-module">
               Facilities
             </p>
-            <h1 className="text-4xl font-bold leading-tight text-slate-950 md:text-6xl">
+            <h1 className="text-4xl font-bold leading-tight text-foreground md:text-6xl">
               Facility structure for real hospital work.
             </h1>
-            <p className="max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
+            <p className="max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
               Invinceible Core HMS keeps hospitals, branches, departments,
               clinics, staff, and service points organized around daily
               operations.
             </p>
-            <Button asChild className="rounded-md bg-sky-600 text-white hover:bg-sky-700">
+            <Button asChild className="rounded-md bg-primary text-white hover:bg-primary">
               <Link href="/login">
                 Enter the system
                 <ArrowRight className="h-4 w-4" />
@@ -44,7 +44,7 @@ export default function FacilitiesPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
             <div
-              className="min-h-[540px] border border-sky-200 bg-cover bg-center shadow-xl"
+              className="min-h-[540px] border border-border bg-cover bg-center shadow-xl"
               style={{
                 backgroundImage:
                   "url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1600&q=86')",
@@ -52,14 +52,14 @@ export default function FacilitiesPage() {
             />
             <div className="grid gap-4">
               <div
-                className="min-h-[260px] border border-sky-200 bg-cover bg-center"
+                className="min-h-[260px] border border-border bg-cover bg-center"
                 style={{
                   backgroundImage:
                     "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=900&q=86')",
                 }}
               />
               <div
-                className="min-h-[260px] border border-sky-200 bg-cover bg-center"
+                className="min-h-[260px] border border-border bg-cover bg-center"
                 style={{
                   backgroundImage:
                     "url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=900&q=86')",
@@ -74,26 +74,26 @@ export default function FacilitiesPage() {
         {facilityCards.map((item) => {
           const Icon = item.icon;
           return (
-            <article key={item.title} className="border border-sky-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+            <article key={item.title} className="border border-border bg-card p-5 shadow-sm">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center border border-border bg-surface-2 text-module">
                 <Icon className="h-5 w-5" />
               </div>
-              <h2 className="text-lg font-bold text-slate-950">{item.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
+              <h2 className="text-lg font-bold text-foreground">{item.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
             </article>
           );
         })}
       </section>
 
       <section className="mx-auto max-w-[1500px] px-5 pb-10 md:px-8">
-        <div className="overflow-hidden border border-sky-200 bg-white shadow-sm">
+        <div className="overflow-hidden border border-border bg-card shadow-sm">
           {directoryRows.map(([label, detail]) => (
             <div
               key={label}
-              className="grid gap-2 border-b border-sky-100 p-5 last:border-b-0 md:grid-cols-[220px_1fr]"
+              className="grid gap-2 border-b border-border p-5 last:border-b-0 md:grid-cols-[220px_1fr]"
             >
-              <p className="font-semibold text-sky-900">{label}</p>
-              <p className="text-sm leading-6 text-slate-600">{detail}</p>
+              <p className="font-semibold text-foreground">{label}</p>
+              <p className="text-sm leading-6 text-muted-foreground">{detail}</p>
             </div>
           ))}
         </div>

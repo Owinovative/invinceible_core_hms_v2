@@ -31,19 +31,19 @@ export default function PlatformFeedbackPage() {
 
   return (
     <div className="space-y-6">
-      <section className="border border-sky-200 bg-white p-6 shadow-sm">
-        <Badge className="rounded-md bg-sky-100 text-sky-800">
+      <section className="border border-border bg-card p-6 shadow-sm">
+        <Badge className="rounded-md bg-accent text-module">
           User voice
         </Badge>
         <div className="mt-4 flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-sky-200 bg-sky-50 text-sky-700">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-border bg-surface-2 text-module">
             <MessageSquareReply className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-[#07345f]">
               Platform feedback desk
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
               Read user comments, respect anonymous submissions, and reply from
               the super admin desk.
             </p>
@@ -53,7 +53,7 @@ export default function PlatformFeedbackPage() {
 
       <section className="grid gap-4 xl:grid-cols-2">
         {data.map((item) => (
-          <article key={item.id} className="border border-sky-200 bg-white p-5 shadow-sm">
+          <article key={item.id} className="border border-border bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 {item.displayPhotoUrl ? (
@@ -61,39 +61,39 @@ export default function PlatformFeedbackPage() {
                   <img
                     src={item.displayPhotoUrl}
                     alt=""
-                    className="h-11 w-11 rounded-full border border-sky-200 object-cover"
+                    className="h-11 w-11 rounded-full border border-border object-cover"
                   />
                 ) : (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-sky-200 bg-sky-50 text-sm font-bold text-sky-800">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface-2 text-sm font-bold text-module">
                     {item.isAnonymous ? "A" : (item.displayName || "U").slice(0, 1)}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-950">
+                  <p className="truncate font-semibold text-foreground">
                     {item.displayName || "User"}
                   </p>
-                  <p className="truncate text-xs text-slate-500">
+                  <p className="truncate text-xs text-muted-foreground">
                     {item.facility?.name || "No facility"} / {item.branch?.name || "No branch"}
                   </p>
                 </div>
               </div>
-              <Badge className="rounded-md bg-sky-100 text-sky-800">
+              <Badge className="rounded-md bg-accent text-module">
                 {item.statusCode}
               </Badge>
             </div>
 
-            <div className="mt-4 border-t border-sky-100 pt-4">
+            <div className="mt-4 border-t border-border pt-4">
               <p className="font-semibold text-[#07345f]">{item.subject}</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {formatDate(item.createdAt)} / {item.isAnonymous ? "Anonymous" : "Named"}
               </p>
-              <p className="mt-3 text-sm leading-6 text-slate-700">
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {item.message}
               </p>
             </div>
 
             {item.replyText ? (
-              <div className="mt-4 border-l-4 border-emerald-400 bg-emerald-50 p-3 text-sm text-emerald-950">
+              <div className="mt-4 border-l-4 border-emerald-400 bg-success-soft p-3 text-sm text-success">
                 <p className="font-semibold">Reply sent</p>
                 <p className="mt-1 leading-6">{item.replyText}</p>
               </div>
@@ -112,7 +112,7 @@ export default function PlatformFeedbackPage() {
                 placeholder="Reply to this feedback"
               />
               <Button
-                className="h-10 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                className="h-10 rounded-md bg-primary text-white hover:bg-brand-strong"
                 onClick={() => void sendReply(item.id)}
                 disabled={replyMutation.isPending || !(replyById[item.id] || "").trim()}
               >

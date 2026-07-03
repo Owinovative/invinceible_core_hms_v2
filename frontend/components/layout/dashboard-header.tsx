@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Bell, LogOut, Menu, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Moon,
+  Search,
+  Sun,
+  UserRound,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -14,22 +29,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSidebar } from "@/providers/sidebar-provider";
+import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
-import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
-import { AppLogo } from "@/components/shared/app-logo";
+import { useSidebar } from "@/providers/sidebar-provider";
+import { useTheme } from "@/providers/theme-provider";
 
-export function DashboardHeader() {
-  const router = useRouter();
+/**
+ * Meridian header: sticky glass chrome with the ⌘K launcher, branch
+ * switcher, theme toggle, live notification count, and account menu.
+ */
+export function DashboardHeader({
+  onOpenPalette,
+}: {
+  onOpenPalette: () => void;
+}) {
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
-  const [photoOpen, setPhotoOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  
+  const { resolved, toggle } = useTheme();
+
   const {
     facilityId,
-    facilityName,
     selectedBranchId,
     selectedBranchName,
     availableBranches,
@@ -37,10 +57,11 @@ export function DashboardHeader() {
     setSelectedBranchId,
   } = useScope();
 
-  const { data: counts, isLoading: isCountsLoading } = useUnresolvedCounts({
+  const { data: counts } = useUnresolvedCounts({
     facilityId,
     branchId: selectedBranchId,
   });
+  const unreadCount = counts?.counts.unread ?? 0;
 
   const initials = useMemo(() => {
     const source = user?.username || "U";
@@ -52,161 +73,160 @@ export function DashboardHeader() {
       .toUpperCase();
   }, [user]);
 
-  const unreadCount = counts?.counts.unread ?? 0;
-
-  const handleGlobalSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery(""); // Optional: clear after search
-    }
-  };
-
   return (
-    <header className="clinical-header-bg shrink-0 rounded-[1.5rem] border border-white/20 text-white panel-shadow">
-      <div className="flex min-h-[4.5rem] items-center gap-4 px-4 py-2 md:px-6">
-        <div className="hidden min-w-[260px] shrink-0 items-center lg:flex">
-          <AppLogo light />
-        </div>
+    <header
+      className="glass-chrome sticky top-0 flex h-(--header-height) shrink-0 items-center gap-2 px-3 md:px-5"
+      style={{ zIndex: "var(--z-header)" }}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Open navigation menu"
+        className="lg:hidden"
+        onClick={openMobileSidebar}
+      >
+        <Menu />
+      </Button>
 
+      {/* Command palette launcher doubles as global search */}
+      <button
+        type="button"
+        onClick={onOpenPalette}
+        className="hidden h-9 w-full max-w-md items-center gap-2.5 rounded-lg border border-border bg-surface-2/60 px-3 text-sm text-muted-foreground transition-colors hover:border-border-strong hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-ring md:flex"
+      >
+        <Search className="size-4 shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 truncate text-left">
+          Search modules, patients, actions…
+        </span>
+        <span className="kbd" aria-hidden>Ctrl K</span>
+      </button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Search"
+        className="md:hidden"
+        onClick={onOpenPalette}
+      >
+        <Search />
+      </Button>
+
+      <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+        {/* Branch switcher */}
+        {canSwitchBranches ? (
+          <Select
+            value={selectedBranchId ? String(selectedBranchId) : "all"}
+            onValueChange={(value) =>
+              setSelectedBranchId(value === "all" ? undefined : Number(value))
+            }
+          >
+            <SelectTrigger
+              aria-label="Switch branch"
+              className="hidden h-9 max-w-52 rounded-lg border-border bg-surface-2/60 text-sm font-medium sm:flex"
+            >
+              <SelectValue placeholder="All branches" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="all">All branches</SelectItem>
+              {availableBranches.map((branch) => (
+                <SelectItem key={branch.id} value={String(branch.id)}>
+                  {branch.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : selectedBranchName ? (
+          <span className="hidden max-w-44 truncate rounded-lg border border-border bg-surface-2/60 px-3 py-1.5 text-sm font-medium text-muted-foreground sm:block">
+            {selectedBranchName}
+          </span>
+        ) : null}
+
+        {/* Theme toggle */}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md lg:hidden"
-          onClick={openMobileSidebar}
+          aria-label={
+            resolved === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
+          onClick={toggle}
         >
-          <Menu className="h-5 w-5" />
+          {resolved === "dark" ? <Sun /> : <Moon />}
         </Button>
 
-        {/* --- ACTUAL WORKING SEARCH BAR --- */}
-        <form 
-          onSubmit={handleGlobalSearch}
-          className="hidden min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1 transition-all focus-within:bg-white/20 md:flex"
-        >
-          <Search className="h-5 w-5 shrink-0 text-cyan-100" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search patients, billing, lab, pharmacy..."
-            className="w-full h-10 bg-transparent border-none text-white placeholder-cyan-100/60 focus:outline-none focus:ring-0 text-sm font-medium"
-          />
-        </form>
-
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className="hidden min-w-0 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 shadow-sm md:flex md:items-center">
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
-                Facility
-              </p>
-              <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={facilityName || "No facility"}>
-                {facilityName || "No facility"}
-              </p>
-            </div>
-          </div>
-
-          <div className="hidden min-w-[260px] max-w-[340px] rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 shadow-sm md:block">
-            <p className="mb-0.5 text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
-              Branch
-            </p>
-
-            {canSwitchBranches ? (
-              <Select
-                value={selectedBranchId ? String(selectedBranchId) : "all"}
-                onValueChange={(value) =>
-                  setSelectedBranchId(value === "all" ? undefined : Number(value))
-                }
-              >
-                <SelectTrigger className="h-6 border-0 bg-transparent px-0 text-white shadow-none focus:ring-0 text-sm font-semibold">
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl glass border-white/40">
-                  <SelectItem value="all" className="rounded-lg">All branches</SelectItem>
-                  {availableBranches.map((branch) => (
-                    <SelectItem key={branch.id} value={String(branch.id)} className="rounded-lg">
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="truncate text-sm font-semibold text-white" title={selectedBranchName || "No branch"}>
-                {selectedBranchName || "No branch"}
-              </p>
-            )}
-          </div>
-
-          <Button
-            asChild
-            variant="outline"
-            size="icon"
-            className="relative rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md transition-all"
+        {/* Notifications */}
+        <Button asChild variant="ghost" size="icon" className="relative">
+          <Link
+            href="/notifications"
+            aria-label={
+              unreadCount > 0
+                ? `Notifications, ${unreadCount} unread`
+                : "Notifications"
+            }
           >
-            <Link href="/notifications" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
-              {isCountsLoading ? (
-                <Skeleton className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-white/30" />
-              ) : unreadCount > 0 ? (
-                <Badge className="absolute -right-2 -top-2 h-5 min-w-5 rounded-full border-2 border-cyan-800 bg-rose-500 px-1 text-[10px] text-white shadow-md">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </Badge>
-              ) : null}
-            </Link>
-          </Button>
+            <Bell />
+            {unreadCount > 0 ? (
+              <Badge className="absolute -top-0.5 -right-0.5 h-4.5 min-w-4.5 justify-center rounded-full bg-destructive px-1 text-[0.6rem] font-bold text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Badge>
+            ) : null}
+          </Link>
+        </Button>
 
-          <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-3 py-2 shadow-sm transition-all hover:bg-white/15">
-            <div className="hidden min-w-0 text-right sm:block">
-              <p className="max-w-[210px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
-                {user?.username || "User"}
-              </p>
-              <p className="truncate text-xs font-medium text-cyan-100/80">
-                {user?.roleCode || "Role"}
-              </p>
-            </div>
-
+        {/* Account menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-gradient-to-tr from-cyan-400 to-blue-500 text-xs font-bold text-white shadow-sm transition-transform hover:scale-105"
-              onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
+              aria-label="Account menu"
+              className="flex items-center gap-2 rounded-lg py-1 pr-1.5 pl-1 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
             >
-              {user?.staffPassportPhotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.staffPassportPhotoUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span>{initials}</span>
-              )}
+              <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-120 from-brand to-pulse text-xs font-bold text-primary-foreground">
+                {user?.staffPassportPhotoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.staffPassportPhotoUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </span>
+              <span className="hidden min-w-0 text-left lg:block">
+                <span className="block max-w-36 truncate text-sm leading-tight font-semibold text-foreground">
+                  {user?.username || "User"}
+                </span>
+                <span className="block text-[0.68rem] leading-tight text-muted-foreground">
+                  {(user?.roleCode || "ROLE").replaceAll("_", " ")}
+                </span>
+              </span>
+              <ChevronDown
+                className="hidden size-3.5 text-muted-foreground lg:block"
+                aria-hidden
+              />
             </button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl text-cyan-100 hover:bg-white/20 hover:text-white"
-              onClick={logout}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel>
+              <p className="truncate text-sm font-semibold">
+                {user?.username || "User"}
+              </p>
+              <p className="truncate text-xs font-normal text-muted-foreground">
+                {(user?.roleCode || "").replaceAll("_", " ")}
+              </p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <UserRound /> Profile & settings
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={logout}>
+              <LogOut /> Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      
-      {/* Photo Modal */}
-      {photoOpen && user?.staffPassportPhotoUrl ? (
-        <div
-          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in"
-          onClick={() => setPhotoOpen(false)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={user.staffPassportPhotoUrl}
-            alt=""
-            className="max-h-[86vh] max-w-[92vw] rounded-2xl border-4 border-white/80 bg-white object-contain shadow-2xl"
-          />
-        </div>
-      ) : null}
     </header>
   );
 }

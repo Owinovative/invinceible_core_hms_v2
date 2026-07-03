@@ -85,7 +85,7 @@ export function ClinicsTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1280px]">
             <thead className="bg-muted/40">
@@ -147,7 +147,7 @@ export function ClinicsTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <Stethoscope className="h-5 w-5 text-cyan-600" />
+                            <Stethoscope className="h-5 w-5 text-module" />
                           </div>
                           <div>
                             <p className="font-semibold">{clinic.name}</p>
@@ -191,12 +191,12 @@ export function ClinicsTable() {
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
                           {clinic.isWalkInAllowed ? (
-                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-600">
+                            <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Walk-in
                             </span>
                           ) : null}
                           {clinic.isReferralRequired ? (
-                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600">
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-warning">
                               Referral
                             </span>
                           ) : null}
@@ -208,8 +208,8 @@ export function ClinicsTable() {
                           className={cn(
                             "rounded-full px-3 py-1 text-xs font-semibold",
                             clinic.isActive === false
-                              ? "status-critical"
-                              : "status-success",
+                              ? "bg-destructive-soft text-destructive"
+                              : "bg-success-soft text-success",
                           )}
                         >
                           {clinic.isActive === false ? "Inactive" : "Active"}

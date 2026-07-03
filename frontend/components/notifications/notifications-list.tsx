@@ -38,9 +38,9 @@ function formatDateTime(value?: string) {
 function getSeverityClass(severity?: string | null) {
   const value = (severity || "").toUpperCase();
 
-  if (value === "CRITICAL") return "status-critical";
-  if (value === "WARNING") return "status-warning";
-  return "status-info";
+  if (value === "CRITICAL") return "bg-destructive-soft text-destructive";
+  if (value === "WARNING") return "bg-warning-soft text-warning";
+  return "bg-info-soft text-info";
 }
 
 function getSeverityIcon(severity?: string | null) {
@@ -192,7 +192,7 @@ export function NotificationsList({
           ? Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="rounded-[1.6rem] border gradient-border panel-shadow p-5"
+                className="rounded-[1.6rem] border surface-spotlight shadow-md p-5"
               >
                 <div className="flex items-start gap-4">
                   <Skeleton className="h-12 w-12 rounded-2xl" />
@@ -214,7 +214,7 @@ export function NotificationsList({
           : filteredItems.map((item) => (
               <div
                 key={item.id}
-                className="rounded-[1.6rem] border gradient-border panel-shadow p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+                className="rounded-[1.6rem] border surface-spotlight shadow-md p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
               >
                 <div className="flex items-start gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
@@ -239,11 +239,11 @@ export function NotificationsList({
                           </span>
 
                           {item.isResolved ? (
-                            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600">
+                            <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
                               Resolved
                             </span>
                           ) : item.isRead === false ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Unread
                             </span>
                           ) : (
@@ -327,10 +327,10 @@ export function NotificationsList({
             ))}
 
         {!isLoading && filteredItems.length === 0 ? (
-          <div className="rounded-[1.8rem] border gradient-border panel-shadow">
+          <div className="rounded-[1.8rem] border surface-spotlight shadow-md">
             <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10">
-                <Bell className="h-7 w-7 text-emerald-600" />
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-success/10">
+                <Bell className="h-7 w-7 text-success" />
               </div>
               <h3 className="text-2xl font-bold tracking-tight">
                 No notifications yet

@@ -54,39 +54,39 @@ function InvoiceVerifyContent() {
   }, [invoiceNumber, code]);
 
   return (
-    <main className="min-h-screen bg-[#eef7ff] px-4 py-6 text-slate-950">
-      <section className="mx-auto max-w-4xl bg-white p-6 shadow-xl">
+    <main className="min-h-screen bg-[#eef7ff] px-4 py-6 text-foreground">
+      <section className="mx-auto max-w-4xl bg-card p-6 shadow-xl">
         {error ? (
-          <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-md border border-destructive/25 bg-destructive-soft p-4 text-sm text-destructive">
             {error}
           </div>
         ) : !invoice ? (
-          <p className="text-sm text-slate-600">Loading verified invoice...</p>
+          <p className="text-sm text-muted-foreground">Loading verified invoice...</p>
         ) : (
           <>
             <div className="flex items-start justify-between gap-6 border-b-2 border-sky-600 pb-4">
               <div>
-                <h1 className="font-serif text-2xl font-bold uppercase text-slate-700">
+                <h1 className="font-serif text-2xl font-bold uppercase text-muted-foreground">
                   {invoice.facility?.name || "Hospital Facility"}
                 </h1>
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {[invoice.facility?.email, invoice.facility?.phone]
                     .filter(Boolean)
                     .join(" | ")}
                 </p>
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-muted-foreground">
                   {[invoice.facility?.address, invoice.facility?.town]
                     .filter(Boolean)
                     .join(", ")}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-serif text-3xl text-slate-600">INVOICE</p>
+                <p className="font-serif text-3xl text-muted-foreground">INVOICE</p>
                 <p className="mt-2 font-mono text-xs">{code}</p>
                 <Button
                   type="button"
                   size="sm"
-                  className="mt-3 rounded-md bg-sky-700 text-white"
+                  className="mt-3 rounded-md bg-primary text-white"
                   onClick={() =>
                     void downloadPublicVerifiedInvoicePdf(invoiceNumber, code)
                   }
@@ -127,7 +127,7 @@ function InvoiceVerifyContent() {
 
             <table className="mt-5 w-full border-collapse text-xs">
               <thead>
-                <tr className="border-y border-sky-300 text-left text-slate-600">
+                <tr className="border-y border-border-strong text-left text-muted-foreground">
                   <th className="py-2">Date</th>
                   <th className="py-2">Item</th>
                   <th className="py-2 text-right">Qty</th>
@@ -139,7 +139,7 @@ function InvoiceVerifyContent() {
                 {items.map((item, index) => (
                   <tr
                     key={item.id}
-                    className={index % 2 === 0 ? "bg-slate-100" : "bg-white"}
+                    className={index % 2 === 0 ? "bg-muted" : "bg-card"}
                   >
                     <td className="py-2">
                       {item.createdAt

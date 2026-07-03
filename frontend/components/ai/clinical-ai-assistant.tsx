@@ -86,11 +86,11 @@ export function ClinicalAiAssistant({
   const isConfigured = status.data?.enabled ?? false;
 
   return (
-    <Card className="premium-card rounded-lg py-0">
+    <Card className="surface-spotlight rounded-lg py-0">
       <CardHeader className="relative border-b border-border/70 px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-success/10 text-success">
               <Bot className="h-5 w-5" />
             </div>
             <div>
@@ -106,14 +106,14 @@ export function ClinicalAiAssistant({
               className={cn(
                 "rounded-md border px-2.5 py-1",
                 isConfigured
-                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
-                  : "border-amber-500/20 bg-amber-500/10 text-amber-700",
+                  ? "border-emerald-500/20 bg-success/10 text-success"
+                  : "border-amber-500/20 bg-amber-500/10 text-warning",
               )}
             >
               {isConfigured ? "AI online" : "API key needed"}
             </Badge>
             {status.data?.model ? (
-              <Badge className="rounded-md border border-slate-500/20 bg-slate-500/10 text-slate-700">
+              <Badge className="rounded-md border border-slate-500/20 bg-slate-500/10 text-muted-foreground">
                 {status.data.model}
               </Badge>
             ) : null}
@@ -179,7 +179,7 @@ export function ClinicalAiAssistant({
           ) : null}
 
           {!isConfigured && !status.isLoading ? (
-            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-700">
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-warning">
               Set `GEMINI_API_KEY` on the backend service to enable Google
               Gemini drafting. The browser never receives the key.
             </div>
@@ -187,7 +187,7 @@ export function ClinicalAiAssistant({
 
           <Button
             type="button"
-            className="h-11 w-full rounded-md bg-sky-700 text-white hover:bg-sky-800"
+            className="h-11 w-full rounded-md bg-primary text-white hover:bg-brand-strong"
             disabled={
               mutation.isPending ||
               status.isLoading ||
@@ -233,11 +233,11 @@ export function ClinicalAiAssistant({
           </div>
 
           {errorMessage ? (
-            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
+            <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-destructive">
               {errorMessage}
             </div>
           ) : output ? (
-            <div className="whitespace-pre-wrap rounded-md border border-border bg-white p-4 text-sm leading-7 text-slate-800 shadow-sm">
+            <div className="whitespace-pre-wrap rounded-md border border-border bg-card p-4 text-sm leading-7 text-foreground shadow-sm">
               {output}
             </div>
           ) : (

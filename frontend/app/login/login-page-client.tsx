@@ -3,23 +3,25 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  Activity,
   ArrowRight,
   Eye,
   EyeOff,
+  FlaskConical,
   Home,
   LockKeyhole,
   MessageCircle,
+  Pill,
   ShieldCheck,
   User2,
+  Wallet,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/providers/auth-provider";
-import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
 import { getWhatsappLink, supportContacts } from "@/lib/creator-contacts";
 import {
@@ -40,9 +42,26 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const loginHighlights = [
-  "Facility and branch aware workspace",
-  "Protected billing, pharmacy, lab, and IPD workflows",
-  "Audit-friendly operating discipline",
+  {
+    icon: Activity,
+    title: "One clinical flow",
+    text: "Reception to triage, consultation, and discharge in a single queue.",
+  },
+  {
+    icon: Wallet,
+    title: "Payment integrity",
+    text: "Cash, M-PESA, SHA coverage — reconciled and fiscal-ready.",
+  },
+  {
+    icon: FlaskConical,
+    title: "Diagnostics built in",
+    text: "Lab orders, verification, and doctor review without paper.",
+  },
+  {
+    icon: Pill,
+    title: "Stock-aware pharmacy",
+    text: "Dispense against live branch stock with full movement history.",
+  },
 ];
 
 export default function LoginPageClient() {
@@ -89,72 +108,99 @@ export default function LoginPageClient() {
   };
 
   return (
-    <main
-      className="clinical-shell-bg relative min-h-screen overflow-hidden bg-cover bg-center text-slate-950"
-      style={{
-        backgroundImage:
-          "url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=2200&q=88')",
-      }}
-    >
-      <div className="absolute inset-0 bg-white/86" />
-      <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-sky-100/80 lg:block" />
-
-      <div className="relative mx-auto grid min-h-screen w-full max-w-[1500px] items-center gap-8 px-5 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-8">
-        <section className="hidden lg:block">
-          <div className="max-w-2xl space-y-7 rounded-lg border border-sky-200 bg-white/82 p-8 shadow-[0_24px_70px_rgba(3,76,126,0.16)]">
-            <AppLogo />
-            <BadgeLike />
-            <div className="space-y-4">
-              <h1 className="text-5xl font-extrabold leading-[1.04] text-sky-950">
-                Secure clinical access for serious hospital work.
-              </h1>
-              <p className="max-w-xl text-base font-medium leading-8 text-slate-700">
-                Sign in to manage patient flow, billing, pharmacy, laboratory,
-                admissions, reporting, and facility operations.
+    <main className="app-canvas grid min-h-screen bg-background text-foreground lg:grid-cols-[1.05fr_1fr]">
+      {/* Brand panel */}
+      <section
+        aria-hidden
+        className="relative hidden overflow-hidden bg-linear-160 from-brand-strong via-brand to-pulse text-primary-foreground lg:flex lg:flex-col lg:justify-between dark:from-surface-2 dark:via-surface-1 dark:to-brand/40"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.14]"
+          style={{
+            backgroundImage:
+              "radial-gradient(currentColor 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+          }}
+        />
+        <div className="relative px-12 pt-12">
+          <div className="flex items-center gap-3">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+              <Activity className="size-6" />
+            </span>
+            <div>
+              <p className="text-lg leading-tight font-bold tracking-tight">
+                Invinceible Core
               </p>
-            </div>
-
-            <div className="grid gap-3">
-              {loginHighlights.map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 shadow-sm"
-                >
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
-                  <span className="min-w-0 truncate text-sm font-semibold text-sky-950">
-                    {item}
-                  </span>
-                </div>
-              ))}
+              <p className="text-xs font-medium tracking-[0.22em] uppercase opacity-80">
+                Hospital OS
+              </p>
             </div>
           </div>
-        </section>
+        </div>
 
-        <Card className="mx-auto w-full max-w-[500px] rounded-lg border border-sky-200 bg-[#f8fdff] py-0 text-sky-950 shadow-[0_28px_80px_rgba(3,76,126,0.18)]">
-          <CardContent className="relative p-7 md:p-9">
-            <div className="mb-7 flex flex-col items-center text-center lg:hidden">
-              <AppLogo />
-            </div>
+        <div className="relative max-w-xl px-12">
+          <h1 className="text-4xl leading-[1.08] font-bold tracking-tight xl:text-5xl">
+            The operating system for serious healthcare.
+          </h1>
+          <p className="mt-4 max-w-md text-base leading-7 opacity-85">
+            Patient flow, billing, pharmacy, laboratory, and admissions —
+            one secure, audited workspace for the whole facility.
+          </p>
+        </div>
 
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-sky-200 bg-white text-sky-700 shadow-sm">
-                <ShieldCheck className="h-6 w-6" />
-              </div>
-              <p className="text-xs font-bold uppercase text-sky-700">
-                Invinceible Core HMS
+        <div className="relative grid grid-cols-2 gap-3 px-12 pb-12">
+          {loginHighlights.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
+            >
+              <item.icon className="size-4.5 opacity-90" />
+              <p className="mt-2 text-sm font-semibold">{item.title}</p>
+              <p className="mt-0.5 text-xs leading-5 opacity-75">
+                {item.text}
               </p>
-              <h2 className="mt-2 text-4xl font-extrabold tracking-tight text-sky-950">
-                Sign in
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Form panel */}
+      <section className="flex items-center justify-center px-5 py-10">
+        <div className="w-full max-w-105">
+          <div className="mb-8 lg:hidden">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-linear-120 from-brand to-pulse text-primary-foreground">
+                <Activity className="size-5" />
+              </span>
+              <div>
+                <p className="leading-tight font-bold tracking-tight">
+                  Invinceible <span className="text-gradient-brand">Core</span>
+                </p>
+                <p className="text-[0.65rem] font-medium tracking-widest text-muted-foreground uppercase">
+                  Hospital OS
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-spotlight rounded-2xl p-7 md:p-8">
+            <div className="mb-7">
+              <p className="flex items-center gap-2 text-xs font-semibold tracking-widest text-module uppercase">
+                <ShieldCheck className="size-3.5" aria-hidden />
+                Secure staff access
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight">
+                Welcome back
               </h2>
-              <p className="mt-2 text-sm font-medium text-slate-600">
-                Authorized hospital staff only.
+              <p className="mt-1 text-sm text-muted-foreground">
+                Sign in with your facility credentials.
               </p>
             </div>
 
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-5"
+                className="space-y-4"
               >
                 <FormField
                   control={form.control}
@@ -164,10 +210,14 @@ export default function LoginPageClient() {
                       <FormLabel>Username or email</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <User2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <User2
+                            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                            aria-hidden
+                          />
                           <Input
-                            className="h-12 rounded-md border-sky-200 bg-white pl-10 text-base font-medium shadow-inner"
-                            placeholder="Enter username or email"
+                            autoComplete="username"
+                            className="h-11 pl-9"
+                            placeholder="e.g. jane.wanjiku"
                             {...field}
                           />
                         </div>
@@ -185,10 +235,14 @@ export default function LoginPageClient() {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <LockKeyhole
+                            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                            aria-hidden
+                          />
                           <Input
                             type={showPassword ? "text" : "password"}
-                            className="h-12 rounded-md border-sky-200 bg-white pl-10 pr-12 text-base font-medium shadow-inner"
+                            autoComplete="current-password"
+                            className="h-11 pr-11 pl-9"
                             placeholder="Enter password"
                             {...field}
                           />
@@ -198,12 +252,12 @@ export default function LoginPageClient() {
                               showPassword ? "Hide password" : "Show password"
                             }
                             onClick={() => setShowPassword((value) => !value)}
-                            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-sky-100 hover:text-sky-700"
+                            className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                           >
                             {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
+                              <EyeOff className="size-4" aria-hidden />
                             ) : (
-                              <Eye className="h-4 w-4" />
+                              <Eye className="size-4" aria-hidden />
                             )}
                           </button>
                         </div>
@@ -214,74 +268,82 @@ export default function LoginPageClient() {
                 />
 
                 {error ? (
-                  <div className="rounded-xl border border-red-300/25 bg-red-500/10 px-4 py-3 text-sm text-red-600">
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-destructive/25 bg-destructive-soft px-3.5 py-2.5 text-sm text-destructive"
+                  >
                     {error}
                   </div>
                 ) : null}
 
+                <div className="flex items-center justify-between pt-1">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-medium text-module underline-offset-4 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
                 <Button
                   type="submit"
-                  className="h-12 w-full rounded-md bg-sky-700 text-base font-bold text-white shadow-[0_12px_30px_rgba(2,132,199,0.24)] hover:bg-sky-800"
+                  size="lg"
+                  className="h-11 w-full text-[0.95rem] font-semibold"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Signing in..." : "Sign in"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {isLoading ? "Signing in…" : "Sign in"}
+                  <ArrowRight data-icon="inline-end" aria-hidden />
                 </Button>
 
                 <Button
                   asChild
                   type="button"
-                  variant="outline"
-                  className="h-11 w-full rounded-md border-sky-200 bg-white text-sky-800 hover:bg-sky-50"
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
                 >
                   <Link href="/">
-                    <Home className="mr-2 h-4 w-4" />
+                    <Home data-icon="inline-start" aria-hidden />
                     Back to home
                   </Link>
                 </Button>
               </form>
             </Form>
+          </div>
 
-            <div className="mt-7 rounded-lg border border-sky-200 bg-white p-4 shadow-sm">
-              <p className="mb-3 text-xs font-bold uppercase text-sky-800">
-                Need assistance?
-              </p>
-              <div className="grid gap-2">
-                {supportContacts.map((creator) => (
-                  <a
-                    key={creator.name}
-                    href={getWhatsappLink(
-                      creator.whatsappNumber,
-                      creator.message,
-                    )}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm transition hover:border-sky-400 hover:bg-white"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold">
-                        {creator.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {creator.phone}
-                      </span>
+          <details className="group mt-5 rounded-xl border border-border bg-card px-4 py-3">
+            <summary className="cursor-pointer list-none text-xs font-semibold tracking-wider text-muted-foreground uppercase select-none">
+              Need assistance?
+            </summary>
+            <div className="mt-3 grid gap-2">
+              {supportContacts.map((creator) => (
+                <a
+                  key={creator.name}
+                  href={getWhatsappLink(
+                    creator.whatsappNumber,
+                    creator.message,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/60 px-3 py-2 text-sm transition-colors hover:border-module/40 hover:bg-module-soft"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
+                      {creator.name}
                     </span>
-                    <MessageCircle className="h-4 w-4 shrink-0 text-sky-700" />
-                  </a>
-                ))}
-              </div>
+                    <span className="text-xs text-muted-foreground">
+                      {creator.phone}
+                    </span>
+                  </span>
+                  <MessageCircle
+                    className="size-4 shrink-0 text-module"
+                    aria-hidden
+                  />
+                </a>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </details>
+        </div>
+      </section>
     </main>
-  );
-}
-
-function BadgeLike() {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-md border border-sky-200 bg-sky-100 px-3 py-1 text-xs font-bold text-sky-800 shadow-sm">
-      System access
-    </div>
   );
 }

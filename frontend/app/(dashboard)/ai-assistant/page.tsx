@@ -44,10 +44,10 @@ export default function AiAssistantPage() {
   const scopeText = facilityName ? `${facilityName} / ${selectedBranchName || "Global"}` : "System Wide";
 
   return (
-    <div className="flex flex-col gap-8 animate-fade-in pb-12 max-w-[1600px] mx-auto">
+    <div className="flex flex-col gap-8 animate-enter pb-12 max-w-[1600px] mx-auto">
       
       {/* PREMIUM HEADER */}
-      <div className="rounded-[2.5rem] glass panel-shadow overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 text-white relative">
+      <div className="rounded-[2.5rem] bg-card/85 backdrop-blur-md shadow-md overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 text-white relative">
         <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
           <Bot className="w-64 h-64 text-cyan-400 blur-2xl" />
         </div>
@@ -60,7 +60,7 @@ export default function AiAssistantPage() {
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-4">
               System AI Assistant
             </h1>
-            <p className="text-sm font-medium text-slate-400 leading-relaxed max-w-xl">
+            <p className="text-sm font-medium text-subtle leading-relaxed max-w-xl">
               Engineered to process clinical summaries and navigate operational queues. Dual-engine architecture separates clinical drafting from system navigation.
             </p>
           </div>
@@ -69,10 +69,10 @@ export default function AiAssistantPage() {
             {useCases.map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.title} className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+                <div key={item.title} className="bg-card/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
                   <Icon className="h-5 w-5 text-cyan-400 mb-3" />
                   <p className="text-xs font-bold text-slate-200">{item.title}</p>
-                  <p className="text-[10px] font-medium text-slate-500 mt-1">{item.text}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground mt-1">{item.text}</p>
                 </div>
               );
             })}
@@ -84,10 +84,10 @@ export default function AiAssistantPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
         
         {/* Clinical Engine */}
-        <div className="rounded-[2rem] glass panel-shadow bg-white/60 border border-white/60 flex flex-col">
-          <div className="p-6 md:p-8 border-b border-slate-100/50">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-600 mb-1">Engine 01</p>
-            <h2 className="text-xl font-black text-slate-800">Clinical Drafting</h2>
+        <div className="rounded-[2rem] bg-card/85 backdrop-blur-md shadow-md bg-card/60 border border-white/60 flex flex-col">
+          <div className="p-6 md:p-8 border-b border-border/50">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-module mb-1">Engine 01</p>
+            <h2 className="text-xl font-black text-foreground">Clinical Drafting</h2>
           </div>
           <div className="p-4 md:p-6 flex-1">
             <ClinicalAiAssistant
@@ -98,10 +98,10 @@ export default function AiAssistantPage() {
         </div>
 
         {/* System Engine */}
-        <div className="rounded-[2rem] glass panel-shadow bg-white/60 border border-white/60 flex flex-col">
-          <div className="p-6 md:p-8 border-b border-slate-100/50">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-1">Engine 02</p>
-            <h2 className="text-xl font-black text-slate-800">System Navigator</h2>
+        <div className="rounded-[2rem] bg-card/85 backdrop-blur-md shadow-md bg-card/60 border border-white/60 flex flex-col">
+          <div className="p-6 md:p-8 border-b border-border/50">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-success mb-1">Engine 02</p>
+            <h2 className="text-xl font-black text-foreground">System Navigator</h2>
           </div>
           <div className="p-4 md:p-6 flex-1">
             <SystemNavigatorAssistant

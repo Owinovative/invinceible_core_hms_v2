@@ -11,7 +11,7 @@ export default function SettingsPage() {
 
   if (!canManageSettings) {
     return (
-      <div className="rounded-md border border-sky-200 bg-white p-6 text-slate-700 shadow-sm">
+      <div className="rounded-md border border-border bg-card p-6 text-muted-foreground shadow-sm">
         <h1 className="text-xl font-bold text-[#07345f]">Settings restricted</h1>
         <p className="mt-2 text-sm">
           Settings are available only to super admins and facility

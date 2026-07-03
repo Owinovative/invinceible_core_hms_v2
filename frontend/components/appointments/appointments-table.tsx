@@ -52,36 +52,36 @@ function getStatusClass(status?: string | null) {
       value,
     )
   ) {
-    return "status-info";
+    return "bg-info-soft text-info";
   }
 
   if (["COMPLETED", "DONE"].includes(value)) {
-    return "status-success";
+    return "bg-success-soft text-success";
   }
 
   if (["CANCELLED", "MISSED", "NO_SHOW"].includes(value)) {
-    return "status-critical";
+    return "bg-destructive-soft text-destructive";
   }
 
-  return "status-warning";
+  return "bg-warning-soft text-warning";
 }
 
 function getPriorityClass(priority?: string | null) {
   const value = (priority || "").toUpperCase();
 
   if (["URGENT", "HIGH"].includes(value)) {
-    return "status-critical";
+    return "bg-destructive-soft text-destructive";
   }
 
   if (["MEDIUM"].includes(value)) {
-    return "status-warning";
+    return "bg-warning-soft text-warning";
   }
 
   if (["LOW", "NORMAL"].includes(value)) {
-    return "status-success";
+    return "bg-success-soft text-success";
   }
 
-  return "status-info";
+  return "bg-info-soft text-info";
 }
 
 export function AppointmentsTable({
@@ -155,7 +155,7 @@ export function AppointmentsTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1200px]">
             <thead className="bg-muted/40">

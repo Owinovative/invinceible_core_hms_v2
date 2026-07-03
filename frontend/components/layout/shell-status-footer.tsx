@@ -14,41 +14,45 @@ function formatClock(date: Date) {
     weekday: "short",
     day: "2-digit",
     month: "short",
-    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
   }).format(date);
 }
 
+/**
+ * Slim status strip anchoring the shell: system identity, active scope,
+ * live clock, and signed-in operator. Updates once a minute.
+ */
 export function ShellStatusFooter({ label, scope }: ShellStatusFooterProps) {
   const { user } = useAuth();
-  const [now, setNow] = React.useState(() => new Date());
+  const [now, setNow] = React.useState<Date | null>(null);
 
   React.useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
 
   return (
-    <footer className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 glass flex h-10 shrink-0 items-center justify-between gap-6 rounded-full border border-white/60 px-6 text-xs font-semibold text-sky-900 panel-shadow backdrop-blur-xl">
-      <div className="flex min-w-0 items-center gap-2">
-        <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+    <footer className="flex h-8 shrink-0 items-center gap-4 border-t border-border bg-surface-1 px-4 text-xs text-muted-foreground">
+      <span className="flex min-w-0 items-center gap-1.5">
+        <ShieldCheck className="size-3.5 shrink-0 text-success" aria-hidden />
         <span className="truncate">{label}</span>
-        {scope ? (
-          <span className="hidden truncate text-sky-700/60 sm:inline">
-            | {scope}
+      </span>
+      {scope ? (
+        <span className="hidden min-w-0 truncate border-l border-border pl-4 sm:block">
+          {scope}
+        </span>
+      ) : null}
+      <span className="tabular ml-auto flex shrink-0 items-center gap-1.5">
+        <Clock3 className="size-3.5 text-module" aria-hidden />
+        {now ? formatClock(now) : "—"}
+        {user?.username ? (
+          <span className="hidden border-l border-border pl-3 md:inline">
+            {user.username}
           </span>
         ) : null}
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2 text-sky-800">
-        <Clock3 className="h-4 w-4 text-cyan-600" />
-        <span className="tracking-wide">{formatClock(now)}</span>
-        <span className="hidden text-sky-700/60 md:inline">
-          {user?.username ? `| ${user.username}` : ""}
-        </span>
-      </div>
+      </span>
     </footer>
   );
 }

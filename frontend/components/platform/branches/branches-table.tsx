@@ -100,7 +100,7 @@ export function BranchesTable() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1180px]">
             <thead className="bg-muted/40">
@@ -170,7 +170,7 @@ export function BranchesTable() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/10">
-                            <GitBranch className="h-5 w-5 text-cyan-600" />
+                            <GitBranch className="h-5 w-5 text-module" />
                           </div>
                           <div>
                             <p className="font-semibold">{branch.name}</p>
@@ -207,15 +207,15 @@ export function BranchesTable() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-semibold",
                               branch.isActive === false
-                                ? "status-critical"
-                                : "status-success",
+                                ? "bg-destructive-soft text-destructive"
+                                : "bg-success-soft text-success",
                             )}
                           >
                             {branch.isActive === false ? "Inactive" : "Active"}
                           </span>
 
                           {branch.isDefault ? (
-                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600">
+                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-module">
                               Default
                             </span>
                           ) : null}

@@ -33,11 +33,11 @@ function formatDate(value?: string | null) {
 function statusTone(status?: string | null) {
   switch ((status ?? "").toUpperCase()) {
     case "COMPLETED":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     case "IN_PROGRESS":
       return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300";
     default:
-      return "border-white/10 bg-white/[0.04] text-muted-foreground";
+      return "border-white/10 bg-card/[0.04] text-muted-foreground";
   }
 }
 
@@ -54,11 +54,11 @@ export default function ConsultationListPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-cyan-500/5 to-transparent" />
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-module">
               Doctor Workbench
             </Badge>
             <div className="flex items-center gap-3">
@@ -77,7 +77,7 @@ export default function ConsultationListPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
@@ -85,7 +85,7 @@ export default function ConsultationListPage() {
                 {facilityName || "No facility"}
               </p>
             </div>
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
@@ -98,19 +98,19 @@ export default function ConsultationListPage() {
       </section>
 
       <section className="grid gap-6 md:grid-cols-3">
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">All Consultations</p>
             <p className="mt-2 text-3xl font-bold">{consultations.length}</p>
           </CardContent>
         </Card>
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">Started</p>
             <p className="mt-2 text-3xl font-bold">{active.length}</p>
           </CardContent>
         </Card>
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">Completed</p>
             <p className="mt-2 text-3xl font-bold">{completed.length}</p>
@@ -118,7 +118,7 @@ export default function ConsultationListPage() {
         </Card>
       </section>
 
-      <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+      <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
         <CardHeader>
           <CardTitle>Consultation Register</CardTitle>
         </CardHeader>
@@ -129,14 +129,14 @@ export default function ConsultationListPage() {
               Loading consultations...
             </div>
           ) : consultations.length === 0 ? (
-            <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+            <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
               No consultations have been started yet.
             </div>
           ) : (
             consultations.map((consultation) => (
               <div
                 key={consultation.id}
-                className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>

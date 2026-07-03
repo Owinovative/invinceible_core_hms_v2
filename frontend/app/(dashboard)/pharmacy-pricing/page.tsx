@@ -425,11 +425,11 @@ export default function PharmacyPricingPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.4rem] border gradient-border p-6 panel-shadow md:p-8">
+      <section className="relative overflow-hidden rounded-[1.4rem] border surface-spotlight p-6 shadow-md md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-500/16 via-cyan-500/8 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Badge className="mb-4 rounded-full border-0 bg-emerald-500/10 px-3 py-1 text-emerald-700">
+            <Badge className="mb-4 rounded-full border-0 bg-success/10 px-3 py-1 text-success">
               Medicine master and branch pricing
             </Badge>
             <div className="flex items-center gap-4">
@@ -489,13 +489,13 @@ export default function PharmacyPricingPage() {
       </section>
 
       {message ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-module">
           {message}
         </div>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Medicine Master</p>
@@ -504,7 +504,7 @@ export default function PharmacyPricingPage() {
             <Pill className="h-7 w-7 text-emerald-500" />
           </CardContent>
         </Card>
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Branch Items</p>
@@ -516,7 +516,7 @@ export default function PharmacyPricingPage() {
             <Warehouse className="h-7 w-7 text-cyan-500" />
           </CardContent>
         </Card>
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Stock Value</p>
@@ -530,7 +530,7 @@ export default function PharmacyPricingPage() {
             <BadgeDollarSign className="h-7 w-7 text-amber-500" />
           </CardContent>
         </Card>
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Price Gaps</p>
@@ -539,14 +539,14 @@ export default function PharmacyPricingPage() {
                 {missingBuyingCount} missing buying cost
               </p>
             </div>
-            <CheckCircle2 className="h-7 w-7 text-rose-500" />
+            <CheckCircle2 className="h-7 w-7 text-destructive" />
           </CardContent>
         </Card>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-5">
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle>Create Medicine Master</CardTitle>
             </CardHeader>
@@ -628,14 +628,14 @@ export default function PharmacyPricingPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle>Excel Branch Pricing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl border bg-background/65 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div>
@@ -688,7 +688,7 @@ export default function PharmacyPricingPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle>Drug Reorder</CardTitle>
             </CardHeader>
@@ -818,7 +818,7 @@ export default function PharmacyPricingPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+          <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
             <CardHeader>
               <CardTitle>Add Branch Price</CardTitle>
             </CardHeader>
@@ -919,7 +919,7 @@ export default function PharmacyPricingPage() {
           </Card>
         </div>
 
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardHeader>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle>Branch Price Register</CardTitle>
@@ -1049,8 +1049,8 @@ export default function PharmacyPricingPage() {
                             <span
                               className={
                                 margin >= 0
-                                  ? "font-semibold text-emerald-600"
-                                  : "font-semibold text-rose-600"
+                                  ? "font-semibold text-success"
+                                  : "font-semibold text-destructive"
                               }
                             >
                               {formatMoney(margin)}
@@ -1061,15 +1061,15 @@ export default function PharmacyPricingPage() {
                           </td>
                           <td className="px-4 py-4">
                             {stock.unitPrice <= 0 ? (
-                              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700">
+                              <Badge className="rounded-full border-0 bg-amber-500/10 text-warning">
                                 Missing price
                               </Badge>
                             ) : stock.stockQuantity <= stock.reorderLevel ? (
-                              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700">
+                              <Badge className="rounded-full border-0 bg-destructive/10 text-destructive">
                                 Reorder
                               </Badge>
                             ) : (
-                              <Badge className="rounded-full border-0 bg-emerald-500/10 text-emerald-700">
+                              <Badge className="rounded-full border-0 bg-success/10 text-success">
                                 Ready
                               </Badge>
                             )}

@@ -176,10 +176,10 @@ export function CreateBranchForm() {
   };
 
   return (
-    <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <GitBranch className="h-5 w-5 text-cyan-600" />
+          <GitBranch className="h-5 w-5 text-module" />
           New Branch
         </CardTitle>
       </CardHeader>
@@ -434,7 +434,7 @@ export function CreateBranchForm() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="flex items-center gap-2 font-semibold">
-                    <MapPin className="h-4 w-4 text-sky-700" />
+                    <MapPin className="h-4 w-4 text-module" />
                     Branch map location
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -522,13 +522,13 @@ export function CreateBranchForm() {
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createBranchMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive">
                   Failed to create branch.
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
                   {successMessage}
                   {createdCode ? ` Branch Code: ${createdCode}` : ""}
                 </div>

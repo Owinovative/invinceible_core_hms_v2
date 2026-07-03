@@ -56,11 +56,11 @@ function ExceptionLine({ item }: { item: InvoiceItemRecord }) {
               {item.sourceModule || "MANUAL"}
             </Badge>
             {item.isRemoved ? (
-              <Badge className="rounded-full border-0 bg-rose-500/10 text-rose-700">
+              <Badge className="rounded-full border-0 bg-destructive/10 text-destructive">
                 Removed
               </Badge>
             ) : (
-              <Badge className="rounded-full border-0 bg-amber-500/10 text-amber-700">
+              <Badge className="rounded-full border-0 bg-amber-500/10 text-warning">
                 Price check
               </Badge>
             )}
@@ -109,11 +109,11 @@ export default function RevenueIntegrityPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[1.4rem] border gradient-border p-6 panel-shadow md:p-8">
+      <section className="relative overflow-hidden rounded-[1.4rem] border surface-spotlight p-6 shadow-md md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-amber-500/16 via-cyan-500/8 to-transparent" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-amber-700">
+            <Badge className="mb-4 rounded-full border-0 bg-amber-500/10 px-3 py-1 text-warning">
               Revenue assurance
             </Badge>
             <div className="flex items-center gap-4">
@@ -144,7 +144,7 @@ export default function RevenueIntegrityPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Missing Prices</p>
@@ -156,7 +156,7 @@ export default function RevenueIntegrityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Removed Lines</p>
@@ -164,11 +164,11 @@ export default function RevenueIntegrityPage() {
                 {integrity?.summary.removedLineCount ?? 0}
               </p>
             </div>
-            <FileWarning className="h-7 w-7 text-rose-500" />
+            <FileWarning className="h-7 w-7 text-destructive" />
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Collected</p>
@@ -180,7 +180,7 @@ export default function RevenueIntegrityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Invoices Issued</p>
@@ -194,7 +194,7 @@ export default function RevenueIntegrityPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -220,7 +220,7 @@ export default function RevenueIntegrityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-emerald-500" />
@@ -306,7 +306,7 @@ export default function RevenueIntegrityPage() {
       </section>
 
       <section>
-        <Card className="rounded-[1.2rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.2rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Removed Billing Lines Audit</CardTitle>
           </CardHeader>

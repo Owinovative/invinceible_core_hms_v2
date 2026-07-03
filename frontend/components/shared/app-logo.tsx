@@ -25,7 +25,7 @@ export function AppLogo({
         className={cn(
           "relative flex items-center justify-center overflow-hidden rounded-2xl",
           iconOnly ? "h-12 w-12" : "h-14 w-14",
-          light ? "bg-white/10" : "bg-card",
+          light ? "bg-card/10" : "bg-card",
         )}
       >
         {!hasError ? (
@@ -36,7 +36,7 @@ export function AppLogo({
             onError={() => setHasError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-sky-700 text-white text-sm font-bold">
+          <div className="flex h-full w-full items-center justify-center bg-primary text-white text-sm font-bold">
             IC
           </div>
         )}

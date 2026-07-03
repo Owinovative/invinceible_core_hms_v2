@@ -63,7 +63,7 @@ export default function CreateInvoicePage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Patient Selection Card */}
-        <Card className="rounded-[1.8rem] border border-white/10 bg-white/[0.02] shadow-xl">
+        <Card className="rounded-[1.8rem] border border-white/10 bg-card/[0.02] shadow-xl">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Patient Details</CardTitle>
           </CardHeader>
@@ -74,7 +74,7 @@ export default function CreateInvoicePage() {
                 placeholder="Ex: 101"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
-                className="rounded-xl h-12 bg-white/[0.03]"
+                className="rounded-xl h-12 bg-card/[0.03]"
                 required
               />
             </div>
@@ -82,14 +82,14 @@ export default function CreateInvoicePage() {
         </Card>
 
         {/* Items Card */}
-        <Card className="rounded-[1.8rem] border border-white/10 bg-white/[0.02] shadow-xl">
+        <Card className="rounded-[1.8rem] border border-white/10 bg-card/[0.02] shadow-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold">Billable Items</CardTitle>
             <Button 
               type="button" 
               onClick={addItem} 
               variant="outline" 
-              className="rounded-xl gap-2 border-emerald-500/20 hover:bg-emerald-500/10"
+              className="rounded-xl gap-2 border-emerald-500/20 hover:bg-success/10"
             >
               <Plus className="h-4 w-4" /> Add Line
             </Button>
@@ -104,7 +104,7 @@ export default function CreateInvoicePage() {
                     placeholder="E.g., Consultation Fee"
                     value={item.description}
                     onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    className="rounded-lg bg-white/[0.03]"
+                    className="rounded-lg bg-card/[0.03]"
                     required
                   />
                 </div>
@@ -115,7 +115,7 @@ export default function CreateInvoicePage() {
                     min="1"
                     value={item.quantity}
                     onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                    className="rounded-lg bg-white/[0.03]"
+                    className="rounded-lg bg-card/[0.03]"
                   />
                 </div>
                 <div className="md:col-span-3">
@@ -124,7 +124,7 @@ export default function CreateInvoicePage() {
                     type="number"
                     value={item.unitPrice}
                     onChange={(e) => updateItem(index, 'unitPrice', Number(e.target.value))}
-                    className="rounded-lg bg-white/[0.03]"
+                    className="rounded-lg bg-card/[0.03]"
                   />
                 </div>
                 <div className="md:col-span-1 flex justify-center">
@@ -144,7 +144,7 @@ export default function CreateInvoicePage() {
 
             {/* Total Display */}
             <div className="pt-4 flex justify-end">
-              <div className="text-right p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <div className="text-right p-4 rounded-2xl bg-success/5 border border-emerald-500/10">
                 <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Total Balance</p>
                 <p className="text-3xl font-bold text-emerald-400">
                   KES {calculateTotal().toLocaleString()}
@@ -163,7 +163,7 @@ export default function CreateInvoicePage() {
           </Link>
           <Button 
             type="submit" 
-            className="rounded-xl h-12 px-8 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="rounded-xl h-12 px-8 gap-2 bg-success hover:bg-emerald-700 text-white"
           >
             <Save className="h-5 w-5" /> Save Invoice
           </Button>

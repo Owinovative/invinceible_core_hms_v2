@@ -96,17 +96,17 @@ function statusTone(status?: string | null) {
     case "ADMITTED":
       return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300";
     case "DISCHARGED":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     case "ADMINISTERED":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     case "PLANNED":
       return "border-amber-500/20 bg-amber-500/10 text-amber-300";
     case "RESULTED":
-      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-500/20 bg-success/10 text-emerald-300";
     case "PENDING":
       return "border-amber-500/20 bg-amber-500/10 text-amber-300";
     default:
-      return "border-white/10 bg-white/[0.04] text-muted-foreground";
+      return "border-white/10 bg-card/[0.04] text-muted-foreground";
   }
 }
 
@@ -877,14 +877,14 @@ export default function IpdDetailPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-blue-600/10 px-3 py-1 text-blue-700">
+            <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-module">
               IPD Workspace
             </Badge>
 
@@ -921,7 +921,7 @@ export default function IpdDetailPage() {
       ) : null}
 
       {isLoading || !data ? (
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardContent className="p-6 text-sm text-muted-foreground">
             Loading admission details...
           </CardContent>
@@ -929,7 +929,7 @@ export default function IpdDetailPage() {
       ) : (
         <>
           <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -945,7 +945,7 @@ export default function IpdDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Vitals</p>
@@ -957,7 +957,7 @@ export default function IpdDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -973,7 +973,7 @@ export default function IpdDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Treatments</p>
@@ -985,7 +985,7 @@ export default function IpdDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
                   <p className="text-sm text-muted-foreground">Due Treatment</p>
@@ -1002,13 +1002,13 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Patient Snapshot</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
                       <UserRound className="h-5 w-5 text-primary" />
@@ -1026,7 +1026,7 @@ export default function IpdDetailPage() {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Status</p>
                     <div className="mt-2">
                       <Badge
@@ -1037,28 +1037,28 @@ export default function IpdDetailPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Gender</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.patient?.gender || "—"}
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Phone</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.patient?.phonePrimary || "—"}
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Appointment</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.appointment?.appointmentNumber || "—"}
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">
                       Consultation
                     </p>
@@ -1067,21 +1067,21 @@ export default function IpdDetailPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Ward</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.ward?.name || "—"}
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Bed</p>
                     <p className="mt-1 text-sm font-medium">
                       {data.bed?.bedNumber || "Not assigned"}
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Admitted At</p>
                     <p className="mt-1 text-sm font-medium">
                       {formatDate(data.admittedAt)}
@@ -1093,14 +1093,14 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Admission Information</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">
                       Admission Number
                     </p>
@@ -1109,7 +1109,7 @@ export default function IpdDetailPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">
                       Admission Source
                     </p>
@@ -1118,7 +1118,7 @@ export default function IpdDetailPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">
                       Expected Discharge
                     </p>
@@ -1128,7 +1128,7 @@ export default function IpdDetailPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs text-muted-foreground">
                     Admission Reason
                   </p>
@@ -1137,7 +1137,7 @@ export default function IpdDetailPage() {
                   </p>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs text-muted-foreground">Notes</p>
                   <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                     {data.notes || "—"}
@@ -1148,7 +1148,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Stethoscope className="h-5 w-5 text-primary" />
@@ -1261,14 +1261,14 @@ export default function IpdDetailPage() {
                       Loading doctor reviews...
                     </div>
                   ) : doctorReviews.length === 0 ? (
-                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                       No doctor reviews recorded yet.
                     </div>
                   ) : (
                     doctorReviews.map((review) => (
                       <div
                         key={review.id}
-                        className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                        className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
                       >
                         <p className="font-semibold">Doctor Review</p>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -1335,7 +1335,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Thermometer className="h-5 w-5 text-primary" />
@@ -1507,14 +1507,14 @@ export default function IpdDetailPage() {
                       Loading vitals...
                     </div>
                   ) : vitalRecords.length === 0 ? (
-                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                       No vitals recorded yet.
                     </div>
                   ) : (
                     vitalRecords.map((vital) => (
                       <div
                         key={vital.id}
-                        className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                        className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
                       >
                         <p className="font-semibold">Vital Record</p>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -1523,7 +1523,7 @@ export default function IpdDetailPage() {
                         </p>
 
                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Temperature °C
                             </p>
@@ -1531,7 +1531,7 @@ export default function IpdDetailPage() {
                               {vital.temperatureC ?? "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Blood Pressure
                             </p>
@@ -1541,7 +1541,7 @@ export default function IpdDetailPage() {
                                 : "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Pulse Rate
                             </p>
@@ -1549,7 +1549,7 @@ export default function IpdDetailPage() {
                               {vital.pulseRate ?? "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Respiratory Rate
                             </p>
@@ -1557,7 +1557,7 @@ export default function IpdDetailPage() {
                               {vital.respiratoryRate ?? "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Oxygen Saturation
                             </p>
@@ -1565,7 +1565,7 @@ export default function IpdDetailPage() {
                               {vital.oxygenSaturation ?? "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Weight (kg)
                             </p>
@@ -1573,7 +1573,7 @@ export default function IpdDetailPage() {
                               {vital.weightKg ?? "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               Height (cm)
                             </p>
@@ -1581,7 +1581,7 @@ export default function IpdDetailPage() {
                               {vital.heightCm ?? "—"}
                             </p>
                           </div>
-                          <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                          <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                             <p className="text-xs text-muted-foreground">
                               BMI / Pain
                             </p>
@@ -1607,7 +1607,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary" />
@@ -1658,7 +1658,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Progress Notes History</CardTitle>
               </CardHeader>
@@ -1669,14 +1669,14 @@ export default function IpdDetailPage() {
                     Loading progress notes...
                   </div>
                 ) : progressNotes.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No progress notes recorded yet.
                   </div>
                 ) : (
                   progressNotes.map((note) => (
                     <div
                       key={note.id}
-                      className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div>
                         <p className="font-semibold">
@@ -1698,7 +1698,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Syringe className="h-5 w-5 text-primary" />
@@ -1838,10 +1838,10 @@ export default function IpdDetailPage() {
                   <div
                     className={`rounded-2xl border p-4 text-sm ${
                       selectedTreatmentStockStatus === "OUT_OF_STOCK"
-                        ? "border-rose-300 bg-rose-50 text-rose-900"
+                        ? "border-destructive/30 bg-destructive-soft text-rose-900"
                         : selectedTreatmentStockStatus === "LOW_STOCK"
-                          ? "border-amber-300 bg-amber-50 text-amber-900"
-                          : "border-emerald-300 bg-emerald-50 text-emerald-900"
+                          ? "border-warning/35 bg-warning-soft text-warning"
+                          : "border-success/30 bg-success-soft text-success"
                     }`}
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -1866,7 +1866,7 @@ export default function IpdDetailPage() {
                             ? "border-0 bg-rose-600 text-white"
                             : selectedTreatmentStockStatus === "LOW_STOCK"
                               ? "border-0 bg-amber-500 text-white"
-                              : "border-0 bg-emerald-600 text-white"
+                              : "border-0 bg-success text-white"
                         }
                       >
                         {selectedTreatmentStockStatus?.replace(/_/g, " ")}
@@ -1874,7 +1874,7 @@ export default function IpdDetailPage() {
                     </div>
 
                     {selectedTreatmentStockStatus === "OUT_OF_STOCK" ? (
-                      <div className="mt-4 rounded-xl border border-rose-300/70 bg-white/80 p-3">
+                      <div className="mt-4 rounded-xl border border-destructive/30/70 bg-card/80 p-3">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                           <div>
@@ -1910,10 +1910,10 @@ export default function IpdDetailPage() {
                                     "Stocked alternative selected. Confirm the clinical fit before saving the treatment entry.",
                                   );
                                 }}
-                                className="rounded-xl border border-sky-200 bg-white p-3 text-left text-xs transition hover:border-sky-400"
+                                className="rounded-xl border border-border bg-card p-3 text-left text-xs transition hover:border-border-strong"
                               >
                                 <div className="flex items-start gap-2">
-                                  <Pill className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
+                                  <Pill className="mt-0.5 h-4 w-4 shrink-0 text-module" />
                                   <div>
                                     <p className="font-semibold">
                                       {item.medicine?.name}
@@ -1974,7 +1974,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Treatment Chart</CardTitle>
               </CardHeader>
@@ -1985,14 +1985,14 @@ export default function IpdDetailPage() {
                     Loading treatment chart...
                   </div>
                 ) : treatmentChart.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No treatment chart entries yet.
                   </div>
                 ) : (
                   treatmentChart.map((entry) => (
                     <div
                       key={entry.id}
-                      className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-2">
@@ -2063,7 +2063,7 @@ export default function IpdDetailPage() {
             </Card>
           </section>
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TestTube2 className="h-5 w-5 text-primary" />
@@ -2142,14 +2142,14 @@ export default function IpdDetailPage() {
 
                 <div className="space-y-3">
                   {labOrderItems.length === 0 ? (
-                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                    <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                       No lab tests added yet.
                     </div>
                   ) : (
                     labOrderItems.map((item) => (
                       <div
                         key={item.testId}
-                        className="flex flex-col gap-3 rounded-[1rem] border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between"
+                        className="flex flex-col gap-3 rounded-[1rem] border border-white/10 bg-card/[0.03] p-4 md:flex-row md:items-center md:justify-between"
                       >
                         <div>
                           <p className="font-medium">{item.testName}</p>
@@ -2201,7 +2201,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TestTube2 className="h-5 w-5 text-primary" />
@@ -2215,14 +2215,14 @@ export default function IpdDetailPage() {
                     Loading lab orders...
                   </div>
                 ) : labOrders.length === 0 ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No IPD lab orders found for this admission yet.
                   </div>
                 ) : (
                   labOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                      className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-2">
@@ -2256,14 +2256,14 @@ export default function IpdDetailPage() {
 
                       <div className="mt-4 space-y-3">
                         {(order.items ?? []).length === 0 ? (
-                          <div className="rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-3 text-sm text-muted-foreground">
+                          <div className="rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-3 text-sm text-muted-foreground">
                             No test items in this order.
                           </div>
                         ) : (
                           order.items?.map((item) => (
                             <div
                               key={item.id}
-                              className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-4"
+                              className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-4"
                             >
                               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="space-y-2">
@@ -2289,7 +2289,7 @@ export default function IpdDetailPage() {
 
                               <div className="mt-3 space-y-3">
                                 {(item.results ?? []).length === 0 ? (
-                                  <div className="rounded-[1rem] border border-dashed border-white/10 bg-white/[0.02] p-3 text-sm text-muted-foreground">
+                                  <div className="rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-3 text-sm text-muted-foreground">
                                     No result recorded yet.
                                   </div>
                                 ) : (
@@ -2334,7 +2334,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -2348,7 +2348,7 @@ export default function IpdDetailPage() {
                       admission.
                     </p>
                   </div>
-                  <Badge className="w-fit rounded-full border-0 bg-emerald-500/10 text-emerald-600">
+                  <Badge className="w-fit rounded-full border-0 bg-success/10 text-success">
                     AI-assisted drafting
                   </Badge>
                 </div>
@@ -2356,7 +2356,7 @@ export default function IpdDetailPage() {
 
               <CardContent className="space-y-5">
                 <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
-                  <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                     <div className="mb-4 flex items-center gap-2">
                       <Bot className="h-5 w-5 text-cyan-400" />
                       <p className="font-semibold">AI medical summary draft</p>
@@ -2402,7 +2402,7 @@ export default function IpdDetailPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1.2rem] border border-cyan-300/15 bg-cyan-500/[0.04] p-4">
+                  <div className="rounded-[1.2rem] border border-border-strong/15 bg-cyan-500/[0.04] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="font-semibold">Editable summary output</p>
                       {medicalSummaryDraft ? (
@@ -2479,7 +2479,7 @@ export default function IpdDetailPage() {
           </section>
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BadgeDollarSign className="h-5 w-5 text-primary" />
@@ -2488,7 +2488,7 @@ export default function IpdDetailPage() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-sm font-medium">
                     {data.ward?.name || "Current ward"}
                     {data.bed?.bedNumber ? ` / Bed ${data.bed.bedNumber}` : ""}
@@ -2574,7 +2574,7 @@ export default function IpdDetailPage() {
 
           {(data.statusCode || "").toUpperCase() === "ADMITTED" ? (
             <section>
-              <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+              <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <RefreshCw className="h-5 w-5 text-primary" />
@@ -2705,14 +2705,14 @@ export default function IpdDetailPage() {
           ) : null}
 
           <section>
-            <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+            <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Discharge Summary</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
                 {dischargeSummary ? (
-                  <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <div className="rounded-[1.2rem] border border-emerald-500/20 bg-success/10 p-4">
                     <p className="text-sm font-medium text-emerald-300">
                       Existing discharge summary found
                     </p>

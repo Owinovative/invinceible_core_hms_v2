@@ -173,11 +173,11 @@ export function AddInvoiceLinePanel({
   };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 mt-6 transition-all">
+    <div className="space-y-4 rounded-2xl border border-border bg-surface-2/50 p-5 mt-6 transition-all">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-bold text-slate-800">Quick Add Item</p>
+        <p className="text-sm font-bold text-foreground">Quick Add Item</p>
         {chargeType === "MEDICINE" && !branchId ? (
-          <span className="text-[10px] font-bold uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-md">
+          <span className="text-[10px] font-bold uppercase text-amber-500 bg-warning-soft px-2 py-1 rounded-md">
             Branch required for stock
           </span>
         ) : null}
@@ -185,11 +185,11 @@ export function AddInvoiceLinePanel({
 
       <div className="grid gap-3 xl:grid-cols-[0.8fr_1.2fr_0.8fr]">
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Type</label>
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-subtle">Type</label>
           <select
             value={chargeType}
             onChange={(e) => setChargeType(e.target.value as ChargeType)}
-            className="h-10 w-full rounded-xl border-none bg-white px-3 text-sm shadow-sm focus:ring-2 focus:ring-cyan-500/20"
+            className="h-10 w-full rounded-xl border-none bg-card px-3 text-sm shadow-sm focus:ring-2 focus:ring-cyan-500/20"
           >
             <option value="SERVICE">Service</option>
             <option value="LAB_TEST">Lab Test</option>
@@ -199,12 +199,12 @@ export function AddInvoiceLinePanel({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Search</label>
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-subtle">Search</label>
           {chargeType === "MANUAL" ? (
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="h-10 rounded-xl border-none bg-white shadow-sm"
+              className="h-10 rounded-xl border-none bg-card shadow-sm"
               placeholder="Description"
             />
           ) : (
@@ -212,14 +212,14 @@ export function AddInvoiceLinePanel({
               <Input
                 value={itemSearch}
                 onChange={(e) => setItemSearch(e.target.value)}
-                className="h-10 w-1/3 rounded-xl border-none bg-white shadow-sm placeholder:text-xs"
+                className="h-10 w-1/3 rounded-xl border-none bg-card shadow-sm placeholder:text-xs"
                 placeholder="Find..."
                 disabled={chargeType === "MEDICINE" && !branchId}
               />
               <select
                 value={selectedId}
                 onChange={(e) => handleSelectItem(e.target.value)}
-                className="h-10 flex-1 rounded-xl border-none bg-white px-3 text-xs shadow-sm focus:ring-2 focus:ring-cyan-500/20"
+                className="h-10 flex-1 rounded-xl border-none bg-card px-3 text-xs shadow-sm focus:ring-2 focus:ring-cyan-500/20"
                 disabled={chargeType === "MEDICINE" && !branchId}
               >
                 <option value="">Select...</option>
@@ -238,28 +238,28 @@ export function AddInvoiceLinePanel({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Date</label>
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-subtle">Date</label>
           <Input
             type="date"
             value={chargedAt}
             onChange={(e) => setChargedAt(e.target.value)}
-            className="h-10 rounded-xl border-none bg-white shadow-sm"
+            className="h-10 rounded-xl border-none bg-card shadow-sm"
           />
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto] items-end">
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Qty</label>
-          <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="h-10 rounded-xl border-none bg-white shadow-sm" />
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-subtle">Qty</label>
+          <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="h-10 rounded-xl border-none bg-card shadow-sm" />
         </div>
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Price</label>
-          <Input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className="h-10 rounded-xl border-none bg-white shadow-sm" placeholder="Auto" />
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-subtle">Price</label>
+          <Input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className="h-10 rounded-xl border-none bg-card shadow-sm" placeholder="Auto" />
         </div>
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Disc %</label>
-          <Input type="number" min="0" max="100" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} className="h-10 rounded-xl border-none bg-white shadow-sm" placeholder="0" />
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-subtle">Disc %</label>
+          <Input type="number" min="0" max="100" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} className="h-10 rounded-xl border-none bg-card shadow-sm" placeholder="0" />
         </div>
         <Button
           type="button"

@@ -253,7 +253,7 @@ export default function LabPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border gradient-border panel-shadow p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-600/10 via-blue-500/5 to-transparent" />
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
@@ -261,7 +261,7 @@ export default function LabPage() {
 
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-3">
-            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-700">
+            <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-module">
               Laboratory Workspace
             </Badge>
 
@@ -283,7 +283,7 @@ export default function LabPage() {
 
 
           <div className="grid gap-3 sm:grid-cols-3 xl:w-[560px]">
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Facility
               </p>
@@ -291,7 +291,7 @@ export default function LabPage() {
             </div>
 
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Branch
               </p>
@@ -299,7 +299,7 @@ export default function LabPage() {
             </div>
 
 
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Queue Orders
               </p>
@@ -318,7 +318,7 @@ export default function LabPage() {
 
 
       <section className="grid gap-6 md:grid-cols-3">
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Queued Orders</p>
@@ -331,7 +331,7 @@ export default function LabPage() {
         </Card>
 
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">Pending Items</p>
@@ -344,7 +344,7 @@ export default function LabPage() {
         </Card>
 
 
-        <Card className="rounded-[1.6rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.6rem] surface-spotlight shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div>
               <p className="text-sm text-muted-foreground">In Progress</p>
@@ -359,7 +359,7 @@ export default function LabPage() {
 
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Lab Work Queue</CardTitle>
           </CardHeader>
@@ -370,14 +370,14 @@ export default function LabPage() {
               Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4"
+                  className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4"
                 >
-                  <div className="h-5 w-40 rounded bg-white/10" />
-                  <div className="mt-3 h-4 w-56 rounded bg-white/10" />
+                  <div className="h-5 w-40 rounded bg-card/10" />
+                  <div className="mt-3 h-4 w-56 rounded bg-card/10" />
                 </div>
               ))
             ) : queue.length === 0 ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 No lab orders are currently waiting in queue.
               </div>
             ) : (
@@ -395,7 +395,7 @@ export default function LabPage() {
                       "w-full rounded-[1.3rem] border p-4 text-left transition-all",
                       active
                         ? "border-cyan-400/40 bg-cyan-500/10"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                        : "border-white/10 bg-card/[0.03] hover:bg-card/[0.05]",
                     )}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -441,7 +441,7 @@ export default function LabPage() {
         </Card>
 
 
-        <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
           <CardHeader>
             <CardTitle>Result Entry</CardTitle>
           </CardHeader>
@@ -449,28 +449,28 @@ export default function LabPage() {
 
           <CardContent className="space-y-5">
             {!selectedOrder ? (
-              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-muted-foreground">
+              <div className="rounded-[1.3rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                 Select an order from the queue.
               </div>
             ) : (
               <>
-                <div className="rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-lg font-bold">{patientName(selectedOrder)}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {selectedOrder.patient?.patientNumber || "No patient number"}
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Order Number</p>
                       <p className="mt-1 text-sm font-medium">{selectedOrder.orderNumber}</p>
                     </div>
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <p className="text-xs text-muted-foreground">Urgency</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedOrder.urgency || "ROUTINE"}
                       </p>
                     </div>
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3 md:col-span-2">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3 md:col-span-2">
                       <p className="text-xs text-muted-foreground">Clinical Notes</p>
                       <p className="mt-1 text-sm font-medium">
                         {selectedOrder.clinicalNotes || "—"}
@@ -500,7 +500,7 @@ export default function LabPage() {
                           "w-full rounded-[1.2rem] border p-4 text-left transition-all",
                           isActive
                             ? "border-cyan-400/40 bg-cyan-500/10"
-                            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                            : "border-white/10 bg-card/[0.03] hover:bg-card/[0.05]",
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -545,11 +545,11 @@ export default function LabPage() {
                 </div>
 
                 {!activeItem ? (
-                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+                  <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
                     Select an order item to record its result.
                   </div>
                 ) : activeItem.status === "RESULTED" ? (
-                  <div className="space-y-4 rounded-[1.3rem] border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <div className="space-y-4 rounded-[1.3rem] border border-emerald-500/20 bg-success/10 p-4">
                     <div>
                       <p className="text-sm font-semibold">
                         {activeItem.test?.testName || `Test #${activeItem.testId}`}
@@ -613,7 +613,7 @@ export default function LabPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="space-y-4 rounded-[1.3rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="space-y-4 rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">
                     <div>
                       <p className="text-sm font-semibold">
                         {activeItem.test?.testName || `Test #${activeItem.testId}`}
@@ -643,7 +643,7 @@ export default function LabPage() {
                       />
                     </div>
 
-                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-3">
+                    <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                       <label className="mb-2 block text-sm font-medium">
                         Result Attachment
                       </label>

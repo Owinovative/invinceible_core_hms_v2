@@ -257,10 +257,10 @@ export function CreateFacilityForm() {
   };
 
   return (
-    <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-cyan-600" />
+          <Building2 className="h-5 w-5 text-module" />
           New Facility
         </CardTitle>
       </CardHeader>
@@ -571,7 +571,7 @@ export function CreateFacilityForm() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="flex items-center gap-2 font-semibold">
-                    <MapPin className="h-4 w-4 text-sky-700" />
+                    <MapPin className="h-4 w-4 text-module" />
                     Facility map location
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -697,7 +697,7 @@ export function CreateFacilityForm() {
                   control={form.control}
                   name="mpesaEnabled"
                   render={({ field }) => (
-                    <label className="flex h-11 items-center gap-2 rounded-xl border bg-white px-3 text-sm">
+                    <label className="flex h-11 items-center gap-2 rounded-xl border bg-card px-3 text-sm">
                       <input
                         type="checkbox"
                         checked={Boolean(field.value)}
@@ -805,7 +805,7 @@ export function CreateFacilityForm() {
                     control={form.control}
                     name={name as keyof FacilityFormValues}
                     render={({ field }) => (
-                      <label className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm">
+                      <label className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
                         <input
                           type="checkbox"
                           checked={Boolean(field.value)}
@@ -863,13 +863,13 @@ export function CreateFacilityForm() {
               </FormDescription>
 
               {createFacilityMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive">
                   Failed to create facility.
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
                   {successMessage}
                   {createdCode ? ` Facility Code: ${createdCode}` : ""}
                 </div>
@@ -877,7 +877,7 @@ export function CreateFacilityForm() {
 
               <Button
                 type="submit"
-                className="h-11 rounded-md bg-sky-700 px-6 text-white hover:bg-sky-800"
+                className="h-11 rounded-md bg-primary px-6 text-white hover:bg-brand-strong"
                 disabled={createFacilityMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />

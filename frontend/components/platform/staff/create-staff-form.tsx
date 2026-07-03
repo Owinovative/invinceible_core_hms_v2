@@ -345,10 +345,10 @@ export function CreateStaffForm() {
   };
 
   return (
-    <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserCog className="h-5 w-5 text-cyan-600" />
+          <UserCog className="h-5 w-5 text-module" />
           New Staff
         </CardTitle>
       </CardHeader>
@@ -542,7 +542,7 @@ export function CreateStaffForm() {
 
             <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
               <div className="flex items-center gap-3">
-                <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border bg-sky-50">
+                <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border bg-surface-2">
                   {passportPhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -551,7 +551,7 @@ export function CreateStaffForm() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <Camera className="h-7 w-7 text-sky-700" />
+                    <Camera className="h-7 w-7 text-module" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -786,20 +786,20 @@ export function CreateStaffForm() {
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createStaffMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive">
                   {getErrorMessage(createStaffMutation.error)}
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
                   {successMessage}
                   {createdCode ? ` Staff Code: ${createdCode}` : ""}
                 </div>
               ) : null}
 
               {ocrMessage ? (
-                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                <div className="rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm text-module">
                   {ocrMessage}
                 </div>
               ) : null}

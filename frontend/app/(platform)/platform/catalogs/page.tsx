@@ -167,7 +167,7 @@ export default function PlatformCatalogsPage() {
   const renderRows = () => {
     if (isLoading) {
       return (
-        <div className="border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
+        <div className="border border-border bg-surface-2 p-4 text-sm text-muted-foreground">
           Loading catalog rows...
         </div>
       );
@@ -175,7 +175,7 @@ export default function PlatformCatalogsPage() {
 
     if (isError) {
       return (
-        <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="border border-destructive/25 bg-destructive-soft p-4 text-sm text-destructive">
           {error instanceof Error
             ? error.message
             : "Unable to load this catalog page."}
@@ -185,7 +185,7 @@ export default function PlatformCatalogsPage() {
 
     if (rows.length === 0) {
       return (
-        <div className="border border-dashed border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
+        <div className="border border-dashed border-border bg-surface-2 p-4 text-sm text-muted-foreground">
           No matching master rows found in this catalog.
         </div>
       );
@@ -195,7 +195,7 @@ export default function PlatformCatalogsPage() {
       const medicines = rows as PharmacyMedicine[];
       return (
         <table className="w-full min-w-[820px] table-fixed text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
+          <thead className="sticky top-0 z-10 bg-accent text-xs uppercase text-foreground">
             <tr>
               <th className="w-[120px] px-3 py-3">Code</th>
               <th className="px-3 py-3">Drug</th>
@@ -212,26 +212,26 @@ export default function PlatformCatalogsPage() {
                 key={medicine.id}
                 className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
               >
-                <td className="truncate px-3 py-2 font-mono text-sky-700">
+                <td className="truncate px-3 py-2 font-mono text-module">
                   {medicine.code || `MED-${medicine.id}`}
                 </td>
-                <td className="truncate px-3 py-2 font-semibold text-slate-950">
+                <td className="truncate px-3 py-2 font-semibold text-foreground">
                   {medicine.name}
                 </td>
-                <td className="truncate px-3 py-2 text-slate-600">
+                <td className="truncate px-3 py-2 text-muted-foreground">
                   {medicine.dosageForm || "-"}
                 </td>
-                <td className="truncate px-3 py-2 text-slate-600">
+                <td className="truncate px-3 py-2 text-muted-foreground">
                   {medicine.strength || "-"}
                 </td>
-                <td className="truncate px-3 py-2 text-slate-600">
+                <td className="truncate px-3 py-2 text-muted-foreground">
                   {medicine.manufacturer || "-"}
                 </td>
-                <td className="px-3 py-2 text-slate-700">
+                <td className="px-3 py-2 text-muted-foreground">
                   {formatMoney(medicine.unitPrice)}
                 </td>
                 <td className="px-3 py-2">
-                  <Badge className="rounded border-0 bg-emerald-100 font-mono text-emerald-700">
+                  <Badge className="rounded border-0 bg-success-soft font-mono text-success">
                     {boolLabel(medicine.isActive)}
                   </Badge>
                 </td>
@@ -246,7 +246,7 @@ export default function PlatformCatalogsPage() {
       const services = rows as BillingServiceItem[];
       return (
         <table className="w-full min-w-[720px] table-fixed text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
+          <thead className="sticky top-0 z-10 bg-accent text-xs uppercase text-foreground">
             <tr>
               <th className="w-[130px] px-3 py-3">Code</th>
               <th className="px-3 py-3">Service</th>
@@ -261,20 +261,20 @@ export default function PlatformCatalogsPage() {
                 key={service.id}
                 className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
               >
-                <td className="truncate px-3 py-2 font-mono text-sky-700">
+                <td className="truncate px-3 py-2 font-mono text-module">
                   {service.code}
                 </td>
-                <td className="truncate px-3 py-2 font-semibold text-slate-950">
+                <td className="truncate px-3 py-2 font-semibold text-foreground">
                   {service.name}
                 </td>
-                <td className="truncate px-3 py-2 text-slate-600">
+                <td className="truncate px-3 py-2 text-muted-foreground">
                   {service.category || "SERVICE"}
                 </td>
-                <td className="px-3 py-2 text-slate-700">
+                <td className="px-3 py-2 text-muted-foreground">
                   {formatMoney(service.defaultPrice)}
                 </td>
                 <td className="px-3 py-2">
-                  <Badge className="rounded border-0 bg-emerald-100 font-mono text-emerald-700">
+                  <Badge className="rounded border-0 bg-success-soft font-mono text-success">
                     {boolLabel(service.isActive)}
                   </Badge>
                 </td>
@@ -288,7 +288,7 @@ export default function PlatformCatalogsPage() {
     const labTests = rows as LabTestCatalogItem[];
     return (
       <table className="w-full min-w-[620px] table-fixed text-left text-sm">
-        <thead className="sticky top-0 z-10 bg-sky-100 text-xs uppercase text-sky-900">
+        <thead className="sticky top-0 z-10 bg-accent text-xs uppercase text-foreground">
           <tr>
             <th className="px-3 py-3">Test</th>
             <th className="w-[170px] px-3 py-3">Category</th>
@@ -302,17 +302,17 @@ export default function PlatformCatalogsPage() {
               key={test.id}
               className="border-t border-cyan-400/10 transition hover:bg-cyan-400/5"
             >
-              <td className="truncate px-3 py-2 font-semibold text-slate-950">
+              <td className="truncate px-3 py-2 font-semibold text-foreground">
                 {test.testName}
               </td>
-              <td className="truncate px-3 py-2 text-slate-600">
+              <td className="truncate px-3 py-2 text-muted-foreground">
                 {test.category || "-"}
               </td>
-              <td className="truncate px-3 py-2 text-slate-600">
+              <td className="truncate px-3 py-2 text-muted-foreground">
                 {test.specimenType || "-"}
               </td>
               <td className="px-3 py-2">
-                <Badge className="rounded border-0 bg-emerald-100 font-mono text-emerald-700">
+                <Badge className="rounded border-0 bg-success-soft font-mono text-success">
                   {boolLabel(test.isActive)}
                 </Badge>
               </td>
@@ -324,23 +324,23 @@ export default function PlatformCatalogsPage() {
   };
 
   return (
-    <div className="space-y-5 text-slate-950">
-      <section className="relative overflow-hidden rounded-lg border border-sky-200 bg-white p-5 shadow-sm">
-        <div className="absolute inset-x-0 top-0 h-1 bg-sky-600" />
+    <div className="space-y-5 text-foreground">
+      <section className="relative overflow-hidden rounded-lg border border-border bg-card p-5 shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
         <div className="relative flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
           <div>
-            <Badge className="rounded border border-sky-200 bg-sky-50 text-sky-800">
+            <Badge className="rounded border border-border bg-surface-2 text-module">
               platform.catalogs/write-enabled
             </Badge>
             <div className="mt-4 flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-md border border-sky-200 bg-sky-50">
-                <DatabaseZap className="h-6 w-6 text-sky-700" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-surface-2">
+                <DatabaseZap className="h-6 w-6 text-module" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
                   Master Catalog Command
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                   Platform owns the master lists. Facilities own branch prices,
                   stock, consultation fees, lab fees, and bed-day tariffs.
                 </p>
@@ -349,24 +349,24 @@ export default function PlatformCatalogsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 2xl:w-[520px]">
-            <div className="border border-sky-200 bg-sky-50 p-3">
-              <p className="text-xs font-semibold uppercase text-slate-500">
+            <div className="border border-border bg-surface-2 p-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
                 Drugs
               </p>
               <p className="mt-1 text-2xl font-bold">
                 {overview?.medicines.total ?? "-"}
               </p>
             </div>
-            <div className="border border-sky-200 bg-sky-50 p-3">
-              <p className="text-xs font-semibold uppercase text-slate-500">
+            <div className="border border-border bg-surface-2 p-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
                 Services
               </p>
               <p className="mt-1 text-2xl font-bold">
                 {overview?.billingServices.total ?? "-"}
               </p>
             </div>
-            <div className="border border-sky-200 bg-sky-50 p-3">
-              <p className="text-xs font-semibold uppercase text-slate-500">
+            <div className="border border-border bg-surface-2 p-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
                 Lab Tests
               </p>
               <p className="mt-1 text-2xl font-bold">
@@ -378,19 +378,19 @@ export default function PlatformCatalogsPage() {
       </section>
 
       {message ? (
-        <div className="border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+        <div className="border border-border bg-surface-2 px-4 py-3 text-sm text-module">
           {message}
         </div>
       ) : null}
 
       <section className="grid gap-4 2xl:grid-cols-[360px_minmax(0,1fr)]">
         <div className="space-y-4">
-          <div className="border border-sky-200 bg-white p-4 shadow-sm">
+          <div className="border border-border bg-card p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <ActiveIcon className="h-5 w-5 text-sky-700" />
+              <ActiveIcon className="h-5 w-5 text-module" />
               <div>
                 <p className="font-semibold">{activeTab.title}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {activeTab.signal}
                 </p>
               </div>
@@ -413,8 +413,8 @@ export default function PlatformCatalogsPage() {
                     }}
                     className={`flex items-center justify-between border px-4 py-3 text-left transition ${
                       active
-                        ? "border-sky-400 bg-sky-50 text-sky-900"
-                        : "border-sky-200 bg-white text-slate-700 hover:border-sky-400 hover:text-sky-900"
+                        ? "border-border-strong bg-surface-2 text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground"
                     }`}
                   >
                     <span className="flex items-center gap-3">
@@ -428,9 +428,9 @@ export default function PlatformCatalogsPage() {
             </div>
           </div>
 
-          <div className="border border-sky-200 bg-white p-4 shadow-sm">
+          <div className="border border-border bg-card p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <ServerCog className="h-5 w-5 text-emerald-700" />
+              <ServerCog className="h-5 w-5 text-success" />
               <h2 className="font-semibold">CSV Operation</h2>
             </div>
             <input
@@ -446,7 +446,7 @@ export default function PlatformCatalogsPage() {
                 variant="outline"
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="h-12 rounded-md border-sky-300 bg-white text-sky-800 hover:bg-sky-50"
+                className="h-12 rounded-md border-border-strong bg-card text-module hover:bg-surface-2"
               >
                 {isDownloading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -459,7 +459,7 @@ export default function PlatformCatalogsPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={importMutation.isPending}
-                className="h-12 rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                className="h-12 rounded-md bg-primary text-white hover:bg-brand-strong"
               >
                 {importMutation.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -471,7 +471,7 @@ export default function PlatformCatalogsPage() {
             </div>
 
             {importMutation.data?.errors?.length ? (
-              <div className="mt-4 border border-amber-200 bg-amber-50 p-3 font-mono text-xs text-amber-800">
+              <div className="mt-4 border border-warning/30 bg-warning-soft p-3 font-mono text-xs text-warning">
                 {importMutation.data.errors.slice(0, 5).map((error) => (
                   <p key={`${error.row}-${error.message}`}>
                     row {error.row}: {error.message}
@@ -481,22 +481,22 @@ export default function PlatformCatalogsPage() {
             ) : null}
           </div>
 
-          <div className="border border-sky-200 bg-white p-4 shadow-sm">
+          <div className="border border-border bg-card p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-emerald-700" />
+              <ShieldCheck className="h-5 w-5 text-success" />
               <h2 className="font-semibold">Facility Pricing Gates</h2>
             </div>
             <div className="space-y-2">
               <Link
                 href="/pharmacy-pricing"
-                className="flex items-center justify-between border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 hover:border-sky-400"
+                className="flex items-center justify-between border border-border bg-surface-2 px-4 py-3 text-sm text-foreground hover:border-border-strong"
               >
                 Pharmacy branch prices and stock
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/billing/tariffs"
-                className="flex items-center justify-between border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 hover:border-sky-400"
+                className="flex items-center justify-between border border-border bg-surface-2 px-4 py-3 text-sm text-foreground hover:border-border-strong"
               >
                 Lab, consultation, bed and service tariffs
                 <ArrowRight className="h-4 w-4" />
@@ -505,22 +505,22 @@ export default function PlatformCatalogsPage() {
           </div>
         </div>
 
-        <div className="min-w-0 border border-sky-200 bg-white shadow-sm">
+        <div className="min-w-0 border border-border bg-card shadow-sm">
           <div className="flex flex-col gap-3 border-b border-cyan-400/10 p-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <p className="font-semibold">{activeTab.label} Register</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 showing {rows.length} of {meta?.total ?? 0} rows
                 {isFetching && !isLoading ? " - refreshing" : ""}
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative w-full sm:w-[320px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
                 <Input
                   value={catalogSearch}
                   onChange={(event) => setCatalogSearch(event.target.value)}
-                  className="h-11 rounded-md border-sky-200 bg-white pl-9"
+                  className="h-11 rounded-md border-border bg-card pl-9"
                   placeholder={
                     activeKind === "medicines"
                       ? "Search drugs"
@@ -530,13 +530,13 @@ export default function PlatformCatalogsPage() {
                   }
                 />
               </div>
-              <Badge className="rounded border-0 bg-sky-100 text-sky-800">
+              <Badge className="rounded border-0 bg-accent text-module">
                 csv.sync
               </Badge>
             </div>
           </div>
           <div className="max-h-[620px] overflow-auto">{renderRows()}</div>
-          <div className="flex flex-col gap-3 border-t border-sky-100 p-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-border p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               Page {meta?.page ?? page} of {meta?.totalPages ?? 1} -{" "}
               {meta?.pageSize ?? pageSize} per page
@@ -547,7 +547,7 @@ export default function PlatformCatalogsPage() {
                 variant="outline"
                 disabled={(meta?.page ?? page) <= 1 || isFetching}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="rounded-md border-sky-300 bg-white text-sky-800 hover:bg-sky-50"
+                className="rounded-md border-border-strong bg-card text-module hover:bg-surface-2"
               >
                 Previous
               </Button>
@@ -555,7 +555,7 @@ export default function PlatformCatalogsPage() {
                 type="button"
                 disabled={!meta?.hasNextPage || isFetching}
                 onClick={() => setPage((current) => current + 1)}
-                className="rounded-md bg-sky-700 text-white hover:bg-sky-800"
+                className="rounded-md bg-primary text-white hover:bg-brand-strong"
               >
                 Next
               </Button>

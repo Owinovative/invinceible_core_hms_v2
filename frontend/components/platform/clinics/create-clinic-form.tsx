@@ -196,10 +196,10 @@ export function CreateClinicForm() {
   };
 
   return (
-    <Card className="rounded-[1.8rem] gradient-border panel-shadow">
+    <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Stethoscope className="h-5 w-5 text-cyan-600" />
+          <Stethoscope className="h-5 w-5 text-module" />
           New Clinic
         </CardTitle>
       </CardHeader>
@@ -454,13 +454,13 @@ export function CreateClinicForm() {
 
             <div className="md:col-span-2 space-y-3 pt-2">
               {createClinicMutation.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="rounded-xl border border-destructive/25 bg-destructive-soft px-4 py-3 text-sm text-destructive">
                   {getErrorMessage(createClinicMutation.error)}
                 </div>
               ) : null}
 
               {successMessage ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div className="rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm text-success">
                   {successMessage}
                   {createdCode ? ` Clinic Code: ${createdCode}` : ""}
                 </div>

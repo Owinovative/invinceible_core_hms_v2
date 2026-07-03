@@ -104,7 +104,7 @@ export function PatientsTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[1.6rem] border gradient-border panel-shadow">
+      <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px]">
             <thead className="bg-muted/40">
@@ -207,10 +207,10 @@ export function PatientsTable({
                           className={cn(
                             "rounded-full px-3 py-1 text-xs font-semibold",
                             patient.isActive === false
-                              ? "status-critical"
+                              ? "bg-destructive-soft text-destructive"
                               : patient.isDeceased
-                                ? "status-warning"
-                                : "status-success",
+                                ? "bg-warning-soft text-warning"
+                                : "bg-success-soft text-success",
                           )}
                         >
                           {patient.isActive === false
