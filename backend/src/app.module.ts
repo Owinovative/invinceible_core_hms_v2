@@ -52,6 +52,8 @@ import { PatientPortalModule } from './patient-portal/patient-portal.module';
 import { CommunicationModule } from './communication/communication.module';
 import { DataOutboxModule } from './data-outbox/data-outbox.module';
 import { IntegrationModule } from './integration/integration.module';
+import { SyncJobsModule } from './integration/sync-jobs/sync-jobs.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -66,6 +68,8 @@ import { IntegrationModule } from './integration/integration.module';
     CommunicationModule,
     DataOutboxModule,
     IntegrationModule,
+    SyncJobsModule,
+    ScheduleModule.forRoot(),
     PrismaModule,
     FacilityModule,
     RoleModule,

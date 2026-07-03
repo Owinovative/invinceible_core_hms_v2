@@ -7,6 +7,7 @@ import { PatientModule } from '../patient/patient.module';
 import { StaffModule } from '../staff/staff.module';
 import { FacilityModule } from '../facility/facility.module';
 import { AuthModule } from '../auth/auth.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from '../auth/auth.module';
     StaffModule,
     FacilityModule,
     AuthModule,
+    IntegrationsModule,
   ],
   controllers: [ConsultationController],
   providers: [ConsultationService],

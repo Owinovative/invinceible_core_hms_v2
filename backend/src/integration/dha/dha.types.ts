@@ -9,13 +9,13 @@ import type {
 } from './fhir.types';
 
 export interface DhaResult<T = unknown> {
-  /** Normalized outcome the HMS acts on. */
   status:
     | 'VERIFIED'
     | 'NOT_FOUND'
     | 'ACCEPTED'
     | 'REJECTED'
     | 'ELIGIBLE'
+    | 'SETTLED'
     | 'NOT_ELIGIBLE';
   /** DHA-side identifier for the interaction, when provided. */
   externalRef?: string;
@@ -101,6 +101,11 @@ export interface DhaClientPort {
 
   submitAuditEvent(
     event: FhirAuditEvent,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult>;
+
+  pollClaimResponse(
+    claimNumber: string,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult>;
 }

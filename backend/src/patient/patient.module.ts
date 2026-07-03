@@ -4,10 +4,11 @@ import { PatientController } from './patient.controller';
 import { FacilityModule } from '../facility/facility.module';
 import { AuthModule } from '../auth/auth.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
+import { IntegrationModule } from '../integration/integration.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [FacilityModule, AuthModule, IntegrationsModule, ConfigModule],
+  imports: [FacilityModule, AuthModule, IntegrationsModule, IntegrationModule, ConfigModule],
   controllers: [PatientController],
   providers: [PatientService],
   exports: [PatientService],

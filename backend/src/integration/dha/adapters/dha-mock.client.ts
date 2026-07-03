@@ -136,4 +136,12 @@ export class DhaMockClient implements DhaClientPort {
       raw: { mock: true },
     });
   }
+
+  pollClaimResponse(claimNumber: string): Promise<DhaResult> {
+    return Promise.resolve({
+      status: 'ACCEPTED',
+      externalRef: this.ref('CLR'),
+      raw: { mock: true },
+    });
+  }
 }

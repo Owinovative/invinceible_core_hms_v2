@@ -75,7 +75,14 @@ export function validateEnvironment(
   const dhaEnabled = String(config.DHA_ENABLED ?? 'false') === 'true';
   const dhaMode = String(config.DHA_MODE ?? 'mock').toLowerCase();
   if (dhaEnabled && (dhaMode === 'sandbox' || dhaMode === 'production')) {
-    for (const key of ['DHA_BASE_URL', 'DHA_CLIENT_ID', 'DHA_CLIENT_SECRET']) {
+    const requiredKeys = [
+      'DHA_BASE_URL', 
+      'DHA_CLIENT_ID', 
+      'DHA_CLIENT_SECRET',
+      'DHA_TOKEN_URL',
+      'DHA_FACILITY_CODE'
+    ];
+    for (const key of requiredKeys) {
       if (!hasValue(config, key)) {
         throw new Error(
           `${key} is required when DHA_ENABLED=true and DHA_MODE=${dhaMode}`,

@@ -5,8 +5,10 @@ import { DhaHttpClient } from './dha/adapters/dha-http.client';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
 import { DhaService } from './dha/dha.service';
+import { IntegrationQueueController } from './queue/integration-queue.controller';
 import { FhirMapperService } from './dha/fhir-mapper';
 import { FhirSystemsService } from './dha/fhir-systems';
+import { FhirValidationService } from './dha/fhir-validation.service';
 import { EtimsHttpClient } from './etims/adapters/etims-http.client';
 import { EtimsMockClient } from './etims/adapters/etims-mock.client';
 import { EtimsController } from './etims/etims.controller';
@@ -30,7 +32,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
  */
 @Module({
   imports: [PrismaModule, AuditLogModule],
-  controllers: [EtimsController, DhaController],
+  controllers: [EtimsController, DhaController, IntegrationQueueController],
   providers: [
     IntegrationConfigService,
     IntegrationLoggerService,
@@ -41,6 +43,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     EtimsInvoiceBuilder,
     FhirMapperService,
     FhirSystemsService,
+    FhirValidationService,
     {
       provide: ETIMS_CLIENT,
       useFactory: (

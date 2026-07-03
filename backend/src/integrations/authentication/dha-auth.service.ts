@@ -7,6 +7,7 @@ import { IntegrationHttpClient } from '../../integration/http/integration-http.c
 @Injectable()
 export class DhaAuthService {
   private readonly DHA_TOKEN_KEY = 'dha_access_token';
+  private refreshPromise: Promise<string> | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -21,7 +22,12 @@ export class DhaAuthService {
       return cachedToken;
     }
 
-    return this.refreshToken();
+    if (!this.refreshPromise) {
+      this.refreshPromise = this.refreshToken().finally(() => {
+        this.refreshPromise = null;
+      });
+    }
+    return this.refreshPromise;
   }
 
   private async refreshToken(): Promise<string> {

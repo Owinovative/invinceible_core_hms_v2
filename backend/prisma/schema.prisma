@@ -342,6 +342,9 @@ model Patient {
   occupation     String?        @db.VarChar(120)
   isDeceased     Boolean        @default(false)
   isActive       Boolean        @default(true)
+  shaStatus      String?        @db.VarChar(50)
+  shaEligibilityUpdatedAt DateTime?
+  shaMemberNumber String?       @db.VarChar(120)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   facilityId     Int

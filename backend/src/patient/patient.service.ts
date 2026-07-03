@@ -18,6 +18,9 @@ import {
 } from '../common/pagination/pagination';
 import { CacheService } from '../resilience/cache.service';
 import { ClientRegistryService } from '../integrations/client-registry/client-registry.service';
+import { IntegrationQueueService } from '../integration/queue/integration-queue.service';
+import { DhaService } from '../integration/dha/dha.service';
+import { INTEGRATION_NAMES, DHA_OPERATIONS } from '../integration/integration.constants';
 import { IntegrationLoggerService } from '../integration/integration-logger.service';
 
 @Injectable()
@@ -28,6 +31,8 @@ export class PatientService {
     private readonly scopeService: ScopeService,
     private readonly cacheService: CacheService,
     private readonly clientRegistryService: ClientRegistryService,
+    private readonly integrationQueueService: IntegrationQueueService,
+    private readonly dhaService: DhaService,
     private readonly integrationLoggerService: IntegrationLoggerService,
     private readonly configService: ConfigService,
   ) {}
@@ -106,6 +111,7 @@ export class PatientService {
         phoneSecondary: createPatientDto.phoneSecondary,
         email: createPatientDto.email,
         occupation: createPatientDto.occupation,
+        shaMemberNumber: createPatientDto.shaMemberNumber,
         facilityId: createPatientDto.facilityId,
         isDeceased: createPatientDto.isDeceased ?? false,
         isActive: createPatientDto.isActive ?? true,
@@ -116,15 +122,23 @@ export class PatientService {
     });
 
     // Attempt to register in HIE CR asynchronously
-    this.clientRegistryService.registerPatient({
-      id: String(patient.id),
-      firstName: patient.firstName,
-      middleName: patient.middleName || undefined,
-      lastName: patient.lastName,
-      gender: patient.gender || 'unknown',
-      dateOfBirth: patient.dateOfBirth || undefined,
-      phone: patient.phonePrimary || undefined,
-    }).catch((err) => this.integrationLoggerService.error('Failed to register patient in HIE CR', { error: err, patientId: patient.id }));
+    this.integrationQueueService.enqueue({
+      integration: INTEGRATION_NAMES.DHA,
+      operation: DHA_OPERATIONS.REGISTER_PATIENT,
+      entityType: 'Patient',
+      entityId: String(patient.id),
+      idempotencyKey: `dha:patient-register:${patient.id}`,
+      facilityId: patient.facilityId,
+      payload: {
+        id: String(patient.id),
+        firstName: patient.firstName,
+        middleName: patient.middleName || undefined,
+        lastName: patient.lastName,
+        gender: patient.gender || 'unknown',
+        dateOfBirth: patient.dateOfBirth || undefined,
+        phone: patient.phonePrimary || undefined,
+      },
+    }).catch((err) => this.integrationLoggerService.error('Failed to queue patient for HIE CR', { error: err, patientId: patient.id }));
 
     return patient;
   }
@@ -472,6 +486,40 @@ export class PatientService {
     return this.prisma.patient.delete({
       where: { id },
     });
+  }
+
+  async checkEligibilityScoped(id: number, user: RequestUser) {
+    const patient = await this.findOneScoped(id, user);
+
+    if (!patient.patientNumber) {
+      throw new BadRequestException('Patient has no registration number');
+    }
+
+    try {
+      const eligibility = await this.dhaService.checkEligibility({
+        memberNumber: patient.patientNumber,
+        serviceDate: new Date().toISOString().split('T')[0],
+      }, { actorUserId: user.userId, facilityId: patient.facilityId });
+
+      // Update local record
+      const fhirData = eligibility.result.data as any;
+      const shaStatus = fhirData?.status === 'active' ? 'ACTIVE' : 'INACTIVE';
+      const updated = await this.prisma.patient.update({
+        where: { id },
+        data: {
+          shaStatus,
+          shaEligibilityUpdatedAt: new Date(),
+        },
+      });
+
+      return {
+        ...updated,
+        eligibilityDetails: eligibility,
+      };
+    } catch (error) {
+      this.integrationLoggerService.error('Failed to check eligibility', { error, patientId: id });
+      throw error;
+    }
   }
 
   async removeScoped(id: number, user: RequestUser) {
