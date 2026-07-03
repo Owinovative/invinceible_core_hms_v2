@@ -1,42 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Invinceible Core HMS — Frontend
 
-## Getting Started
+Next.js 16 (App Router) + React 19 + Tailwind CSS 4, styled with the
+**Meridian design system** (2026): OKLCH design tokens, first-class light
+and dark themes, per-module accent identities, a global ⌘K command
+palette, and structural skeleton loading across all 90+ screens.
 
-First, run the development server:
+## Documentation
+
+- [Design system](docs/DESIGN_SYSTEM.md) — tokens, themes, module
+  accents, component library, loading/empty/error patterns, extension
+  guidelines
+- [Pre-redesign audit](docs/REDESIGN_AUDIT.md) — findings that shaped
+  the redesign
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+# .env.local: NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+npm run dev        # http://localhost:3001
 ```
 
-Open [http://localhost:3001](http://localhost:3001) with your browser when using the repository's default local frontend port.
+Useful commands: `npm run build` (production build, CI parity),
+`npm run lint`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```text
+app/                 App Router pages: (dashboard), (platform), patient-access, public
+  globals.css        Meridian tokens (light + dark) + base + signature surfaces
+  print.css          Preserved invoice/report print styles
+components/
+  ui/                Design-system primitives (see docs/DESIGN_SYSTEM.md)
+  layout/            Shell: sidebar, header, status footer, subscription banner
+  <domain>/          Feature components per module
+hooks/               One TanStack Query hook per API operation
+services/            Typed API client per backend module (lib/api.ts fetch core)
+providers/           theme, auth, scope, sidebar, query client + toaster
+lib/                 navigation registry, module catalog, utils
+```
 
-## Learn More
+Conventions:
 
-To learn more about Next.js, take a look at the following resources:
+- **Tokens or nothing** — components never hardcode colors, shadows,
+  radii, timings, or z-index; extend `globals.css` instead.
+- **Navigation registry** (`lib/navigation.ts`) is the single source for
+  sidebar, command palette, and module-accent resolution.
+- **One hook per operation**; mutations invalidate query keys and toast
+  via `sonner`.
+- Loading uses skeleton presets that mirror final layout; every
+  dashboard route inherits `app/(dashboard)/loading.tsx`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Backend base URL (required on deployments) |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL for links/QRs |
 
 ## Deployment
 
-The frontend can remain on Vercel while Render is validated, or run as a Render Node web service with:
-
-- Root directory: `frontend`
-- Build command: `npm ci && npm run build`
-- Start command: `npm run start`
-- Required public env: `NEXT_PUBLIC_API_BASE_URL`
-- Required public app URL: `NEXT_PUBLIC_APP_URL`
-
-See [../docs/deployment/render.md](../docs/deployment/render.md) for Render production migration details. Check the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for framework-level deployment behavior.
+Vercel (default) or any Node host: root `frontend`, build
+`npm ci && npm run build`, start `npm run start`. See
+[../docs/deployment/render.md](../docs/deployment/render.md) for the
+Render path.
