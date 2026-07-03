@@ -4,6 +4,7 @@ import { IClientRegistry, PatientRegistryRecord, PatientEligibility } from '../i
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
+import { FhirSystemsService } from '../../integration/dha/fhir-systems';
 
 @Injectable()
 export class ClientRegistryService implements IClientRegistry {
@@ -12,6 +13,7 @@ export class ClientRegistryService implements IClientRegistry {
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
     private readonly httpClient: IntegrationHttpClient,
+    private readonly systems: FhirSystemsService,
   ) {}
 
   private get baseUrl(): string {
@@ -143,8 +145,8 @@ export class ClientRegistryService implements IClientRegistry {
       gender: record.gender,
       birthDate: record.dateOfBirth?.toISOString().split('T')[0],
       identifier: [
-        ...(record.nationalId ? [{ system: 'http://dha.go.ke/identifiers/national-id', value: record.nationalId }] : []),
-        ...(record.memberNumber ? [{ system: 'http://dha.go.ke/identifiers/sha-member', value: record.memberNumber }] : []),
+        ...(record.nationalId ? [{ system: this.systems.nationalId, value: record.nationalId }] : []),
+        ...(record.memberNumber ? [{ system: this.systems.shaNumber, value: record.memberNumber }] : []),
       ],
       telecom: record.phone ? [{ system: 'phone', value: record.phone }] : [],
     };

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 import { FacilityService } from '../facility/facility.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
@@ -28,6 +29,7 @@ export class PatientService {
     private readonly cacheService: CacheService,
     private readonly clientRegistryService: ClientRegistryService,
     private readonly integrationLoggerService: IntegrationLoggerService,
+    private readonly configService: ConfigService,
   ) {}
 
   private async generatePatientNumber(facilityId: number) {
@@ -69,6 +71,11 @@ export class PatientService {
       if (existingByEmail) {
         throw new BadRequestException('Patient email already exists');
       }
+    }
+
+    const dhaEnabled = this.configService.get('DHA_ENABLED') === 'true';
+    if (dhaEnabled && !createPatientDto.dateOfBirth) {
+      throw new BadRequestException('Date of birth is mandatory for DHA compliance');
     }
 
     const patientNumber =

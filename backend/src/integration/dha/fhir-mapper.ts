@@ -11,10 +11,7 @@ import type {
   FhirServiceRequest,
 } from './fhir.types';
 
-const KE_NATIONAL_ID_SYSTEM = 'https://dha.go.ke/identifier/national-id';
-const KE_FACILITY_SYSTEM = 'https://dha.go.ke/identifier/facility-code';
-const KE_PRACTITIONER_SYSTEM =
-  'https://dha.go.ke/identifier/practitioner-registration';
+import { FhirSystemsService } from './fhir-systems';
 
 export interface HmsPatientLike {
   id: number;
@@ -64,6 +61,8 @@ export interface HmsEncounterLike {
  */
 @Injectable()
 export class FhirMapperService {
+  constructor(private readonly systems: FhirSystemsService) {}
+
   toFhirPatient(patient: HmsPatientLike, nationalId?: string): FhirPatient {
     const gender = (patient.gender ?? '').toLowerCase();
     return {
@@ -71,7 +70,7 @@ export class FhirMapperService {
       identifier: [
         { system: 'urn:hms:patient-number', value: patient.patientNumber },
         ...(nationalId
-          ? [{ system: KE_NATIONAL_ID_SYSTEM, value: nationalId }]
+          ? [{ system: this.systems.nationalId, value: nationalId }]
           : []),
       ],
       name: [
@@ -98,7 +97,7 @@ export class FhirMapperService {
   toFhirOrganization(facility: HmsFacilityLike): FhirOrganization {
     return {
       resourceType: 'Organization',
-      identifier: [{ system: KE_FACILITY_SYSTEM, value: facility.code }],
+      identifier: [{ system: this.systems.facilityIdentifier, value: facility.code }],
       name: facility.name,
       type: facility.facilityType
         ? [{ text: facility.facilityType }]
@@ -117,7 +116,7 @@ export class FhirMapperService {
     return {
       resourceType: 'Practitioner',
       identifier: staff.registrationNumber
-        ? [{ system: KE_PRACTITIONER_SYSTEM, value: staff.registrationNumber }]
+        ? [{ system: this.systems.practitionerRegistry, value: staff.registrationNumber }]
         : undefined,
       name: [
         {
@@ -158,7 +157,7 @@ export class FhirMapperService {
               coding: encounter.diagnosisCode
                 ? [
                     {
-                      system: 'http://hl7.org/fhir/sid/icd-10',
+                      system: this.systems.icd11,
                       code: encounter.diagnosisCode,
                     },
                   ]
