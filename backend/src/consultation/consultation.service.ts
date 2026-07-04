@@ -13,6 +13,8 @@ import { UpdateConsultationDto } from './dto/update-consultation.dto';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
+import { PractitionerRegistryService } from '../integrations/practitioner-registry/practitioner-registry.service';
+import { FacilityRegistryService } from '../integrations/facility-registry/facility-registry.service';
 
 @Injectable()
 export class ConsultationService {
@@ -30,6 +32,8 @@ export class ConsultationService {
     private readonly facilityService: FacilityService,
     private readonly scopeService: ScopeService,
     private readonly safeLogger: SafeLoggerService,
+    private readonly practitionerRegistry: PractitionerRegistryService,
+    private readonly facilityRegistry: FacilityRegistryService,
   ) {}
 
   async create(createConsultationDto: CreateConsultationDto) {
@@ -61,8 +65,23 @@ export class ConsultationService {
 
     await this.facilityService.assertOperational(appointment.facilityId);
 
+    const facilityDb = await this.prisma.facility.findUnique({ where: { id: appointment.facilityId } });
+    if (facilityDb?.code) {
+      const facilityValid = await this.facilityRegistry.validateFacilityCode(facilityDb.code);
+      if (!facilityValid) {
+        throw new BadRequestException('Facility is not active or verified with DHA');
+      }
+    }
+
     await this.patientService.findOne(createConsultationDto.patientId);
-    await this.staffService.findOne(createConsultationDto.doctorId);
+    const doctor = await this.staffService.findOne(createConsultationDto.doctorId);
+
+    if (doctor.clinicianRegistrationNumber) {
+      const license = await this.practitionerRegistry.validateLicense(doctor.clinicianRegistrationNumber);
+      if (!license.valid) {
+        throw new BadRequestException(`Doctor license is invalid or expired (Status: ${license.status})`);
+      }
+    }
 
     const consultation = await this.prisma.consultation.create({
       data: {

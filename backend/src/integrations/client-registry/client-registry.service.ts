@@ -1,20 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IClientRegistry, PatientRegistryRecord, PatientEligibility } from '../interfaces/client-registry.interface';
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationHttpClient } from '../../integration/http/integration-http.client';
 import { FhirSystemsService } from '../../integration/dha/fhir-systems';
+import { IntegrationQueueWorker } from '../../integration/queue/integration-queue.worker';
+import { INTEGRATION_NAMES, DHA_OPERATIONS } from '../../integration/integration.constants';
+import type { OutboundQueueItem } from '../../integration/integration.types';
 
 @Injectable()
-export class ClientRegistryService implements IClientRegistry {
+export class ClientRegistryService implements IClientRegistry, OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly authService: DhaAuthService,
     private readonly logger: IntegrationLoggerService,
     private readonly httpClient: IntegrationHttpClient,
     private readonly systems: FhirSystemsService,
+    private readonly worker: IntegrationQueueWorker,
   ) {}
+
+  onModuleInit() {
+    this.worker.registerHandler(
+      INTEGRATION_NAMES.DHA,
+      DHA_OPERATIONS.REGISTER_PATIENT,
+      async (item: OutboundQueueItem) => {
+        await this.registerPatient(item.payload as Partial<PatientRegistryRecord>);
+      },
+    );
+  }
 
   private get baseUrl(): string {
     return this.configService.get<string>('DHA_CR_URL', 'https://afyalink.dha.go.ke/api/cr/v1');

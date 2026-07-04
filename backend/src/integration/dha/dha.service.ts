@@ -34,8 +34,9 @@ import type {
   PractitionerVerificationQuery,
 } from './dha.types';
 import { FhirMapperService } from './fhir-mapper';
-import type { FhirBundle } from './fhir.types';
+import type { FhirBundle, FhirResource } from './fhir.types';
 import { FhirSystemsService } from './fhir-systems';
+import { FhirValidationService } from './fhir-validation.service';
 
 interface DhaOperationOptions {
   correlationId?: string;
@@ -64,6 +65,7 @@ export class DhaService implements OnModuleInit {
     private readonly audit: IntegrationAuditService,
     private readonly logger: IntegrationLoggerService,
     private readonly systems: FhirSystemsService,
+    private readonly fhirValidator: FhirValidationService,
     @Inject(DHA_CLIENT) private readonly client: DhaClientPort,
   ) {}
 
@@ -205,45 +207,96 @@ export class DhaService implements OnModuleInit {
 
     const claim = await this.prisma.shaClaim.findUnique({
       where: { id: shaClaimId },
-      include: { patient: true, facility: true, invoice: true },
+      include: {
+        patient: true,
+        facility: true,
+        invoice: {
+          include: {
+            consultation: {
+              include: { doctor: true },
+            },
+          },
+        },
+      },
     });
     if (!claim) {
       throw new NotFoundException(`SHA claim ${shaClaimId} not found`);
     }
 
-    const bundle = this.mapper.toTransactionBundle([
+    const resources: FhirResource[] = [
       this.mapper.toFhirPatient(claim.patient),
       this.mapper.toFhirOrganization(claim.facility),
-      {
-        resourceType: 'Claim',
-        status: 'active',
-        use: 'claim',
-        patient: { reference: `Patient/${claim.patient.patientNumber}` },
-        provider: { reference: `Organization/${claim.facility.code}` },
-        identifier: [{ system: 'urn:hms:sha-claim', value: claim.claimNumber }],
-        total: { value: claim.claimedAmount, currency: 'KES' },
-        ...(claim.diagnosisCode || claim.diagnosisText
-          ? {
-              diagnosis: [
-                {
-                  sequence: 1,
-                  diagnosisCodeableConcept: {
-                    coding: claim.diagnosisCode
-                      ? [
-                          {
-                            system: this.systems.icd11,
-                            code: claim.diagnosisCode,
-                          },
-                        ]
-                      : undefined,
-                    text: claim.diagnosisText ?? undefined,
-                  },
+    ];
+
+    let encounterRef: string | undefined = undefined;
+    if (claim.invoice?.consultation) {
+      const consultation = claim.invoice.consultation;
+      if (consultation.doctor) {
+        resources.push(
+          this.mapper.toFhirPractitioner({
+            id: consultation.doctor.id,
+            firstName: consultation.doctor.firstName,
+            lastName: consultation.doctor.lastName,
+            registrationNumber: consultation.doctor.clinicianRegistrationNumber,
+            cadre: consultation.doctor.designation,
+          }),
+        );
+      }
+
+      const encounter = this.mapper.toFhirEncounter(
+        {
+          id: consultation.id,
+          patientId: consultation.patientId,
+          encounterClass: 'AMB',
+          endedAt: consultation.completedAt ?? consultation.startedAt,
+          startedAt: consultation.startedAt,
+          practitionerRef: consultation.doctor
+            ? `Practitioner/${consultation.doctor.staffCode ?? consultation.doctor.id}`
+            : undefined,
+          diagnosisCode: claim.diagnosisCode ?? undefined,
+          diagnosisText: claim.diagnosisText ?? undefined,
+        },
+        `Patient/${claim.patient.patientNumber}`,
+        `Organization/${claim.facility.code}`,
+      );
+      encounter.id = `enc-${consultation.id}`;
+      resources.push(encounter);
+      encounterRef = `Encounter/enc-${consultation.id}`;
+    }
+
+    resources.push({
+      resourceType: 'Claim',
+      status: 'active',
+      use: 'claim',
+      patient: { reference: `Patient/${claim.patient.patientNumber}` },
+      provider: { reference: `Organization/${claim.facility.code}` },
+      identifier: [{ system: 'urn:hms:sha-claim', value: claim.claimNumber }],
+      total: { value: claim.claimedAmount, currency: 'KES' },
+      ...(encounterRef ? { encounter: [{ reference: encounterRef }] } : {}),
+      ...(claim.diagnosisCode || claim.diagnosisText
+        ? {
+            diagnosis: [
+              {
+                sequence: 1,
+                diagnosisCodeableConcept: {
+                  coding: claim.diagnosisCode
+                    ? [
+                        {
+                          system: this.systems.icd11,
+                          code: claim.diagnosisCode,
+                        },
+                      ]
+                    : undefined,
+                  text: claim.diagnosisText ?? undefined,
                 },
-              ],
-            }
-          : {}),
-      },
-    ]);
+              },
+            ],
+          }
+        : {}),
+    } as FhirResource);
+
+    const bundle = this.mapper.toTransactionBundle(resources);
+    this.fhirValidator.validateBundle(bundle);
 
     const transaction = await this.createTransaction({
       transactionType: DHA_TRANSACTION_TYPE.CLAIM_SUBMISSION,
@@ -319,13 +372,14 @@ export class DhaService implements OnModuleInit {
           startedAt: consultation.startedAt,
           endedAt: consultation.completedAt,
           encounterClass: 'AMB',
-          diagnosisText: consultation.diagnosis,
+          diagnosisText: consultation.diagnosis ?? undefined,
           practitionerRef: `Practitioner/${consultation.doctor.staffCode}`,
         },
         patientRef,
         facilityRef,
       ),
     ]);
+    this.fhirValidator.validateBundle(bundle);
 
     const transaction = await this.createTransaction({
       transactionType: DHA_TRANSACTION_TYPE.ENCOUNTER_SUBMISSION,
@@ -577,6 +631,46 @@ export class DhaService implements OnModuleInit {
         transactionId: transaction.id,
         error: toErrorMessage(error),
         correlationId: options.correlationId,
+      });
+      throw error;
+    }
+  }
+
+  async pollClaimStatus(claimId: number) {
+    this.assertEnabled();
+    const claim = await this.prisma.shaClaim.findUnique({
+      where: { id: claimId },
+    });
+
+    if (!claim) {
+      throw new NotFoundException(`SHA claim ${claimId} not found`);
+    }
+
+    try {
+      const response = await this.client.pollClaimResponse(
+        claim.claimNumber,
+        this.ctx({}),
+      );
+
+      let newStatus = claim.statusCode;
+      if (response.status === 'ACCEPTED' || response.status === 'SETTLED') {
+        newStatus = 'ACCEPTED';
+      } else if (response.status === 'REJECTED') {
+        newStatus = 'REJECTED';
+      }
+
+      if (newStatus !== claim.statusCode) {
+        await this.prisma.shaClaim.update({
+          where: { id: claimId },
+          data: { statusCode: newStatus },
+        });
+      }
+
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to poll claim ${claim.claimNumber}`, {
+        error,
+        claimId,
       });
       throw error;
     }

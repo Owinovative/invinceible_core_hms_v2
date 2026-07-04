@@ -37,6 +37,7 @@ const patientSchema = z.object({
   phoneSecondary: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   occupation: z.string().optional(),
+  shaMemberNumber: z.string().optional(),
 });
 
 type PatientFormValues = z.infer<typeof patientSchema>;
@@ -101,6 +102,7 @@ export function CreatePatientForm() {
       phoneSecondary: "",
       email: "",
       occupation: "",
+      shaMemberNumber: "",
     },
   });
 
@@ -156,6 +158,7 @@ export function CreatePatientForm() {
         phoneSecondary: values.phoneSecondary || undefined,
         email: values.email || undefined,
         occupation: values.occupation || undefined,
+        shaMemberNumber: values.shaMemberNumber || undefined,
         facilityId,
         isActive: true,
         isDeceased: false,
@@ -175,6 +178,7 @@ export function CreatePatientForm() {
         phoneSecondary: "",
         email: "",
         occupation: "",
+        shaMemberNumber: "",
       });
     } catch {
       setSuccessMessage(null);
@@ -231,6 +235,34 @@ export function CreatePatientForm() {
                   <FormControl>
                     <Input className="h-11 rounded-xl" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="shaMemberNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SHA Member Number</FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input placeholder="Enter SHA number" {...field} />
+                    </FormControl>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => {
+                        // Implement verify logic using DHA endpoint later
+                        if (field.value) {
+                          alert(`Verifying SHA Membership for: ${field.value}`);
+                        }
+                      }}
+                    >
+                      Verify
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

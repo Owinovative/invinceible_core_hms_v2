@@ -254,4 +254,17 @@ export class DhaHttpClient implements DhaClientPort {
     const envelope = await this.call('POST', 'AuditEvent', event, ctx);
     return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
   }
+
+  async pollClaimResponse(
+    claimNumber: string,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult> {
+    const envelope = await this.call(
+      'GET',
+      `ClaimResponse?request=${encodeURIComponent(claimNumber)}`,
+      undefined,
+      ctx,
+    );
+    return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
+  }
 }

@@ -12,6 +12,8 @@
 import { DhaService } from './dha/dha.service';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { FhirMapperService } from './dha/fhir-mapper';
+import { FhirSystemsService } from './dha/fhir-systems';
+import { FhirValidationService } from './dha/fhir-validation.service';
 import { EtimsMockClient } from './etims/adapters/etims-mock.client';
 import { EtimsInvoiceBuilder } from './etims/etims-invoice.builder';
 import { EtimsService } from './etims/etims.service';
@@ -53,14 +55,20 @@ describe('Billing -> eTIMS -> DHA end-to-end flow', () => {
       logger,
       new EtimsMockClient(),
     );
+    const mockConfigService = { get: () => 'https://fhir.sha.go.ke' };
+    const systems = new FhirSystemsService(mockConfigService as any);
+    const mapper = new FhirMapperService(systems);
+    const fhirValidator = new FhirValidationService();
     dha = new DhaService(
       prisma as never,
       config,
       queue,
       worker,
-      new FhirMapperService(),
+      mapper,
       makeAudit(prisma),
       logger,
+      systems,
+      fhirValidator,
       new DhaMockClient(),
     );
     etims.onModuleInit();
@@ -83,6 +91,8 @@ describe('Billing -> eTIMS -> DHA end-to-end flow', () => {
         claimNumber: 'SHA-000009',
         statusCode: 'SUBMITTED',
         claimedAmount: 3500,
+        diagnosisCode: 'J18.9',
+        diagnosisText: 'Pneumonia',
         patientId,
         facilityId,
         invoiceId,

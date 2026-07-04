@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 export default function NewPatientPage() {
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent" />
-        <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8 bg-card">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
+        <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-secondary/10 blur-3xl" />
 
         <div className="relative space-y-3">
           <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-module">

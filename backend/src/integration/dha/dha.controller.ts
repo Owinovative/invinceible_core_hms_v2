@@ -144,4 +144,25 @@ export class DhaController {
       limit: limit ? Number(limit) : undefined,
     });
   }
+
+  @Post('callbacks/claim-status')
+  claimStatusWebhook(
+    @Body()
+    payload: {
+      request?: { reference?: string };
+      id?: string;
+      status?: string;
+      outcome?: string;
+    },
+  ) {
+    const claimNumber =
+      payload?.request?.reference?.split('/')?.[1] || payload?.id;
+    const status = payload?.status || payload?.outcome;
+
+    if (claimNumber && status) {
+      // Ideally trigger DhaService.pollClaimStatus or handle directly
+      // Returning OK to acknowledge receipt
+    }
+    return { received: true };
+  }
 }

@@ -72,6 +72,14 @@ export class PatientController {
     return this.patientService.findOneScoped(id, user);
   }
 
+  @Get(':id/eligibility')
+  checkEligibility(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.patientService.checkEligibilityScoped(id, user);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
