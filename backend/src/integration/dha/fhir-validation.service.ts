@@ -46,7 +46,8 @@ export class FhirValidationService {
       }
     }
 
-    if (types.includes('Encounter') && !types.includes('Practitioner')) {
+    const encounter = resources.find(r => r.resourceType === 'Encounter') as any;
+    if (encounter?.participant?.length && !types.includes('Practitioner')) {
       throw new BadRequestException(
         'Missing required resource type for claim submission: Practitioner',
       );
