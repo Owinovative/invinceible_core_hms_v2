@@ -75,6 +75,8 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     IntegrationQueueService,
     IntegrationQueueWorker,
     IntegrationConfigService,
+    IntegrationLoggerService,
+    IntegrationHttpClient,
     FhirSystemsService,
   ],
 })
