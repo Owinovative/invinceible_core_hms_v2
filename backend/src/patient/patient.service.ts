@@ -491,13 +491,15 @@ export class PatientService {
   async checkEligibilityScoped(id: number, user: RequestUser) {
     const patient = await this.findOneScoped(id, user);
 
-    if (!patient.patientNumber) {
-      throw new BadRequestException('Patient has no registration number');
+    const memberNumber = patient.shaMemberNumber || patient.patientNumber;
+
+    if (!memberNumber) {
+      throw new BadRequestException('Patient has no registration or SHA member number');
     }
 
     try {
       const eligibility = await this.dhaService.checkEligibility({
-        memberNumber: patient.patientNumber,
+        memberNumber,
         serviceDate: new Date().toISOString().split('T')[0],
       }, { actorUserId: user.userId, facilityId: patient.facilityId });
 

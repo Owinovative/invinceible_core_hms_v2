@@ -224,13 +224,25 @@ export class DhaService implements OnModuleInit {
     }
 
     const resources: FhirResource[] = [
-      this.mapper.toFhirPatient(claim.patient as any),
-      this.mapper.toFhirOrganization(claim.facility as any),
+      this.mapper.toFhirPatient(claim.patient),
+      this.mapper.toFhirOrganization(claim.facility),
     ];
 
     let encounterRef: string | undefined = undefined;
     if (claim.invoice?.consultation) {
       const consultation = claim.invoice.consultation;
+      if (consultation.doctor) {
+        resources.push(
+          this.mapper.toFhirPractitioner({
+            id: consultation.doctor.id,
+            firstName: consultation.doctor.firstName,
+            lastName: consultation.doctor.lastName,
+            registrationNumber: consultation.doctor.clinicianRegistrationNumber,
+            cadre: consultation.doctor.designation,
+          })
+        );
+      }
+
       const encounter = this.mapper.toFhirEncounter(
         {
           id: consultation.id,
@@ -247,7 +259,6 @@ export class DhaService implements OnModuleInit {
         `Patient/${claim.patient.patientNumber}`,
         `Organization/${claim.facility.code}`,
       );
-      // @ts-ignore
       encounter.id = `enc-${consultation.id}`;
       resources.push(encounter);
       encounterRef = `Encounter/enc-${consultation.id}`;
@@ -284,7 +295,7 @@ export class DhaService implements OnModuleInit {
           : {}),
     } as any);
 
-    const bundle = this.mapper.toTransactionBundle(resources as any);
+    const bundle = this.mapper.toTransactionBundle(resources);
     this.fhirValidator.validateBundle(bundle);
 
     const transaction = await this.createTransaction({

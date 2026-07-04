@@ -30,7 +30,7 @@ export class FhirValidationService {
   }
 
   private validateClaimTransaction(resources: FhirResource[]): void {
-    const requiredTypes = ['Patient', 'Organization', 'Practitioner', 'Encounter', 'Claim'];
+    const requiredTypes = ['Patient', 'Organization', 'Claim'];
     const types = resources.map((r) => r.resourceType);
 
     for (const req of requiredTypes) {
@@ -39,13 +39,18 @@ export class FhirValidationService {
       }
     }
 
+    if (types.includes('Encounter') && !types.includes('Practitioner')) {
+      throw new BadRequestException('Missing required resource type for claim submission: Practitioner');
+    }
+
     const claim = resources.find((r) => r.resourceType === 'Claim') as any;
     if (!claim.diagnosis || claim.diagnosis.length === 0) {
       throw new BadRequestException('Claim must have at least one diagnosis');
     }
     const icd11 = claim.diagnosis[0].diagnosisCodeableConcept?.coding?.find((c: any) => c.system?.includes('icd-11'));
-    if (!icd11) {
-      throw new BadRequestException('Claim must have an ICD-11 diagnosis code');
+    const text = claim.diagnosis[0].diagnosisCodeableConcept?.text;
+    if (!icd11 && !text) {
+      throw new BadRequestException('Claim must have an ICD-11 diagnosis code or diagnosis text');
     }
   }
 
