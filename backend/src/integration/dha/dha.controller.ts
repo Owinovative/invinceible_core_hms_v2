@@ -146,14 +146,22 @@ export class DhaController {
   }
 
   @Post('callbacks/claim-status')
-  async claimStatusWebhook(@Body() payload: any) {
-    // Basic implementation to extract claim number and status from the FHIR payload
-    const claimNumber = payload?.request?.reference?.split('/')?.[1] || payload?.id;
+  claimStatusWebhook(
+    @Body()
+    payload: {
+      request?: { reference?: string };
+      id?: string;
+      status?: string;
+      outcome?: string;
+    },
+  ) {
+    const claimNumber =
+      payload?.request?.reference?.split('/')?.[1] || payload?.id;
     const status = payload?.status || payload?.outcome;
-    
+
     if (claimNumber && status) {
-       // Ideally trigger DhaService.pollClaimStatus or handle directly
-       // Returning OK to acknowledge receipt
+      // Ideally trigger DhaService.pollClaimStatus or handle directly
+      // Returning OK to acknowledge receipt
     }
     return { received: true };
   }

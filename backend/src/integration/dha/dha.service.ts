@@ -239,7 +239,7 @@ export class DhaService implements OnModuleInit {
             lastName: consultation.doctor.lastName,
             registrationNumber: consultation.doctor.clinicianRegistrationNumber,
             cadre: consultation.doctor.designation,
-          })
+          }),
         );
       }
 
@@ -274,26 +274,26 @@ export class DhaService implements OnModuleInit {
       total: { value: claim.claimedAmount, currency: 'KES' },
       ...(encounterRef ? { encounter: [{ reference: encounterRef }] } : {}),
       ...(claim.diagnosisCode || claim.diagnosisText
-          ? {
-              diagnosis: [
-                {
-                  sequence: 1,
-                  diagnosisCodeableConcept: {
-                    coding: claim.diagnosisCode
-                      ? [
-                          {
-                            system: this.systems.icd11,
-                            code: claim.diagnosisCode,
-                          },
-                        ]
-                      : undefined,
-                    text: claim.diagnosisText ?? undefined,
-                  },
+        ? {
+            diagnosis: [
+              {
+                sequence: 1,
+                diagnosisCodeableConcept: {
+                  coding: claim.diagnosisCode
+                    ? [
+                        {
+                          system: this.systems.icd11,
+                          code: claim.diagnosisCode,
+                        },
+                      ]
+                    : undefined,
+                  text: claim.diagnosisText ?? undefined,
                 },
-              ],
-            }
-          : {}),
-    } as any);
+              },
+            ],
+          }
+        : {}),
+    } as FhirResource);
 
     const bundle = this.mapper.toTransactionBundle(resources);
     this.fhirValidator.validateBundle(bundle);
@@ -647,8 +647,11 @@ export class DhaService implements OnModuleInit {
     }
 
     try {
-      const response = await this.client.pollClaimResponse(claim.claimNumber, this.ctx({}));
-      
+      const response = await this.client.pollClaimResponse(
+        claim.claimNumber,
+        this.ctx({}),
+      );
+
       let newStatus = claim.statusCode;
       if (response.status === 'ACCEPTED' || response.status === 'SETTLED') {
         newStatus = 'ACCEPTED';
@@ -665,7 +668,10 @@ export class DhaService implements OnModuleInit {
 
       return response;
     } catch (error) {
-      this.logger.error(`Failed to poll claim ${claim.claimNumber}`, { error, claimId });
+      this.logger.error(`Failed to poll claim ${claim.claimNumber}`, {
+        error,
+        claimId,
+      });
       throw error;
     }
   }

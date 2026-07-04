@@ -1,6 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DhaService } from './dha.service';
 import { FhirMapperService } from './fhir-mapper';
+import { FhirSystemsService } from './fhir-systems';
+import { FhirValidationService } from './fhir-validation.service';
 import { DhaMockClient } from './adapters/dha-mock.client';
 import { DhaApiError, type DhaClientPort } from './dha.types';
 import { IntegrationQueueService } from '../queue/integration-queue.service';
@@ -26,14 +28,20 @@ describe('DhaService', () => {
     const logger = makeLogger();
     queue = new IntegrationQueueService(prisma as never, config, logger);
     worker = new IntegrationQueueWorker(queue, config, logger);
+    const mockConfigService = { get: () => 'https://fhir.sha.go.ke' };
+    const systems = new FhirSystemsService(mockConfigService as any);
+    const mapper = new FhirMapperService(systems);
+    const fhirValidator = new FhirValidationService();
     service = new DhaService(
       prisma as never,
       config,
       queue,
       worker,
-      new FhirMapperService(),
+      mapper,
       makeAudit(prisma),
       logger,
+      systems,
+      fhirValidator,
       clientOverride ?? new DhaMockClient(),
     );
     service.onModuleInit();

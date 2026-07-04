@@ -137,7 +137,8 @@ export class DhaMockClient implements DhaClientPort {
     });
   }
 
-  pollClaimResponse(claimNumber: string): Promise<DhaResult> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  pollClaimResponse(_claimNumber: string): Promise<DhaResult> {
     return Promise.resolve({
       status: 'ACCEPTED',
       externalRef: this.ref('CLR'),

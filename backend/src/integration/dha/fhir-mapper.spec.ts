@@ -1,7 +1,11 @@
 import { FhirMapperService } from './fhir-mapper';
+import { FhirSystemsService } from './fhir-systems';
+import type { FhirResource } from './fhir.types';
 
 describe('FhirMapperService', () => {
-  const mapper = new FhirMapperService();
+  const mockConfigService = { get: () => 'https://fhir.sha.go.ke' };
+  const systems = new FhirSystemsService(mockConfigService as any);
+  const mapper = new FhirMapperService(systems);
 
   const patient = {
     id: 1,
@@ -23,7 +27,7 @@ describe('FhirMapperService', () => {
       expect(resource.identifier).toEqual([
         { system: 'urn:hms:patient-number', value: 'PT-000001' },
         {
-          system: 'https://dha.go.ke/identifier/national-id',
+          system: 'https://fhir.sha.go.ke/fhir/identifier/nationalid',
           value: '12345678',
         },
       ]);
@@ -67,7 +71,8 @@ describe('FhirMapperService', () => {
         country: null,
       });
       expect(resource.identifier?.[0]).toEqual({
-        system: 'https://dha.go.ke/identifier/facility-code',
+        system:
+          'https://fhir.sha.go.ke/fhir/terminology/CodeSystem/facility-identifier-types',
         value: 'FAC001',
       });
       expect(resource.name).toBe('Mock Hospital');
@@ -126,7 +131,7 @@ describe('FhirMapperService', () => {
         'Practitioner/ST-001',
       );
       expect(resource.reasonCode?.[0].coding?.[0]).toEqual({
-        system: 'http://hl7.org/fhir/sid/icd-10',
+        system: 'https://fhir.sha.go.ke/fhir/terminology/CodeSystem/icd-11',
         code: 'J18.9',
       });
       expect(resource.serviceProvider?.reference).toBe('Organization/FAC001');
@@ -194,9 +199,9 @@ describe('FhirMapperService', () => {
   describe('toTransactionBundle', () => {
     it('wraps resources in POST transaction entries', () => {
       const bundle = mapper.toTransactionBundle([
-        { resourceType: 'Patient' },
-        { resourceType: 'Claim' },
-        { noType: true },
+        { resourceType: 'Patient' } as FhirResource,
+        { resourceType: 'Claim' } as FhirResource,
+        { resourceType: '' } as FhirResource,
       ]);
       expect(bundle.type).toBe('transaction');
       expect(bundle.entry?.map((entry) => entry.request?.url)).toEqual([

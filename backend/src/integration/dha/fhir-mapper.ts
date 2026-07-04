@@ -257,7 +257,7 @@ export class FhirMapperService {
         request: {
           method: 'POST' as const,
           url:
-            typeof resource.resourceType === 'string'
+            typeof resource.resourceType === 'string' && resource.resourceType
               ? resource.resourceType
               : 'Resource',
         },
