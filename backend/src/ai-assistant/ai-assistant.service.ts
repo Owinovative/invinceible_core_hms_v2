@@ -338,10 +338,13 @@ export class AiAssistantService {
   }
 
   private parseImageDataUrl(value: string) {
-    const match = value.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i);
+    const match = value.match(
+      /^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i,
+    );
     if (!match) return null;
     return {
-      mimeType: match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1],
+      mimeType:
+        match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1],
       base64: match[2],
     };
   }
@@ -380,7 +383,10 @@ export class AiAssistantService {
       parsed.names,
       parsed.legalName,
     );
-    const explicitFirstName = this.stringFromAny(parsed.firstName, parsed.givenName);
+    const explicitFirstName = this.stringFromAny(
+      parsed.firstName,
+      parsed.givenName,
+    );
     const explicitMiddleName = this.stringFromAny(parsed.middleName);
     const explicitLastName = this.stringFromAny(
       parsed.lastName,

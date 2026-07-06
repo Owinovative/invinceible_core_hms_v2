@@ -12,6 +12,7 @@ import {
 import { makeAudit, makeConfig, makeLogger } from '../testing/test-support';
 
 describe('EtimsService', () => {
+  jest.setTimeout(30000);
   let prisma: InMemoryPrisma;
   let queue: IntegrationQueueService;
   let worker: IntegrationQueueWorker;

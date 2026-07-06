@@ -40,11 +40,7 @@ import {
 } from './dto/otc-sale-query.dto';
 
 const FINAL_SALE_STATUSES = ['PAID', 'CANCELLED', 'REFUNDED'];
-const COUNTED_INSURANCE_STATUSES = [
-  'APPROVED',
-  'PARTIALLY_APPROVED',
-  'PAID',
-];
+const COUNTED_INSURANCE_STATUSES = ['APPROVED', 'PARTIALLY_APPROVED', 'PAID'];
 const COUNTED_PAYMENT_STATUSES = ['COMPLETED', 'PAID', 'CONFIRMED'];
 
 type OtcPaymentSummaryInput = {
@@ -114,7 +110,9 @@ export function calculateOtcPaymentSummary(
   }
 
   paidAmount = roundMoney(paidAmount);
-  const balanceAmount = roundMoney(Math.max(Number(totalAmount || 0) - paidAmount, 0));
+  const balanceAmount = roundMoney(
+    Math.max(Number(totalAmount || 0) - paidAmount, 0),
+  );
 
   return {
     paidAmount,
@@ -237,7 +235,9 @@ export class OtcSalesService {
     });
 
     if (!branch) {
-      throw new NotFoundException(`Branch with id ${resolvedBranchId} not found`);
+      throw new NotFoundException(
+        `Branch with id ${resolvedBranchId} not found`,
+      );
     }
 
     this.scopeService.assertBranchAccess(user, branch.facilityId, branch.id);
@@ -248,11 +248,21 @@ export class OtcSalesService {
     const staff = user.staffId
       ? await this.prisma.staff.findUnique({
           where: { id: user.staffId },
-          select: { id: true, facilityId: true, branchId: true, isActive: true },
+          select: {
+            id: true,
+            facilityId: true,
+            branchId: true,
+            isActive: true,
+          },
         })
       : await this.prisma.staff.findFirst({
           where: { userId: user.userId, isActive: true },
-          select: { id: true, facilityId: true, branchId: true, isActive: true },
+          select: {
+            id: true,
+            facilityId: true,
+            branchId: true,
+            isActive: true,
+          },
         });
 
     if (!staff?.isActive) {
@@ -284,15 +294,21 @@ export class OtcSalesService {
     return sale;
   }
 
-  private async assertPatientScope(patientId: number | undefined, facilityId: number) {
+  private async assertPatientScope(
+    patientId: number | undefined,
+    facilityId: number,
+  ) {
     if (!patientId) return;
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
       select: { id: true, facilityId: true },
     });
-    if (!patient) throw new NotFoundException(`Patient with id ${patientId} not found`);
+    if (!patient)
+      throw new NotFoundException(`Patient with id ${patientId} not found`);
     if (patient.facilityId !== facilityId) {
-      throw new BadRequestException('Selected patient does not belong to this facility.');
+      throw new BadRequestException(
+        'Selected patient does not belong to this facility.',
+      );
     }
   }
 
@@ -343,7 +359,10 @@ export class OtcSalesService {
     });
   }
 
-  private async recalculateSaleTotals(tx: Prisma.TransactionClient, saleId: number) {
+  private async recalculateSaleTotals(
+    tx: Prisma.TransactionClient,
+    saleId: number,
+  ) {
     const [sale, items, payments] = await Promise.all([
       tx.otcSale.findUnique({
         where: { id: saleId },
@@ -370,17 +389,25 @@ export class OtcSalesService {
       }),
     ]);
 
-    if (!sale) throw new NotFoundException(`OTC sale with id ${saleId} not found`);
+    if (!sale)
+      throw new NotFoundException(`OTC sale with id ${saleId} not found`);
 
     const subtotal = roundMoney(
       items.reduce((total, item) => total + Number(item.lineTotal || 0), 0),
     );
     const totalAmount = roundMoney(
-      Math.max(subtotal - Number(sale.discountAmount || 0) + Number(sale.taxAmount || 0), 0),
+      Math.max(
+        subtotal -
+          Number(sale.discountAmount || 0) +
+          Number(sale.taxAmount || 0),
+        0,
+      ),
     );
     const paymentSummary = calculateOtcPaymentSummary(totalAmount, payments);
     const nextStatus =
-      sale.status === 'DRAFT' && items.length > 0 ? 'PENDING_PAYMENT' : sale.status;
+      sale.status === 'DRAFT' && items.length > 0
+        ? 'PENDING_PAYMENT'
+        : sale.status;
 
     return tx.otcSale.update({
       where: { id: saleId },
@@ -552,7 +579,8 @@ export class OtcSalesService {
       where.branchId = branch.id;
     }
     if (query.status) where.status = query.status.toUpperCase();
-    if (query.paymentStatus) where.paymentStatus = query.paymentStatus.toUpperCase();
+    if (query.paymentStatus)
+      where.paymentStatus = query.paymentStatus.toUpperCase();
     if (pagination.search) {
       where.OR = [
         { saleNumber: { contains: pagination.search } },
@@ -753,7 +781,9 @@ export class OtcSalesService {
     }
 
     if (Number(input.amount || 0) <= 0) {
-      throw new BadRequestException(`${method} payment amount must be greater than 0.`);
+      throw new BadRequestException(
+        `${method} payment amount must be greater than 0.`,
+      );
     }
 
     if (
@@ -765,11 +795,17 @@ export class OtcSalesService {
     }
   }
 
-  async recordPayment(id: number, dto: RecordOtcSalePaymentDto, user: RequestUser) {
+  async recordPayment(
+    id: number,
+    dto: RecordOtcSalePaymentDto,
+    user: RequestUser,
+  ) {
     const sale = await this.getScopedSale(id, user);
     this.assertMutableSale(sale);
     if (!sale.items.length) {
-      throw new BadRequestException('Add at least one item before recording payment.');
+      throw new BadRequestException(
+        'Add at least one item before recording payment.',
+      );
     }
     if (!dto.payments?.length) {
       throw new BadRequestException('At least one payment entry is required.');
@@ -780,7 +816,8 @@ export class OtcSalesService {
       for (const input of dto.payments) {
         this.validatePaymentInput(sale, input);
         const isInsurance = input.paymentMethod === 'INSURANCE';
-        const claimStatus = input.insuranceClaimStatus ?? (isInsurance ? 'DRAFT' : undefined);
+        const claimStatus =
+          input.insuranceClaimStatus ?? (isInsurance ? 'DRAFT' : undefined);
         const coveredAmount = isInsurance
           ? roundMoney(input.insuranceCoveredAmount ?? input.amount ?? 0)
           : 0;
@@ -793,7 +830,8 @@ export class OtcSalesService {
         const statusCode =
           input.paymentMethod === 'MPESA_STK'
             ? 'PENDING'
-            : isInsurance && ['DRAFT', 'PENDING_APPROVAL'].includes(claimStatus!)
+            : isInsurance &&
+                ['DRAFT', 'PENDING_APPROVAL'].includes(claimStatus!)
               ? 'PENDING'
               : 'COMPLETED';
 
@@ -810,9 +848,11 @@ export class OtcSalesService {
             mpesaReceiptNumber: input.mpesaReceiptNumber?.trim() || undefined,
             merchantRequestId: input.merchantRequestId?.trim() || undefined,
             checkoutRequestId: input.checkoutRequestId?.trim() || undefined,
-            insuranceProviderName: input.insuranceProviderName?.trim() || undefined,
+            insuranceProviderName:
+              input.insuranceProviderName?.trim() || undefined,
             insuranceSchemeName: input.insuranceSchemeName?.trim() || undefined,
-            insuranceMemberNumber: input.insuranceMemberNumber?.trim() || undefined,
+            insuranceMemberNumber:
+              input.insuranceMemberNumber?.trim() || undefined,
             principalMemberName: input.principalMemberName?.trim() || undefined,
             relationshipToPrincipal:
               input.relationshipToPrincipal?.trim() || undefined,
@@ -839,7 +879,9 @@ export class OtcSalesService {
     );
     await this.auditLogService.create({
       moduleName: 'PHARMACY',
-      actionName: hasInsurance ? 'OTC_INSURANCE_PAYMENT_RECORDED' : 'OTC_PAYMENT_RECORDED',
+      actionName: hasInsurance
+        ? 'OTC_INSURANCE_PAYMENT_RECORDED'
+        : 'OTC_PAYMENT_RECORDED',
       entityType: 'OTC_SALE',
       entityId: String(id),
       description: `Payment recorded for OTC sale ${sale.saleNumber}`,
@@ -866,7 +908,9 @@ export class OtcSalesService {
     const sale = await this.getScopedSale(id, user);
     this.assertMutableSale(sale);
     if (!sale.items.length) {
-      throw new BadRequestException('Cannot complete an OTC sale without items.');
+      throw new BadRequestException(
+        'Cannot complete an OTC sale without items.',
+      );
     }
     if (sale.paymentStatus !== 'PAID') {
       throw new BadRequestException(
@@ -882,13 +926,19 @@ export class OtcSalesService {
         where: { id },
         include: { items: true, payments: true },
       });
-      if (!current) throw new NotFoundException(`OTC sale with id ${id} not found`);
+      if (!current)
+        throw new NotFoundException(`OTC sale with id ${id} not found`);
       if (FINAL_SALE_STATUSES.includes(current.status.toUpperCase())) {
         throw new BadRequestException(`OTC sale is already ${current.status}.`);
       }
-      const totals = calculateOtcPaymentSummary(current.totalAmount, current.payments);
+      const totals = calculateOtcPaymentSummary(
+        current.totalAmount,
+        current.payments,
+      );
       if (totals.paymentStatus !== 'PAID') {
-        throw new BadRequestException('OTC sale must be fully paid before completion.');
+        throw new BadRequestException(
+          'OTC sale must be fully paid before completion.',
+        );
       }
 
       for (const item of current.items) {
@@ -1132,8 +1182,9 @@ export class OtcSalesService {
     this.scopeService.assertBranchAccess(user, sale.facilityId, sale.branchId);
 
     const currency = sale.facility?.currency || sale.branch?.currency || 'KES';
-    const customer =
-      sale.patient ? patientName(sale.patient) : sale.customerName || 'Walk-in customer';
+    const customer = sale.patient
+      ? patientName(sale.patient)
+      : sale.customerName || 'Walk-in customer';
     const customerReference =
       sale.patient?.patientNumber || maskValue(sale.customerPhone, 3, 3) || '-';
     const paymentMethods = Array.from(
@@ -1213,13 +1264,19 @@ export class OtcSalesService {
         addCompactDefinitionList(
           doc,
           [
-            { label: 'Subtotal', value: formatPdfMoney(sale.subtotal, currency) },
+            {
+              label: 'Subtotal',
+              value: formatPdfMoney(sale.subtotal, currency),
+            },
             {
               label: 'Discount',
               value: formatPdfMoney(sale.discountAmount, currency),
             },
             { label: 'Tax', value: formatPdfMoney(sale.taxAmount, currency) },
-            { label: 'Total', value: formatPdfMoney(sale.totalAmount, currency) },
+            {
+              label: 'Total',
+              value: formatPdfMoney(sale.totalAmount, currency),
+            },
             { label: 'Paid', value: formatPdfMoney(sale.paidAmount, currency) },
             {
               label: 'Balance',

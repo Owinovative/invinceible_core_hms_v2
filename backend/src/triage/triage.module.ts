@@ -8,7 +8,6 @@ import { FacilityModule } from '../facility/facility.module';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { AuthModule } from '../auth/auth.module';
 
-
 @Module({
   imports: [
     PrismaModule,

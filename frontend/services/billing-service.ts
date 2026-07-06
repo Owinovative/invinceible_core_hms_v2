@@ -98,6 +98,9 @@ export interface InvoiceRecord {
     lastName?: string;
     gender?: string | null;
     phonePrimary?: string | null;
+    shaMemberNumber?: string | null;
+    shaStatus?: string | null;
+    shaEligibilityUpdatedAt?: string | null;
   } | null;
   facility?: {
     id: number;

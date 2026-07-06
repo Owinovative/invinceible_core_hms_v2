@@ -15,6 +15,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { Permissions } from '../auth/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import { ShaClaimsService } from './sha-claims.service';
@@ -41,7 +43,6 @@ export class ShaClaimsController {
     @Res() response: Response,
   ) {
     const pdf = await this.shaClaimsService.getClaimPdf(id, user);
-
     response.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="sha-claim-${id}.pdf"`,
@@ -66,5 +67,43 @@ export class ShaClaimsController {
     @CurrentUser() user: RequestUser,
   ) {
     return this.shaClaimsService.update(id, dto, user);
+  }
+
+  /**
+   * Billing staff endpoint — updates only the statusCode of a claim.
+   * A cashier or billing officer can advance a claim through the workflow
+   * (DRAFT → SUBMITTED → ACCEPTED → PAID) without needing ADMIN role.
+   */
+  @Patch(':id/status')
+  @UseGuards(PermissionsGuard)
+  @Permissions('billing.read')
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { statusCode: string; rejectionReason?: string },
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.shaClaimsService.update(
+      id,
+      {
+        statusCode: body.statusCode,
+        rejectionReason: body.rejectionReason ?? null,
+      } as UpdateShaClaimDto,
+      user,
+    );
+  }
+
+  /**
+   * Manually trigger DHA submission for a claim that is in DRAFT or
+   * has previously failed. Idempotent — the outbound queue deduplicates
+   * via idempotency keys so re-triggering is safe.
+   */
+  @Post(':id/submit-to-dha')
+  @UseGuards(PermissionsGuard)
+  @Permissions('billing.read')
+  submitToDha(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.shaClaimsService.submitToDha(id, user);
   }
 }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IpdService } from '../ipd/ipd.service';
 import { StaffService } from '../staff/staff.service';
@@ -523,7 +527,11 @@ export class IpdClinicalService {
         this.addAdmissionIdentity(doc, bundle.admission);
 
         addSectionTitle(doc, 'Clinical overview');
-        addCompactParagraph(doc, 'Admission reason', bundle.admission.admissionReason);
+        addCompactParagraph(
+          doc,
+          'Admission reason',
+          bundle.admission.admissionReason,
+        );
         addCompactParagraph(
           doc,
           'Consultation summary',
@@ -597,7 +605,9 @@ export class IpdClinicalService {
         addSignatureBlock(doc, [
           {
             label: 'Prepared by',
-            value: staffName(latestReview?.reviewedBy ?? bundle.admission.admittedBy),
+            value: staffName(
+              latestReview?.reviewedBy ?? bundle.admission.admittedBy,
+            ),
           },
           { label: 'Designation', value: 'Clinical team' },
           { label: 'Generated', value: new Date() },
@@ -638,7 +648,11 @@ export class IpdClinicalService {
           },
           { label: 'Status', value: bundle.admission.statusCode },
         ]);
-        addCompactParagraph(doc, 'Discharge diagnosis', summary?.dischargeDiagnosis);
+        addCompactParagraph(
+          doc,
+          'Discharge diagnosis',
+          summary?.dischargeDiagnosis,
+        );
         addCompactParagraph(doc, 'Hospital course', summary?.hospitalCourse);
         addCompactParagraph(
           doc,
@@ -653,7 +667,9 @@ export class IpdClinicalService {
         addSignatureBlock(doc, [
           {
             label: 'Prepared by',
-            value: staffName(summary?.dischargedBy ?? bundle.admission.admittedBy),
+            value: staffName(
+              summary?.dischargedBy ?? bundle.admission.admittedBy,
+            ),
           },
           { label: 'Designation', value: 'Discharging clinician' },
           { label: 'Generated', value: new Date() },
@@ -741,7 +757,10 @@ export class IpdClinicalService {
           'No vital records recorded.',
         );
         addSignatureBlock(doc, [
-          { label: 'Prepared by', value: staffName(bundle.admission.admittedBy) },
+          {
+            label: 'Prepared by',
+            value: staffName(bundle.admission.admittedBy),
+          },
           { label: 'Designation', value: 'Ward clinical team' },
           { label: 'Generated', value: new Date() },
         ]);

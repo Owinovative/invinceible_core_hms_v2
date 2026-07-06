@@ -39,8 +39,17 @@ export interface PatientRegistryRecord {
 }
 
 export interface IClientRegistry {
-  searchPatient(query: { nationalId?: string; memberNumber?: string; phone?: string; }): Promise<PatientRegistryRecord[]>;
+  searchPatient(query: {
+    nationalId?: string;
+    memberNumber?: string;
+    phone?: string;
+  }): Promise<PatientRegistryRecord[]>;
   getPatientEligibility(patientId: string): Promise<PatientEligibility>;
-  registerPatient(patientData: Partial<PatientRegistryRecord>): Promise<PatientRegistryRecord>;
-  updatePatient(patientId: string, updates: Partial<PatientRegistryRecord>): Promise<PatientRegistryRecord>;
+  registerPatient(
+    patientData: Partial<PatientRegistryRecord>,
+  ): Promise<PatientRegistryRecord>;
+  updatePatient(
+    patientId: string,
+    updates: Partial<PatientRegistryRecord>,
+  ): Promise<PatientRegistryRecord>;
 }

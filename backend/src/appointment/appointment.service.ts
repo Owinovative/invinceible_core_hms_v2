@@ -50,7 +50,9 @@ export class AppointmentService {
   }
 
   async create(createAppointmentDto: CreateAppointmentDto) {
-    const patient = await this.patientService.findOne(createAppointmentDto.patientId);
+    const patient = await this.patientService.findOne(
+      createAppointmentDto.patientId,
+    );
 
     let doctor: any = null;
     if (createAppointmentDto.doctorId) {
@@ -174,7 +176,9 @@ export class AppointmentService {
 
     let patient: any = null;
     if (updateAppointmentDto.patientId) {
-      patient = await this.patientService.findOne(updateAppointmentDto.patientId);
+      patient = await this.patientService.findOne(
+        updateAppointmentDto.patientId,
+      );
     }
 
     let doctor: any = null;
@@ -203,7 +207,8 @@ export class AppointmentService {
       data.appointmentDate = new Date(updateAppointmentDto.appointmentDate);
     }
 
-    data.facilityId = clinic?.facilityId ?? patient?.facilityId ?? existing.facilityId;
+    data.facilityId =
+      clinic?.facilityId ?? patient?.facilityId ?? existing.facilityId;
     data.branchId = clinic?.branchId ?? doctor?.branchId ?? existing.branchId;
 
     await this.facilityService.assertOperational(data.facilityId);
@@ -338,107 +343,103 @@ export class AppointmentService {
       },
     });
   }
-async createFromTriage(params: {
-  facilityId: number;
-  branchId?: number | null;
-  patientId: number;
-  doctorId?: number | null;
-  clinicId?: number | null;
-  triageId: number;
-  triagePriority?: string | null;
-  visitReason?: string | null;
-  notes?: string | null;
-}) {
-  await this.facilityService.assertOperational(params.facilityId);
+  async createFromTriage(params: {
+    facilityId: number;
+    branchId?: number | null;
+    patientId: number;
+    doctorId?: number | null;
+    clinicId?: number | null;
+    triageId: number;
+    triagePriority?: string | null;
+    visitReason?: string | null;
+    notes?: string | null;
+  }) {
+    await this.facilityService.assertOperational(params.facilityId);
 
+    await this.patientService.findOne(params.patientId);
 
-  await this.patientService.findOne(params.patientId);
+    if (params.doctorId) {
+      await this.staffService.findOne(params.doctorId);
+    }
 
+    if (params.clinicId) {
+      const clinic = await this.prisma.clinic.findUnique({
+        where: { id: params.clinicId },
+      });
 
-  if (params.doctorId) {
-    await this.staffService.findOne(params.doctorId);
-  }
+      if (!clinic) {
+        throw new NotFoundException(
+          `Clinic with id ${params.clinicId} not found`,
+        );
+      }
 
+      if (clinic.facilityId !== params.facilityId) {
+        throw new BadRequestException(
+          'Selected clinic does not belong to the selected facility',
+        );
+      }
 
-  if (params.clinicId) {
-    const clinic = await this.prisma.clinic.findUnique({
-      where: { id: params.clinicId },
+      if (
+        params.branchId &&
+        clinic.branchId &&
+        clinic.branchId !== params.branchId
+      ) {
+        throw new BadRequestException(
+          'Selected clinic does not belong to the selected branch',
+        );
+      }
+    }
+
+    const existing = await this.prisma.appointment.findFirst({
+      where: {
+        patientId: params.patientId,
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
+        },
+        OR: [{ notes: { contains: `TRIAGE_ID:${params.triageId}` } }],
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        clinic: true,
+      },
     });
 
-
-    if (!clinic) {
-      throw new NotFoundException(`Clinic with id ${params.clinicId} not found`);
+    if (existing) {
+      return existing;
     }
 
+    const appointmentNumber = await this.generateAppointmentNumber(
+      params.facilityId,
+    );
 
-    if (clinic.facilityId !== params.facilityId) {
-      throw new BadRequestException(
-        'Selected clinic does not belong to the selected facility',
-      );
-    }
-
-
-    if (params.branchId && clinic.branchId && clinic.branchId !== params.branchId) {
-      throw new BadRequestException(
-        'Selected clinic does not belong to the selected branch',
-      );
-    }
-  }
-
-
-  const existing = await this.prisma.appointment.findFirst({
-    where: {
-      patientId: params.patientId,
-      statusCode: {
-        in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
+    return this.prisma.appointment.create({
+      data: {
+        facilityId: params.facilityId,
+        branchId: params.branchId ?? null,
+        appointmentNumber,
+        appointmentDate: new Date(),
+        patientId: params.patientId,
+        doctorId: params.doctorId ?? undefined,
+        clinicId: params.clinicId ?? undefined,
+        visitReason: params.visitReason ?? undefined,
+        triagePriority: params.triagePriority ?? undefined,
+        statusCode: 'READY_FOR_DOCTOR',
+        notes: [params.notes, `TRIAGE_ID:${params.triageId}`]
+          .filter(Boolean)
+          .join('\n'),
       },
-      OR: [
-        { notes: { contains: `TRIAGE_ID:${params.triageId}` } },
-      ],
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      doctor: true,
-      clinic: true,
-    },
-  });
-
-
-  if (existing) {
-    return existing;
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        clinic: true,
+      },
+    });
   }
-
-
-  const appointmentNumber = await this.generateAppointmentNumber(params.facilityId);
-
-
-  return this.prisma.appointment.create({
-    data: {
-      facilityId: params.facilityId,
-      branchId: params.branchId ?? null,
-      appointmentNumber,
-      appointmentDate: new Date(),
-      patientId: params.patientId,
-      doctorId: params.doctorId ?? undefined,
-      clinicId: params.clinicId ?? undefined,
-      visitReason: params.visitReason ?? undefined,
-      triagePriority: params.triagePriority ?? undefined,
-      statusCode: 'READY_FOR_DOCTOR',
-      notes: [params.notes, `TRIAGE_ID:${params.triageId}`]
-        .filter(Boolean)
-        .join('\n'),
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      doctor: true,
-      clinic: true,
-    },
-  });
-}
 
   async completeAppointment(id: number) {
     await this.findOne(id);

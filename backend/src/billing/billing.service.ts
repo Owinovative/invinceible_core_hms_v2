@@ -1950,10 +1950,7 @@ export class BillingService {
             take: params.take,
             orderBy:
               params.sortBy === 'category'
-                ? [
-                    { category: sortDirection },
-                    { name: sortDirection },
-                  ]
+                ? [{ category: sortDirection }, { name: sortDirection }]
                 : [{ [params.sortBy]: sortDirection }],
           }),
           this.prisma.serviceTariff.count({ where }),
@@ -2781,7 +2778,10 @@ export class BillingService {
         facility: payment.facility ?? payment.invoice?.facility,
         branch: payment.branch ?? payment.invoice?.branch,
         compact: true,
-        qrPayload: this.invoiceVerificationUrl(payment.invoice, verificationCode),
+        qrPayload: this.invoiceVerificationUrl(
+          payment.invoice,
+          verificationCode,
+        ),
       },
       (doc) => {
         addSectionTitle(doc, 'Receipt details');
@@ -2871,18 +2871,42 @@ export class BillingService {
         addCompactTable(
           doc,
           [
-            { header: 'Date', width: 58, render: (item) => this.shortInvoiceDate(item.createdAt) },
+            {
+              header: 'Date',
+              width: 58,
+              render: (item) => this.shortInvoiceDate(item.createdAt),
+            },
             { header: 'Item', width: 206, render: (item) => item.description },
             {
               header: 'Unit',
               width: 50,
               render: (item) =>
-                (item.billingService?.category || item.sourceModule || 'EACH').toUpperCase(),
+                (
+                  item.billingService?.category ||
+                  item.sourceModule ||
+                  'EACH'
+                ).toUpperCase(),
             },
-            { header: 'Qty', width: 34, render: (item) => Number(item.quantity || 0) },
-            { header: 'Disc', width: 44, render: (item) => `${Number(item.discountPercent || 0)}%` },
-            { header: 'Price', width: 62, render: (item) => this.compactMoney(item.unitPrice, currency) },
-            { header: 'Total', width: 72, render: (item) => this.compactMoney(item.lineTotal, currency) },
+            {
+              header: 'Qty',
+              width: 34,
+              render: (item) => Number(item.quantity || 0),
+            },
+            {
+              header: 'Disc',
+              width: 44,
+              render: (item) => `${Number(item.discountPercent || 0)}%`,
+            },
+            {
+              header: 'Price',
+              width: 62,
+              render: (item) => this.compactMoney(item.unitPrice, currency),
+            },
+            {
+              header: 'Total',
+              width: 72,
+              render: (item) => this.compactMoney(item.lineTotal, currency),
+            },
           ],
           printableItems,
           'No active invoice items recorded.',
@@ -2892,12 +2916,30 @@ export class BillingService {
         addTotalsPanel(
           doc,
           [
-            { label: 'Subtotal', value: this.compactMoney(invoice.subtotal, currency) },
-            { label: 'VAT', value: this.compactMoney(invoice.taxAmount, currency) },
-            { label: 'Discount', value: this.compactMoney(invoice.discountAmount, currency) },
-            { label: 'Grand Total', value: this.compactMoney(invoice.totalAmount, currency) },
-            { label: 'Paid', value: this.compactMoney(invoice.amountPaid, currency) },
-            { label: 'Balance', value: this.compactMoney(invoice.balanceAmount, currency) },
+            {
+              label: 'Subtotal',
+              value: this.compactMoney(invoice.subtotal, currency),
+            },
+            {
+              label: 'VAT',
+              value: this.compactMoney(invoice.taxAmount, currency),
+            },
+            {
+              label: 'Discount',
+              value: this.compactMoney(invoice.discountAmount, currency),
+            },
+            {
+              label: 'Grand Total',
+              value: this.compactMoney(invoice.totalAmount, currency),
+            },
+            {
+              label: 'Paid',
+              value: this.compactMoney(invoice.amountPaid, currency),
+            },
+            {
+              label: 'Balance',
+              value: this.compactMoney(invoice.balanceAmount, currency),
+            },
           ],
           'Invoice totals',
         );
@@ -3550,13 +3592,16 @@ export class BillingService {
         );
 
     if (!lockAcquired) {
-      this.safeLogger.warn('Blocked duplicate M-PESA prompt within lock window', {
-        invoiceId: dto.invoiceId,
-        facilityId: invoice.facilityId,
-        branchId: invoice.branchId,
-        userId: user?.userId ?? null,
-        lockSeconds: this.mpesaPromptLockSeconds(),
-      });
+      this.safeLogger.warn(
+        'Blocked duplicate M-PESA prompt within lock window',
+        {
+          invoiceId: dto.invoiceId,
+          facilityId: invoice.facilityId,
+          branchId: invoice.branchId,
+          userId: user?.userId ?? null,
+          lockSeconds: this.mpesaPromptLockSeconds(),
+        },
+      );
       const pending = await this.findPendingMpesaPayment(
         dto.invoiceId,
         normalizedPhone,
@@ -4166,13 +4211,19 @@ export class BillingService {
       {},
     );
 
-    await this.confirmMpesaPayment({
-      checkoutRequestId,
-      merchantRequestId: callback.MerchantRequestID,
-      mpesaReceiptNumber: String(metadata.MpesaReceiptNumber || ''),
-      transactionRef: String(metadata.MpesaReceiptNumber || checkoutRequestId),
-      callbackPayload: this.compactPaymentPayload(payload),
-    }, undefined, 'CALLBACK');
+    await this.confirmMpesaPayment(
+      {
+        checkoutRequestId,
+        merchantRequestId: callback.MerchantRequestID,
+        mpesaReceiptNumber: String(metadata.MpesaReceiptNumber || ''),
+        transactionRef: String(
+          metadata.MpesaReceiptNumber || checkoutRequestId,
+        ),
+        callbackPayload: this.compactPaymentPayload(payload),
+      },
+      undefined,
+      'CALLBACK',
+    );
 
     return { message: 'M-PESA callback confirmed' };
   }

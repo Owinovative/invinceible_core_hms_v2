@@ -18,12 +18,12 @@ import { PrescriptionItemService } from './prescription-item.service';
 import { CreatePrescriptionItemDto } from './dto/create-prescription-item.dto';
 import { UpdatePrescriptionItemDto } from './dto/update-prescription-item.dto';
 
-
 @Controller('prescription-items')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class PrescriptionItemController {
-  constructor(private readonly prescriptionItemService: PrescriptionItemService) {}
-
+  constructor(
+    private readonly prescriptionItemService: PrescriptionItemService,
+  ) {}
 
   @Post()
   @Permissions('consultation.write')
@@ -33,7 +33,6 @@ export class PrescriptionItemController {
   ) {
     return this.prescriptionItemService.create(dto, user);
   }
-
 
   @Get('prescription/:prescriptionId')
   findByPrescriptionId(
@@ -46,7 +45,6 @@ export class PrescriptionItemController {
     );
   }
 
-
   @Get(':id')
   findOne(
     @Param('id', ParseIntPipe) id: number,
@@ -54,7 +52,6 @@ export class PrescriptionItemController {
   ) {
     return this.prescriptionItemService.findOneScoped(id, user);
   }
-
 
   @Patch(':id')
   @Permissions('consultation.write')
@@ -65,7 +62,6 @@ export class PrescriptionItemController {
   ) {
     return this.prescriptionItemService.update(id, dto, user);
   }
-
 
   @Delete(':id')
   @Permissions('consultation.write')

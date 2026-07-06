@@ -105,7 +105,7 @@ export class ScopeService {
     if (!isSuperAdmin && facilityAccessStatus?.loginBlocked) {
       throw new UnauthorizedException(
         facilityAccessStatus.lockReason ===
-        'FACILITY_SUBSCRIPTION_GRACE_EXPIRED'
+          'FACILITY_SUBSCRIPTION_GRACE_EXPIRED'
           ? 'Facility subscription has been unpaid for more than 15 days. Access is blocked until payment is recorded by the platform.'
           : 'Facility compliance grace has expired. Access is blocked until the platform reactivates the facility.',
       );

@@ -185,8 +185,10 @@ export class ReportsController {
     @CurrentUser() user: RequestUser,
     @Res() response: Response,
   ) {
-    const report =
-      await this.reportsService.getConsultationMedicalReportPdf(id, user);
+    const report = await this.reportsService.getConsultationMedicalReportPdf(
+      id,
+      user,
+    );
 
     response.set({
       'Content-Type': 'application/pdf',

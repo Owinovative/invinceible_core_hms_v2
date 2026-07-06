@@ -38,7 +38,11 @@ import { IntegrationModule } from '../integration/integration.module';
     PayheroCallbackController,
     BillingPublicController,
   ],
-  providers: [BillingService, FacilityMpesaBillingService, PayheroBillingService],
+  providers: [
+    BillingService,
+    FacilityMpesaBillingService,
+    PayheroBillingService,
+  ],
   exports: [BillingService, FacilityMpesaBillingService, PayheroBillingService],
 })
 export class BillingModule {}

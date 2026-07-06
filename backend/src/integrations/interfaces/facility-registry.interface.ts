@@ -13,7 +13,11 @@ export interface FacilityRegistryRecord {
 }
 
 export interface IFacilityRegistry {
-  searchFacility(query: { name?: string; code?: string; county?: string }): Promise<FacilityRegistryRecord[]>;
+  searchFacility(query: {
+    name?: string;
+    code?: string;
+    county?: string;
+  }): Promise<FacilityRegistryRecord[]>;
   getFacilityByCode(code: string): Promise<FacilityRegistryRecord | null>;
   validateFacilityCode(code: string): Promise<boolean>;
 }

@@ -19,9 +19,7 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 @Controller('consultations')
 @UseGuards(AuthGuard('jwt'))
 export class ConsultationController {
-  constructor(
-    private readonly consultationService: ConsultationService,
-  ) {}
+  constructor(private readonly consultationService: ConsultationService) {}
 
   @Post()
   create(@Body() createConsultationDto: CreateConsultationDto) {
@@ -62,13 +60,13 @@ export class ConsultationController {
       user,
     );
   }
-@Get('patient/:patientId')
-findByPatientId(
-  @Param('patientId', ParseIntPipe) patientId: number,
-  @CurrentUser() user: RequestUser,
-) {
-  return this.consultationService.findByPatientIdScoped(patientId, user);
-}
+  @Get('patient/:patientId')
+  findByPatientId(
+    @Param('patientId', ParseIntPipe) patientId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.consultationService.findByPatientIdScoped(patientId, user);
+  }
 
   @Get(':id')
   findOne(

@@ -8,7 +8,13 @@ import { ShaClaimsController } from './sha-claims.controller';
 import { ShaClaimsService } from './sha-claims.service';
 
 @Module({
-  imports: [AuditLogModule, AuthModule, BillingModule, IntegrationModule, IntegrationsModule],
+  imports: [
+    AuditLogModule,
+    AuthModule,
+    BillingModule,
+    IntegrationModule,
+    IntegrationsModule,
+  ],
   controllers: [ShaClaimsController],
   providers: [ShaClaimsService],
   exports: [ShaClaimsService],

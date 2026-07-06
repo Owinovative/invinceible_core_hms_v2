@@ -19,8 +19,6 @@ import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
 import { ImportBranchPricingCsvDto } from './dto/import-branch-pricing-csv.dto';
 import type { PaginationQuery } from '../common/pagination/pagination';
 
-
-
 @Controller('pharmacy-stock')
 @UseGuards(AuthGuard('jwt'))
 export class PharmacyStockController {

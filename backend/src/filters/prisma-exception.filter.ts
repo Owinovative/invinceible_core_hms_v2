@@ -8,11 +8,19 @@ import {
 import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 
-@Catch(Prisma.PrismaClientKnownRequestError, Prisma.PrismaClientUnknownRequestError)
+@Catch(
+  Prisma.PrismaClientKnownRequestError,
+  Prisma.PrismaClientUnknownRequestError,
+)
 export class PrismaExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(PrismaExceptionFilter.name);
 
-  catch(exception: Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError, host: ArgumentsHost) {
+  catch(
+    exception:
+      | Prisma.PrismaClientKnownRequestError
+      | Prisma.PrismaClientUnknownRequestError,
+    host: ArgumentsHost,
+  ) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -23,7 +31,8 @@ export class PrismaExceptionFilter implements ExceptionFilter {
       switch (exception.code) {
         // Unique constraint violation (e.g. duplicate email)
         case 'P2002': {
-          const fields = (exception.meta?.target as string[])?.join(', ') ?? 'field';
+          const fields =
+            (exception.meta?.target as string[])?.join(', ') ?? 'field';
           return response.status(HttpStatus.CONFLICT).json({
             statusCode: HttpStatus.CONFLICT,
             message: `A record with this ${fields} already exists.`,

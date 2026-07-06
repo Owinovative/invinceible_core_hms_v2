@@ -36,10 +36,7 @@ export class SettingsService {
 
   findAll() {
     return this.prisma.systemSetting.findMany({
-      orderBy: [
-        { category: 'asc' },
-        { settingKey: 'asc' },
-      ],
+      orderBy: [{ category: 'asc' }, { settingKey: 'asc' }],
     });
   }
 
@@ -47,10 +44,10 @@ export class SettingsService {
     return this.prisma.systemSetting.upsert({
       where: { settingKey: key },
       update: { settingValue: value },
-      create: { 
+      create: {
         settingKey: key,
         settingValue: value,
-        isPublic: true
+        isPublic: true,
       },
     });
   }
@@ -58,10 +55,7 @@ export class SettingsService {
   findPublic() {
     return this.prisma.systemSetting.findMany({
       where: { isPublic: true },
-      orderBy: [
-        { category: 'asc' },
-        { settingKey: 'asc' },
-      ],
+      orderBy: [{ category: 'asc' }, { settingKey: 'asc' }],
     });
   }
 
@@ -83,9 +77,7 @@ export class SettingsService {
     });
 
     if (!setting) {
-      throw new NotFoundException(
-        `Setting with key ${settingKey} not found`,
-      );
+      throw new NotFoundException(`Setting with key ${settingKey} not found`);
     }
 
     return setting;
@@ -120,9 +112,7 @@ export class SettingsService {
     });
 
     if (!existing) {
-      throw new NotFoundException(
-        `Setting with key ${settingKey} not found`,
-      );
+      throw new NotFoundException(`Setting with key ${settingKey} not found`);
     }
 
     return this.prisma.systemSetting.update({
@@ -235,7 +225,8 @@ export class SettingsService {
       if (!existing) {
         const setting = await this.prisma.systemSetting.create({
           data: item,
-        });        created.push(setting);
+        });
+        created.push(setting);
       }
     }
 

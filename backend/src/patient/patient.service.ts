@@ -20,7 +20,10 @@ import { CacheService } from '../resilience/cache.service';
 import { ClientRegistryService } from '../integrations/client-registry/client-registry.service';
 import { IntegrationQueueService } from '../integration/queue/integration-queue.service';
 import { DhaService } from '../integration/dha/dha.service';
-import { INTEGRATION_NAMES, DHA_OPERATIONS } from '../integration/integration.constants';
+import {
+  INTEGRATION_NAMES,
+  DHA_OPERATIONS,
+} from '../integration/integration.constants';
 import { IntegrationLoggerService } from '../integration/integration-logger.service';
 
 @Injectable()
@@ -80,7 +83,9 @@ export class PatientService {
 
     const dhaEnabled = this.configService.get('DHA_ENABLED') === 'true';
     if (dhaEnabled && !createPatientDto.dateOfBirth) {
-      throw new BadRequestException('Date of birth is mandatory for DHA compliance');
+      throw new BadRequestException(
+        'Date of birth is mandatory for DHA compliance',
+      );
     }
 
     const patientNumber =
@@ -122,23 +127,30 @@ export class PatientService {
     });
 
     // Attempt to register in HIE CR asynchronously
-    this.integrationQueueService.enqueue({
-      integration: INTEGRATION_NAMES.DHA,
-      operation: DHA_OPERATIONS.REGISTER_PATIENT,
-      entityType: 'Patient',
-      entityId: String(patient.id),
-      idempotencyKey: `dha:patient-register:${patient.id}`,
-      facilityId: patient.facilityId,
-      payload: {
-        id: String(patient.id),
-        firstName: patient.firstName,
-        middleName: patient.middleName || undefined,
-        lastName: patient.lastName,
-        gender: patient.gender || 'unknown',
-        dateOfBirth: patient.dateOfBirth || undefined,
-        phone: patient.phonePrimary || undefined,
-      },
-    }).catch((err) => this.integrationLoggerService.error('Failed to queue patient for HIE CR', { error: err, patientId: patient.id }));
+    this.integrationQueueService
+      .enqueue({
+        integration: INTEGRATION_NAMES.DHA,
+        operation: DHA_OPERATIONS.REGISTER_PATIENT,
+        entityType: 'Patient',
+        entityId: String(patient.id),
+        idempotencyKey: `dha:patient-register:${patient.id}`,
+        facilityId: patient.facilityId,
+        payload: {
+          id: String(patient.id),
+          firstName: patient.firstName,
+          middleName: patient.middleName || undefined,
+          lastName: patient.lastName,
+          gender: patient.gender || 'unknown',
+          dateOfBirth: patient.dateOfBirth || undefined,
+          phone: patient.phonePrimary || undefined,
+        },
+      })
+      .catch((err) =>
+        this.integrationLoggerService.error(
+          'Failed to queue patient for HIE CR',
+          { error: err, patientId: patient.id },
+        ),
+      );
 
     return patient;
   }
@@ -494,14 +506,19 @@ export class PatientService {
     const memberNumber = patient.shaMemberNumber || patient.patientNumber;
 
     if (!memberNumber) {
-      throw new BadRequestException('Patient has no registration or SHA member number');
+      throw new BadRequestException(
+        'Patient has no registration or SHA member number',
+      );
     }
 
     try {
-      const eligibility = await this.dhaService.checkEligibility({
-        memberNumber,
-        serviceDate: new Date().toISOString().split('T')[0],
-      }, { actorUserId: user.userId, facilityId: patient.facilityId });
+      const eligibility = await this.dhaService.checkEligibility(
+        {
+          memberNumber,
+          serviceDate: new Date().toISOString().split('T')[0],
+        },
+        { actorUserId: user.userId, facilityId: patient.facilityId },
+      );
 
       // Update local record
       const fhirData = eligibility.result.data as any;
@@ -519,7 +536,10 @@ export class PatientService {
         eligibilityDetails: eligibility,
       };
     } catch (error) {
-      this.integrationLoggerService.error('Failed to check eligibility', { error, patientId: id });
+      this.integrationLoggerService.error('Failed to check eligibility', {
+        error,
+        patientId: id,
+      });
       throw error;
     }
   }
@@ -588,7 +608,8 @@ function sameText(left?: string | null, right?: string | null) {
 
 function samePhone(left?: string | null, right?: string | null) {
   if (!left || !right) return false;
-  const clean = (value: string) => value.replace(/\D/g, '').replace(/^254/, '0');
+  const clean = (value: string) =>
+    value.replace(/\D/g, '').replace(/^254/, '0');
   return clean(left) === clean(right);
 }
 

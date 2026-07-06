@@ -16,12 +16,18 @@ import { OperationalModuleFilterDto } from './dto/operational-module-filter.dto'
 const ACTIVE_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING', 'ESCALATED'];
 
 function normalizeCode(value?: string | null, fallback = 'OPEN') {
-  const cleaned = value?.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  const cleaned = value
+    ?.trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
   return cleaned || fallback;
 }
 
 function normalizeSlug(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-');
 }
 
 function buildDateRange(filter?: OperationalModuleFilterDto) {
@@ -114,7 +120,11 @@ export class OperationalModuleService {
       throw new ForbiddenException('A facility is required for this module');
     }
 
-    this.scopeService.assertBranchAccess(user, facilityId, dto.branchId ?? null);
+    this.scopeService.assertBranchAccess(
+      user,
+      facilityId,
+      dto.branchId ?? null,
+    );
 
     const statusCode = normalizeCode(dto.statusCode);
     const now = new Date();
@@ -261,13 +271,9 @@ export class OperationalModuleService {
         dueAt: dto.dueAt ? new Date(dto.dueAt) : undefined,
         metadata: dto.metadata as Prisma.InputJsonValue | undefined,
         startedAt:
-          nextStatus === 'IN_PROGRESS' && !existing.startedAt
-            ? now
-            : undefined,
+          nextStatus === 'IN_PROGRESS' && !existing.startedAt ? now : undefined,
         completedAt:
-          nextStatus === 'COMPLETED' && !existing.completedAt
-            ? now
-            : undefined,
+          nextStatus === 'COMPLETED' && !existing.completedAt ? now : undefined,
         closedAt:
           ['CLOSED', 'CANCELLED'].includes(nextStatus) && !existing.closedAt
             ? now
@@ -296,7 +302,10 @@ export class OperationalModuleService {
     return updated;
   }
 
-  async getGlobalSummary(filter: OperationalModuleFilterDto, user: RequestUser) {
+  async getGlobalSummary(
+    filter: OperationalModuleFilterDto,
+    user: RequestUser,
+  ) {
     const where = this.buildScopedWhere(user, undefined, filter);
     const [byModule, byStatus, recentRecords] = await Promise.all([
       this.prisma.operationalModuleRecord.groupBy({

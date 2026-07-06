@@ -53,7 +53,8 @@ export class DepartmentService {
       }
     }
 
-    const code = dto.code?.trim() || (await this.generateDepartmentCode(dto.facilityId));
+    const code =
+      dto.code?.trim() || (await this.generateDepartmentCode(dto.facilityId));
 
     const existing = await this.prisma.department.findFirst({
       where: { code },

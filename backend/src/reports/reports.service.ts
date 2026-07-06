@@ -1,7 +1,11 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CacheService } from '../resilience/cache.service';
 import {
   addCompactParagraph,
@@ -233,7 +237,11 @@ export class ReportsService {
         }
 
         addSectionTitle(doc, 'Clinical notes');
-        addCompactParagraph(doc, 'Chief complaint', consultation.chiefComplaint);
+        addCompactParagraph(
+          doc,
+          'Chief complaint',
+          consultation.chiefComplaint,
+        );
         addCompactParagraph(
           doc,
           'History of presenting illness',
@@ -274,7 +282,11 @@ export class ReportsService {
           [
             { header: 'Date', width: 70, render: (row) => row.date },
             { header: 'Medicine', width: 180, render: (row) => row.medicine },
-            { header: 'Dose / Route / Frequency', width: 160, render: (row) => row.dose },
+            {
+              header: 'Dose / Route / Frequency',
+              width: 160,
+              render: (row) => row.dose,
+            },
             { header: 'Qty', width: 45, render: (row) => row.quantity },
             { header: 'Status', width: 72, render: (row) => row.status },
           ],

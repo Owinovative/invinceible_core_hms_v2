@@ -148,8 +148,7 @@ export class StaffService {
         nationalIdNumber: createStaffDto.nationalIdNumber,
         nationalIdImageUrl: createStaffDto.nationalIdImageUrl,
         passportPhotoUrl: createStaffDto.passportPhotoUrl,
-        clinicianRegistrationNumber:
-          createStaffDto.clinicianRegistrationNumber,
+        clinicianRegistrationNumber: createStaffDto.clinicianRegistrationNumber,
         clinicianBoard: createStaffDto.clinicianBoard,
         isClinician: createStaffDto.isClinician ?? false,
         isPrescriber: createStaffDto.isPrescriber ?? false,
@@ -357,8 +356,7 @@ export class StaffService {
         nationalIdNumber: updateStaffDto.nationalIdNumber,
         nationalIdImageUrl: updateStaffDto.nationalIdImageUrl,
         passportPhotoUrl: updateStaffDto.passportPhotoUrl,
-        clinicianRegistrationNumber:
-          updateStaffDto.clinicianRegistrationNumber,
+        clinicianRegistrationNumber: updateStaffDto.clinicianRegistrationNumber,
         clinicianBoard: updateStaffDto.clinicianBoard,
         isClinician: updateStaffDto.isClinician,
         isPrescriber: updateStaffDto.isPrescriber,

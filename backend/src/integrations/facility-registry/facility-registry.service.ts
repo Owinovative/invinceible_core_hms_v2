@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IFacilityRegistry, FacilityRegistryRecord } from '../interfaces/facility-registry.interface';
+import {
+  IFacilityRegistry,
+  FacilityRegistryRecord,
+} from '../interfaces/facility-registry.interface';
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationCacheService } from '../caching/integration-cache.service';
@@ -17,10 +20,17 @@ export class FacilityRegistryService implements IFacilityRegistry {
   ) {}
 
   private get baseUrl(): string {
-    return this.configService.get<string>('DHA_FR_URL', 'https://afyalink.dha.go.ke/api/fr/v1');
+    return this.configService.get<string>(
+      'DHA_FR_URL',
+      'https://afyalink.dha.go.ke/api/fr/v1',
+    );
   }
 
-  async searchFacility(query: { name?: string; code?: string; county?: string }): Promise<FacilityRegistryRecord[]> {
+  async searchFacility(query: {
+    name?: string;
+    code?: string;
+    county?: string;
+  }): Promise<FacilityRegistryRecord[]> {
     const token = await this.authService.getValidToken();
     const params = new URLSearchParams();
     if (query.name) params.append('name', query.name);
@@ -33,18 +43,24 @@ export class FacilityRegistryService implements IFacilityRegistry {
         baseUrl: this.baseUrl,
         path: `/facilities?${params.toString()}`,
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = response.data as any;
       return data.entry?.map((e: any) => this.mapToRecord(e.resource)) || [];
     } catch (error: any) {
-      this.logger.error('Facility Registry search failed', { integration: 'DHA_FR', query, error });
+      this.logger.error('Facility Registry search failed', {
+        integration: 'DHA_FR',
+        query,
+        error,
+      });
       throw error;
     }
   }
 
-  async getFacilityByCode(code: string): Promise<FacilityRegistryRecord | null> {
+  async getFacilityByCode(
+    code: string,
+  ): Promise<FacilityRegistryRecord | null> {
     const cacheKey = `fr_facility_${code}`;
     const cached = await this.cache.get<FacilityRegistryRecord>(cacheKey);
     if (cached) return cached;
@@ -66,7 +82,10 @@ export class FacilityRegistryService implements IFacilityRegistry {
   private mapToRecord(fhirOrg: any): FacilityRegistryRecord {
     return {
       id: fhirOrg.id,
-      code: fhirOrg.identifier?.find((i: any) => i.system?.includes('facility-code'))?.value || '',
+      code:
+        fhirOrg.identifier?.find((i: any) =>
+          i.system?.includes('facility-code'),
+        )?.value || '',
       name: fhirOrg.name || '',
       type: fhirOrg.type?.[0]?.text || 'Unknown',
       status: fhirOrg.active ? 'ACTIVE' : 'INACTIVE',

@@ -57,7 +57,9 @@ export class NotificationController {
     return this.notificationService.getBranchAlerts(
       user.homeFacilityId!,
       user.canAccessAllBranchesInFacility
-        ? (branchId ? Number(branchId) : undefined)
+        ? branchId
+          ? Number(branchId)
+          : undefined
         : (user.homeBranchId ?? undefined),
     );
   }
@@ -71,7 +73,9 @@ export class NotificationController {
     return this.notificationService.getPharmacyAlerts(
       user.homeFacilityId!,
       user.canAccessAllBranchesInFacility
-        ? (branchId ? Number(branchId) : undefined)
+        ? branchId
+          ? Number(branchId)
+          : undefined
         : (user.homeBranchId ?? undefined),
     );
   }
@@ -98,16 +102,12 @@ export class NotificationController {
   }
 
   @Get('cashier-dashboard/:staffId')
-  getCashierDashboardAlerts(
-    @Param('staffId', ParseIntPipe) staffId: number,
-  ) {
+  getCashierDashboardAlerts(@Param('staffId', ParseIntPipe) staffId: number) {
     return this.notificationService.getCashierDashboardAlerts(staffId);
   }
 
   @Get('admin-operations/:userId')
-  getAdminOperationsAlerts(
-    @Param('userId', ParseIntPipe) userId: number,
-  ) {
+  getAdminOperationsAlerts(@Param('userId', ParseIntPipe) userId: number) {
     return this.notificationService.getAdminOperationsAlerts(userId);
   }
 

@@ -10,7 +10,16 @@ export interface PractitionerRegistryRecord {
 }
 
 export interface IPractitionerRegistry {
-  searchPractitioner(query: { registrationNumber?: string; board?: string; name?: string }): Promise<PractitionerRegistryRecord[]>;
-  getPractitionerByRegNumber(registrationNumber: string, board?: string): Promise<PractitionerRegistryRecord | null>;
-  validateLicense(registrationNumber: string): Promise<{ valid: boolean; status: string; expiry?: Date }>;
+  searchPractitioner(query: {
+    registrationNumber?: string;
+    board?: string;
+    name?: string;
+  }): Promise<PractitionerRegistryRecord[]>;
+  getPractitionerByRegNumber(
+    registrationNumber: string,
+    board?: string,
+  ): Promise<PractitionerRegistryRecord | null>;
+  validateLicense(
+    registrationNumber: string,
+  ): Promise<{ valid: boolean; status: string; expiry?: Date }>;
 }

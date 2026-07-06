@@ -19,22 +19,16 @@ import { PrescriptionService } from './prescription.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 
-
 @Controller('prescriptions')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class PrescriptionController {
   constructor(private readonly prescriptionService: PrescriptionService) {}
 
-
   @Post()
   @Permissions('consultation.write')
-  create(
-    @Body() dto: CreatePrescriptionDto,
-    @CurrentUser() user: RequestUser,
-  ) {
+  create(@Body() dto: CreatePrescriptionDto, @CurrentUser() user: RequestUser) {
     return this.prescriptionService.create(dto, user);
   }
-
 
   @Get()
   findAll(
@@ -59,7 +53,6 @@ export class PrescriptionController {
     return this.prescriptionService.findAllScoped(user);
   }
 
-
   @Get('consultation/:consultationId')
   findByConsultationId(
     @Param('consultationId', ParseIntPipe) consultationId: number,
@@ -71,7 +64,6 @@ export class PrescriptionController {
     );
   }
 
-
   @Get('patient/:patientId')
   findByPatientId(
     @Param('patientId', ParseIntPipe) patientId: number,
@@ -80,7 +72,6 @@ export class PrescriptionController {
     return this.prescriptionService.findByPatientIdScoped(patientId, user);
   }
 
-
   @Get(':id')
   findOne(
     @Param('id', ParseIntPipe) id: number,
@@ -88,7 +79,6 @@ export class PrescriptionController {
   ) {
     return this.prescriptionService.findOneScoped(id, user);
   }
-
 
   @Patch(':id')
   @Permissions('consultation.write')
@@ -99,7 +89,6 @@ export class PrescriptionController {
   ) {
     return this.prescriptionService.update(id, dto, user);
   }
-
 
   @Delete(':id')
   @Permissions('consultation.write')

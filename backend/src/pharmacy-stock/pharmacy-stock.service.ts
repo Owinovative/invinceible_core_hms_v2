@@ -189,7 +189,10 @@ function medicineTokens(value?: string | null) {
     .filter((token) => token.length >= 3 && !stopWords.has(token));
 }
 
-function stockStatus(stockQuantity?: number | null, reorderLevel?: number | null) {
+function stockStatus(
+  stockQuantity?: number | null,
+  reorderLevel?: number | null,
+) {
   const quantity = Number(stockQuantity || 0);
   const reorder = Number(reorderLevel || 0);
 
@@ -637,18 +640,20 @@ export class PharmacyStockService {
     });
   }
 
-  private buildStockSearchWhere(search?: string): Prisma.BranchMedicineStockWhereInput[] {
-      if (!search) return [];
-      
-      const query = search.trim();
-      return [
-        { medicine: { code: { contains: query } } },
-        { medicine: { name: { contains: query } } },
-        { medicine: { dosageForm: { contains: query } } },
-        { medicine: { strength: { contains: query } } },
-        { medicine: { manufacturer: { contains: query } } },
-      ];
-    }
+  private buildStockSearchWhere(
+    search?: string,
+  ): Prisma.BranchMedicineStockWhereInput[] {
+    if (!search) return [];
+
+    const query = search.trim();
+    return [
+      { medicine: { code: { contains: query } } },
+      { medicine: { name: { contains: query } } },
+      { medicine: { dosageForm: { contains: query } } },
+      { medicine: { strength: { contains: query } } },
+      { medicine: { manufacturer: { contains: query } } },
+    ];
+  }
 
   private branchStockListSelect() {
     return {

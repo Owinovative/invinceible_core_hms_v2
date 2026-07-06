@@ -11,19 +11,18 @@ import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { CreateTriageDto } from './dto/create-triage.dto';
 import { UpdateTriageDto } from './dto/update-triage.dto';
-import { AppointmentService} from '../appointment/appointment.service';
+import { AppointmentService } from '../appointment/appointment.service';
 
 @Injectable()
 export class TriageService {
   constructor(
-  private readonly prisma: PrismaService,
-  private readonly patientService: PatientService,
-  private readonly staffService: StaffService,
-  private readonly facilityService: FacilityService,
-  private readonly appointmentService: AppointmentService,
-  private readonly scopeService: ScopeService,
-) {}
-
+    private readonly prisma: PrismaService,
+    private readonly patientService: PatientService,
+    private readonly staffService: StaffService,
+    private readonly facilityService: FacilityService,
+    private readonly appointmentService: AppointmentService,
+    private readonly scopeService: ScopeService,
+  ) {}
 
   private async generateTriageNumber(facilityId: number) {
     const year = new Date().getFullYear();
@@ -83,7 +82,9 @@ export class TriageService {
       const doctor = await this.staffService.findOne(dto.routedDoctorId);
 
       if (!doctor.isClinician) {
-        throw new BadRequestException('Selected routed doctor is not a clinician');
+        throw new BadRequestException(
+          'Selected routed doctor is not a clinician',
+        );
       }
     }
 
@@ -185,55 +186,49 @@ export class TriageService {
       orderBy: { id: 'desc' },
     });
   }
-async findReadyForDoctorScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+  async findReadyForDoctorScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
 
+    const items = await this.prisma.triage.findMany({
+      where: {
+        ...scope,
+        statusCode: 'READY_FOR_DOCTOR',
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        clinic: true,
+        appointment: true,
+        performedBy: true,
+        routedDoctor: true,
+      },
+      orderBy: {
+        completedAt: 'asc',
+      },
+    });
 
-  const items = await this.prisma.triage.findMany({
-    where: {
-      ...scope,
-      statusCode: 'READY_FOR_DOCTOR',
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      clinic: true,
-      appointment: true,
-      performedBy: true,
-      routedDoctor: true,
-    },
-    orderBy: {
-      completedAt: 'asc',
-    },
-  });
+    const priorityRank: Record<string, number> = {
+      CRITICAL: 0,
+      EMERGENCY: 1,
+      URGENT: 2,
+      NORMAL: 3,
+    };
 
+    return items.sort((a, b) => {
+      const aRank = priorityRank[a.triagePriority ?? 'NORMAL'] ?? 99;
+      const bRank = priorityRank[b.triagePriority ?? 'NORMAL'] ?? 99;
 
-  const priorityRank: Record<string, number> = {
-    CRITICAL: 0,
-    EMERGENCY: 1,
-    URGENT: 2,
-    NORMAL: 3,
-  };
+      if (aRank !== bRank) {
+        return aRank - bRank;
+      }
 
+      const aTime = new Date(a.completedAt ?? a.arrivedAt ?? 0).getTime();
+      const bTime = new Date(b.completedAt ?? b.arrivedAt ?? 0).getTime();
 
-  return items.sort((a, b) => {
-  const aRank = priorityRank[a.triagePriority ?? 'NORMAL'] ?? 99;
-  const bRank = priorityRank[b.triagePriority ?? 'NORMAL'] ?? 99;
-
-
-  if (aRank !== bRank) {
-    return aRank - bRank;
+      return aTime - bTime;
+    });
   }
-
-
-  const aTime = new Date(a.completedAt ?? a.arrivedAt ?? 0).getTime();
-  const bTime = new Date(b.completedAt ?? b.arrivedAt ?? 0).getTime();
-
-
-  return aTime - bTime;
-});
-}
 
   findWaitingScoped(user: RequestUser) {
     const scope = this.scopeService.buildReadScope(user);
@@ -257,34 +252,35 @@ async findReadyForDoctorScoped(user: RequestUser) {
       orderBy: { arrivedAt: 'asc' },
     });
   }
-async findByAppointmentIdScoped(appointmentId: number, user: RequestUser) {
-  const triage = await this.prisma.triage.findFirst({
-    where: { appointmentId },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      clinic: true,
-      appointment: true,
-      performedBy: true,
-      routedDoctor: true,
-    },
-    orderBy: { id: 'desc' },
-  });
+  async findByAppointmentIdScoped(appointmentId: number, user: RequestUser) {
+    const triage = await this.prisma.triage.findFirst({
+      where: { appointmentId },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        clinic: true,
+        appointment: true,
+        performedBy: true,
+        routedDoctor: true,
+      },
+      orderBy: { id: 'desc' },
+    });
 
+    if (!triage) {
+      throw new NotFoundException(
+        `No triage record found for appointment ${appointmentId}`,
+      );
+    }
 
-  if (!triage) {
-    throw new NotFoundException(
-      `No triage record found for appointment ${appointmentId}`,
+    this.scopeService.assertBranchAccess(
+      user,
+      triage.facilityId,
+      triage.branchId,
     );
+
+    return triage;
   }
-
-
-  this.scopeService.assertBranchAccess(user, triage.facilityId, triage.branchId);
-
-
-  return triage;
-}
 
   async findOneScoped(id: number, user: RequestUser) {
     const triage = await this.prisma.triage.findUnique({
@@ -335,109 +331,106 @@ async findByAppointmentIdScoped(appointmentId: number, user: RequestUser) {
   }
 
   async completeTriage(id: number, dto: UpdateTriageDto, user: RequestUser) {
-  const existing = await this.findOneScoped(id, user);
-  await this.facilityService.assertOperational(existing.facilityId);
+    const existing = await this.findOneScoped(id, user);
+    await this.facilityService.assertOperational(existing.facilityId);
 
-
-  if (dto.routedDoctorId) {
-    const doctor = await this.staffService.findOne(dto.routedDoctorId);
-    if (!doctor.isClinician) {
-      throw new BadRequestException('Selected routed doctor is not a clinician');
-    }
-  }
-
-
-  if (dto.clinicId) {
-    const clinic = await this.prisma.clinic.findUnique({
-      where: { id: dto.clinicId },
-    });
-
-
-    if (!clinic) {
-      throw new NotFoundException(`Clinic with id ${dto.clinicId} not found`);
+    if (dto.routedDoctorId) {
+      const doctor = await this.staffService.findOne(dto.routedDoctorId);
+      if (!doctor.isClinician) {
+        throw new BadRequestException(
+          'Selected routed doctor is not a clinician',
+        );
+      }
     }
 
+    if (dto.clinicId) {
+      const clinic = await this.prisma.clinic.findUnique({
+        where: { id: dto.clinicId },
+      });
 
-    if (clinic.facilityId !== existing.facilityId) {
-      throw new BadRequestException(
-        'Selected clinic does not belong to the selected facility',
+      if (!clinic) {
+        throw new NotFoundException(`Clinic with id ${dto.clinicId} not found`);
+      }
+
+      if (clinic.facilityId !== existing.facilityId) {
+        throw new BadRequestException(
+          'Selected clinic does not belong to the selected facility',
+        );
+      }
+
+      if (
+        existing.branchId &&
+        clinic.branchId &&
+        clinic.branchId !== existing.branchId
+      ) {
+        throw new BadRequestException(
+          'Selected clinic does not belong to the selected branch',
+        );
+      }
+    }
+
+    const weightKg = dto.weightKg ?? existing.weightKg ?? undefined;
+    const heightCm = dto.heightCm ?? existing.heightCm ?? undefined;
+    const bmi = this.calculateBmi(weightKg, heightCm);
+
+    const finalPriority =
+      dto.triagePriority ?? existing.triagePriority ?? 'NORMAL';
+
+    let appointmentId =
+      dto.appointmentId ?? existing.appointmentId ?? undefined;
+
+    if (!appointmentId) {
+      const createdAppointment = await this.appointmentService.createFromTriage(
+        {
+          facilityId: existing.facilityId,
+          branchId: existing.branchId,
+          patientId: existing.patientId,
+          doctorId: dto.routedDoctorId ?? existing.routedDoctorId ?? null,
+          clinicId: dto.clinicId ?? existing.clinicId ?? null,
+          triageId: existing.id,
+          triagePriority: finalPriority,
+          visitReason: dto.chiefComplaint ?? existing.chiefComplaint ?? null,
+          notes: dto.notes ?? existing.notes ?? null,
+        },
       );
+
+      appointmentId = createdAppointment.id;
     }
 
-
-    if (existing.branchId && clinic.branchId && clinic.branchId !== existing.branchId) {
-      throw new BadRequestException(
-        'Selected clinic does not belong to the selected branch',
-      );
-    }
-  }
-
-
-  const weightKg = dto.weightKg ?? existing.weightKg ?? undefined;
-  const heightCm = dto.heightCm ?? existing.heightCm ?? undefined;
-  const bmi = this.calculateBmi(weightKg, heightCm);
-
-
-  const finalPriority =
-    dto.triagePriority ?? existing.triagePriority ?? 'NORMAL';
-
-
-  let appointmentId = dto.appointmentId ?? existing.appointmentId ?? undefined;
-
-
-  if (!appointmentId) {
-    const createdAppointment = await this.appointmentService.createFromTriage({
-      facilityId: existing.facilityId,
-      branchId: existing.branchId,
-      patientId: existing.patientId,
-      doctorId: dto.routedDoctorId ?? existing.routedDoctorId ?? null,
-      clinicId: dto.clinicId ?? existing.clinicId ?? null,
-      triageId: existing.id,
-      triagePriority: finalPriority,
-      visitReason: dto.chiefComplaint ?? existing.chiefComplaint ?? null,
-      notes: dto.notes ?? existing.notes ?? null,
+    return this.prisma.triage.update({
+      where: { id },
+      data: {
+        chiefComplaint: dto.chiefComplaint ?? existing.chiefComplaint,
+        temperatureC: dto.temperatureC ?? existing.temperatureC,
+        systolicBp: dto.systolicBp ?? existing.systolicBp,
+        diastolicBp: dto.diastolicBp ?? existing.diastolicBp,
+        pulseRate: dto.pulseRate ?? existing.pulseRate,
+        respiratoryRate: dto.respiratoryRate ?? existing.respiratoryRate,
+        oxygenSaturation: dto.oxygenSaturation ?? existing.oxygenSaturation,
+        weightKg,
+        heightCm,
+        bmi,
+        painScore: dto.painScore ?? existing.painScore,
+        triagePriority: finalPriority,
+        notes: dto.notes ?? existing.notes,
+        clinicId: dto.clinicId ?? existing.clinicId,
+        appointmentId,
+        performedByStaffId:
+          dto.performedByStaffId ?? existing.performedByStaffId,
+        routedDoctorId: dto.routedDoctorId ?? existing.routedDoctorId,
+        statusCode: dto.statusCode ?? 'READY_FOR_DOCTOR',
+        completedAt: new Date(),
+        startedAt: existing.startedAt ?? new Date(),
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        clinic: true,
+        appointment: true,
+        performedBy: true,
+        routedDoctor: true,
+      },
     });
-
-
-    appointmentId = createdAppointment.id;
   }
-
-
-  return this.prisma.triage.update({
-    where: { id },
-    data: {
-      chiefComplaint: dto.chiefComplaint ?? existing.chiefComplaint,
-      temperatureC: dto.temperatureC ?? existing.temperatureC,
-      systolicBp: dto.systolicBp ?? existing.systolicBp,
-      diastolicBp: dto.diastolicBp ?? existing.diastolicBp,
-      pulseRate: dto.pulseRate ?? existing.pulseRate,
-      respiratoryRate: dto.respiratoryRate ?? existing.respiratoryRate,
-      oxygenSaturation: dto.oxygenSaturation ?? existing.oxygenSaturation,
-      weightKg,
-      heightCm,
-      bmi,
-      painScore: dto.painScore ?? existing.painScore,
-      triagePriority: finalPriority,
-      notes: dto.notes ?? existing.notes,
-      clinicId: dto.clinicId ?? existing.clinicId,
-      appointmentId,
-      performedByStaffId:
-        dto.performedByStaffId ?? existing.performedByStaffId,
-      routedDoctorId: dto.routedDoctorId ?? existing.routedDoctorId,
-      statusCode: dto.statusCode ?? 'READY_FOR_DOCTOR',
-      completedAt: new Date(),
-      startedAt: existing.startedAt ?? new Date(),
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      clinic: true,
-      appointment: true,
-      performedBy: true,
-      routedDoctor: true,
-    },
-  });
-}
-
 }

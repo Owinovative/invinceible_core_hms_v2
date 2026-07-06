@@ -25,7 +25,9 @@ export class StepUpGuard implements CanActivate {
     );
 
     if (!required) return true;
-    if (this.configService.get<string>('STEP_UP_ENFORCEMENT_ENABLED') !== 'true') {
+    if (
+      this.configService.get<string>('STEP_UP_ENFORCEMENT_ENABLED') !== 'true'
+    ) {
       return true;
     }
 

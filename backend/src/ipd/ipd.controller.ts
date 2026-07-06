@@ -68,35 +68,35 @@ export class IpdController {
     return this.ipdService.getAdmissionByIdScoped(id, user);
   }
   @Patch('wards/:id')
-updateWard(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() updateWardDto: UpdateWardDto,
-) {
-  return this.ipdService.updateWard(id, updateWardDto);
-}
+  updateWard(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateWardDto: UpdateWardDto,
+  ) {
+    return this.ipdService.updateWard(id, updateWardDto);
+  }
 
-@Patch('beds/:id')
-updateBed(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() updateBedDto: UpdateBedDto,
-) {
-  return this.ipdService.updateBed(id, updateBedDto);
-}
+  @Patch('beds/:id')
+  updateBed(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateBedDto: UpdateBedDto,
+  ) {
+    return this.ipdService.updateBed(id, updateBedDto);
+  }
 
-@Patch('beds/:id/status')
-updateBedStatus(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() updateBedStatusDto: UpdateBedStatusDto,
-) {
-  return this.ipdService.updateBedStatus(id, updateBedStatusDto.statusCode);
-}
+  @Patch('beds/:id/status')
+  updateBedStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateBedStatusDto: UpdateBedStatusDto,
+  ) {
+    return this.ipdService.updateBedStatus(id, updateBedStatusDto.statusCode);
+  }
   @Patch('admissions/:id/transfer-bed')
-transferAdmissionBed(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() transferAdmissionBedDto: TransferAdmissionBedDto,
-) {
-  return this.ipdService.transferAdmissionBed(id, transferAdmissionBedDto);
-}
+  transferAdmissionBed(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() transferAdmissionBedDto: TransferAdmissionBedDto,
+  ) {
+    return this.ipdService.transferAdmissionBed(id, transferAdmissionBedDto);
+  }
 
   @Patch('admissions/:id/discharge')
   dischargeAdmission(@Param('id', ParseIntPipe) id: number) {

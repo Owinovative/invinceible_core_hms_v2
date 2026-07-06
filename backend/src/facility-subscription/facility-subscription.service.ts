@@ -46,9 +46,12 @@ export class FacilitySubscriptionService {
     const paidThrough =
       facility.subscriptionPaidThrough ?? addMonths(startedAt, 1);
     const monthlyFee = Number(facility.subscriptionMonthlyFee || MONTHLY_FEE);
-    const secondsRemaining = Math.floor((paidThrough.getTime() - now.getTime()) / 1000);
+    const secondsRemaining = Math.floor(
+      (paidThrough.getTime() - now.getTime()) / 1000,
+    );
     const daysRemaining = secondsRemaining / 86400;
-    const locked = secondsRemaining <= 0 || facility.subscriptionStatus === 'LOCKED';
+    const locked =
+      secondsRemaining <= 0 || facility.subscriptionStatus === 'LOCKED';
     const accessStatus = computeFacilityAccessStatus(facility);
     const warningLevel = locked
       ? 'LOCKED'
@@ -63,7 +66,7 @@ export class FacilitySubscriptionService {
       monthlyFee,
       startedAt,
       paidThrough,
-      statusCode: locked ? 'LOCKED' : (facility.subscriptionStatus || 'ACTIVE'),
+      statusCode: locked ? 'LOCKED' : facility.subscriptionStatus || 'ACTIVE',
       warningLevel,
       locked,
       loginBlocked: accessStatus.subscriptionLoginBlocked,
@@ -112,7 +115,10 @@ export class FacilitySubscriptionService {
     }));
   }
 
-  async recordPayment(dto: RecordFacilitySubscriptionPaymentDto, user: RequestUser) {
+  async recordPayment(
+    dto: RecordFacilitySubscriptionPaymentDto,
+    user: RequestUser,
+  ) {
     const facility = await this.prisma.facility.findUnique({
       where: { id: dto.facilityId },
     });
@@ -151,7 +157,8 @@ export class FacilitySubscriptionService {
     const updatedFacility = await this.prisma.facility.update({
       where: { id: facility.id },
       data: {
-        subscriptionStartedAt: facility.subscriptionStartedAt ?? facility.createdAt,
+        subscriptionStartedAt:
+          facility.subscriptionStartedAt ?? facility.createdAt,
         subscriptionPaidThrough: paidThrough,
         subscriptionStatus: 'ACTIVE',
         subscriptionLockedAt: null,
@@ -166,7 +173,10 @@ export class FacilitySubscriptionService {
       description: `Recorded subscription payment ${payment.paymentNumber} for ${facility.name}`,
       facilityId: facility.id,
       actorUserId: user.userId,
-      afterData: JSON.stringify({ payment, subscription: this.computeStatus(updatedFacility) }),
+      afterData: JSON.stringify({
+        payment,
+        subscription: this.computeStatus(updatedFacility),
+      }),
     });
 
     return {

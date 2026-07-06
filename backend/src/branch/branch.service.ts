@@ -48,7 +48,8 @@ export class BranchService {
   async create(dto: CreateBranchDto) {
     await this.facilityService.findOne(dto.facilityId);
 
-    const code = dto.code?.trim() || (await this.generateBranchCode(dto.facilityId));
+    const code =
+      dto.code?.trim() || (await this.generateBranchCode(dto.facilityId));
 
     const existing = await this.prisma.branch.findFirst({
       where: {

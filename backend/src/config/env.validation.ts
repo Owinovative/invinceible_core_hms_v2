@@ -76,11 +76,11 @@ export function validateEnvironment(
   const dhaMode = String(config.DHA_MODE ?? 'mock').toLowerCase();
   if (dhaEnabled && (dhaMode === 'sandbox' || dhaMode === 'production')) {
     const requiredKeys = [
-      'DHA_BASE_URL', 
-      'DHA_CLIENT_ID', 
+      'DHA_BASE_URL',
+      'DHA_CLIENT_ID',
       'DHA_CLIENT_SECRET',
       'DHA_TOKEN_URL',
-      'DHA_FACILITY_CODE'
+      'DHA_FACILITY_CODE',
     ];
     for (const key of requiredKeys) {
       if (!hasValue(config, key)) {
@@ -134,8 +134,7 @@ export function validateEnvironment(
     AUTH_FAILED_LOGIN_DELAY_MAX_MS:
       config.AUTH_FAILED_LOGIN_DELAY_MAX_MS ?? '2500',
     STEP_UP_TTL_SECONDS: config.STEP_UP_TTL_SECONDS ?? '300',
-    STEP_UP_ENFORCEMENT_ENABLED:
-      config.STEP_UP_ENFORCEMENT_ENABLED ?? 'false',
+    STEP_UP_ENFORCEMENT_ENABLED: config.STEP_UP_ENFORCEMENT_ENABLED ?? 'false',
     // Government integrations (KRA eTIMS + DHA). Disabled by default so
     // existing deployments keep their behavior until explicitly enabled.
     ETIMS_ENABLED: config.ETIMS_ENABLED ?? 'false',
@@ -152,8 +151,7 @@ export function validateEnvironment(
     DHA_MAX_ATTEMPTS: config.DHA_MAX_ATTEMPTS ?? '8',
     INTEGRATION_WORKER_ENABLED: config.INTEGRATION_WORKER_ENABLED ?? 'true',
     INTEGRATION_WORKER_POLL_MS: config.INTEGRATION_WORKER_POLL_MS ?? '5000',
-    INTEGRATION_QUEUE_BATCH_SIZE:
-      config.INTEGRATION_QUEUE_BATCH_SIZE ?? '10',
+    INTEGRATION_QUEUE_BATCH_SIZE: config.INTEGRATION_QUEUE_BATCH_SIZE ?? '10',
     INTEGRATION_RETRY_BASE_DELAY_MS:
       config.INTEGRATION_RETRY_BASE_DELAY_MS ?? '30000',
     INTEGRATION_RETRY_MAX_DELAY_MS:

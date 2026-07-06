@@ -43,6 +43,10 @@ export interface ClaimSubmissionResponse {
 
 export interface IClaimsIntegration {
   requestPreauth(request: ClaimPreauthRequest): Promise<ClaimPreauthResponse>;
-  submitClaim(request: ClaimSubmissionRequest): Promise<ClaimSubmissionResponse>;
-  checkClaimStatus(externalClaimId: string): Promise<{ status: string; paidAmount?: number; reason?: string }>;
+  submitClaim(
+    request: ClaimSubmissionRequest,
+  ): Promise<ClaimSubmissionResponse>;
+  checkClaimStatus(
+    externalClaimId: string,
+  ): Promise<{ status: string; paidAmount?: number; reason?: string }>;
 }
