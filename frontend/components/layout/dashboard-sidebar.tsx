@@ -138,7 +138,15 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                 const Icon = item.icon;
                 const active =
                   pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+                  (pathname.startsWith(`${item.href}/`) &&
+                    !sections.some((s) =>
+                      s.items.some(
+                        (i) =>
+                          i.href !== item.href &&
+                          pathname.startsWith(i.href) &&
+                          i.href.length > item.href.length
+                      )
+                    ));
                 const link = (
                   <Link
                     href={item.href}

@@ -150,6 +150,7 @@ export class DhaService implements OnModuleInit {
     this.assertEnabled();
     const request = this.mapper.toEligibilityRequest({
       memberNumber: query.memberNumber,
+      nationalId: query.nationalId,
       serviceDate: query.serviceDate,
     });
     return this.runSyncTransaction(

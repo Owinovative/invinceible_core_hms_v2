@@ -345,6 +345,7 @@ model Patient {
   shaStatus      String?        @db.VarChar(50)
   shaEligibilityUpdatedAt DateTime?
   shaMemberNumber String?       @db.VarChar(120)
+  nationalIdNumber String?      @db.VarChar(80)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   facilityId     Int
@@ -370,6 +371,7 @@ model Patient {
   @@index([facilityId, patientNumber])
   @@index([facilityId, phonePrimary])
   @@index([facilityId, createdAt])
+  @@index([nationalIdNumber])
   @@map("patients")
 }
 

@@ -231,17 +231,27 @@ export class FhirMapperService {
   }
 
   toEligibilityRequest(params: {
-    memberNumber: string;
+    memberNumber?: string;
+    nationalId?: string;
     patientRef?: string;
     serviceDate?: string;
   }): FhirCoverageEligibilityRequest {
+    const patientDetails: any = params.patientRef
+      ? { reference: params.patientRef }
+      : { display: params.memberNumber || params.nationalId };
+
+    if (params.nationalId) {
+      patientDetails.identifier = {
+        system: this.systems.nationalId,
+        value: params.nationalId,
+      };
+    }
+
     return {
       resourceType: 'CoverageEligibilityRequest',
       status: 'active',
       purpose: ['validation', 'benefits'],
-      patient: params.patientRef
-        ? { reference: params.patientRef }
-        : { display: params.memberNumber },
+      patient: patientDetails,
       created: params.serviceDate ?? new Date().toISOString(),
       insurer: { display: 'Social Health Authority' },
     };

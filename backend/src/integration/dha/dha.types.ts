@@ -40,7 +40,8 @@ export interface FacilityVerificationQuery {
 }
 
 export interface EligibilityQuery {
-  memberNumber: string;
+  memberNumber?: string;
+  nationalId?: string;
   serviceDate?: string;
   interventionCode?: string;
 }

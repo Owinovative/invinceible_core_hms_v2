@@ -15,6 +15,7 @@ export interface Patient {
   isDeceased?: boolean;
   isActive?: boolean;
   /** SHA member number stored after eligibility verification */
+  nationalIdNumber?: string | null;
   shaMemberNumber?: string | null;
   /** SHA eligibility status: ACTIVE | INACTIVE | EXPIRED */
   shaStatus?: string | null;

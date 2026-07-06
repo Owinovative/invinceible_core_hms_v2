@@ -7,9 +7,15 @@ export interface EligibilityResult {
   memberName?: string;
   memberNumber?: string;
   nationalId?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  phoneNumber?: string;
   scheme?: string;
   schemeCode?: string;
   membershipStatus?: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "EXPIRED";
+  facilityAssignment?: string;
+  sponsor?: string;
+  restrictions?: string[];
   coverageStart?: string;
   coverageEnd?: string;
   dependants?: EligibilityDependant[];

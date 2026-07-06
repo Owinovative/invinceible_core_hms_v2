@@ -32,6 +32,7 @@ import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { downloadInvoicePdf } from "@/services/billing-service";
 import { AddInvoiceLinePanel } from "@/components/billing/add-invoice-line-panel";
 import { PrintableInvoice } from "@/components/billing/printable-invoice";
+import { ShaEligibilityCard } from "@/components/integration/sha-eligibility-card";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ export default function InvoiceDetailPage() {
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
   const [shaAmount, setShaAmount] = React.useState("");
   const [shaMemberNumber, setShaMemberNumber] = React.useState("");
+  const [nationalId, setNationalId] = React.useState("");
 
   const [editItemId, setEditItemId] = React.useState<number | null>(null);
   const [editDescription, setEditDescription] = React.useState("");
@@ -110,7 +112,10 @@ export default function InvoiceDetailPage() {
     if (!shaMemberNumber && invoice.patient?.shaMemberNumber) {
       setShaMemberNumber(invoice.patient.shaMemberNumber);
     }
-  }, [invoice, mpesaAmount, mpesaPhoneNumber, shaAmount, shaMemberNumber]);
+    if (!nationalId && invoice.patient?.nationalIdNumber) {
+      setNationalId(invoice.patient.nationalIdNumber);
+    }
+  }, [invoice, mpesaAmount, mpesaPhoneNumber, shaAmount, shaMemberNumber, nationalId]);
 
   const handleCheckEligibility = async () => {
     if (!invoice?.patient) return;
@@ -120,11 +125,14 @@ export default function InvoiceDetailPage() {
     try {
       const res = await checkEligibilityMutation.mutateAsync({
         memberNumber: shaMemberNumber || undefined,
-        shaNumber: invoice.patient.shaMemberNumber || undefined,
+        nationalId: nationalId || undefined,
       });
       setEligibilityResult(res);
       if (res.memberNumber && !shaMemberNumber) {
         setShaMemberNumber(res.memberNumber);
+      }
+      if (res.nationalId && !nationalId) {
+        setNationalId(res.nationalId);
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Eligibility check failed");
@@ -622,24 +630,20 @@ export default function InvoiceDetailPage() {
                 </p>
 
                 {eligibilityResult ? (
-                  <div className={`rounded-xl border p-3 text-sm ${eligibilityResult.status === 'ELIGIBLE' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                    <div className="flex items-center gap-2 font-semibold mb-1">
-                      {eligibilityResult.status === 'ELIGIBLE' ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
-                      {eligibilityResult.status === 'ELIGIBLE' ? 'Patient is Eligible' : 'Patient Not Eligible'}
-                    </div>
-                    {eligibilityResult.memberName && <p>Name: {eligibilityResult.memberName}</p>}
-                    {eligibilityResult.scheme && <p>Scheme: {eligibilityResult.scheme}</p>}
-                    {eligibilityResult.status === 'ELIGIBLE' && (
-                      <p className="mt-1 text-xs opacity-80">Limits may apply depending on intervention code and prior usage.</p>
-                    )}
+                  <div className="mb-4">
+                    <ShaEligibilityCard 
+                      eligibility={eligibilityResult} 
+                      isLoading={checkEligibilityMutation.isPending} 
+                      error={message ? new Error(message) : null}
+                    />
                   </div>
                 ) : (
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full rounded-2xl"
+                    className="w-full rounded-2xl mb-4"
                     onClick={handleCheckEligibility}
-                    disabled={checkEligibilityMutation.isPending || isClosed || (!invoice?.patient?.shaMemberNumber && !shaMemberNumber)}
+                    disabled={checkEligibilityMutation.isPending || isClosed || (!shaMemberNumber && !nationalId)}
                   >
                     {checkEligibilityMutation.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -650,13 +654,19 @@ export default function InvoiceDetailPage() {
                   </Button>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Input
                     type="number"
                     value={shaAmount}
                     onChange={(e) => setShaAmount(e.target.value)}
                     className="h-12 rounded-2xl"
                     placeholder="SHA amount"
+                  />
+                  <Input
+                    value={nationalId}
+                    onChange={(e) => setNationalId(e.target.value)}
+                    className="h-12 rounded-2xl"
+                    placeholder="National ID"
                   />
                   <Input
                     value={shaMemberNumber}

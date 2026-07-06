@@ -51,10 +51,17 @@ export class VerifyFacilityDto {
 }
 
 export class CheckEligibilityDto {
+  @ValidateIf((dto: CheckEligibilityDto) => !dto.nationalId)
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)
-  memberNumber: string;
+  memberNumber?: string;
+
+  @ValidateIf((dto: CheckEligibilityDto) => !dto.memberNumber)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(30)
+  nationalId?: string;
 
   @IsOptional()
   @IsString()

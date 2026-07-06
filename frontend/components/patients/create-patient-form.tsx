@@ -7,6 +7,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreatePatient } from "@/hooks/use-create-patient";
 import { useScope } from "@/providers/scope-provider";
+import { useCheckShaEligibility } from "@/hooks/use-sha-eligibility";
+import { ShaEligibilityCard } from "@/components/integration/sha-eligibility-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -38,6 +40,7 @@ const patientSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   occupation: z.string().optional(),
   shaMemberNumber: z.string().optional(),
+  nationalIdNumber: z.string().optional(),
 });
 
 type PatientFormValues = z.infer<typeof patientSchema>;
@@ -85,8 +88,13 @@ function calculateDobFromAge(ageValue?: string) {
 export function CreatePatientForm() {
   const { facilityId } = useScope();
   const createPatientMutation = useCreatePatient();
+  const checkEligibilityMutation = useCheckShaEligibility();
+  
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [createdNumber, setCreatedNumber] = React.useState<string | null>(null);
+  const [eligibilityResult, setEligibilityResult] = React.useState<any>(null);
+  const [eligibilityError, setEligibilityError] = React.useState<Error | null>(null);
+  
   const syncingRef = React.useRef(false);
 
   const form = useForm<PatientFormValues>({
@@ -103,6 +111,7 @@ export function CreatePatientForm() {
       email: "",
       occupation: "",
       shaMemberNumber: "",
+      nationalIdNumber: "",
     },
   });
 
@@ -141,6 +150,49 @@ export function CreatePatientForm() {
     syncingRef.current = false;
   };
 
+  const handleVerifyEligibility = async () => {
+    const shaNumber = form.getValues("shaMemberNumber");
+    const nationalId = form.getValues("nationalIdNumber");
+
+    if (!shaNumber && !nationalId) {
+      setEligibilityError(new Error("Please enter a SHA Member Number or National ID to verify."));
+      return;
+    }
+
+    setEligibilityError(null);
+    try {
+      const result = await checkEligibilityMutation.mutateAsync({
+        shaNumber: shaNumber || undefined,
+        nationalId: nationalId || undefined,
+      });
+      setEligibilityResult(result);
+      
+      // Auto-fill form fields if data is available and fields are empty
+      if (result.memberName && !form.getValues("firstName")) {
+        const parts = result.memberName.split(" ");
+        form.setValue("firstName", parts[0] || "", { shouldDirty: true });
+        form.setValue("lastName", parts.length > 1 ? parts.slice(1).join(" ") : "", { shouldDirty: true });
+      }
+      if (result.gender && !form.getValues("gender")) {
+        const g = result.gender.toUpperCase();
+        if (["MALE", "FEMALE", "OTHER"].includes(g)) {
+          form.setValue("gender", g, { shouldDirty: true });
+        }
+      }
+      if (result.dateOfBirth && !form.getValues("dateOfBirth")) {
+        form.setValue("dateOfBirth", result.dateOfBirth, { shouldDirty: true });
+      }
+      if (result.phoneNumber && !form.getValues("phonePrimary")) {
+        form.setValue("phonePrimary", result.phoneNumber, { shouldDirty: true });
+      }
+      if (result.memberNumber && !form.getValues("shaMemberNumber")) {
+        form.setValue("shaMemberNumber", result.memberNumber, { shouldDirty: true });
+      }
+    } catch (err) {
+      setEligibilityError(err as Error);
+    }
+  };
+
   const onSubmit = async (values: PatientFormValues) => {
     setSuccessMessage(null);
     setCreatedNumber(null);
@@ -159,6 +211,7 @@ export function CreatePatientForm() {
         email: values.email || undefined,
         occupation: values.occupation || undefined,
         shaMemberNumber: values.shaMemberNumber || undefined,
+        nationalIdNumber: values.nationalIdNumber || undefined,
         facilityId,
         isActive: true,
         isDeceased: false,
@@ -179,7 +232,10 @@ export function CreatePatientForm() {
         email: "",
         occupation: "",
         shaMemberNumber: "",
+        nationalIdNumber: "",
       });
+      setEligibilityResult(null);
+      setEligibilityError(null);
     } catch {
       setSuccessMessage(null);
       setCreatedNumber(null);
@@ -240,33 +296,64 @@ export function CreatePatientForm() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="shaMemberNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SHA Member Number</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input placeholder="Enter SHA number" {...field} />
-                    </FormControl>
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => {
-                        // Implement verify logic using DHA endpoint later
-                        if (field.value) {
-                          alert(`Verifying SHA Membership for: ${field.value}`);
-                        }
-                      }}
-                    >
-                      Verify
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
+            {/* Full Width Verification Section */}
+            <div className="col-span-full space-y-4">
+              <div className="rounded-[1.4rem] border p-4 bg-muted/20">
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold">SHA & National ID Verification</h4>
+                  <p className="text-xs text-muted-foreground">Verify patient eligibility with DHA to auto-fill their details.</p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="nationalIdNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>National ID Number</FormLabel>
+                        <FormControl>
+                          <Input className="h-11 rounded-xl" placeholder="Enter National ID" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="shaMemberNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SHA Member Number</FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input className="h-11 rounded-xl" placeholder="Enter SHA number" {...field} />
+                          </FormControl>
+                          <Button 
+                            type="button" 
+                            variant="secondary"
+                            className="h-11 px-6 rounded-xl shrink-0"
+                            onClick={handleVerifyEligibility}
+                            disabled={checkEligibilityMutation.isPending}
+                          >
+                            {checkEligibilityMutation.isPending ? "Verifying..." : "Verify"}
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {(eligibilityResult || eligibilityError || checkEligibilityMutation.isPending) && (
+                <div className="mt-4">
+                  <ShaEligibilityCard 
+                    eligibility={eligibilityResult} 
+                    error={eligibilityError} 
+                    isLoading={checkEligibilityMutation.isPending} 
+                  />
+                </div>
               )}
-            />
+            </div>
 
             <FormField
               control={form.control}
