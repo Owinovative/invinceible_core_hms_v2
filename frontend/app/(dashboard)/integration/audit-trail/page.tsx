@@ -134,7 +134,7 @@ function TransactionDetail({ tx, onClose }: { tx: DhaTransaction; onClose: () =>
           )}
 
           {/* Request Payload */}
-          {tx.requestPayload && (
+          {!!tx.requestPayload && (
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-2">FHIR Request Payload</p>
               <pre className="text-xs text-green-400 font-mono leading-relaxed whitespace-pre-wrap break-all bg-black/40 rounded-xl p-4 border border-green-500/20 max-h-64 overflow-y-auto">
@@ -144,7 +144,7 @@ function TransactionDetail({ tx, onClose }: { tx: DhaTransaction; onClose: () =>
           )}
 
           {/* Response Payload */}
-          {tx.responsePayload && (
+          {!!tx.responsePayload && (
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-2">DHA Response Payload</p>
               <pre className="text-xs text-cyan-400 font-mono leading-relaxed whitespace-pre-wrap break-all bg-black/40 rounded-xl p-4 border border-cyan-500/20 max-h-64 overflow-y-auto">

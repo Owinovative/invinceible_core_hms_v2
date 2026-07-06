@@ -148,9 +148,7 @@ export class DhaController {
   /** Poll DHA for the current status of a specific SHA claim. */
   @Get('claims/:claimId/status')
   @Permissions('billing.read')
-  pollClaimStatus(
-    @Param('claimId', ParseIntPipe) claimId: number,
-  ) {
+  pollClaimStatus(@Param('claimId', ParseIntPipe) claimId: number) {
     return this.dhaService.pollClaimStatus(claimId);
   }
 

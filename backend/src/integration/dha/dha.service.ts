@@ -703,7 +703,8 @@ export class DhaService implements OnModuleInit {
       DENIED: 'REJECTED',
       PENDING: 'PENDING',
     };
-    const newStatus = statusMap[params.status.toUpperCase()] ?? claim.statusCode;
+    const newStatus =
+      statusMap[params.status.toUpperCase()] ?? claim.statusCode;
 
     if (newStatus !== claim.statusCode) {
       await this.prisma.shaClaim.update({

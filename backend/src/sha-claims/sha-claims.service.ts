@@ -375,7 +375,11 @@ export class ShaClaimsService {
     });
 
     if (!claim) throw new NotFoundException(`SHA claim ${id} not found`);
-    this.scopeService.assertBranchAccess(user, claim.facilityId, claim.branchId);
+    this.scopeService.assertBranchAccess(
+      user,
+      claim.facilityId,
+      claim.branchId,
+    );
 
     // Advance to SUBMITTED if still in DRAFT
     let updated = claim;

@@ -26,6 +26,7 @@ import { useCheckShaEligibility } from "@/hooks/use-sha-eligibility";
 import { useResendMpesaPaymentRequest } from "@/hooks/use-resend-mpesa-payment-request";
 import { useCheckMpesaPaymentStatus } from "@/hooks/use-check-mpesa-payment-status";
 import { useCloseInvoice } from "@/hooks/use-close-invoice";
+import type { EligibilityResult } from "@/services/dha-service";
 import { useUpdateInvoiceItem } from "@/hooks/use-update-invoice-item";
 import { useRemoveInvoiceItem } from "@/hooks/use-remove-invoice-item";
 import { downloadInvoicePdf } from "@/services/billing-service";
@@ -87,7 +88,7 @@ export default function InvoiceDetailPage() {
   const [editUnitPrice, setEditUnitPrice] = React.useState("");
   const [editNotes, setEditNotes] = React.useState("");
   const [removeReason, setRemoveReason] = React.useState("");
-  const [eligibilityResult, setEligibilityResult] = React.useState<any>(null);
+  const [eligibilityResult, setEligibilityResult] = React.useState<EligibilityResult | null>(null);
 
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
@@ -106,8 +107,8 @@ export default function InvoiceDetailPage() {
     if (!mpesaPhoneNumber && invoice.patient?.phonePrimary) {
       setMpesaPhoneNumber(invoice.patient.phonePrimary);
     }
-    if (!shaMemberNumber && invoice.patient?.shaNumber) {
-      setShaMemberNumber(invoice.patient.shaNumber);
+    if (!shaMemberNumber && invoice.patient?.shaMemberNumber) {
+      setShaMemberNumber(invoice.patient.shaMemberNumber);
     }
   }, [invoice, mpesaAmount, mpesaPhoneNumber, shaAmount, shaMemberNumber]);
 
@@ -119,8 +120,7 @@ export default function InvoiceDetailPage() {
     try {
       const res = await checkEligibilityMutation.mutateAsync({
         memberNumber: shaMemberNumber || undefined,
-        nationalId: invoice.patient.nationalId || undefined,
-        shaNumber: invoice.patient.shaNumber || undefined,
+        shaNumber: invoice.patient.shaMemberNumber || undefined,
       });
       setEligibilityResult(res);
       if (res.memberNumber && !shaMemberNumber) {
@@ -639,7 +639,7 @@ export default function InvoiceDetailPage() {
                     variant="outline"
                     className="w-full rounded-2xl"
                     onClick={handleCheckEligibility}
-                    disabled={checkEligibilityMutation.isPending || isClosed || (!invoice?.patient?.nationalId && !invoice?.patient?.shaNumber && !shaMemberNumber)}
+                    disabled={checkEligibilityMutation.isPending || isClosed || (!invoice?.patient?.shaMemberNumber && !shaMemberNumber)}
                   >
                     {checkEligibilityMutation.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
