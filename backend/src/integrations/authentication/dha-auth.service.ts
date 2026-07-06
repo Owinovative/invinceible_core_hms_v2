@@ -33,12 +33,17 @@ export class DhaAuthService {
   private async refreshToken(): Promise<string> {
     this.logger.info('Refreshing DHA access token', { integration: 'DHA' });
 
-    const tokenUrl = this.configService.get<string>('DHA_TOKEN_URL', 'https://auth.dha.go.ke/oauth/token');
+    const tokenUrl = this.configService.get<string>(
+      'DHA_TOKEN_URL',
+      'https://auth.dha.go.ke/oauth/token',
+    );
     const clientId = this.configService.get<string>('DHA_CLIENT_ID');
     const clientSecret = this.configService.get<string>('DHA_CLIENT_SECRET');
 
     if (!clientId || !clientSecret) {
-      this.logger.error('DHA credentials missing in configuration', { integration: 'DHA' });
+      this.logger.error('DHA credentials missing in configuration', {
+        integration: 'DHA',
+      });
       throw new UnauthorizedException('DHA credentials not configured');
     }
 
@@ -66,7 +71,10 @@ export class DhaAuthService {
 
       return accessToken;
     } catch (error: any) {
-      this.logger.error('Error refreshing DHA token', { integration: 'DHA', error });
+      this.logger.error('Error refreshing DHA token', {
+        integration: 'DHA',
+        error,
+      });
       throw new UnauthorizedException('Failed to authenticate with DHA HIE');
     }
   }

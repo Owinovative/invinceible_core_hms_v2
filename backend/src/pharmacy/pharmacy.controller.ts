@@ -15,7 +15,7 @@ import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { CreateDispenseDto } from './dto/create-dispense.dto';
 import { DirectMedicineAdministrationDto } from './dto/direct-medicine-administration.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type{ RequestUser } from '../auth/interfaces/request-user.interface';
+import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { Permissions } from '../auth/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
 
@@ -86,5 +86,4 @@ export class PharmacyController {
   ) {
     return this.pharmacyService.directMedicineAdministration(dto, user);
   }
-
 }

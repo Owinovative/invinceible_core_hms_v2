@@ -26,7 +26,9 @@ export class UserLocationInterceptor implements NestInterceptor {
         },
         error: (error) => {
           if (!this.shouldCapture(req)) return;
-          const statusCode = Number(error?.status ?? error?.response?.statusCode);
+          const statusCode = Number(
+            error?.status ?? error?.response?.statusCode,
+          );
           void this.userLocationService
             .captureRequest(
               req,

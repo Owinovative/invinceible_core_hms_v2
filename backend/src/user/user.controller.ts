@@ -47,10 +47,7 @@ export class UserController {
   }
 
   @Get('email/:email')
-  findByEmail(
-    @Param('email') email: string,
-    @CurrentUser() user: RequestUser,
-  ) {
+  findByEmail(@Param('email') email: string, @CurrentUser() user: RequestUser) {
     return this.userService.findByEmailForActor(email, user);
   }
 
@@ -77,9 +74,9 @@ export class UserController {
     @Body() dto: AdminResetPasswordDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.userService.findOneForActor(id, user).then(() =>
-      this.userService.adminResetPassword(id, dto),
-    );
+    return this.userService
+      .findOneForActor(id, user)
+      .then(() => this.userService.adminResetPassword(id, dto));
   }
 
   @Delete(':id')

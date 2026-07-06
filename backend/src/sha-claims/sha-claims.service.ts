@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
@@ -146,7 +150,8 @@ export class ShaClaimsService {
         acc.coveredAmount += claim.payments
           .filter((payment) => payment.statusCode === 'COMPLETED')
           .reduce((sum, payment) => sum + payment.amount, 0);
-        acc.byStatus[claim.statusCode] = (acc.byStatus[claim.statusCode] ?? 0) + 1;
+        acc.byStatus[claim.statusCode] =
+          (acc.byStatus[claim.statusCode] ?? 0) + 1;
         return acc;
       },
       {
@@ -162,7 +167,10 @@ export class ShaClaimsService {
 
     return {
       ...summary,
-      outstandingAmount: Math.max(summary.approvedAmount - summary.paidAmount, 0),
+      outstandingAmount: Math.max(
+        summary.approvedAmount - summary.paidAmount,
+        0,
+      ),
       lossAmount: summary.rejectedAmount,
     };
   }
@@ -181,13 +189,19 @@ export class ShaClaimsService {
     if (!facility) throw new NotFoundException('Facility not found');
     if (!patient) throw new NotFoundException('Patient not found');
     if (patient.facilityId !== dto.facilityId) {
-      throw new BadRequestException('Patient does not belong to the selected facility');
+      throw new BadRequestException(
+        'Patient does not belong to the selected facility',
+      );
     }
     if (invoice && invoice.patientId !== dto.patientId) {
-      throw new BadRequestException('Invoice does not belong to the selected patient');
+      throw new BadRequestException(
+        'Invoice does not belong to the selected patient',
+      );
     }
     if (invoice && invoice.facilityId !== dto.facilityId) {
-      throw new BadRequestException('Invoice does not belong to the selected facility');
+      throw new BadRequestException(
+        'Invoice does not belong to the selected facility',
+      );
     }
 
     const claim = await this.prisma.$transaction(async (tx) => {
@@ -267,8 +281,13 @@ export class ShaClaimsService {
       include: SHA_CLAIM_INCLUDE,
     });
 
-    if (!claim) throw new NotFoundException(`SHA claim with id ${id} not found`);
-    this.scopeService.assertBranchAccess(user, claim.facilityId, claim.branchId);
+    if (!claim)
+      throw new NotFoundException(`SHA claim with id ${id} not found`);
+    this.scopeService.assertBranchAccess(
+      user,
+      claim.facilityId,
+      claim.branchId,
+    );
 
     const now = new Date();
     const nextStatus = dto.statusCode ?? claim.statusCode;
@@ -278,13 +297,27 @@ export class ShaClaimsService {
         : dto.rejectedAmount;
     const data: Prisma.ShaClaimUpdateInput = {
       statusCode: nextStatus,
-      branch: dto.branchId === undefined ? undefined : dto.branchId === null ? { disconnect: true } : { connect: { id: dto.branchId } },
-      invoice: dto.invoiceId === undefined ? undefined : dto.invoiceId === null ? { disconnect: true } : { connect: { id: dto.invoiceId } },
+      branch:
+        dto.branchId === undefined
+          ? undefined
+          : dto.branchId === null
+            ? { disconnect: true }
+            : { connect: { id: dto.branchId } },
+      invoice:
+        dto.invoiceId === undefined
+          ? undefined
+          : dto.invoiceId === null
+            ? { disconnect: true }
+            : { connect: { id: dto.invoiceId } },
       memberNumber: dto.memberNumber,
       diagnosisCode: dto.diagnosisCode,
       diagnosisText: dto.diagnosisText,
-      servicePeriodStart: dto.servicePeriodStart ? new Date(dto.servicePeriodStart) : undefined,
-      servicePeriodEnd: dto.servicePeriodEnd ? new Date(dto.servicePeriodEnd) : undefined,
+      servicePeriodStart: dto.servicePeriodStart
+        ? new Date(dto.servicePeriodStart)
+        : undefined,
+      servicePeriodEnd: dto.servicePeriodEnd
+        ? new Date(dto.servicePeriodEnd)
+        : undefined,
       claimedAmount: dto.claimedAmount,
       approvedAmount: dto.approvedAmount,
       paidAmount: dto.paidAmount,
@@ -330,14 +363,63 @@ export class ShaClaimsService {
     return updated;
   }
 
+  /**
+   * Manually triggers DHA submission for an existing claim.
+   * Used when a claim was created as DRAFT or when a previous submission
+   * failed and needs to be retried without changing status through the UI.
+   */
+  async submitToDha(id: number, user: RequestUser) {
+    const claim = await this.prisma.shaClaim.findUnique({
+      where: { id },
+      include: SHA_CLAIM_INCLUDE,
+    });
+
+    if (!claim) throw new NotFoundException(`SHA claim ${id} not found`);
+    this.scopeService.assertBranchAccess(user, claim.facilityId, claim.branchId);
+
+    // Advance to SUBMITTED if still in DRAFT
+    let updated = claim;
+    if (claim.statusCode === 'DRAFT') {
+      updated = await this.prisma.shaClaim.update({
+        where: { id },
+        data: {
+          statusCode: 'SUBMITTED',
+          submittedAt: new Date(),
+        },
+        include: SHA_CLAIM_INCLUDE,
+      });
+    }
+
+    await this.triggerDhaClaimSubmission(updated.id, user);
+
+    await this.auditLogService.create({
+      moduleName: 'SHA',
+      actionName: 'SUBMIT_SHA_CLAIM_TO_DHA',
+      entityType: 'SHA_CLAIM',
+      entityId: String(updated.id),
+      description: `Manually triggered DHA submission for claim ${updated.claimNumber}`,
+      facilityId: updated.facilityId,
+      branchId: updated.branchId ?? undefined,
+      actorUserId: user.userId,
+      actorStaffId: user.staffId ?? undefined,
+    });
+
+    return updated;
+  }
+
   async getClaimPdf(id: number, user: RequestUser) {
     const claim = await this.prisma.shaClaim.findUnique({
       where: { id },
       include: SHA_CLAIM_INCLUDE,
     });
 
-    if (!claim) throw new NotFoundException(`SHA claim with id ${id} not found`);
-    this.scopeService.assertBranchAccess(user, claim.facilityId, claim.branchId);
+    if (!claim)
+      throw new NotFoundException(`SHA claim with id ${id} not found`);
+    this.scopeService.assertBranchAccess(
+      user,
+      claim.facilityId,
+      claim.branchId,
+    );
 
     const [patientSignature, facilitySignature, rubberStamp] =
       await Promise.all([
@@ -350,7 +432,8 @@ export class ShaClaimsService {
     const serviceStart = claim.servicePeriodStart || claim.createdAt;
     const serviceEnd = claim.servicePeriodEnd || claim.updatedAt;
     const visitType = claim.invoice?.admissionId ? 'Inpatient' : 'Outpatient';
-    const currency = claim.facility?.currency || claim.branch?.currency || 'KES';
+    const currency =
+      claim.facility?.currency || claim.branch?.currency || 'KES';
     const providerLine =
       [claim.facility?.address, claim.facility?.town, claim.facility?.county]
         .filter(Boolean)
@@ -378,7 +461,10 @@ export class ShaClaimsService {
         addCompactDefinitionList(
           doc,
           [
-            { label: 'FID', value: claim.fidCode || claim.facility?.shaFidCode },
+            {
+              label: 'FID',
+              value: claim.fidCode || claim.facility?.shaFidCode,
+            },
             { label: 'Facility', value: claim.facility?.name },
             { label: 'Branch', value: claim.branch?.name },
             { label: 'Address', value: providerLine },
@@ -424,14 +510,34 @@ export class ShaClaimsService {
         addCompactTable(
           doc,
           [
-            { header: 'Admission', width: 78, render: () => formatPdfDate(serviceStart).split(',')[0] },
-            { header: 'Discharge', width: 78, render: () => formatPdfDate(serviceEnd).split(',')[0] },
-            { header: 'Code', width: 64, render: () => claim.diagnosisCode || 'SHA' },
-            { header: 'Description', width: 170, render: () => claim.diagnosisText || 'Claimed benefit' },
+            {
+              header: 'Admission',
+              width: 78,
+              render: () => formatPdfDate(serviceStart).split(',')[0],
+            },
+            {
+              header: 'Discharge',
+              width: 78,
+              render: () => formatPdfDate(serviceEnd).split(',')[0],
+            },
+            {
+              header: 'Code',
+              width: 64,
+              render: () => claim.diagnosisCode || 'SHA',
+            },
+            {
+              header: 'Description',
+              width: 170,
+              render: () => claim.diagnosisText || 'Claimed benefit',
+            },
             {
               header: 'Bill',
               width: 68,
-              render: () => formatPdfMoney(claim.invoice?.totalAmount ?? claim.claimedAmount, currency),
+              render: () =>
+                formatPdfMoney(
+                  claim.invoice?.totalAmount ?? claim.claimedAmount,
+                  currency,
+                ),
             },
             {
               header: 'Claim',
@@ -450,7 +556,7 @@ export class ShaClaimsService {
             'No additional information was recorded for this claim.',
         );
 
-        addSectionTitle(doc, "Patient declaration");
+        addSectionTitle(doc, 'Patient declaration');
         addCompactParagraph(
           doc,
           'Declaration',
@@ -489,7 +595,8 @@ export class ShaClaimsService {
     ensureRoom(doc, 52);
     const left = doc.page.margins.left;
     const y = doc.y + 4;
-    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const width =
+      doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
     doc
       .fillColor('#334155')

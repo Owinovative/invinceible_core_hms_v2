@@ -40,7 +40,9 @@ export class FeedbackService {
       displayName: anonymous
         ? 'Anonymous user'
         : creator?.fullName || creator?.username || staff?.firstName || 'User',
-      displayPhotoUrl: anonymous ? null : staff?.passportPhotoUrl || creator?.staff?.passportPhotoUrl || null,
+      displayPhotoUrl: anonymous
+        ? null
+        : staff?.passportPhotoUrl || creator?.staff?.passportPhotoUrl || null,
     };
   }
 

@@ -13,5 +13,3 @@ export class ResolveNotificationDto {
   @IsString()
   resolutionNote?: string;
 }
-
-

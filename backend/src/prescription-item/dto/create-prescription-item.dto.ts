@@ -1,14 +1,11 @@
 import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
-
 export class CreatePrescriptionItemDto {
   @IsInt()
   prescriptionId: number;
 
-
   @IsInt()
   medicineId: number;
-
 
   @IsOptional()
   @IsString()
@@ -20,24 +17,20 @@ export class CreatePrescriptionItemDto {
   @MaxLength(100)
   route?: string;
 
-
   @IsOptional()
   @IsString()
   @MaxLength(100)
   frequency?: string;
-
 
   @IsOptional()
   @IsString()
   @MaxLength(100)
   duration?: string;
 
-
   @IsOptional()
   @IsInt()
   @Min(1)
   quantity?: number;
-
 
   @IsOptional()
   @IsString()
@@ -51,7 +44,6 @@ export class CreatePrescriptionItemDto {
   @IsOptional()
   @IsInt()
   acceptedAlternativeForMedicineId?: number;
-
 
   @IsOptional()
   @IsString()

@@ -7,7 +7,6 @@ import { StaffModule } from '../staff/staff.module';
 import { FacilityModule } from '../facility/facility.module';
 import { AuthModule } from '../auth/auth.module';
 
-
 @Module({
   imports: [
     PrismaModule,

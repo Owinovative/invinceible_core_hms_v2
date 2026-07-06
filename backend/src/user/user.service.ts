@@ -54,14 +54,18 @@ export class UserService {
 
     const targetRole = target.role?.code;
     if (targetRole === 'SUPER_ADMIN' || targetRole === 'ADMIN') {
-      throw new ForbiddenException('Facility admins cannot manage platform users');
+      throw new ForbiddenException(
+        'Facility admins cannot manage platform users',
+      );
     }
 
     const targetFacilityId =
       target.homeFacilityId ?? target.staff?.facilityId ?? null;
 
     if (!actor.homeFacilityId || targetFacilityId !== actor.homeFacilityId) {
-      throw new ForbiddenException('You cannot manage users outside your facility');
+      throw new ForbiddenException(
+        'You cannot manage users outside your facility',
+      );
     }
   }
 
@@ -72,7 +76,9 @@ export class UserService {
 
     const targetRole = await this.roleService.findOne(createUserDto.roleId);
     if (targetRole.code === 'SUPER_ADMIN' || targetRole.code === 'ADMIN') {
-      throw new ForbiddenException('Facility admins cannot create platform users');
+      throw new ForbiddenException(
+        'Facility admins cannot create platform users',
+      );
     }
 
     if (!actor.homeFacilityId) {
@@ -83,7 +89,9 @@ export class UserService {
       createUserDto.homeFacilityId &&
       createUserDto.homeFacilityId !== actor.homeFacilityId
     ) {
-      throw new ForbiddenException('You cannot create users outside your facility');
+      throw new ForbiddenException(
+        'You cannot create users outside your facility',
+      );
     }
 
     if (createUserDto.homeBranchId) {
@@ -543,7 +551,9 @@ export class UserService {
         updateUserDto.homeFacilityId &&
         updateUserDto.homeFacilityId !== actor.homeFacilityId
       ) {
-        throw new ForbiddenException('You cannot move users outside your facility');
+        throw new ForbiddenException(
+          'You cannot move users outside your facility',
+        );
       }
 
       updateUserDto.homeFacilityId = actor.homeFacilityId ?? undefined;

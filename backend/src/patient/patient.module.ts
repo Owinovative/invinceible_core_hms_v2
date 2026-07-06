@@ -8,7 +8,13 @@ import { IntegrationModule } from '../integration/integration.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [FacilityModule, AuthModule, IntegrationsModule, IntegrationModule, ConfigModule],
+  imports: [
+    FacilityModule,
+    AuthModule,
+    IntegrationsModule,
+    IntegrationModule,
+    ConfigModule,
+  ],
   controllers: [PatientController],
   providers: [PatientService],
   exports: [PatientService],

@@ -64,7 +64,8 @@ export class CreatePrescriptionDto {
 
   @IsArray()
   @ArrayMinSize(1, {
-    message: 'At least one medicine item is required before sending to pharmacy.',
+    message:
+      'At least one medicine item is required before sending to pharmacy.',
   })
   @ValidateNested({ each: true })
   @Type(() => PrescriptionItemInputDto)

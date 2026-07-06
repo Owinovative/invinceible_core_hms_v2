@@ -3,10 +3,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 
-
 @Injectable()
 export class QueueService {
-  constructor(private readonly prisma: PrismaService, private readonly scopeService: ScopeService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scopeService: ScopeService,
+  ) {}
 
   async getFullQueue() {
     const appointments = await this.prisma.appointment.findMany({
@@ -15,10 +17,7 @@ export class QueueService {
         doctor: true,
         clinic: true,
       },
-      orderBy: [
-        { appointmentDate: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ appointmentDate: 'asc' }, { createdAt: 'asc' }],
     });
 
     return {
@@ -30,148 +29,148 @@ export class QueueService {
       completed: appointments.filter((a) => a.statusCode === 'COMPLETED'),
     };
   }
-async getFullQueueScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+  async getFullQueueScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
 
-  const appointments = await this.prisma.appointment.findMany({
-    where: {
-      ...scope,
-      statusCode: {
-        in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        ...scope,
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+        },
       },
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      doctor: true,
-      clinic: true,
-    },
-    orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
-  });
-
-  return this.sortAppointmentsByClinicalPriority(appointments);
-}
-
-async getTodayQueueScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
-
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  const appointments = await this.prisma.appointment.findMany({
-    where: {
-      ...scope,
-      appointmentDate: {
-        gte: start,
-        lte: end,
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        clinic: true,
       },
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      doctor: true,
-      clinic: true,
-    },
-    orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
-  });
+      orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
+    });
 
-  return this.sortAppointmentsByClinicalPriority(appointments);
-}
+    return this.sortAppointmentsByClinicalPriority(appointments);
+  }
 
-async getWaitingQueueScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+  async getTodayQueueScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
 
-  const appointments = await this.prisma.appointment.findMany({
-    where: {
-      ...scope,
-      statusCode: {
-        in: ['BOOKED', 'CHECKED_IN'],
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        ...scope,
+        appointmentDate: {
+          gte: start,
+          lte: end,
+        },
       },
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      doctor: true,
-      clinic: true,
-    },
-    orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
-  });
-
-  return this.sortAppointmentsByClinicalPriority(appointments);
-}
-
-async getDoctorQueueScoped(doctorId: number, user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
-
-  const appointments = await this.prisma.appointment.findMany({
-    where: {
-      ...scope,
-      doctorId,
-      statusCode: {
-        in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        clinic: true,
       },
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      doctor: true,
-      clinic: true,
-    },
-    orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
-  });
+      orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
+    });
 
-  return this.sortAppointmentsByClinicalPriority(appointments);
-}
+    return this.sortAppointmentsByClinicalPriority(appointments);
+  }
 
-async getQueueStatsScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+  async getWaitingQueueScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
 
-  const total = await this.prisma.appointment.count({
-    where: {
-      ...scope,
-      statusCode: {
-        in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        ...scope,
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN'],
+        },
       },
-    },
-  });
-
-  const waiting = await this.prisma.appointment.count({
-    where: {
-      ...scope,
-      statusCode: {
-        in: ['BOOKED', 'CHECKED_IN'],
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        clinic: true,
       },
-    },
-  });
+      orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
+    });
 
-  const inConsultation = await this.prisma.appointment.count({
-    where: {
-      ...scope,
-      statusCode: 'IN_CONSULTATION',
-    },
-  });
+    return this.sortAppointmentsByClinicalPriority(appointments);
+  }
 
-  const completed = await this.prisma.appointment.count({
-    where: {
-      ...scope,
-      statusCode: 'COMPLETED',
-    },
-  });
+  async getDoctorQueueScoped(doctorId: number, user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
 
-  return {
-    total,
-    waiting,
-    inConsultation,
-    completed,
-  };
-}
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        ...scope,
+        doctorId,
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+        },
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        doctor: true,
+        clinic: true,
+      },
+      orderBy: [{ appointmentDate: 'asc' }, { startTime: 'asc' }],
+    });
+
+    return this.sortAppointmentsByClinicalPriority(appointments);
+  }
+
+  async getQueueStatsScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
+
+    const total = await this.prisma.appointment.count({
+      where: {
+        ...scope,
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+        },
+      },
+    });
+
+    const waiting = await this.prisma.appointment.count({
+      where: {
+        ...scope,
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN'],
+        },
+      },
+    });
+
+    const inConsultation = await this.prisma.appointment.count({
+      where: {
+        ...scope,
+        statusCode: 'IN_CONSULTATION',
+      },
+    });
+
+    const completed = await this.prisma.appointment.count({
+      where: {
+        ...scope,
+        statusCode: 'COMPLETED',
+      },
+    });
+
+    return {
+      total,
+      waiting,
+      inConsultation,
+      completed,
+    };
+  }
 
   async getTodayQueue() {
     const today = new Date();
@@ -193,10 +192,7 @@ async getQueueStatsScoped(user: RequestUser) {
         doctor: true,
         clinic: true,
       },
-      orderBy: [
-        { appointmentDate: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ appointmentDate: 'asc' }, { createdAt: 'asc' }],
     });
 
     return {
@@ -222,10 +218,7 @@ async getQueueStatsScoped(user: RequestUser) {
         doctor: true,
         clinic: true,
       },
-      orderBy: [
-        { appointmentDate: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ appointmentDate: 'asc' }, { createdAt: 'asc' }],
     });
   }
 
@@ -242,10 +235,7 @@ async getQueueStatsScoped(user: RequestUser) {
         doctor: true,
         clinic: true,
       },
-      orderBy: [
-        { appointmentDate: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ appointmentDate: 'asc' }, { createdAt: 'asc' }],
     });
   }
 
@@ -273,11 +263,13 @@ async getQueueStatsScoped(user: RequestUser) {
     };
   }
 
-  private sortAppointmentsByClinicalPriority<T extends {
-    triagePriority?: string | null;
-    appointmentDate?: Date | string | null;
-    createdAt?: Date | string | null;
-  }>(appointments: T[]) {
+  private sortAppointmentsByClinicalPriority<
+    T extends {
+      triagePriority?: string | null;
+      appointmentDate?: Date | string | null;
+      createdAt?: Date | string | null;
+    },
+  >(appointments: T[]) {
     const priorityWeight: Record<string, number> = {
       CRITICAL: 0,
       EMERGENCY: 0,
@@ -293,15 +285,18 @@ async getQueueStatsScoped(user: RequestUser) {
         priorityWeight[String(left.triagePriority ?? 'NORMAL').toUpperCase()] ??
         2;
       const rightPriority =
-        priorityWeight[String(right.triagePriority ?? 'NORMAL').toUpperCase()] ??
-        2;
+        priorityWeight[
+          String(right.triagePriority ?? 'NORMAL').toUpperCase()
+        ] ?? 2;
 
       if (leftPriority !== rightPriority) {
         return leftPriority - rightPriority;
       }
 
-      return this.dateValue(left.appointmentDate ?? left.createdAt) -
-        this.dateValue(right.appointmentDate ?? right.createdAt);
+      return (
+        this.dateValue(left.appointmentDate ?? left.createdAt) -
+        this.dateValue(right.appointmentDate ?? right.createdAt)
+      );
     });
   }
 

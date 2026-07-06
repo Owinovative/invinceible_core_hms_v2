@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { PriorityAlertsPanel } from "@/components/dashboard/priority-alerts-panel";
+import { ShaOperationalWidget } from "@/components/dashboard/sha-operational-widget";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -348,6 +349,8 @@ export default function DashboardPage() {
               <p className="mt-0.5 font-medium">{scopeText}</p>
             </div>
           </div>
+
+          <ShaOperationalWidget />
 
           <PriorityAlertsPanel
             criticalCount={health?.summary.unresolvedCriticalAlerts ?? 0}

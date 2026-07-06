@@ -29,7 +29,9 @@ export function addMonths(date: Date, months: number) {
 }
 
 function normalizeComplianceStatus(facility: FacilityAccessShape) {
-  const raw = String(facility.complianceStatus || '').trim().toUpperCase();
+  const raw = String(facility.complianceStatus || '')
+    .trim()
+    .toUpperCase();
 
   if (raw) return raw;
   return facility.isActive === false ? 'SUSPENDED' : 'COMPLIANT';
@@ -60,7 +62,7 @@ export function computeFacilityAccessStatus(
     ['ACTIVE', 'COMPLIANT', 'GOOD_STANDING'].includes(complianceStatus);
   const complianceDeactivatedAt =
     facility.complianceDeactivatedAt ??
-    (!complianceOk ? facility.updatedAt ?? facility.createdAt : null);
+    (!complianceOk ? (facility.updatedAt ?? facility.createdAt) : null);
   const complianceGraceEndsAt =
     facility.complianceGraceEndsAt ??
     (complianceDeactivatedAt

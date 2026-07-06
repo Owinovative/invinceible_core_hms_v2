@@ -21,10 +21,7 @@ export class TriageController {
   constructor(private readonly triageService: TriageService) {}
 
   @Post()
-  create(
-    @Body() dto: CreateTriageDto,
-    @CurrentUser() user: RequestUser,
-  ) {
+  create(@Body() dto: CreateTriageDto, @CurrentUser() user: RequestUser) {
     return this.triageService.create(dto, user);
   }
 
@@ -37,17 +34,17 @@ export class TriageController {
   findWaiting(@CurrentUser() user: RequestUser) {
     return this.triageService.findWaitingScoped(user);
   }
-@Get('ready-for-doctor')
-findReadyForDoctor(@CurrentUser() user: RequestUser) {
-  return this.triageService.findReadyForDoctorScoped(user);
-}
-@Get('appointment/:appointmentId')
-findByAppointmentId(
-  @Param('appointmentId', ParseIntPipe) appointmentId: number,
-  @CurrentUser() user: RequestUser,
-) {
-  return this.triageService.findByAppointmentIdScoped(appointmentId, user);
-}
+  @Get('ready-for-doctor')
+  findReadyForDoctor(@CurrentUser() user: RequestUser) {
+    return this.triageService.findReadyForDoctorScoped(user);
+  }
+  @Get('appointment/:appointmentId')
+  findByAppointmentId(
+    @Param('appointmentId', ParseIntPipe) appointmentId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.triageService.findByAppointmentIdScoped(appointmentId, user);
+  }
 
   @Get(':id')
   findOne(

@@ -676,6 +676,60 @@ export class DhaService implements OnModuleInit {
     }
   }
 
+  /**
+   * Handles a DHA push webhook — updates the ShaClaim record immediately
+   * without requiring the scheduled poller to run first.
+   */
+  async handleClaimStatusCallback(params: {
+    claimNumber: string;
+    status: string;
+  }) {
+    const claim = await this.prisma.shaClaim.findUnique({
+      where: { claimNumber: params.claimNumber },
+    });
+    if (!claim) {
+      this.logger.warn(
+        `Claim status callback for unknown claim: ${params.claimNumber}`,
+      );
+      return { skipped: true };
+    }
+
+    const statusMap: Record<string, string> = {
+      ACCEPTED: 'ACCEPTED',
+      APPROVED: 'ACCEPTED',
+      SETTLED: 'PAID',
+      PAID: 'PAID',
+      REJECTED: 'REJECTED',
+      DENIED: 'REJECTED',
+      PENDING: 'PENDING',
+    };
+    const newStatus = statusMap[params.status.toUpperCase()] ?? claim.statusCode;
+
+    if (newStatus !== claim.statusCode) {
+      await this.prisma.shaClaim.update({
+        where: { id: claim.id },
+        data: {
+          statusCode: newStatus,
+          approvedAt: ['ACCEPTED', 'APPROVED'].includes(newStatus)
+            ? new Date()
+            : undefined,
+          paidAt: newStatus === 'PAID' ? new Date() : undefined,
+        },
+      });
+
+      await this.audit.recordEvent({
+        moduleName: 'DHA',
+        actionName: 'CLAIM_STATUS_CALLBACK',
+        entityType: 'SHA_CLAIM',
+        entityId: String(claim.id),
+        description: `DHA webhook updated claim ${claim.claimNumber} → ${newStatus}`,
+        facilityId: claim.facilityId,
+      });
+    }
+
+    return { updated: true, claimId: claim.id, newStatus };
+  }
+
   private async createTransaction(params: {
     transactionType: DhaTransactionType;
     fhirResourceType: string;

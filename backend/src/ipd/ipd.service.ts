@@ -187,7 +187,6 @@ export class IpdService {
     });
   }
 
-
   getAllWards() {
     return this.prisma.ward.findMany({
       include: {
@@ -213,7 +212,9 @@ export class IpdService {
     });
 
     if (!ward) {
-      throw new NotFoundException(`Ward with id ${createBedDto.wardId} not found`);
+      throw new NotFoundException(
+        `Ward with id ${createBedDto.wardId} not found`,
+      );
     }
 
     return this.prisma.bed.create({
@@ -233,7 +234,6 @@ export class IpdService {
       },
     });
   }
-
 
   getAllBeds() {
     return this.prisma.bed.findMany({
@@ -287,7 +287,6 @@ export class IpdService {
     });
   }
 
-
   async createAdmission(createAdmissionDto: CreateAdmissionDto) {
     const existing = await this.prisma.admission.findFirst({
       where: { admissionNumber: createAdmissionDto.admissionNumber },
@@ -297,11 +296,15 @@ export class IpdService {
       throw new BadRequestException('Admission number already exists');
     }
 
-    const patient = await this.patientService.findOne(createAdmissionDto.patientId);
+    const patient = await this.patientService.findOne(
+      createAdmissionDto.patientId,
+    );
 
     let appointment: any = null;
     if (createAdmissionDto.appointmentId) {
-      appointment = await this.appointmentService.findOne(createAdmissionDto.appointmentId);
+      appointment = await this.appointmentService.findOne(
+        createAdmissionDto.appointmentId,
+      );
     }
     const existingActiveAdmission = await this.prisma.admission.findFirst({
       where: {
@@ -313,7 +316,7 @@ export class IpdService {
         bed: true,
       },
     });
-  
+
     if (existingActiveAdmission) {
       throw new BadRequestException(
         `Patient already has an active admission (${existingActiveAdmission.admissionNumber})`,
@@ -322,12 +325,16 @@ export class IpdService {
 
     let consultation: any = null;
     if (createAdmissionDto.consultationId) {
-      consultation = await this.consultationService.findOne(createAdmissionDto.consultationId);
+      consultation = await this.consultationService.findOne(
+        createAdmissionDto.consultationId,
+      );
     }
 
     let admittedBy: any = null;
     if (createAdmissionDto.admittedByStaffId) {
-      admittedBy = await this.staffService.findOne(createAdmissionDto.admittedByStaffId);
+      admittedBy = await this.staffService.findOne(
+        createAdmissionDto.admittedByStaffId,
+      );
     }
 
     const ward = await this.prisma.ward.findUnique({
@@ -335,7 +342,9 @@ export class IpdService {
     });
 
     if (!ward) {
-      throw new NotFoundException(`Ward with id ${createAdmissionDto.wardId} not found`);
+      throw new NotFoundException(
+        `Ward with id ${createAdmissionDto.wardId} not found`,
+      );
     }
 
     if (createAdmissionDto.bedId) {
@@ -344,7 +353,9 @@ export class IpdService {
       });
 
       if (!bed) {
-        throw new NotFoundException(`Bed with id ${createAdmissionDto.bedId} not found`);
+        throw new NotFoundException(
+          `Bed with id ${createAdmissionDto.bedId} not found`,
+        );
       }
 
       if (bed.statusCode !== 'AVAILABLE') {
@@ -356,8 +367,17 @@ export class IpdService {
           moduleName: 'IPD',
           entityType: 'BED',
           entityId: String(bed.id),
-          facilityId: bed.facilityId ?? consultation?.facilityId ?? appointment?.facilityId ?? patient.facilityId,
-          branchId: bed.branchId ?? consultation?.branchId ?? appointment?.branchId ?? admittedBy?.branchId ?? undefined,
+          facilityId:
+            bed.facilityId ??
+            consultation?.facilityId ??
+            appointment?.facilityId ??
+            patient.facilityId,
+          branchId:
+            bed.branchId ??
+            consultation?.branchId ??
+            appointment?.branchId ??
+            admittedBy?.branchId ??
+            undefined,
           targetStaffId: createAdmissionDto.admittedByStaffId,
         });
 
@@ -366,9 +386,7 @@ export class IpdService {
     }
 
     const facilityId =
-      consultation?.facilityId ??
-      appointment?.facilityId ??
-      patient.facilityId;
+      consultation?.facilityId ?? appointment?.facilityId ?? patient.facilityId;
 
     const branchId =
       consultation?.branchId ??
@@ -505,55 +523,55 @@ export class IpdService {
     });
   }
   getAllAdmissionsScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+    const scope = this.scopeService.buildReadScope(user);
 
-  return this.prisma.admission.findMany({
-    where: scope,
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      appointment: true,
-      consultation: true,
-      admittedBy: true,
-      ward: true,
-      bed: true,
-    },
-    orderBy: { id: 'desc' },
-  });
-}
+    return this.prisma.admission.findMany({
+      where: scope,
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        appointment: true,
+        consultation: true,
+        admittedBy: true,
+        ward: true,
+        bed: true,
+      },
+      orderBy: { id: 'desc' },
+    });
+  }
 
-async getAdmissionByIdScoped(id: number, user: RequestUser) {
-  const admission = await this.getAdmissionById(id);
+  async getAdmissionByIdScoped(id: number, user: RequestUser) {
+    const admission = await this.getAdmissionById(id);
 
-  this.scopeService.assertBranchAccess(
-    user,
-    admission.facilityId,
-    admission.branchId,
-  );
+    this.scopeService.assertBranchAccess(
+      user,
+      admission.facilityId,
+      admission.branchId,
+    );
 
-  return admission;
-}
+    return admission;
+  }
 
-async getActiveAdmissionsScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+  async getActiveAdmissionsScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
 
-  return this.prisma.admission.findMany({
-    where: {
-      ...scope,
-      statusCode: 'ADMITTED',
-    },
-    include: {
-      facility: true,
-      branch: true,
-      patient: true,
-      ward: true,
-      bed: true,
-      admittedBy: true,
-    },
-    orderBy: { admittedAt: 'desc' },
-  });
-}
+    return this.prisma.admission.findMany({
+      where: {
+        ...scope,
+        statusCode: 'ADMITTED',
+      },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        ward: true,
+        bed: true,
+        admittedBy: true,
+      },
+      orderBy: { admittedAt: 'desc' },
+    });
+  }
   async transferAdmissionBed(id: number, transferDto: TransferAdmissionBedDto) {
     const admission = await this.prisma.admission.findUnique({
       where: { id },
@@ -569,7 +587,9 @@ async getActiveAdmissionsScoped(user: RequestUser) {
     }
 
     if ((admission.statusCode || '').toUpperCase() !== 'ADMITTED') {
-      throw new BadRequestException('Only active admitted patients can be transferred');
+      throw new BadRequestException(
+        'Only active admitted patients can be transferred',
+      );
     }
 
     const targetWard = await this.prisma.ward.findUnique({
@@ -577,7 +597,9 @@ async getActiveAdmissionsScoped(user: RequestUser) {
     });
 
     if (!targetWard) {
-      throw new NotFoundException(`Ward with id ${transferDto.wardId} not found`);
+      throw new NotFoundException(
+        `Ward with id ${transferDto.wardId} not found`,
+      );
     }
 
     let targetBed: {
@@ -599,11 +621,15 @@ async getActiveAdmissionsScoped(user: RequestUser) {
       });
 
       if (!targetBed) {
-        throw new NotFoundException(`Bed with id ${transferDto.bedId} not found`);
+        throw new NotFoundException(
+          `Bed with id ${transferDto.bedId} not found`,
+        );
       }
 
       if (targetBed.wardId !== transferDto.wardId) {
-        throw new BadRequestException('Selected bed does not belong to the selected ward');
+        throw new BadRequestException(
+          'Selected bed does not belong to the selected ward',
+        );
       }
 
       if ((targetBed.statusCode || '').toUpperCase() !== 'AVAILABLE') {
@@ -615,7 +641,9 @@ async getActiveAdmissionsScoped(user: RequestUser) {
       admission.wardId === transferDto.wardId &&
       (admission.bedId ?? null) === (transferDto.bedId ?? null)
     ) {
-      throw new BadRequestException('Patient is already assigned to this ward/bed');
+      throw new BadRequestException(
+        'Patient is already assigned to this ward/bed',
+      );
     }
 
     const previousBedId = admission.bedId ?? null;

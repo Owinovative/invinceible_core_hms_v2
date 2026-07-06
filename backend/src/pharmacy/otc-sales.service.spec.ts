@@ -1,7 +1,4 @@
-import {
-  calculateOtcPaymentSummary,
-  stockStatus,
-} from './otc-sales.service';
+import { calculateOtcPaymentSummary, stockStatus } from './otc-sales.service';
 import { ROLE_PERMISSIONS } from '../auth/permissions';
 
 describe('OTC sales helpers', () => {

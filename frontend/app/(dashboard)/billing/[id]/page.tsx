@@ -10,6 +10,9 @@ import {
   Download,
   Loader2,
   RefreshCw,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
   Save,
 } from "lucide-react";
@@ -19,6 +22,7 @@ import { useInvoiceById } from "@/hooks/use-invoice-by-id";
 import { useCreateCashPayment } from "@/hooks/use-create-cash-payment";
 import { useCreateMpesaPaymentRequest } from "@/hooks/use-create-mpesa-payment-request";
 import { useCreateShaClaim } from "@/hooks/use-create-sha-claim";
+import { useCheckShaEligibility } from "@/hooks/use-sha-eligibility";
 import { useResendMpesaPaymentRequest } from "@/hooks/use-resend-mpesa-payment-request";
 import { useCheckMpesaPaymentStatus } from "@/hooks/use-check-mpesa-payment-status";
 import { useCloseInvoice } from "@/hooks/use-close-invoice";
@@ -60,6 +64,7 @@ export default function InvoiceDetailPage() {
   const createCashPaymentMutation = useCreateCashPayment();
   const createMpesaPaymentMutation = useCreateMpesaPaymentRequest();
   const createShaClaimMutation = useCreateShaClaim();
+  const checkEligibilityMutation = useCheckShaEligibility();
   const resendMpesaPaymentMutation = useResendMpesaPaymentRequest();
   const checkMpesaPaymentStatusMutation = useCheckMpesaPaymentStatus();
   const closeInvoiceMutation = useCloseInvoice();
@@ -82,6 +87,7 @@ export default function InvoiceDetailPage() {
   const [editUnitPrice, setEditUnitPrice] = React.useState("");
   const [editNotes, setEditNotes] = React.useState("");
   const [removeReason, setRemoveReason] = React.useState("");
+  const [eligibilityResult, setEligibilityResult] = React.useState<any>(null);
 
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const payments = Array.isArray(invoice?.payments) ? invoice.payments : [];
@@ -100,7 +106,30 @@ export default function InvoiceDetailPage() {
     if (!mpesaPhoneNumber && invoice.patient?.phonePrimary) {
       setMpesaPhoneNumber(invoice.patient.phonePrimary);
     }
-  }, [invoice, mpesaAmount, mpesaPhoneNumber, shaAmount]);
+    if (!shaMemberNumber && invoice.patient?.shaNumber) {
+      setShaMemberNumber(invoice.patient.shaNumber);
+    }
+  }, [invoice, mpesaAmount, mpesaPhoneNumber, shaAmount, shaMemberNumber]);
+
+  const handleCheckEligibility = async () => {
+    if (!invoice?.patient) return;
+    setEligibilityResult(null);
+    setMessage(null);
+    
+    try {
+      const res = await checkEligibilityMutation.mutateAsync({
+        memberNumber: shaMemberNumber || undefined,
+        nationalId: invoice.patient.nationalId || undefined,
+        shaNumber: invoice.patient.shaNumber || undefined,
+      });
+      setEligibilityResult(res);
+      if (res.memberNumber && !shaMemberNumber) {
+        setShaMemberNumber(res.memberNumber);
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Eligibility check failed");
+    }
+  };
 
   const handleStartEdit = (item: (typeof items)[number]) => {
     setEditItemId(item.id);
@@ -591,22 +620,54 @@ export default function InvoiceDetailPage() {
                   SHA can cover the full bill or part of it. Any remaining
                   balance stays open for cash, M-PESA, or another method.
                 </p>
-                <Input
-                  type="number"
-                  value={shaAmount}
-                  onChange={(e) => setShaAmount(e.target.value)}
-                  className="h-12 rounded-2xl"
-                  placeholder="SHA amount"
-                />
-                <Input
-                  value={shaMemberNumber}
-                  onChange={(e) => setShaMemberNumber(e.target.value)}
-                  className="h-12 rounded-2xl"
-                  placeholder="SHA member number"
-                />
+
+                {eligibilityResult ? (
+                  <div className={`rounded-xl border p-3 text-sm ${eligibilityResult.status === 'ELIGIBLE' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                    <div className="flex items-center gap-2 font-semibold mb-1">
+                      {eligibilityResult.status === 'ELIGIBLE' ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+                      {eligibilityResult.status === 'ELIGIBLE' ? 'Patient is Eligible' : 'Patient Not Eligible'}
+                    </div>
+                    {eligibilityResult.memberName && <p>Name: {eligibilityResult.memberName}</p>}
+                    {eligibilityResult.scheme && <p>Scheme: {eligibilityResult.scheme}</p>}
+                    {eligibilityResult.status === 'ELIGIBLE' && (
+                      <p className="mt-1 text-xs opacity-80">Limits may apply depending on intervention code and prior usage.</p>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full rounded-2xl"
+                    onClick={handleCheckEligibility}
+                    disabled={checkEligibilityMutation.isPending || isClosed || (!invoice?.patient?.nationalId && !invoice?.patient?.shaNumber && !shaMemberNumber)}
+                  >
+                    {checkEligibilityMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Shield className="mr-2 h-4 w-4" />
+                    )}
+                    Verify SHA Eligibility
+                  </Button>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    type="number"
+                    value={shaAmount}
+                    onChange={(e) => setShaAmount(e.target.value)}
+                    className="h-12 rounded-2xl"
+                    placeholder="SHA amount"
+                  />
+                  <Input
+                    value={shaMemberNumber}
+                    onChange={(e) => setShaMemberNumber(e.target.value)}
+                    className="h-12 rounded-2xl"
+                    placeholder="SHA member #"
+                  />
+                </div>
                 <Button
                   type="button"
-                  className="h-12 rounded-2xl"
+                  className="h-12 w-full rounded-2xl bg-violet-600 hover:bg-violet-700 text-white"
                   onClick={handleShaCoverage}
                   disabled={createShaClaimMutation.isPending || isClosed}
                 >

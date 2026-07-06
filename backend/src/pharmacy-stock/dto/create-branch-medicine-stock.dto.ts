@@ -1,9 +1,4 @@
-import {
-  IsBoolean,
-  IsInt,
-  IsNumber,
-  IsOptional,
-} from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateBranchMedicineStockDto {
   @IsInt()
@@ -34,4 +29,4 @@ export class CreateBranchMedicineStockDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-} 
+}

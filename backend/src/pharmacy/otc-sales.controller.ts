@@ -44,10 +44,7 @@ export class OtcSalesController {
   }
 
   @Post('sales')
-  createSale(
-    @Body() dto: CreateOtcSaleDto,
-    @CurrentUser() user: RequestUser,
-  ) {
+  createSale(@Body() dto: CreateOtcSaleDto, @CurrentUser() user: RequestUser) {
     return this.otcSalesService.createSale(dto, user);
   }
 

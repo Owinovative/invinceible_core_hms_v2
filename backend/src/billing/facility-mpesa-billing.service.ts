@@ -138,7 +138,9 @@ export class FacilityMpesaBillingService {
     return this.contextFromInvoice(invoice);
   }
 
-  private contextFromInvoice(invoice: Record<string, any>): FacilityMpesaContext {
+  private contextFromInvoice(
+    invoice: Record<string, any>,
+  ): FacilityMpesaContext {
     if (!invoice.facility) {
       throw new BadRequestException(
         'The invoice facility could not be resolved for M-Pesa prompting.',
@@ -178,15 +180,15 @@ export class FacilityMpesaBillingService {
       branch?.mpesaShortcode,
     );
     const callbackUrl = this.firstText(facility.mpesaCallbackUrl);
-    const environment =
-      this.firstText(facility.mpesaEnvironment) ?? 'sandbox';
+    const environment = this.firstText(facility.mpesaEnvironment) ?? 'sandbox';
     const transactionType =
       this.firstText(facility.mpesaTransactionType) ??
-      (facility.mpesaTillNumber ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline');
-    const accountReference = this.firstText(
-      facility.mpesaAccountNumber,
-      branch?.mpesaAccountNumber,
-    ) ?? `${facility.code ?? 'FAC'}-${invoiceNumber ?? `INV-${invoiceId}`}`;
+      (facility.mpesaTillNumber
+        ? 'CustomerBuyGoodsOnline'
+        : 'CustomerPayBillOnline');
+    const accountReference =
+      this.firstText(facility.mpesaAccountNumber, branch?.mpesaAccountNumber) ??
+      `${facility.code ?? 'FAC'}-${invoiceNumber ?? `INV-${invoiceId}`}`;
     const transactionDesc = `Invoice ${invoiceNumber ?? invoiceId} payment`;
 
     const missing = [

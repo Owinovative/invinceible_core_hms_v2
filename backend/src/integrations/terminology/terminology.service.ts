@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ITerminology, TerminologyRecord } from '../interfaces/terminology.interface';
+import {
+  ITerminology,
+  TerminologyRecord,
+} from '../interfaces/terminology.interface';
 import { DhaAuthService } from '../authentication/dha-auth.service';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { IntegrationCacheService } from '../caching/integration-cache.service';
@@ -19,7 +22,10 @@ export class TerminologyService implements ITerminology {
   ) {}
 
   private get baseUrl(): string {
-    return this.configService.get<string>('DHA_TERMINOLOGY_URL', 'https://afyalink.dha.go.ke/api/terminology/v1');
+    return this.configService.get<string>(
+      'DHA_TERMINOLOGY_URL',
+      'https://afyalink.dha.go.ke/api/terminology/v1',
+    );
   }
 
   async searchDiagnosis(query: string): Promise<TerminologyRecord[]> {
@@ -32,18 +38,24 @@ export class TerminologyService implements ITerminology {
         baseUrl: this.baseUrl,
         path: `/ValueSet/$expand?${params.toString()}`,
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = response.data as any;
-      return data.expansion?.contains?.map((c: any) => ({
-        code: c.code,
-        display: c.display,
-        system: c.system,
-        version: c.version,
-      })) || [];
+      return (
+        data.expansion?.contains?.map((c: any) => ({
+          code: c.code,
+          display: c.display,
+          system: c.system,
+          version: c.version,
+        })) || []
+      );
     } catch (error: any) {
-      this.logger.error('Terminology search failed', { integration: 'DHA_TERMINOLOGY', query, error });
+      this.logger.error('Terminology search failed', {
+        integration: 'DHA_TERMINOLOGY',
+        query,
+        error,
+      });
       throw error;
     }
   }
@@ -60,27 +72,33 @@ export class TerminologyService implements ITerminology {
         baseUrl: this.baseUrl,
         path: `/CodeSystem/$lookup?code=${code}&system=http://hl7.org/fhir/sid/icd-11`,
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = response.data as any;
       const record: TerminologyRecord = {
         code,
-        display: data.parameter?.find((p: any) => p.name === 'display')?.valueString || '',
+        display:
+          data.parameter?.find((p: any) => p.name === 'display')?.valueString ||
+          '',
         system: 'http://hl7.org/fhir/sid/icd-11',
       };
-      
+
       await this.cache.set(cacheKey, record, 604800); // 7 days
       return record;
     } catch (error: any) {
       if (error.status === 404) return null;
-      this.logger.error('Terminology lookup failed', { integration: 'DHA_TERMINOLOGY', code, error });
+      this.logger.error('Terminology lookup failed', {
+        integration: 'DHA_TERMINOLOGY',
+        code,
+        error,
+      });
       throw error;
     }
   }
 
   async getFavorites(): Promise<TerminologyRecord[]> {
-    const codes = await this.cache.get<string[]>(this.FAVORITES_KEY) || [];
+    const codes = (await this.cache.get<string[]>(this.FAVORITES_KEY)) || [];
     const favorites: TerminologyRecord[] = [];
     for (const code of codes) {
       const record = await this.getDiagnosisByCode(code);
@@ -90,7 +108,7 @@ export class TerminologyService implements ITerminology {
   }
 
   async addToFavorites(code: string): Promise<void> {
-    const codes = await this.cache.get<string[]>(this.FAVORITES_KEY) || [];
+    const codes = (await this.cache.get<string[]>(this.FAVORITES_KEY)) || [];
     if (!codes.includes(code)) {
       codes.push(code);
       await this.cache.set(this.FAVORITES_KEY, codes);

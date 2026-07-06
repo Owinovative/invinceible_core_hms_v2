@@ -19,7 +19,10 @@ import { BillingService } from '../billing/billing.service';
 import { CacheService } from '../resilience/cache.service';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
 
-function stockStatus(stockQuantity?: number | null, reorderLevel?: number | null) {
+function stockStatus(
+  stockQuantity?: number | null,
+  reorderLevel?: number | null,
+) {
   const quantity = Number(stockQuantity ?? 0);
   const reorder = Number(reorderLevel ?? 0);
 
@@ -77,11 +80,13 @@ export class PharmacyService {
     }
   }
 
-
   async createMedicine(createMedicineDto: CreateMedicineDto) {
     const existing = await this.prisma.medicine.findFirst({
       where: {
-        OR: [{ code: createMedicineDto.code }, { name: createMedicineDto.name }],
+        OR: [
+          { code: createMedicineDto.code },
+          { name: createMedicineDto.name },
+        ],
       },
     });
 
@@ -141,7 +146,6 @@ export class PharmacyService {
       .toString(36)
       .slice(2, 8)
       .toUpperCase()}`;
-
 
     const consultation = await this.consultationService.findOne(
       createPrescriptionDto.consultationId,
@@ -335,7 +339,6 @@ export class PharmacyService {
           orderBy: { createdAt: 'desc' },
         },
       },
-
     });
 
     if (!prescription) {
@@ -564,263 +567,159 @@ export class PharmacyService {
     }
   }
   getAllPrescriptionsScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
+    const scope = this.scopeService.buildReadScope(user);
 
-  return this.prisma.prescription.findMany({
-    where: scope,
-    include: {
-      facility: true,
-      branch: true,
-      consultation: true,
-      patient: true,
-      prescribedBy: true,
-      items: {
-        include: {
-          medicine: true,
-        },
-      },
-    },
-    orderBy: { id: 'desc' },
-    take: 100,
-  });
-}
-
-async getPrescriptionByIdScoped(id: number, user: RequestUser) {
-  const prescription = await this.getPrescriptionById(id);
-
-  this.scopeService.assertBranchAccess(
-    user,
-    prescription.facilityId,
-    prescription.branchId,
-  );
-
-  return prescription;
-}
-
-async getPharmacyQueueScoped(user: RequestUser) {
-  const scope = this.scopeService.buildReadScope(user);
-
-  return this.prisma.prescription.findMany({
-    where: {
-      ...scope,
-      statusCode: {
-        in: ['PRESCRIBED', 'PARTIALLY_DISPENSED'],
-      },
-    },
-    include: {
-      facility: true,
-      branch: true,
-      consultation: true,
-      patient: true,
-      prescribedBy: true,
-      items: {
-        include: {
-          medicine: true,
-        },
-      },
-    },
-    orderBy: { prescribedAt: 'asc' },
-    take: 100,
-  });
-}
-
- async dispensePrescription(
-  id: number,
-  user: RequestUser,
-  dto?: Partial<CreateDispenseDto>,
-) {
-  const prescription = await this.getPrescriptionById(id);
-
-  if (!prescription.branchId) {
-    throw new BadRequestException(
-      'Prescription has no branch assigned. Cannot dispense branch stock.',
-    );
-  }
-
-  const staff = await this.prisma.staff.findFirst({
-    where: {
-      userId: user.userId,
-      isActive: true,
-    },
-  });
-
-  if (!staff) {
-    throw new BadRequestException(
-      'Logged in user is not linked to an active staff profile.',
-    );
-  }
-
-  if (
-    ['DISPENSED', 'CANCELLED'].includes(
-      (prescription.statusCode || '').toUpperCase(),
-    )
-  ) {
-    throw new BadRequestException(
-      `Prescription is already ${prescription.statusCode}.`,
-    );
-  }
-
-  this.scopeService.assertBranchAccess(
-    user,
-    prescription.facilityId,
-    prescription.branchId,
-  );
-
-  const nonDispensableItemStatuses = ['DISPENSED', 'CANCELLED', 'DISPENSING'];
-  const alreadyDispensedByItemId = new Map<number, number>();
-  for (const dispense of prescription.dispenses ?? []) {
-    for (const item of dispense.items ?? []) {
-      alreadyDispensedByItemId.set(
-        item.prescriptionItemId,
-        (alreadyDispensedByItemId.get(item.prescriptionItemId) ?? 0) +
-          item.quantityDispensed,
-      );
-    }
-  }
-
-  const requestedByItemId = new Map<number, number>();
-  for (const item of dto?.items ?? []) {
-    requestedByItemId.set(item.prescriptionItemId, item.quantityDispensed);
-  }
-
-  const itemsToDispense = prescription.items
-    .filter(
-      (item) =>
-        !nonDispensableItemStatuses.includes(
-          (item.statusCode || '').toUpperCase(),
-        ),
-    )
-    .map((item) => {
-      const alreadyDispensed = alreadyDispensedByItemId.get(item.id) ?? 0;
-      const remaining = Math.max(0, item.quantity - alreadyDispensed);
-      const requested = requestedByItemId.has(item.id)
-        ? Number(requestedByItemId.get(item.id))
-        : remaining;
-
-      return {
-        ...item,
-        alreadyDispensed,
-        remaining,
-        quantityToDispense: Math.max(0, Math.min(requested, remaining)),
-      };
-    })
-    .filter((item) => item.remaining > 0 && item.quantityToDispense > 0);
-
-  if (itemsToDispense.length === 0) {
-    throw new BadRequestException(
-      'No prescription item quantity is available to dispense.',
-    );
-  }
-
-  for (const item of itemsToDispense) {
-    const branchStock = await this.prisma.branchMedicineStock.findFirst({
-      where: {
-        facilityId: prescription.facilityId,
-        branchId: prescription.branchId,
-        medicineId: item.medicineId,
-        isActive: true,
-      },
+    return this.prisma.prescription.findMany({
+      where: scope,
       include: {
-        medicine: true,
+        facility: true,
         branch: true,
-      },
-    });
-
-    if (!branchStock) {
-      throw new NotFoundException(
-        `No branch stock found for medicine ${item.medicineId} in branch ${prescription.branchId}`,
-      );
-    }
-
-    if (branchStock.stockQuantity < item.quantityToDispense) {
-      throw new BadRequestException(
-        `Insufficient branch stock for ${branchStock.medicine.name} at ${branchStock.branch.name}. Available: ${branchStock.stockQuantity}, required: ${item.quantityToDispense}`,
-      );
-    }
-  }
-
-  const quantityToDispenseByItemId = new Map(
-    itemsToDispense.map((item) => [item.id, item.quantityToDispense]),
-  );
-  const willAllItemsBeFullyDispensed = prescription.items.every((item) => {
-    const status = (item.statusCode || '').toUpperCase();
-    if (status === 'CANCELLED') return true;
-    const alreadyDispensed = alreadyDispensedByItemId.get(item.id) ?? 0;
-    const currentDispense = quantityToDispenseByItemId.get(item.id) ?? 0;
-    return alreadyDispensed + currentDispense >= item.quantity;
-  });
-  const finalPrescriptionStatus = willAllItemsBeFullyDispensed
-    ? 'DISPENSED'
-    : 'PARTIALLY_DISPENSED';
-
-  const temporaryDispenseNumber = `DSP-TMP-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)
-    .toUpperCase()}`;
-
-  const lowStockChecks: Array<{
-    stockId: number;
-    facilityId: number;
-    branchId: number;
-    medicineName: string;
-    branchName: string;
-    stockQuantity: number;
-    reorderLevel: number;
-  }> = [];
-
-  const billedItems: Array<{
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    notes?: string;
-    sourceEntityId: string;
-  }> = [];
-
-  const result = await this.prisma.$transaction(async (tx) => {
-    let createdDispense = await tx.dispense.create({
-      data: {
-        dispenseNumber: temporaryDispenseNumber,
-        prescriptionId: prescription.id,
-        patientId: prescription.patientId,
-        facilityId: prescription.facilityId,
-        branchId: prescription.branchId,
-        dispensedByStaffId: staff.id,
-        statusCode: finalPrescriptionStatus,
-        notes: dto?.notes,
-        dispensedAt: new Date(),
-      },
-    });
-
-    createdDispense = await tx.dispense.update({
-      where: { id: createdDispense.id },
-      data: {
-        dispenseNumber: `DSP-${String(createdDispense.id).padStart(6, '0')}`,
-      },
-    });
-
-    for (const item of itemsToDispense) {
-      const reservedItem = await tx.prescriptionItem.updateMany({
-        where: {
-          id: item.id,
-          statusCode: {
-            notIn: nonDispensableItemStatuses,
+        consultation: true,
+        patient: true,
+        prescribedBy: true,
+        items: {
+          include: {
+            medicine: true,
           },
         },
-        data: {
-          statusCode: 'DISPENSING',
-        },
-      });
+      },
+      orderBy: { id: 'desc' },
+      take: 100,
+    });
+  }
 
-      if (reservedItem.count !== 1) {
-        throw new BadRequestException(
-          `Prescription item ${item.id} has already been dispensed or is being dispensed by another session.`,
+  async getPrescriptionByIdScoped(id: number, user: RequestUser) {
+    const prescription = await this.getPrescriptionById(id);
+
+    this.scopeService.assertBranchAccess(
+      user,
+      prescription.facilityId,
+      prescription.branchId,
+    );
+
+    return prescription;
+  }
+
+  async getPharmacyQueueScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
+
+    return this.prisma.prescription.findMany({
+      where: {
+        ...scope,
+        statusCode: {
+          in: ['PRESCRIBED', 'PARTIALLY_DISPENSED'],
+        },
+      },
+      include: {
+        facility: true,
+        branch: true,
+        consultation: true,
+        patient: true,
+        prescribedBy: true,
+        items: {
+          include: {
+            medicine: true,
+          },
+        },
+      },
+      orderBy: { prescribedAt: 'asc' },
+      take: 100,
+    });
+  }
+
+  async dispensePrescription(
+    id: number,
+    user: RequestUser,
+    dto?: Partial<CreateDispenseDto>,
+  ) {
+    const prescription = await this.getPrescriptionById(id);
+
+    if (!prescription.branchId) {
+      throw new BadRequestException(
+        'Prescription has no branch assigned. Cannot dispense branch stock.',
+      );
+    }
+
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        userId: user.userId,
+        isActive: true,
+      },
+    });
+
+    if (!staff) {
+      throw new BadRequestException(
+        'Logged in user is not linked to an active staff profile.',
+      );
+    }
+
+    if (
+      ['DISPENSED', 'CANCELLED'].includes(
+        (prescription.statusCode || '').toUpperCase(),
+      )
+    ) {
+      throw new BadRequestException(
+        `Prescription is already ${prescription.statusCode}.`,
+      );
+    }
+
+    this.scopeService.assertBranchAccess(
+      user,
+      prescription.facilityId,
+      prescription.branchId,
+    );
+
+    const nonDispensableItemStatuses = ['DISPENSED', 'CANCELLED', 'DISPENSING'];
+    const alreadyDispensedByItemId = new Map<number, number>();
+    for (const dispense of prescription.dispenses ?? []) {
+      for (const item of dispense.items ?? []) {
+        alreadyDispensedByItemId.set(
+          item.prescriptionItemId,
+          (alreadyDispensedByItemId.get(item.prescriptionItemId) ?? 0) +
+            item.quantityDispensed,
         );
       }
+    }
 
-      const branchStock = await tx.branchMedicineStock.findFirst({
+    const requestedByItemId = new Map<number, number>();
+    for (const item of dto?.items ?? []) {
+      requestedByItemId.set(item.prescriptionItemId, item.quantityDispensed);
+    }
+
+    const itemsToDispense = prescription.items
+      .filter(
+        (item) =>
+          !nonDispensableItemStatuses.includes(
+            (item.statusCode || '').toUpperCase(),
+          ),
+      )
+      .map((item) => {
+        const alreadyDispensed = alreadyDispensedByItemId.get(item.id) ?? 0;
+        const remaining = Math.max(0, item.quantity - alreadyDispensed);
+        const requested = requestedByItemId.has(item.id)
+          ? Number(requestedByItemId.get(item.id))
+          : remaining;
+
+        return {
+          ...item,
+          alreadyDispensed,
+          remaining,
+          quantityToDispense: Math.max(0, Math.min(requested, remaining)),
+        };
+      })
+      .filter((item) => item.remaining > 0 && item.quantityToDispense > 0);
+
+    if (itemsToDispense.length === 0) {
+      throw new BadRequestException(
+        'No prescription item quantity is available to dispense.',
+      );
+    }
+
+    for (const item of itemsToDispense) {
+      const branchStock = await this.prisma.branchMedicineStock.findFirst({
         where: {
           facilityId: prescription.facilityId,
-          branchId: prescription.branchId!,
+          branchId: prescription.branchId,
           medicineId: item.medicineId,
           isActive: true,
         },
@@ -836,185 +735,290 @@ async getPharmacyQueueScoped(user: RequestUser) {
         );
       }
 
-      const reservedStock = await tx.branchMedicineStock.updateMany({
-        where: {
-          id: branchStock.id,
-          stockQuantity: {
-            gte: item.quantityToDispense,
-          },
-        },
-        data: {
-          stockQuantity: {
-            decrement: item.quantityToDispense,
-          },
-        },
-      });
-
-      if (reservedStock.count !== 1) {
+      if (branchStock.stockQuantity < item.quantityToDispense) {
         throw new BadRequestException(
-          `Insufficient branch stock for ${branchStock.medicine.name}. Another dispensing action may have used the stock first.`,
+          `Insufficient branch stock for ${branchStock.medicine.name} at ${branchStock.branch.name}. Available: ${branchStock.stockQuantity}, required: ${item.quantityToDispense}`,
         );
       }
-
-      const updatedStock = await tx.branchMedicineStock.findUniqueOrThrow({
-        where: { id: branchStock.id },
-        include: {
-          medicine: true,
-          branch: true,
-        },
-      });
-
-      const itemStatus =
-        item.alreadyDispensed + item.quantityToDispense >= item.quantity
-          ? 'DISPENSED'
-          : 'PARTIALLY_DISPENSED';
-
-      await tx.prescriptionItem.update({
-        where: { id: item.id },
-        data: {
-          statusCode: itemStatus,
-        },
-      });
-
-      const unitPrice = updatedStock.unitPrice ?? item.medicine?.unitPrice ?? 0;
-
-      await tx.dispenseItem.create({
-        data: {
-          dispenseId: createdDispense.id,
-          prescriptionItemId: item.id,
-          medicineId: item.medicineId,
-          quantityPrescribed: item.quantity,
-          quantityDispensed: item.quantityToDispense,
-          unitPrice,
-          lineTotal: unitPrice * item.quantityToDispense,
-          notes: item.instructions,
-        },
-      });
-
-      billedItems.push({
-        description: `Drug Dispensed: ${item.medicine?.name || `Medicine #${item.medicineId}`}`,
-        quantity: item.quantityToDispense,
-        unitPrice,
-        notes: item.instructions || undefined,
-        sourceEntityId: String(item.id),
-      });
-
-      lowStockChecks.push({
-        stockId: updatedStock.id,
-        facilityId: updatedStock.facilityId,
-        branchId: updatedStock.branchId,
-        medicineName: updatedStock.medicine.name,
-        branchName: updatedStock.branch.name,
-        stockQuantity: updatedStock.stockQuantity,
-        reorderLevel: updatedStock.reorderLevel,
-      });
     }
 
-    await tx.prescription.update({
-      where: { id: prescription.id },
-      data: {
-        statusCode: finalPrescriptionStatus,
-        dispensedAt: willAllItemsBeFullyDispensed ? new Date() : null,
-      },
+    const quantityToDispenseByItemId = new Map(
+      itemsToDispense.map((item) => [item.id, item.quantityToDispense]),
+    );
+    const willAllItemsBeFullyDispensed = prescription.items.every((item) => {
+      const status = (item.statusCode || '').toUpperCase();
+      if (status === 'CANCELLED') return true;
+      const alreadyDispensed = alreadyDispensedByItemId.get(item.id) ?? 0;
+      const currentDispense = quantityToDispenseByItemId.get(item.id) ?? 0;
+      return alreadyDispensed + currentDispense >= item.quantity;
     });
+    const finalPrescriptionStatus = willAllItemsBeFullyDispensed
+      ? 'DISPENSED'
+      : 'PARTIALLY_DISPENSED';
 
-    return tx.prescription.findUnique({
-      where: { id: prescription.id },
-      include: {
-        facility: true,
-        branch: true,
-        consultation: true,
-        patient: true,
-        prescribedBy: true,
-        items: {
-          include: {
-            medicine: true,
-          },
+    const temporaryDispenseNumber = `DSP-TMP-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase()}`;
+
+    const lowStockChecks: Array<{
+      stockId: number;
+      facilityId: number;
+      branchId: number;
+      medicineName: string;
+      branchName: string;
+      stockQuantity: number;
+      reorderLevel: number;
+    }> = [];
+
+    const billedItems: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      notes?: string;
+      sourceEntityId: string;
+    }> = [];
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      let createdDispense = await tx.dispense.create({
+        data: {
+          dispenseNumber: temporaryDispenseNumber,
+          prescriptionId: prescription.id,
+          patientId: prescription.patientId,
+          facilityId: prescription.facilityId,
+          branchId: prescription.branchId,
+          dispensedByStaffId: staff.id,
+          statusCode: finalPrescriptionStatus,
+          notes: dto?.notes,
+          dispensedAt: new Date(),
         },
-        dispenses: {
-          include: {
-            dispensedBy: true,
-            items: {
-              include: {
-                medicine: true,
-                prescriptionItem: true,
-              },
+      });
+
+      createdDispense = await tx.dispense.update({
+        where: { id: createdDispense.id },
+        data: {
+          dispenseNumber: `DSP-${String(createdDispense.id).padStart(6, '0')}`,
+        },
+      });
+
+      for (const item of itemsToDispense) {
+        const reservedItem = await tx.prescriptionItem.updateMany({
+          where: {
+            id: item.id,
+            statusCode: {
+              notIn: nonDispensableItemStatuses,
             },
           },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-  });
+          data: {
+            statusCode: 'DISPENSING',
+          },
+        });
 
-  for (const billedItem of billedItems) {
-    await this.billingService.addAutoInvoiceItem({
-      patientId: prescription.patientId,
-      facilityId: prescription.facilityId,
-      branchId: prescription.branchId,
-      consultationId: prescription.consultationId,
-      createdByStaffId: staff.id,
-      description: billedItem.description,
-      quantity: billedItem.quantity,
-      unitPrice: billedItem.unitPrice,
-      notes: billedItem.notes,
-      sourceModule: 'PHARMACY',
-      sourceEntityType: 'PRESCRIPTION_ITEM',
-      sourceEntityId: billedItem.sourceEntityId,
-    });
-  }
+        if (reservedItem.count !== 1) {
+          throw new BadRequestException(
+            `Prescription item ${item.id} has already been dispensed or is being dispensed by another session.`,
+          );
+        }
 
-  for (const stockCheck of lowStockChecks) {
-    await this.notifyLowOrOutOfStock(stockCheck);
-  }
+        const branchStock = await tx.branchMedicineStock.findFirst({
+          where: {
+            facilityId: prescription.facilityId,
+            branchId: prescription.branchId!,
+            medicineId: item.medicineId,
+            isActive: true,
+          },
+          include: {
+            medicine: true,
+            branch: true,
+          },
+        });
 
-  await this.prisma.auditLog
-    .create({
-      data: {
-        moduleName: 'PHARMACY',
-        actionName:
-          finalPrescriptionStatus === 'DISPENSED'
-            ? 'PRESCRIPTION_DISPENSED'
-            : 'PRESCRIPTION_PARTIALLY_DISPENSED',
-        entityType: 'PRESCRIPTION',
-        entityId: String(prescription.id),
-        facilityId: prescription.facilityId,
-        branchId: prescription.branchId ?? undefined,
-        actorUserId: user.userId,
-        actorStaffId: staff.id,
-        afterData: JSON.stringify({
-          prescriptionNumber: prescription.prescriptionNumber,
-          finalPrescriptionStatus,
-          items: itemsToDispense.map((item) => ({
+        if (!branchStock) {
+          throw new NotFoundException(
+            `No branch stock found for medicine ${item.medicineId} in branch ${prescription.branchId}`,
+          );
+        }
+
+        const reservedStock = await tx.branchMedicineStock.updateMany({
+          where: {
+            id: branchStock.id,
+            stockQuantity: {
+              gte: item.quantityToDispense,
+            },
+          },
+          data: {
+            stockQuantity: {
+              decrement: item.quantityToDispense,
+            },
+          },
+        });
+
+        if (reservedStock.count !== 1) {
+          throw new BadRequestException(
+            `Insufficient branch stock for ${branchStock.medicine.name}. Another dispensing action may have used the stock first.`,
+          );
+        }
+
+        const updatedStock = await tx.branchMedicineStock.findUniqueOrThrow({
+          where: { id: branchStock.id },
+          include: {
+            medicine: true,
+            branch: true,
+          },
+        });
+
+        const itemStatus =
+          item.alreadyDispensed + item.quantityToDispense >= item.quantity
+            ? 'DISPENSED'
+            : 'PARTIALLY_DISPENSED';
+
+        await tx.prescriptionItem.update({
+          where: { id: item.id },
+          data: {
+            statusCode: itemStatus,
+          },
+        });
+
+        const unitPrice =
+          updatedStock.unitPrice ?? item.medicine?.unitPrice ?? 0;
+
+        await tx.dispenseItem.create({
+          data: {
+            dispenseId: createdDispense.id,
             prescriptionItemId: item.id,
             medicineId: item.medicineId,
             quantityPrescribed: item.quantity,
-            alreadyDispensed: item.alreadyDispensed,
-            quantityDispensedNow: item.quantityToDispense,
-          })),
-        }),
-      },
-    })
-    .catch(() => undefined);
+            quantityDispensed: item.quantityToDispense,
+            unitPrice,
+            lineTotal: unitPrice * item.quantityToDispense,
+            notes: item.instructions,
+          },
+        });
 
-  await this.notificationService.create({
-    title:
-      finalPrescriptionStatus === 'DISPENSED'
-        ? 'Prescription Dispensed'
-        : 'Prescription Partially Dispensed',
-    message: `Prescription ${prescription.prescriptionNumber} is ${finalPrescriptionStatus.toLowerCase().replace(/_/g, ' ')}.`,
-    notificationType: 'PRESCRIPTION_DISPENSED',
-    severity: 'INFO',
-    moduleName: 'PHARMACY',
-    entityType: 'PRESCRIPTION',
-    entityId: String(prescription.id),
-    facilityId: prescription.facilityId,
-    branchId: prescription.branchId ?? undefined,
-    targetStaffId: prescription.prescribedByStaffId,
-  });
+        billedItems.push({
+          description: `Drug Dispensed: ${item.medicine?.name || `Medicine #${item.medicineId}`}`,
+          quantity: item.quantityToDispense,
+          unitPrice,
+          notes: item.instructions || undefined,
+          sourceEntityId: String(item.id),
+        });
 
-  return result;
-}
+        lowStockChecks.push({
+          stockId: updatedStock.id,
+          facilityId: updatedStock.facilityId,
+          branchId: updatedStock.branchId,
+          medicineName: updatedStock.medicine.name,
+          branchName: updatedStock.branch.name,
+          stockQuantity: updatedStock.stockQuantity,
+          reorderLevel: updatedStock.reorderLevel,
+        });
+      }
+
+      await tx.prescription.update({
+        where: { id: prescription.id },
+        data: {
+          statusCode: finalPrescriptionStatus,
+          dispensedAt: willAllItemsBeFullyDispensed ? new Date() : null,
+        },
+      });
+
+      return tx.prescription.findUnique({
+        where: { id: prescription.id },
+        include: {
+          facility: true,
+          branch: true,
+          consultation: true,
+          patient: true,
+          prescribedBy: true,
+          items: {
+            include: {
+              medicine: true,
+            },
+          },
+          dispenses: {
+            include: {
+              dispensedBy: true,
+              items: {
+                include: {
+                  medicine: true,
+                  prescriptionItem: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+    });
+
+    for (const billedItem of billedItems) {
+      await this.billingService.addAutoInvoiceItem({
+        patientId: prescription.patientId,
+        facilityId: prescription.facilityId,
+        branchId: prescription.branchId,
+        consultationId: prescription.consultationId,
+        createdByStaffId: staff.id,
+        description: billedItem.description,
+        quantity: billedItem.quantity,
+        unitPrice: billedItem.unitPrice,
+        notes: billedItem.notes,
+        sourceModule: 'PHARMACY',
+        sourceEntityType: 'PRESCRIPTION_ITEM',
+        sourceEntityId: billedItem.sourceEntityId,
+      });
+    }
+
+    for (const stockCheck of lowStockChecks) {
+      await this.notifyLowOrOutOfStock(stockCheck);
+    }
+
+    await this.prisma.auditLog
+      .create({
+        data: {
+          moduleName: 'PHARMACY',
+          actionName:
+            finalPrescriptionStatus === 'DISPENSED'
+              ? 'PRESCRIPTION_DISPENSED'
+              : 'PRESCRIPTION_PARTIALLY_DISPENSED',
+          entityType: 'PRESCRIPTION',
+          entityId: String(prescription.id),
+          facilityId: prescription.facilityId,
+          branchId: prescription.branchId ?? undefined,
+          actorUserId: user.userId,
+          actorStaffId: staff.id,
+          afterData: JSON.stringify({
+            prescriptionNumber: prescription.prescriptionNumber,
+            finalPrescriptionStatus,
+            items: itemsToDispense.map((item) => ({
+              prescriptionItemId: item.id,
+              medicineId: item.medicineId,
+              quantityPrescribed: item.quantity,
+              alreadyDispensed: item.alreadyDispensed,
+              quantityDispensedNow: item.quantityToDispense,
+            })),
+          }),
+        },
+      })
+      .catch(() => undefined);
+
+    await this.notificationService.create({
+      title:
+        finalPrescriptionStatus === 'DISPENSED'
+          ? 'Prescription Dispensed'
+          : 'Prescription Partially Dispensed',
+      message: `Prescription ${prescription.prescriptionNumber} is ${finalPrescriptionStatus.toLowerCase().replace(/_/g, ' ')}.`,
+      notificationType: 'PRESCRIPTION_DISPENSED',
+      severity: 'INFO',
+      moduleName: 'PHARMACY',
+      entityType: 'PRESCRIPTION',
+      entityId: String(prescription.id),
+      facilityId: prescription.facilityId,
+      branchId: prescription.branchId ?? undefined,
+      targetStaffId: prescription.prescribedByStaffId,
+    });
+
+    return result;
+  }
 
   async directMedicineAdministration(
     dto: DirectMedicineAdministrationDto,
@@ -1074,10 +1078,14 @@ async getPharmacyQueueScoped(user: RequestUser) {
       );
     }
 
-    const temporaryPrescriptionNumber = `RX-DIRECT-TMP-${Date.now()}-${randomBytes(4)
+    const temporaryPrescriptionNumber = `RX-DIRECT-TMP-${Date.now()}-${randomBytes(
+      4,
+    )
       .toString('hex')
       .toUpperCase()}`;
-    const temporaryDispenseNumber = `DSP-DIRECT-TMP-${Date.now()}-${randomBytes(4)
+    const temporaryDispenseNumber = `DSP-DIRECT-TMP-${Date.now()}-${randomBytes(
+      4,
+    )
       .toString('hex')
       .toUpperCase()}`;
     const startedAt = Date.now();
@@ -1172,7 +1180,8 @@ async getPharmacyQueueScoped(user: RequestUser) {
           quantityPrescribed: dto.quantity,
           quantityDispensed: dto.quantity,
           unitPrice: stock.unitPrice ?? stock.medicine.unitPrice ?? 0,
-          lineTotal: (stock.unitPrice ?? stock.medicine.unitPrice ?? 0) * dto.quantity,
+          lineTotal:
+            (stock.unitPrice ?? stock.medicine.unitPrice ?? 0) * dto.quantity,
           notes: dto.instructions ?? dto.notes,
         },
       });
@@ -1260,5 +1269,4 @@ async getPharmacyQueueScoped(user: RequestUser) {
 
     return result;
   }
-
 }

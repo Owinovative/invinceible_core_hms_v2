@@ -65,21 +65,33 @@ export class ConsultationService {
 
     await this.facilityService.assertOperational(appointment.facilityId);
 
-    const facilityDb = await this.prisma.facility.findUnique({ where: { id: appointment.facilityId } });
+    const facilityDb = await this.prisma.facility.findUnique({
+      where: { id: appointment.facilityId },
+    });
     if (facilityDb?.code) {
-      const facilityValid = await this.facilityRegistry.validateFacilityCode(facilityDb.code);
+      const facilityValid = await this.facilityRegistry.validateFacilityCode(
+        facilityDb.code,
+      );
       if (!facilityValid) {
-        throw new BadRequestException('Facility is not active or verified with DHA');
+        throw new BadRequestException(
+          'Facility is not active or verified with DHA',
+        );
       }
     }
 
     await this.patientService.findOne(createConsultationDto.patientId);
-    const doctor = await this.staffService.findOne(createConsultationDto.doctorId);
+    const doctor = await this.staffService.findOne(
+      createConsultationDto.doctorId,
+    );
 
     if (doctor.clinicianRegistrationNumber) {
-      const license = await this.practitionerRegistry.validateLicense(doctor.clinicianRegistrationNumber);
+      const license = await this.practitionerRegistry.validateLicense(
+        doctor.clinicianRegistrationNumber,
+      );
       if (!license.valid) {
-        throw new BadRequestException(`Doctor license is invalid or expired (Status: ${license.status})`);
+        throw new BadRequestException(
+          `Doctor license is invalid or expired (Status: ${license.status})`,
+        );
       }
     }
 
@@ -261,7 +273,7 @@ export class ConsultationService {
       labOrders,
       activeAdmission,
     ] = await Promise.all([
-        this.prisma.triage.findFirst({
+      this.prisma.triage.findFirst({
         where: {
           appointmentId: consultation.appointmentId,
           patientId: consultation.patientId,
@@ -359,7 +371,12 @@ export class ConsultationService {
           encounterRef: true,
           createdAt: true,
           requestedBy: {
-            select: { id: true, firstName: true, lastName: true, staffCode: true },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              staffCode: true,
+            },
           },
           items: {
             select: {
@@ -556,7 +573,8 @@ export class ConsultationService {
     consultationNumber: string,
     user: RequestUser,
   ) {
-    const consultation = await this.findByConsultationNumber(consultationNumber);
+    const consultation =
+      await this.findByConsultationNumber(consultationNumber);
 
     this.scopeService.assertBranchAccess(
       user,
@@ -588,10 +606,7 @@ export class ConsultationService {
     return consultation;
   }
 
-  async findByAppointmentIdScoped(
-    appointmentId: number,
-    user: RequestUser,
-  ) {
+  async findByAppointmentIdScoped(appointmentId: number, user: RequestUser) {
     const consultation = await this.findByAppointmentId(appointmentId);
 
     this.scopeService.assertBranchAccess(
@@ -670,35 +685,37 @@ export class ConsultationService {
 
     return updated;
   }
-async findByPatientId(patientId: number) {
-  await this.patientService.findOne(patientId);
+  async findByPatientId(patientId: number) {
+    await this.patientService.findOne(patientId);
 
+    return this.prisma.consultation.findMany({
+      where: { patientId },
+      include: {
+        facility: true,
+        branch: true,
+        appointment: true,
+        patient: true,
+        doctor: true,
+      },
+      orderBy: { id: 'desc' },
+    });
+  }
+  async findByPatientIdScoped(patientId: number, user: RequestUser) {
+    const items = await this.findByPatientId(patientId);
 
-  return this.prisma.consultation.findMany({
-    where: { patientId },
-    include: {
-      facility: true,
-      branch: true,
-      appointment: true,
-      patient: true,
-      doctor: true,
-    },
-    orderBy: { id: 'desc' },
-  });
-}
-async findByPatientIdScoped(patientId: number, user: RequestUser) {
-  const items = await this.findByPatientId(patientId);
-
-
-  return items.filter((item) => {
-    try {
-      this.scopeService.assertBranchAccess(user, item.facilityId, item.branchId);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-}
+    return items.filter((item) => {
+      try {
+        this.scopeService.assertBranchAccess(
+          user,
+          item.facilityId,
+          item.branchId,
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
 
   async remove(id: number) {
     await this.findOne(id);

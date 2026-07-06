@@ -5,7 +5,6 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ConsultationModule } from '../consultation/consultation.module';
 import { AuthModule } from '../auth/auth.module';
 
-
 @Module({
   imports: [PrismaModule, ConsultationModule, AuthModule],
   controllers: [PrescriptionController],

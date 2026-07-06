@@ -193,9 +193,7 @@ export function addSectionTitle(doc: PDFKit.PDFDocument, title: string) {
   doc
     .roundedRect(left, y, width, 18, 2)
     .fillAndStroke(PDF_COLORS.paleBlue, '#bfdbfe');
-  doc
-    .rect(left, y, 4, 18)
-    .fill(PDF_COLORS.blue);
+  doc.rect(left, y, 4, 18).fill(PDF_COLORS.blue);
   doc
     .font('Helvetica-Bold')
     .fontSize(7.8)
@@ -746,15 +744,11 @@ function drawLetterhead(
     .join(' | ');
 
   doc.save();
-  doc
-    .rect(0, 0, doc.page.width, 6)
-    .fill(PDF_COLORS.blue);
+  doc.rect(0, 0, doc.page.width, 6).fill(PDF_COLORS.blue);
   doc
     .roundedRect(left, top, width, height, 5)
     .fillAndStroke(PDF_COLORS.paleBlue, '#bfdbfe');
-  doc
-    .rect(left, top, 5, height)
-    .fill(PDF_COLORS.navy);
+  doc.rect(left, top, 5, height).fill(PDF_COLORS.navy);
   doc
     .moveTo(left + width - titleWidth - 18, top + 9)
     .lineTo(left + width - titleWidth - 18, top + height - 9)
@@ -866,11 +860,16 @@ function drawLetterhead(
       .fillColor(PDF_COLORS.muted)
       .font('Helvetica-Bold')
       .fontSize(compact ? 5.8 : 6.5)
-      .text(options.verificationCode || options.reference || 'VERIFY', titleX, top + height - 14, {
-        width: titleWidth,
-        align: 'right',
-        ellipsis: true,
-      });
+      .text(
+        options.verificationCode || options.reference || 'VERIFY',
+        titleX,
+        top + height - 14,
+        {
+          width: titleWidth,
+          align: 'right',
+          ellipsis: true,
+        },
+      );
   } else if (options.reference) {
     doc
       .fillColor(PDF_COLORS.blue)

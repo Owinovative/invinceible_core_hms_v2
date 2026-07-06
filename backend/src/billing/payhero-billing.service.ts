@@ -36,17 +36,20 @@ export class PayheroBillingService {
   ) {}
 
   private isEnabled() {
-    return String(process.env.PAYHERO_ENABLED ?? 'false').toLowerCase() === 'true';
+    return (
+      String(process.env.PAYHERO_ENABLED ?? 'false').toLowerCase() === 'true'
+    );
   }
 
   private baseUrl() {
-    return (process.env.PAYHERO_BASE_URL ?? 'https://backend.payhero.co.ke').replace(/\/$/, '');
+    return (
+      process.env.PAYHERO_BASE_URL ?? 'https://backend.payhero.co.ke'
+    ).replace(/\/$/, '');
   }
 
   private stkPushUrl() {
     return (
-      process.env.PAYHERO_STK_PUSH_URL ??
-      `${this.baseUrl()}/api/v2/payments`
+      process.env.PAYHERO_STK_PUSH_URL ?? `${this.baseUrl()}/api/v2/payments`
     );
   }
 
@@ -74,10 +77,13 @@ export class PayheroBillingService {
     const digits = value.replace(/\D/g, '');
 
     if (digits.startsWith('254') && digits.length === 12) return digits;
-    if (digits.startsWith('0') && digits.length === 10) return `254${digits.slice(1)}`;
+    if (digits.startsWith('0') && digits.length === 10)
+      return `254${digits.slice(1)}`;
     if (digits.length === 9) return `254${digits}`;
 
-    throw new BadRequestException('Enter a valid Kenyan phone number for PayHero STK push');
+    throw new BadRequestException(
+      'Enter a valid Kenyan phone number for PayHero STK push',
+    );
   }
 
   private maskPhone(phoneNumber: string) {
@@ -88,18 +94,23 @@ export class PayheroBillingService {
   private buildAuthHeader() {
     const authMode = (process.env.PAYHERO_AUTH_MODE ?? 'basic').toLowerCase();
     const apiKey = process.env.PAYHERO_API_KEY ?? process.env.PAYHERO_USERNAME;
-    const apiSecret = process.env.PAYHERO_API_SECRET ?? process.env.PAYHERO_PASSWORD;
+    const apiSecret =
+      process.env.PAYHERO_API_SECRET ?? process.env.PAYHERO_PASSWORD;
     const bearerToken = process.env.PAYHERO_BEARER_TOKEN;
 
     if (authMode === 'bearer') {
       if (!bearerToken && !apiKey) {
-        throw new ServiceUnavailableException('PayHero bearer token is not configured');
+        throw new ServiceUnavailableException(
+          'PayHero bearer token is not configured',
+        );
       }
       return `Bearer ${bearerToken ?? apiKey}`;
     }
 
     if (!apiKey || !apiSecret) {
-      throw new ServiceUnavailableException('PayHero API credentials are not configured');
+      throw new ServiceUnavailableException(
+        'PayHero API credentials are not configured',
+      );
     }
 
     return `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`;
@@ -113,7 +124,9 @@ export class PayheroBillingService {
       return await fetch(url, { ...init, signal: controller.signal });
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new ServiceUnavailableException('PayHero timed out. Retry shortly.');
+        throw new ServiceUnavailableException(
+          'PayHero timed out. Retry shortly.',
+        );
       }
       throw error;
     } finally {
@@ -183,7 +196,9 @@ export class PayheroBillingService {
       payload.PhoneNumber ??
       payload.msisdn ??
       payload.MSISDN;
-    return typeof raw === 'string' || typeof raw === 'number' ? String(raw) : undefined;
+    return typeof raw === 'string' || typeof raw === 'number'
+      ? String(raw)
+      : undefined;
   }
 
   private callbackReceipt(payload: PayheroCallbackPayload) {
@@ -194,7 +209,9 @@ export class PayheroBillingService {
       payload.ReceiptNumber ??
       payload.transaction_reference ??
       payload.TransactionReference;
-    return typeof raw === 'string' || typeof raw === 'number' ? String(raw) : undefined;
+    return typeof raw === 'string' || typeof raw === 'number'
+      ? String(raw)
+      : undefined;
   }
 
   async initiateInvoicePayment(
@@ -210,10 +227,14 @@ export class PayheroBillingService {
     const channelId = this.channelId();
 
     if (!callbackUrl) {
-      throw new ServiceUnavailableException('PAYHERO_CALLBACK_URL is not configured');
+      throw new ServiceUnavailableException(
+        'PAYHERO_CALLBACK_URL is not configured',
+      );
     }
     if (!channelId) {
-      throw new ServiceUnavailableException('PAYHERO_CHANNEL_ID is not configured');
+      throw new ServiceUnavailableException(
+        'PAYHERO_CHANNEL_ID is not configured',
+      );
     }
 
     const invoice = await this.prisma.invoice.findUnique({
@@ -225,14 +246,20 @@ export class PayheroBillingService {
       throw new NotFoundException(`Invoice with id ${dto.invoiceId} not found`);
     }
 
-    this.scopeService.assertBranchAccess(user, invoice.facilityId, invoice.branchId);
+    this.scopeService.assertBranchAccess(
+      user,
+      invoice.facilityId,
+      invoice.branchId,
+    );
 
     if (dto.amount <= 0) {
       throw new BadRequestException('PayHero amount must be greater than zero');
     }
 
     if (dto.amount > invoice.balanceAmount) {
-      throw new BadRequestException('PayHero amount cannot exceed the invoice balance');
+      throw new BadRequestException(
+        'PayHero amount cannot exceed the invoice balance',
+      );
     }
 
     const phoneNumber = this.normalizePhoneNumber(dto.phoneNumber);
@@ -243,19 +270,26 @@ export class PayheroBillingService {
         statusCode: 'PENDING',
         phoneNumber,
         requestedAt: {
-          gte: new Date(Date.now() - Number(process.env.PAYHERO_PROMPT_LOCK_SECONDS ?? 90) * 1000),
+          gte: new Date(
+            Date.now() -
+              Number(process.env.PAYHERO_PROMPT_LOCK_SECONDS ?? 90) * 1000,
+          ),
         },
       },
       orderBy: { id: 'desc' },
     });
 
     if (existingPending && !dto.forceResend) {
-      throw new ServiceUnavailableException('A recent PayHero prompt is already pending for this phone and invoice.');
+      throw new ServiceUnavailableException(
+        'A recent PayHero prompt is already pending for this phone and invoice.',
+      );
     }
 
     const receiptNumber = `PH-${Date.now()}`;
-    const accountReference = dto.accountReference?.trim() || invoice.invoiceNumber;
-    const description = dto.description?.trim() || `Invoice ${invoice.invoiceNumber} payment`;
+    const accountReference =
+      dto.accountReference?.trim() || invoice.invoiceNumber;
+    const description =
+      dto.description?.trim() || `Invoice ${invoice.invoiceNumber} payment`;
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -277,7 +311,9 @@ export class PayheroBillingService {
     const requestBody = {
       amount: dto.amount,
       phone_number: phoneNumber,
-      channel_id: Number.isFinite(Number(channelId)) ? Number(channelId) : channelId,
+      channel_id: Number.isFinite(Number(channelId))
+        ? Number(channelId)
+        : channelId,
       provider: process.env.PAYHERO_PROVIDER ?? 'm-pesa',
       external_reference: `${invoice.invoiceNumber}-${payment.id}`,
       callback_url: callbackUrl,
@@ -320,8 +356,13 @@ export class PayheroBillingService {
         where: { id: payment.id },
         data: {
           statusCode: 'FAILED',
-          callbackPayload: this.compactPayload({ provider: 'PAYHERO', response: responsePayload }),
-          notes: responsePayload.message ? String(responsePayload.message) : 'PayHero request failed',
+          callbackPayload: this.compactPayload({
+            provider: 'PAYHERO',
+            response: responsePayload,
+          }),
+          notes: responsePayload.message
+            ? String(responsePayload.message)
+            : 'PayHero request failed',
         },
       });
 
@@ -335,7 +376,9 @@ export class PayheroBillingService {
       });
 
       throw new ServiceUnavailableException(
-        responsePayload.message ? String(responsePayload.message) : 'PayHero request failed',
+        responsePayload.message
+          ? String(responsePayload.message)
+          : 'PayHero request failed',
       );
     }
 
@@ -350,7 +393,10 @@ export class PayheroBillingService {
             : typeof responsePayload.MerchantRequestID === 'string'
               ? responsePayload.MerchantRequestID
               : undefined,
-        callbackPayload: this.compactPayload({ provider: 'PAYHERO', initiate: responsePayload }),
+        callbackPayload: this.compactPayload({
+          provider: 'PAYHERO',
+          initiate: responsePayload,
+        }),
       },
     });
 
@@ -383,10 +429,16 @@ export class PayheroBillingService {
     });
 
     if (!payment || payment.paymentMethod !== 'PAYHERO') {
-      throw new NotFoundException(`PayHero payment with id ${paymentId} not found`);
+      throw new NotFoundException(
+        `PayHero payment with id ${paymentId} not found`,
+      );
     }
 
-    this.scopeService.assertBranchAccess(user, payment.facilityId, payment.branchId);
+    this.scopeService.assertBranchAccess(
+      user,
+      payment.facilityId,
+      payment.branchId,
+    );
 
     return payment;
   }
@@ -430,7 +482,10 @@ export class PayheroBillingService {
       return { message: 'PayHero callback already processed', matched: true };
     }
 
-    const callbackPayload = this.compactPayload({ provider: 'PAYHERO', callback: payload });
+    const callbackPayload = this.compactPayload({
+      provider: 'PAYHERO',
+      callback: payload,
+    });
     const now = new Date();
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -457,7 +512,10 @@ export class PayheroBillingService {
           where: { invoiceId: payment.invoiceId, statusCode: 'COMPLETED' },
           select: { amount: true },
         });
-        const paidTotal = completedPayments.reduce((sum, item) => sum + item.amount, 0);
+        const paidTotal = completedPayments.reduce(
+          (sum, item) => sum + item.amount,
+          0,
+        );
         const balanceAmount = payment.invoice.totalAmount - paidTotal;
 
         await tx.invoice.update({
@@ -522,7 +580,9 @@ export class PayheroBillingService {
           branchId: payment.branchId ?? undefined,
           actorUserId: user?.userId,
           actorStaffId: user?.staffId ?? undefined,
-          afterData: data ? JSON.stringify(this.safeLogger.sanitize(data)) : undefined,
+          afterData: data
+            ? JSON.stringify(this.safeLogger.sanitize(data))
+            : undefined,
         },
       });
     } catch {

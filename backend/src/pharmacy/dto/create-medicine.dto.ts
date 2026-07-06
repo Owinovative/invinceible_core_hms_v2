@@ -46,4 +46,4 @@ export class CreateMedicineDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-} 
+}

@@ -189,9 +189,13 @@ export class UserLocationService {
         fullName: profile.user?.fullName ?? null,
         roleCode: profile.user?.role?.code ?? null,
         facility:
-          profile.user?.homeFacility?.name ?? profile.user?.staff?.facility?.name ?? null,
+          profile.user?.homeFacility?.name ??
+          profile.user?.staff?.facility?.name ??
+          null,
         branch:
-          profile.user?.homeBranch?.name ?? profile.user?.staff?.branch?.name ?? null,
+          profile.user?.homeBranch?.name ??
+          profile.user?.staff?.branch?.name ??
+          null,
         isOnline: profile.isOnline && profile.lastSeenAt >= liveSince,
         storedOnlineFlag: profile.isOnline,
         loginAt: profile.loginAt,
@@ -266,13 +270,16 @@ export class UserLocationService {
   private async capture(input: CaptureInput) {
     const now = new Date();
     const ipAddress = this.normalizeIp(
-      input.ipAddress ?? (input.req ? this.ipFromRequest(input.req) : undefined),
+      input.ipAddress ??
+        (input.req ? this.ipFromRequest(input.req) : undefined),
     );
     const userAgent =
       input.userAgent ?? this.header(input.req, 'user-agent') ?? null;
-    const route = input.route ?? (input.req ? this.routeFromRequest(input.req) : null);
+    const route =
+      input.route ?? (input.req ? this.routeFromRequest(input.req) : null);
     const method =
-      input.method ?? (input.req?.method ? input.req.method.toUpperCase() : null);
+      input.method ??
+      (input.req?.method ? input.req.method.toUpperCase() : null);
     const eventType = input.eventType ?? 'REQUEST';
     const sessionId = this.sessionId(input.user);
 
@@ -460,7 +467,7 @@ export class UserLocationService {
             ipinfoToken,
           )}`,
         );
-        const payload = (await response.json()) as any;
+        const payload = await response.json();
         if (response.ok) {
           const [latitude, longitude] = String(payload.loc ?? '')
             .split(',')
@@ -488,7 +495,7 @@ export class UserLocationService {
             ipAddress,
           )}?access_key=${encodeURIComponent(ipapiKey)}`,
         );
-        const payload = (await response.json()) as any;
+        const payload = await response.json();
         if (response.ok && !payload.error) {
           return {
             country: payload.country_name ?? payload.country_code ?? null,
@@ -512,7 +519,7 @@ export class UserLocationService {
             ipAddress,
           )}?fields=status,message,country,regionName,city,lat,lon,isp,org,timezone,query`,
         );
-        const payload = (await response.json()) as any;
+        const payload = await response.json();
         if (response.ok && payload.status === 'success') {
           return {
             country: payload.country ?? null,
@@ -714,7 +721,10 @@ export class UserLocationService {
     return { deviceType, browser, operatingSystem };
   }
 
-  private aggregateBy<T>(items: T[], selector: (item: T) => string | null | undefined) {
+  private aggregateBy<T>(
+    items: T[],
+    selector: (item: T) => string | null | undefined,
+  ) {
     const counts = new Map<string, number>();
 
     for (const item of items) {

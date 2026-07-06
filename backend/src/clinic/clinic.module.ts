@@ -6,11 +6,7 @@ import { BranchModule } from '../branch/branch.module';
 import { DepartmentModule } from '../department/department.module';
 
 @Module({
-  imports: [
-    FacilityModule,
-    forwardRef(() => BranchModule),
-    DepartmentModule,
-  ],
+  imports: [FacilityModule, forwardRef(() => BranchModule), DepartmentModule],
   controllers: [ClinicController],
   providers: [ClinicService],
   exports: [ClinicService],
