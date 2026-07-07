@@ -40,14 +40,14 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
         "flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-surface-1",
         "transition-[width] duration-300 ease-out",
         mobile ? "w-full" : "hidden lg:flex",
-        !mobile && (compact ? "w-(--sidebar-width-rail)" : "w-(--sidebar-width)"),
+        !mobile && (compact ? "w-[var(--sidebar-width-rail)]" : "w-[var(--sidebar-width)]"),
       )}
       style={{ zIndex: "var(--z-sidebar)" }}
     >
       {/* ── Brand ─────────────────────────────────────────────── */}
       <div
         className={cn(
-          "flex h-(--header-height) shrink-0 items-center gap-2.5 border-b border-border px-4",
+          "flex h-[var(--header-height)] shrink-0 items-center gap-2.5 border-b border-border px-4",
           compact && "justify-center px-2",
         )}
       >

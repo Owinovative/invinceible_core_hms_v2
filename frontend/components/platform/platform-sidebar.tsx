@@ -63,14 +63,14 @@ export function PlatformSidebar({ mobile = false }: { mobile?: boolean }) {
         "flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-[#061525] text-white",
         "transition-[width] duration-300 ease-out",
         mobile ? "w-full" : "hidden h-full lg:flex",
-        !mobile && (compact ? "w-(--sidebar-width-rail)" : "w-(--sidebar-width)"),
+        !mobile && (compact ? "w-[var(--sidebar-width-rail)]" : "w-[var(--sidebar-width)]"),
       )}
       style={{ zIndex: "var(--z-sidebar)" }}
     >
       {/* Brand header */}
       <div
         className={cn(
-          "flex h-(--header-height) shrink-0 items-center gap-3 border-b border-white/10 px-4",
+          "flex h-[var(--header-height)] shrink-0 items-center gap-3 border-b border-white/10 px-4",
           compact && "justify-center px-2",
         )}
       >
