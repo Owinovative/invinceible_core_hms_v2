@@ -324,7 +324,7 @@ export default function IntegrationDashboardPage() {
   // Queue health derived from status
   const queue = dhaStatus?.queue ?? [];
   const queuePending = queue.reduce((s, q) =>
-    ["PENDING", "QUEUED", "PROCESSING"].includes(q.statusCode ?? "") ? s + q.count : s
+    ["PENDING", "QUEUED", "PROCESSING"].includes(q.status ?? "") ? s + q.count : s
   , 0) || pendingTx;
 
   const filteredTx = React.useMemo(() => {
@@ -579,7 +579,7 @@ export default function IntegrationDashboardPage() {
                   <div key={i} className="flex items-center justify-between rounded-xl border border-border/40 bg-background/40 px-3 py-2.5">
                     <div>
                       <p className="text-sm font-medium">{q.operation ?? q.integration}</p>
-                      <p className="text-xs text-muted-foreground">{q.statusCode}</p>
+                      <p className="text-xs text-muted-foreground">{q.status}</p>
                     </div>
                     <span className={cn(
                       "text-sm font-bold",

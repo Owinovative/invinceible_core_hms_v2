@@ -8,8 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function QueueHealth() {
   const { data: queueStats, isLoading } = useIntegrationStats();
 
-  const pendingJobs = queueStats?.filter(s => s.statusCode === 'PENDING').reduce((sum, s) => sum + s.count, 0) || 0;
-  const deadLetters = queueStats?.filter(s => s.statusCode === 'DEAD_LETTER').reduce((sum, s) => sum + s.count, 0) || 0;
+  const pendingJobs = queueStats?.filter(s => s.status === 'PENDING').reduce((sum, s) => sum + s.count, 0) || 0;
+  const deadLetters = queueStats?.filter(s => s.status === 'DEAD_LETTER').reduce((sum, s) => sum + s.count, 0) || 0;
   const total = (queueStats?.reduce((sum, s) => sum + s.count, 0) || 0);
   const pendingPercentage = total > 0 ? Math.round((pendingJobs / total) * 100) : 0;
 

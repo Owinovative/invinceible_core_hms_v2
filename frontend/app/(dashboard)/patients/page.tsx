@@ -377,6 +377,7 @@ export default function PatientsPage() {
   const [email, setEmail] = React.useState("");
   const [nationalId, setNationalId] = React.useState("");
   const [shaMemberNumber, setShaMemberNumber] = React.useState("");
+  const [dateOfBirth, setDateOfBirth] = React.useState("");
 
   // ── SHA eligibility state attached to current visit ───────────────────────
   const [attachedEligibility, setAttachedEligibility] = React.useState<EligibilityResult | null>(null);
@@ -445,8 +446,11 @@ export default function PatientsPage() {
       middleName: middleName.trim() || undefined,
       lastName: lastName.trim(),
       gender: gender.trim() || undefined,
+      dateOfBirth: dateOfBirth.trim() || undefined,
       phonePrimary: phonePrimary.trim() || undefined,
       email: email.trim() || undefined,
+      nationalIdNumber: nationalId.trim() || undefined,
+      shaMemberNumber: shaMemberNumber.trim() || undefined,
       facilityId,
       isActive: true,
       isDeceased: false,
@@ -466,6 +470,7 @@ export default function PatientsPage() {
     );
     setFirstName(""); setMiddleName(""); setLastName(""); setGender("");
     setPhonePrimary(""); setEmail(""); setNationalId(""); setShaMemberNumber("");
+    setDateOfBirth("");
     setChiefComplaint(""); setTriageNotes("");
     setArrivalType("WALK_IN"); setTriagePriority("NORMAL");
     setAttachedEligibility(null);
@@ -665,7 +670,7 @@ export default function PatientsPage() {
                 </div>
 
                 {/* Demographics */}
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <label className="mb-1.5 block text-sm font-medium">Gender</label>
                     <select
@@ -678,6 +683,17 @@ export default function PatientsPage() {
                       <option value="FEMALE">Female</option>
                       <option value="OTHER">Other</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium">
+                      <Calendar className="h-3.5 w-3.5 text-primary" /> Date of Birth
+                    </label>
+                    <Input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="h-11 rounded-2xl"
+                    />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium">Phone</label>
@@ -924,7 +940,22 @@ export default function PatientsPage() {
                 <ShaEligibilityPanel
                   onAttach={(result) => {
                     setAttachedEligibility(result);
+                    // Auto-populate registration fields from eligibility result
                     if (result.memberNumber) setShaMemberNumber(result.memberNumber);
+                    if (result.memberName && !firstName.trim()) {
+                      const parts = result.memberName.trim().split(/\s+/);
+                      if (parts.length === 1) {
+                        setFirstName(parts[0]);
+                      } else if (parts.length >= 2) {
+                        setFirstName(parts[0]);
+                        setLastName(parts[parts.length - 1]);
+                        if (parts.length > 2) setMiddleName(parts.slice(1, -1).join(' '));
+                      }
+                    }
+                    if (result.nationalId && !nationalId.trim()) setNationalId(result.nationalId);
+                    if (result.gender && !gender.trim()) setGender(result.gender.toUpperCase());
+                    if (result.dateOfBirth && !dateOfBirth.trim()) setDateOfBirth(result.dateOfBirth);
+                    if (result.phoneNumber && !phonePrimary.trim()) setPhonePrimary(result.phoneNumber);
                   }}
                 />
               </CardContent>

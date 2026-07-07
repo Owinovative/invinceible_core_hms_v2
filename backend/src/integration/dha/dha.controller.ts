@@ -52,7 +52,7 @@ export class DhaController {
       enabled: this.config.dhaEnabled,
       mode: this.config.dhaMode,
       apiVersion: this.config.dhaApiVersion,
-      queue: await this.queueService.getStats(),
+      queue: await this.queueService.getStats('DHA'),
     };
   }
 
