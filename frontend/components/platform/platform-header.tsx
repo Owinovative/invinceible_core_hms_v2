@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { AppLogo } from "@/components/shared/app-logo";
+import { SyncStatusIndicator } from "@/components/shared/sync-status-indicator";
 
 export function PlatformHeader() {
   const { openMobileSidebar } = useSidebar();
@@ -49,42 +50,44 @@ export function PlatformHeader() {
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className="flex min-w-0 items-center gap-3 rounded-lg border border-border-strong/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
-            <div className="hidden min-w-0 text-right sm:block">
-              <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
-                {user?.username || "User"}
-              </p>
-              <p className="truncate text-xs font-medium text-[#e8f6ff]">
-                {user?.roleCode || "Role"}
-              </p>
+            <SyncStatusIndicator />
+
+            <div className="flex min-w-0 items-center gap-3 rounded-lg border border-border-strong/60 bg-[#004f91] px-3 py-2.5 shadow-sm">
+              <div className="hidden min-w-0 text-right sm:block">
+                <p className="max-w-[230px] truncate text-sm font-semibold text-white" title={user?.username || "User"}>
+                  {user?.username || "User"}
+                </p>
+                <p className="truncate text-xs font-medium text-[#e8f6ff]">
+                  {user?.roleCode || "Role"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-card font-semibold text-[#005a9c]"
+                onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
+              >
+                {user?.staffPassportPhotoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.staffPassportPhotoUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{initials}</span>
+                )}
+              </button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-md text-white hover:bg-[#006fbd] hover:text-white"
+                onClick={logout}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
-
-            <button
-              type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-card font-semibold text-[#005a9c]"
-              onClick={() => user?.staffPassportPhotoUrl && setPhotoOpen(true)}
-            >
-              {user?.staffPassportPhotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.staffPassportPhotoUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span>{initials}</span>
-              )}
-            </button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-md text-white hover:bg-[#006fbd] hover:text-white"
-              onClick={logout}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </div>
       {photoOpen && user?.staffPassportPhotoUrl ? (

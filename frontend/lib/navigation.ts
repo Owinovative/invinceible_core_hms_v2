@@ -104,7 +104,6 @@ export const navSections: NavSection[] = [
     module: "operations",
     items: [
       { title: "Integration Hub", href: "/integration", icon: Network, keywords: ["dha", "sha", "kra", "api"] },
-      { title: "Sync Status", href: "/integration/sync", icon: Link2, keywords: ["sync", "errors"] },
     ],
   },
   {
