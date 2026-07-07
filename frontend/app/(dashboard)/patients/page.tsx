@@ -685,7 +685,7 @@ export default function PatientsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1.5 flex items-center gap-1.5 block text-sm font-medium">
+                    <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium">
                       <Calendar className="h-3.5 w-3.5 text-primary" /> Date of Birth
                     </label>
                     <Input
@@ -942,9 +942,11 @@ export default function PatientsPage() {
                     setAttachedEligibility(result);
                     // Auto-populate registration fields from eligibility result
                     if (result.memberNumber) setShaMemberNumber(result.memberNumber);
-                    if (result.memberName) {
-                      const parts = result.memberName.split(' ');
-                      if (parts.length >= 2 && !firstName.trim()) {
+                    if (result.memberName && !firstName.trim()) {
+                      const parts = result.memberName.trim().split(/\s+/);
+                      if (parts.length === 1) {
+                        setFirstName(parts[0]);
+                      } else if (parts.length >= 2) {
                         setFirstName(parts[0]);
                         setLastName(parts[parts.length - 1]);
                         if (parts.length > 2) setMiddleName(parts.slice(1, -1).join(' '));
