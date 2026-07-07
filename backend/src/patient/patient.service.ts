@@ -237,6 +237,8 @@ export class PatientService {
               { lastName: { contains: pagination.search } },
               { phonePrimary: { contains: pagination.search } },
               { email: { contains: pagination.search } },
+              { nationalIdNumber: { contains: pagination.search } },
+              { shaMemberNumber: { contains: pagination.search } },
             ],
           }
         : {}),
@@ -297,6 +299,8 @@ export class PatientService {
               { firstName: { contains: query } },
               { lastName: { contains: query } },
               { phonePrimary: { contains: query } },
+              { nationalIdNumber: { contains: query } },
+              { shaMemberNumber: { contains: query } },
             ],
           },
           take: 20,
@@ -308,6 +312,8 @@ export class PatientService {
             middleName: true,
             lastName: true,
             phonePrimary: true,
+            nationalIdNumber: true,
+            shaMemberNumber: true,
           },
         }),
     );

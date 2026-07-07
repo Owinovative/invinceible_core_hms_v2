@@ -248,15 +248,22 @@ export class IntegrationQueueService {
     return result.count === 1;
   }
 
-  async getStats(): Promise<
-    Array<{ integration: string; status: string; count: number }>
+  async getStats(integration?: string): Promise<
+    Array<{
+      integration: string;
+      operation: string;
+      status: string;
+      count: number;
+    }>
   > {
     const groups = await this.prisma.integrationOutboundRequest.groupBy({
-      by: ['integration', 'status'],
+      by: ['integration', 'operation', 'status'],
       _count: { _all: true },
+      ...(integration ? { where: { integration } } : {}),
     });
     return groups.map((group) => ({
       integration: group.integration,
+      operation: group.operation,
       status: group.status,
       count: group._count._all,
     }));

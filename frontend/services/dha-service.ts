@@ -126,7 +126,7 @@ export interface DhaStatus {
 export interface DhaQueueStat {
   integration: string;
   operation: string;
-  statusCode: string;
+  status: string;
   count: number;
   oldestCreatedAt?: string;
 }
