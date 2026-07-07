@@ -7,6 +7,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { ScopeProvider } from "@/providers/scope-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -32,12 +33,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ScopeProvider>
-            <SidebarProvider>{children}</SidebarProvider>
-          </ScopeProvider>
-        </AuthProvider>
-        <Toaster />
+        <TooltipProvider>
+          <AuthProvider>
+            <ScopeProvider>
+              <SidebarProvider>{children}</SidebarProvider>
+            </ScopeProvider>
+          </AuthProvider>
+          <Toaster />
+        </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
