@@ -112,7 +112,7 @@ export default function LoginPageClient() {
       {/* Brand panel */}
       <section
         aria-hidden
-        className="relative hidden overflow-hidden bg-linear-160 from-brand-strong via-brand to-pulse text-primary-foreground lg:flex lg:flex-col lg:justify-between dark:from-surface-2 dark:via-surface-1 dark:to-brand/40"
+        className="relative hidden overflow-hidden bg-linear-160 from-brand-strong via-brand to-pulse text-primary-foreground lg:flex lg:flex-col lg:justify-between"
       >
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.14]"

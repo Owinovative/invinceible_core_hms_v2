@@ -7,9 +7,7 @@ import {
   ChevronDown,
   LogOut,
   Menu,
-  Moon,
   Search,
-  Sun,
   UserRound,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -29,15 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SyncStatusIndicator } from "@/components/shared/sync-status-indicator";
 import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
-import { useTheme } from "@/providers/theme-provider";
 
 /**
  * Meridian header: sticky glass chrome with the ⌘K launcher, branch
- * switcher, theme toggle, live notification count, and account menu.
+ * switcher, system status indicator, live notification count, and
+ * account menu. Dark mode removed — single polished light theme.
  */
 export function DashboardHeader({
   onOpenPalette,
@@ -46,7 +45,6 @@ export function DashboardHeader({
 }) {
   const { openMobileSidebar } = useSidebar();
   const { user, logout } = useAuth();
-  const { resolved, toggle } = useTheme();
 
   const {
     facilityId,
@@ -140,17 +138,8 @@ export function DashboardHeader({
           </span>
         ) : null}
 
-        {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={
-            resolved === "dark" ? "Switch to light mode" : "Switch to dark mode"
-          }
-          onClick={toggle}
-        >
-          {resolved === "dark" ? <Sun /> : <Moon />}
-        </Button>
+        {/* Integration sync status */}
+        <SyncStatusIndicator />
 
         {/* Notifications */}
         <Button asChild variant="ghost" size="icon" className="relative">
@@ -217,7 +206,7 @@ export function DashboardHeader({
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/settings">
-                <UserRound /> Profile & settings
+                <UserRound /> Profile &amp; settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

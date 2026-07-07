@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/providers/app-provider";
-import { themeInitScript } from "@/providers/theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,11 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Applies the persisted theme before first paint (no flash). */}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
+    <html lang="en">
       <body
         className={`${inter.variable} ${jetBrainsMono.variable} app-canvas font-sans`}
       >

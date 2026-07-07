@@ -16,8 +16,12 @@ import { useScope } from "@/providers/scope-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
 
 /**
- * Meridian sidebar: layered light/dark surface, module-accented groups,
- * collapsible icon rail with tooltips, and full keyboard operability.
+ * Meridian primary sidebar.
+ * — Smooth 300 ms width transition, no layout jump.
+ * — Labels animate out with opacity (no reflow).
+ * — Tooltips surface nav labels in compact/icon-rail mode.
+ * — Ctrl+B keyboard shortcut wired via SidebarProvider.
+ * — Full aria-current / aria-expanded / aria-label support.
  */
 export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
@@ -31,17 +35,16 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
   return (
     <aside
       aria-label="Primary navigation"
+      aria-expanded={!compact}
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-surface-1 transition-[width] duration-300",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-surface-1",
+        "transition-[width] duration-300 ease-out",
         mobile ? "w-full" : "hidden lg:flex",
-        !mobile &&
-          (compact
-            ? "w-(--sidebar-width-rail)"
-            : "w-(--sidebar-width)"),
+        !mobile && (compact ? "w-(--sidebar-width-rail)" : "w-(--sidebar-width)"),
       )}
       style={{ zIndex: "var(--z-sidebar)" }}
     >
-      {/* Brand */}
+      {/* ── Brand ─────────────────────────────────────────────── */}
       <div
         className={cn(
           "flex h-(--header-height) shrink-0 items-center gap-2.5 border-b border-border px-4",
@@ -52,6 +55,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
           href="/dashboard"
           className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
           onClick={mobile ? closeMobileSidebar : undefined}
+          tabIndex={0}
         >
           <span
             aria-hidden
@@ -59,47 +63,76 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
           >
             <Activity className="size-5" />
           </span>
-          {!compact ? (
-            <span className="min-w-0">
-              <span className="block truncate text-[0.95rem] leading-tight font-bold tracking-tight text-foreground">
-                Invinceible <span className="text-gradient-brand">Core</span>
-              </span>
-              <span className="block text-[0.65rem] font-medium tracking-widest text-muted-foreground uppercase">
-                Hospital OS
-              </span>
-            </span>
-          ) : null}
-        </Link>
-        {!mobile && !compact ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Collapse sidebar"
-            className="ml-auto text-muted-foreground"
-            onClick={toggleSidebar}
+          {/* Text label fades out in compact mode without collapsing immediately */}
+          <span
+            className={cn(
+              "min-w-0 overflow-hidden transition-[opacity,max-width] duration-300 ease-out",
+              compact ? "max-w-0 opacity-0" : "max-w-[12rem] opacity-100",
+            )}
           >
-            <PanelLeftClose />
-          </Button>
+            <span className="block truncate text-[0.95rem] leading-tight font-bold tracking-tight text-foreground">
+              Invinceible <span className="text-gradient-brand">Core</span>
+            </span>
+            <span className="block text-[0.65rem] font-medium tracking-widest text-muted-foreground uppercase">
+              Hospital OS
+            </span>
+          </span>
+        </Link>
+
+        {/* Collapse toggle — visible only in expanded desktop mode */}
+        {!mobile && !compact ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Collapse sidebar (Ctrl+B)"
+                className="ml-auto text-muted-foreground hover:text-foreground"
+                onClick={toggleSidebar}
+              >
+                <PanelLeftClose className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Collapse <kbd className="ml-1 font-mono text-[0.65rem]">Ctrl B</kbd>
+            </TooltipContent>
+          </Tooltip>
         ) : null}
       </div>
 
-      {/* Scope context */}
-      {!compact ? (
-        <div className="shrink-0 px-3 pt-3">
+      {/* ── Scope context ─────────────────────────────────────── */}
+      <div
+        className={cn(
+          "overflow-hidden transition-[max-height,opacity] duration-300 ease-out",
+          compact ? "max-h-0 opacity-0" : "max-h-24 opacity-100",
+        )}
+      >
+        <div className="px-3 pt-3">
           <div className="rounded-xl border border-border bg-surface-2/70 px-3 py-2.5">
-            <p className="truncate text-xs font-semibold text-foreground" title={facilityName || "No facility"}>
+            <p
+              className="truncate text-xs font-semibold text-foreground"
+              title={facilityName || "No facility"}
+            >
               {facilityName || "No facility"}
             </p>
-            <p className="mt-0.5 flex items-center gap-1.5 truncate text-[0.7rem] text-muted-foreground" title={selectedBranchName || "All branches"}>
+            <p
+              className="mt-0.5 flex items-center gap-1.5 truncate text-[0.7rem] text-muted-foreground"
+              title={selectedBranchName || "All branches"}
+            >
               <span className="pulse-dot" aria-hidden />
               {selectedBranchName || "All branches"}
             </p>
           </div>
         </div>
-      ) : null}
+      </div>
 
-      {/* Quick actions */}
-      {!compact ? (
+      {/* ── Quick actions ─────────────────────────────────────── */}
+      <div
+        className={cn(
+          "overflow-hidden transition-[max-height,opacity] duration-300 ease-out",
+          compact ? "max-h-0 opacity-0" : "max-h-24 opacity-100",
+        )}
+      >
         <div className="grid shrink-0 grid-cols-3 gap-1.5 px-3 pt-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -116,24 +149,34 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
             );
           })}
         </div>
-      ) : null}
+      </div>
 
-      {/* Navigation */}
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+      {/* ── Navigation ────────────────────────────────────────── */}
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3" aria-label="Main navigation">
         {sections.map((section) => (
           <div
             key={section.label}
             data-module={section.module}
             className="mb-4 last:mb-0"
           >
-            {!compact ? (
+            {/* Section label fades out in compact mode */}
+            <div
+              className={cn(
+                "overflow-hidden transition-[max-height,opacity] duration-200 ease-out",
+                compact ? "max-h-0 opacity-0" : "max-h-8 opacity-100",
+              )}
+            >
               <p className="px-3 pb-1 text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground/80 uppercase">
                 {section.label}
               </p>
-            ) : (
-              <div className="mx-3 mb-2 border-t border-border first:hidden" />
+            </div>
+
+            {/* Separator in compact mode */}
+            {compact && (
+              <div className="mx-3 mb-2 mt-1 border-t border-border first:hidden" />
             )}
-            <ul className="space-y-0.5">
+
+            <ul className="space-y-0.5" role="list">
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const active =
@@ -144,9 +187,10 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                         (i) =>
                           i.href !== item.href &&
                           pathname.startsWith(i.href) &&
-                          i.href.length > item.href.length
-                      )
+                          i.href.length > item.href.length,
+                      ),
                     ));
+
                 const link = (
                   <Link
                     href={item.href}
@@ -168,18 +212,23 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                     ) : null}
                     <Icon
                       className={cn(
-                        "size-[1.1rem] shrink-0",
+                        "size-[1.1rem] shrink-0 transition-opacity",
                         active
                           ? "text-module"
                           : "opacity-70 group-hover:opacity-100",
                       )}
                       aria-hidden
                     />
-                    {!compact ? (
-                      <span className="min-w-0 truncate">{item.title}</span>
-                    ) : (
-                      <span className="sr-only">{item.title}</span>
-                    )}
+                    {/* Label slides out instead of jumping */}
+                    <span
+                      className={cn(
+                        "min-w-0 overflow-hidden truncate transition-[max-width,opacity] duration-300 ease-out",
+                        compact ? "max-w-0 opacity-0" : "max-w-[10rem] opacity-100",
+                      )}
+                    >
+                      {item.title}
+                    </span>
+                    {compact && <span className="sr-only">{item.title}</span>}
                   </Link>
                 );
 
@@ -188,7 +237,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
                     {compact ? (
                       <Tooltip>
                         <TooltipTrigger asChild>{link}</TooltipTrigger>
-                        <TooltipContent side="right">
+                        <TooltipContent side="right" className="font-medium">
                           {item.title}
                         </TooltipContent>
                       </Tooltip>
@@ -203,18 +252,25 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean }) {
         ))}
       </nav>
 
-      {/* Rail expand control */}
+      {/* ── Expand rail control ───────────────────────────────── */}
       {!mobile && compact ? (
         <div className="shrink-0 border-t border-border p-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Expand sidebar"
-            className="w-full text-muted-foreground"
-            onClick={toggleSidebar}
-          >
-            <PanelLeftOpen />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Expand sidebar (Ctrl+B)"
+                className="w-full text-muted-foreground hover:text-foreground"
+                onClick={toggleSidebar}
+              >
+                <PanelLeftOpen className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Expand <kbd className="ml-1 font-mono text-[0.65rem]">Ctrl B</kbd>
+            </TooltipContent>
+          </Tooltip>
         </div>
       ) : null}
     </aside>
