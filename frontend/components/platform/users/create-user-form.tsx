@@ -131,12 +131,13 @@ export function CreateUserForm() {
         canAccessAllBranchesInFacility: "false",
         isActive: "true",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setSuccessMessage(null);
       // Extract a readable message from the backend error, if available
-      const backendMessage = error?.response?.data?.message || error?.message || "An unknown error occurred.";
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const backendMessage = err?.response?.data?.message || err?.message || "An unknown error occurred.";
       setErrorMessage(`Failed to create user: ${backendMessage}`);
-      console.error("USER CREATION FAILED:", error?.response?.data || error.message || error);
+      console.error("USER CREATION FAILED:", err?.response?.data || err?.message || error);
     }
   };
 

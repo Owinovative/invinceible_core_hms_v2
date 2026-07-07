@@ -28,7 +28,7 @@ export function SidebarProvider({
       if (stored !== null) {
         setCollapsed(stored === "true");
       }
-    } catch (e) {}
+    } catch (_e) {}
   }, []);
 
   const toggleSidebar = React.useCallback(() => {
@@ -36,7 +36,7 @@ export function SidebarProvider({
       const next = !prev;
       try {
         localStorage.setItem("meridian:sidebar:collapsed", String(next));
-      } catch (e) {}
+      } catch (_e) {}
       return next;
     });
   }, []);

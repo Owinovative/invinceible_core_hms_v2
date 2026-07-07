@@ -4,9 +4,11 @@ import type {
   FhirConsent,
   FhirCoverageEligibilityRequest,
   FhirEncounter,
+  FhirIdentifier,
   FhirOrganization,
   FhirPatient,
   FhirPractitioner,
+  FhirReference,
   FhirResource,
   FhirServiceRequest,
 } from './fhir.types';
@@ -236,9 +238,10 @@ export class FhirMapperService {
     patientRef?: string;
     serviceDate?: string;
   }): FhirCoverageEligibilityRequest {
-    const patientDetails: any = params.patientRef
-      ? { reference: params.patientRef }
-      : { display: params.memberNumber || params.nationalId };
+    const patientDetails: FhirReference & { identifier?: FhirIdentifier } =
+      params.patientRef
+        ? { reference: params.patientRef }
+        : { display: params.memberNumber || params.nationalId };
 
     if (params.nationalId) {
       patientDetails.identifier = {

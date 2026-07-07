@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { format } from "date-fns";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -106,7 +105,13 @@ export function ShaEligibilityCard({
               {isEligible ? "Eligible for SHA Coverage" : "Not Eligible for Coverage"}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Last verified: {eligibility.responseTimestamp ? format(new Date(eligibility.responseTimestamp), "PP p") : "Just now"}
+              Last verified:{" "}
+              {eligibility.responseTimestamp
+                ? new Intl.DateTimeFormat("en-KE", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(eligibility.responseTimestamp))
+                : "Just now"}
             </p>
           </div>
         </div>
@@ -177,13 +182,21 @@ export function ShaEligibilityCard({
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Coverage Start</p>
                     <p className="text-sm font-medium">
-                      {eligibility.coverageStart ? format(new Date(eligibility.coverageStart), "PP") : "N/A"}
+                      {eligibility.coverageStart
+                          ? new Intl.DateTimeFormat("en-KE", { dateStyle: "medium" }).format(
+                              new Date(eligibility.coverageStart),
+                            )
+                          : "N/A"}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Coverage End</p>
                     <p className="text-sm font-medium">
-                      {eligibility.coverageEnd ? format(new Date(eligibility.coverageEnd), "PP") : "Ongoing"}
+                      {eligibility.coverageEnd
+                          ? new Intl.DateTimeFormat("en-KE", { dateStyle: "medium" }).format(
+                              new Date(eligibility.coverageEnd),
+                            )
+                          : "Ongoing"}
                     </p>
                   </div>
                 </div>

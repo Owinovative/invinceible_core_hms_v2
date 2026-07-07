@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreatePatient } from "@/hooks/use-create-patient";
 import { useScope } from "@/providers/scope-provider";
 import { useCheckShaEligibility } from "@/hooks/use-sha-eligibility";
+import type { EligibilityResult } from "@/services/dha-service";
 import { ShaEligibilityCard } from "@/components/integration/sha-eligibility-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,7 +93,7 @@ export function CreatePatientForm() {
   
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [createdNumber, setCreatedNumber] = React.useState<string | null>(null);
-  const [eligibilityResult, setEligibilityResult] = React.useState<any>(null);
+  const [eligibilityResult, setEligibilityResult] = React.useState<EligibilityResult | null>(null);
   const [eligibilityError, setEligibilityError] = React.useState<Error | null>(null);
   
   const syncingRef = React.useRef(false);

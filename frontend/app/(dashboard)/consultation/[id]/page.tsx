@@ -145,8 +145,8 @@ export default function ConsultationDetailPage() {
 
   const latestLabResultsList = React.useMemo(
     () =>
-      latestConsultationLabOrder?.items?.flatMap(
-        (item: { results?: Array<Record<string, any>> }) => item.results ?? [],
+      (latestConsultationLabOrder as { items?: Array<{ results?: Array<Record<string, unknown>> }> } | null)?.items?.flatMap(
+        (item) => item.results ?? [],
       ) ?? [],
     [latestConsultationLabOrder],
   );
@@ -286,11 +286,11 @@ export default function ConsultationDetailPage() {
         : undefined,
       latestLabOrder: latestConsultationLabOrder
         ? {
-            orderNumber: latestConsultationLabOrder.orderNumber,
-            urgency: latestConsultationLabOrder.urgency,
-            status: latestConsultationLabOrder.status,
-            clinicalNotes: latestConsultationLabOrder.clinicalNotes,
-            tests: latestConsultationLabOrder.items?.map((item: any) => ({
+            orderNumber: (latestConsultationLabOrder as any).orderNumber,
+            urgency: (latestConsultationLabOrder as any).urgency,
+            status: (latestConsultationLabOrder as any).status,
+            clinicalNotes: (latestConsultationLabOrder as any).clinicalNotes,
+            tests: (latestConsultationLabOrder as { items?: any[] })?.items?.map((item: any) => ({
               testName: item.test?.testName,
               status: item.status,
               instructions: item.instructions,
