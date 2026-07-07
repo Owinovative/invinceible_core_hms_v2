@@ -331,7 +331,7 @@ export default function DashboardPage() {
 
         {/* Right rail */}
         <div className="min-w-0 space-y-6">
-          <div className="relative overflow-hidden rounded-xl bg-linear-150 from-brand-strong to-brand p-5 text-primary-foreground shadow-md dark:from-surface-3 dark:to-surface-2">
+          <div className="relative overflow-hidden rounded-xl bg-linear-150 from-brand-strong to-brand p-5 text-primary-foreground shadow-md">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-[0.68rem] font-semibold tracking-widest uppercase opacity-80">
                 Active session

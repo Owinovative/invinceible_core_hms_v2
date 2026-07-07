@@ -1,13 +1,11 @@
 /* ============================================================
    Invinceible Core HMS — "Meridian" design language (2026)
-   Token-driven, dual-theme (light/dark), OKLCH color system.
+   Token-driven, single light theme, OKLCH color system.
    No hardcoded values outside this file and print.css.
    ============================================================ */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./print.css";
-
-@custom-variant dark (&:is(.dark *));
 
 /* ---------- Core tokens: light theme ---------- */
 :root {
@@ -29,8 +27,8 @@
   /* Text */
   --foreground: oklch(0.24 0.03 245);
   --muted: oklch(0.955 0.008 230);
-  --muted-foreground: oklch(0.5 0.025 240);
-  --subtle-foreground: oklch(0.62 0.02 238);
+  --muted-foreground: oklch(0.48 0.025 240);
+  --subtle-foreground: oklch(0.58 0.02 238);
 
   /* Interactive */
   --primary: var(--brand);
@@ -40,16 +38,16 @@
   --accent: oklch(0.94 0.02 220);
   --accent-foreground: oklch(0.32 0.06 235);
 
-  /* Status */
-  --success: oklch(0.62 0.14 160);
-  --success-soft: oklch(0.95 0.035 160);
-  --warning: oklch(0.72 0.14 75);
-  --warning-soft: oklch(0.96 0.045 85);
-  --destructive: oklch(0.58 0.2 25);
-  --destructive-soft: oklch(0.955 0.025 20);
+  /* Status — higher contrast for clinical readability */
+  --success: oklch(0.55 0.16 155);
+  --success-soft: oklch(0.95 0.04 155);
+  --warning: oklch(0.64 0.16 72);
+  --warning-soft: oklch(0.96 0.05 80);
+  --destructive: oklch(0.55 0.22 22);
+  --destructive-soft: oklch(0.955 0.03 20);
   --destructive-foreground: oklch(0.99 0.003 230);
-  --info: oklch(0.58 0.13 255);
-  --info-soft: oklch(0.95 0.025 255);
+  --info: oklch(0.52 0.14 252);
+  --info-soft: oklch(0.95 0.03 252);
 
   /* Lines & focus */
   --border: oklch(0.895 0.012 232);
@@ -104,88 +102,16 @@
   color-scheme: light;
 }
 
-/* ---------- Core tokens: dark theme ---------- */
-.dark {
-  --brand: oklch(0.68 0.1 230);
-  --brand-strong: oklch(0.76 0.1 225);
-  --pulse: oklch(0.78 0.12 205);
-
-  --background: oklch(0.0 0.0 0); /* True Black */
-  --surface-1: oklch(0.12 0.005 250); /* Dark slate card */
-  --surface-2: oklch(0.15 0.005 250);
-  --surface-3: oklch(0.18 0.005 250);
-  --card: var(--surface-1);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.14 0.005 250);
-  --popover-foreground: var(--card-foreground);
-
-  --foreground: oklch(0.98 0 0);
-  --muted: oklch(0.16 0.005 250);
-  --muted-foreground: oklch(0.65 0.005 250);
-  --subtle-foreground: oklch(0.55 0.005 250);
-
-  --primary: var(--brand);
-  --primary-foreground: oklch(0.10 0 0);
-  --secondary: oklch(0.20 0.005 250);
-  --secondary-foreground: oklch(0.95 0 0);
-  --accent: oklch(0.20 0.005 250);
-  --accent-foreground: oklch(0.95 0 0);
-
-  --success: oklch(0.7 0.13 160);
-  --success-soft: oklch(0.15 0.045 160);
-  --warning: oklch(0.78 0.13 80);
-  --warning-soft: oklch(0.18 0.05 85);
-  --destructive: oklch(0.68 0.17 25);
-  --destructive-soft: oklch(0.18 0.06 20);
-  --destructive-foreground: oklch(0.98 0 0);
-  --info: oklch(0.7 0.11 255);
-  --info-soft: oklch(0.15 0.045 255);
-
-  --border: oklch(0.20 0.005 250);
-  --border-strong: oklch(0.26 0.005 250);
-  --input: oklch(0.22 0.005 250);
-  --ring: oklch(0.62 0.09 228);
-
-  --module-accent: var(--brand);
-  --module-accent-soft: oklch(0.28 0.035 238);
-
-  --chart-1: oklch(0.68 0.1 230);
-  --chart-2: oklch(0.75 0.11 195);
-  --chart-3: oklch(0.7 0.13 160);
-  --chart-4: oklch(0.72 0.13 300);
-  --chart-5: oklch(0.78 0.13 80);
-
-  --shadow-color: 250 40% 3%;
-  --shadow-xs: 0 1px 2px hsl(var(--shadow-color) / 0.4);
-  --shadow-sm: 0 1px 3px hsl(var(--shadow-color) / 0.45),
-    0 1px 2px hsl(var(--shadow-color) / 0.3);
-  --shadow-md: 0 4px 12px -2px hsl(var(--shadow-color) / 0.5),
-    0 2px 5px -2px hsl(var(--shadow-color) / 0.4);
-  --shadow-lg: 0 12px 28px -8px hsl(var(--shadow-color) / 0.6),
-    0 4px 10px -4px hsl(var(--shadow-color) / 0.45);
-  --shadow-xl: 0 24px 56px -16px hsl(var(--shadow-color) / 0.7);
-
-  color-scheme: dark;
-}
-
 /* ---------- Module accent identities ----------
    Applied via <div data-module="…"> on module pages; every module keeps
    its own hue while sharing one system. */
-[data-module="clinical"]  { --module-accent: oklch(0.55 0.11 235); --module-accent-soft: oklch(0.94 0.025 235); }
-[data-module="diagnostics"] { --module-accent: oklch(0.6 0.12 200); --module-accent-soft: oklch(0.94 0.03 200); }
-[data-module="pharmacy"]  { --module-accent: oklch(0.58 0.13 160); --module-accent-soft: oklch(0.94 0.035 160); }
-[data-module="finance"]   { --module-accent: oklch(0.55 0.15 295); --module-accent-soft: oklch(0.945 0.03 295); }
-[data-module="inpatient"] { --module-accent: oklch(0.56 0.14 265); --module-accent-soft: oklch(0.945 0.03 265); }
-[data-module="operations"] { --module-accent: oklch(0.62 0.12 55);  --module-accent-soft: oklch(0.95 0.035 65); }
-[data-module="admin"]     { --module-accent: oklch(0.5 0.03 240);  --module-accent-soft: oklch(0.94 0.01 240); }
-
-.dark [data-module="clinical"]  { --module-accent-soft: oklch(0.28 0.04 235); }
-.dark [data-module="diagnostics"] { --module-accent-soft: oklch(0.28 0.045 200); }
-.dark [data-module="pharmacy"]  { --module-accent-soft: oklch(0.27 0.05 160); }
-.dark [data-module="finance"]   { --module-accent-soft: oklch(0.28 0.05 295); }
-.dark [data-module="inpatient"] { --module-accent-soft: oklch(0.28 0.05 265); }
-.dark [data-module="operations"] { --module-accent-soft: oklch(0.28 0.05 60); }
-.dark [data-module="admin"]     { --module-accent-soft: oklch(0.28 0.015 240); }
+[data-module="clinical"]    { --module-accent: oklch(0.55 0.11 235); --module-accent-soft: oklch(0.94 0.025 235); }
+[data-module="diagnostics"] { --module-accent: oklch(0.6 0.12 200);  --module-accent-soft: oklch(0.94 0.03 200); }
+[data-module="pharmacy"]    { --module-accent: oklch(0.58 0.13 160); --module-accent-soft: oklch(0.94 0.035 160); }
+[data-module="finance"]     { --module-accent: oklch(0.55 0.15 295); --module-accent-soft: oklch(0.945 0.03 295); }
+[data-module="inpatient"]   { --module-accent: oklch(0.56 0.14 265); --module-accent-soft: oklch(0.945 0.03 265); }
+[data-module="operations"]  { --module-accent: oklch(0.62 0.12 55);  --module-accent-soft: oklch(0.95 0.035 65); }
+[data-module="admin"]       { --module-accent: oklch(0.5 0.03 240);  --module-accent-soft: oklch(0.94 0.01 240); }
 
 /* ---------- Tailwind theme mapping ---------- */
 @theme inline {
@@ -352,9 +278,9 @@ code, pre, .font-mono { font-family: var(--font-mono), monospace; }
 
 /* Glass chrome for header */
 .glass-chrome {
-  background: color-mix(in oklch, var(--background) 78%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: color-mix(in oklch, var(--background) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 
