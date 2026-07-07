@@ -40,6 +40,7 @@ import { AddInvoiceLinePanel } from "@/components/billing/add-invoice-line-panel
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadPaymentReceiptPdf, type InvoiceItemRecord } from "@/services/billing-service";
 
@@ -234,7 +235,15 @@ export default function BillingPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {patientsLoading ? (
-              <p className="p-4 text-center text-xs text-subtle col-span-full">Loading...</p>
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-full flex items-center justify-between p-3 rounded-2xl border border-transparent">
+                  <div className="space-y-2 flex-1 pr-4">
+                    <Skeleton className="h-4 w-3/4 rounded-lg bg-muted/50" />
+                    <Skeleton className="h-3 w-1/2 rounded-lg bg-muted/50" />
+                  </div>
+                  <Skeleton className="h-6 w-8 rounded-full bg-muted/50" />
+                </div>
+              ))
             ) : filteredPatients.map((patient) => {
               const patientInvoices = invoices.filter((i) => i.patientId === patient.id);
               const active = patient.id === selectedPatientId;
@@ -322,7 +331,38 @@ export default function BillingPage() {
                     </div>
                   )}
 
-                  {detailLoading ? <div className="text-xs text-subtle">Loading invoice...</div> : !invoice ? (
+                  {detailLoading ? (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-6 w-24 rounded-md" />
+                        <div className="text-right space-y-1">
+                          <Skeleton className="h-3 w-16 ml-auto" />
+                          <Skeleton className="h-8 w-32 ml-auto" />
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+                        <div className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 bg-surface-2 px-6 py-3">
+                          <Skeleton className="h-3 w-12" />
+                          <Skeleton className="h-3 w-12 ml-auto" />
+                          <Skeleton className="h-3 w-12 ml-auto" />
+                          <Skeleton className="h-3 w-8" />
+                        </div>
+                        <div className="divide-y divide-slate-50">
+                          {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="grid grid-cols-[1fr_80px_100px_40px] md:grid-cols-[1fr_100px_150px_60px] gap-4 px-6 py-4 items-center">
+                              <div className="space-y-2">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-3 w-1/4" />
+                              </div>
+                              <Skeleton className="h-4 w-16 ml-auto" />
+                              <Skeleton className="h-5 w-20 ml-auto" />
+                              <Skeleton className="h-8 w-8 ml-auto rounded-md" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : !invoice ? (
                     <div className="text-xs text-subtle">No active invoice.</div>
                   ) : (
                     <div className="space-y-6">

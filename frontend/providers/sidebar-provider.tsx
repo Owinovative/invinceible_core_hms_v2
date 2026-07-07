@@ -22,8 +22,23 @@ export function SidebarProvider({
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("meridian:sidebar:collapsed");
+      if (stored !== null) {
+        setCollapsed(stored === "true");
+      }
+    } catch (_e) {}
+  }, []);
+
   const toggleSidebar = React.useCallback(() => {
-    setCollapsed((prev) => !prev);
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("meridian:sidebar:collapsed", String(next));
+      } catch (_e) {}
+      return next;
+    });
   }, []);
 
   const openMobileSidebar = React.useCallback(() => {

@@ -11,6 +11,7 @@ export interface CreatePatientPayload {
   phoneSecondary?: string;
   email?: string;
   occupation?: string;
+  nationalIdNumber?: string;
   shaMemberNumber?: string;
   facilityId: number;
   isDeceased?: boolean;

@@ -117,6 +117,7 @@ export class PatientService {
         email: createPatientDto.email,
         occupation: createPatientDto.occupation,
         shaMemberNumber: createPatientDto.shaMemberNumber,
+        nationalIdNumber: createPatientDto.nationalIdNumber,
         facilityId: createPatientDto.facilityId,
         isDeceased: createPatientDto.isDeceased ?? false,
         isActive: createPatientDto.isActive ?? true,

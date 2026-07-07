@@ -61,6 +61,11 @@ export class CreatePatientDto {
   @MaxLength(120)
   shaMemberNumber?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  nationalIdNumber?: string;
+
   @IsInt()
   facilityId: number;
 
