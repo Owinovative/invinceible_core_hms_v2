@@ -1,3 +1,5 @@
+import type { IntegrationLoggerService } from '../integration-logger.service';
+
 export interface TokenFetchResult {
   accessToken: string;
   /** Lifetime reported by the identity provider. */
@@ -17,6 +19,7 @@ export class TokenManager {
   constructor(
     private readonly fetchToken: () => Promise<TokenFetchResult>,
     private readonly refreshSkewSeconds = 60,
+    private readonly logger?: IntegrationLoggerService,
   ) {}
 
   async getToken(): Promise<string> {
@@ -24,7 +27,11 @@ export class TokenManager {
       return this.accessToken;
     }
     if (!this.inflight) {
-      this.inflight = this.refresh().finally(() => {
+      this.logger?.info('Token expired or missing, initiating refresh');
+      this.inflight = this.refresh().catch((error) => {
+        this.logger?.error('Token refresh failed', { error });
+        throw error;
+      }).finally(() => {
         this.inflight = undefined;
       });
     }

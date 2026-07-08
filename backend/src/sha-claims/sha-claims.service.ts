@@ -295,8 +295,24 @@ export class ShaClaimsService {
       nextStatus === 'REJECTED'
         ? (dto.rejectedAmount ?? dto.claimedAmount ?? claim.claimedAmount)
         : dto.rejectedAmount;
+
+    let metadata = claim.metadata as Record<string, unknown> | null;
+    if (nextStatus === 'SUBMITTED' && (claim.submittedAt || claim.statusCode === 'REJECTED')) {
+      metadata = metadata || {};
+      const resubmissions = (metadata.resubmissions as unknown[]) || [];
+      metadata.resubmissions = [
+        ...resubmissions,
+        {
+          timestamp: new Date().toISOString(),
+          previousStatus: claim.statusCode,
+          actorUserId: user.userId,
+        },
+      ];
+    }
+
     const data: Prisma.ShaClaimUpdateInput = {
       statusCode: nextStatus,
+      metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       branch:
         dto.branchId === undefined
           ? undefined
@@ -381,14 +397,31 @@ export class ShaClaimsService {
       claim.branchId,
     );
 
-    // Advance to SUBMITTED if still in DRAFT
+    // Advance to SUBMITTED if still in DRAFT or REJECTED
     let updated = claim;
-    if (claim.statusCode === 'DRAFT') {
+    if (claim.statusCode === 'DRAFT' || claim.statusCode === 'REJECTED') {
+      const isResubmission = claim.statusCode === 'REJECTED' || !!claim.submittedAt;
+      let metadata = claim.metadata as Record<string, unknown> | null;
+      
+      if (isResubmission) {
+        metadata = metadata || {};
+        const resubmissions = (metadata.resubmissions as unknown[]) || [];
+        metadata.resubmissions = [
+          ...resubmissions,
+          {
+            timestamp: new Date().toISOString(),
+            previousStatus: claim.statusCode,
+            actorUserId: user.userId,
+          },
+        ];
+      }
+
       updated = await this.prisma.shaClaim.update({
         where: { id },
         data: {
           statusCode: 'SUBMITTED',
           submittedAt: new Date(),
+          metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
         },
         include: SHA_CLAIM_INCLUDE,
       });

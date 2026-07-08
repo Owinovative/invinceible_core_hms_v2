@@ -10,6 +10,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { ReportsService } from './reports.service';
+import { ShaPerformanceService } from './sha-performance.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
@@ -17,7 +18,10 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 @Controller('reports')
 @UseGuards(AuthGuard('jwt'))
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(
+    private readonly reportsService: ReportsService,
+    private readonly shaPerformanceService: ShaPerformanceService,
+  ) {}
 
   @Get('dashboard')
   getReportsDashboard(
@@ -27,6 +31,34 @@ export class ReportsController {
     return this.reportsService.getReportsDashboard(
       this.reportsService.applyUserScopeToFilter(user, filter),
     );
+  }
+
+  @Get('sha/aging')
+  getShaClaimAging(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const scopedFilter = this.reportsService.applyUserScopeToFilter(user, filter);
+    return this.shaPerformanceService.getClaimAgingReport({
+      facilityId: scopedFilter.facilityId,
+      branchId: scopedFilter.branchId,
+      startDate: scopedFilter.startDate,
+      endDate: scopedFilter.endDate,
+    });
+  }
+
+  @Get('sha/performance')
+  getShaFacilityPerformance(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const scopedFilter = this.reportsService.applyUserScopeToFilter(user, filter);
+    return this.shaPerformanceService.getFacilityPerformanceReport({
+      facilityId: scopedFilter.facilityId,
+      branchId: scopedFilter.branchId,
+      startDate: scopedFilter.startDate,
+      endDate: scopedFilter.endDate,
+    });
   }
 
   @Get('dashboard/export')

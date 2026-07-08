@@ -134,7 +134,7 @@ export function CreatePatientForm() {
     syncingRef.current = false;
   }, [dateOfBirth, age, form]);
 
-  const handleAgeChange = (value: string) => {
+  const handleAgeChange = React.useCallback((value: string) => {
     const cleanValue = value.replace(/[^\d]/g, "");
     form.setValue("age", cleanValue, {
       shouldDirty: true,
@@ -149,9 +149,9 @@ export function CreatePatientForm() {
       shouldValidate: false,
     });
     syncingRef.current = false;
-  };
+  }, [form]);
 
-  const handleVerifyEligibility = async () => {
+  const handleVerifyEligibility = React.useCallback(async () => {
     const shaNumber = form.getValues("shaMemberNumber");
     const nationalId = form.getValues("nationalIdNumber");
 
@@ -192,9 +192,9 @@ export function CreatePatientForm() {
     } catch (err) {
       setEligibilityError(err as Error);
     }
-  };
+  }, [form, checkEligibilityMutation]);
 
-  const onSubmit = async (values: PatientFormValues) => {
+  const onSubmit = React.useCallback(async (values: PatientFormValues) => {
     setSuccessMessage(null);
     setCreatedNumber(null);
 
@@ -241,7 +241,7 @@ export function CreatePatientForm() {
       setSuccessMessage(null);
       setCreatedNumber(null);
     }
-  };
+  }, [facilityId, createPatientMutation, form]);
 
   return (
     <Card className="rounded-[1.8rem] surface-spotlight shadow-md">

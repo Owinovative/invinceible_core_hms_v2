@@ -60,11 +60,12 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
       useFactory: (
         config: IntegrationConfigService,
         http: IntegrationHttpClient,
+        logger: IntegrationLoggerService,
       ) =>
         config.dhaMode === 'mock'
           ? new DhaMockClient()
-          : new DhaHttpClient(http, config),
-      inject: [IntegrationConfigService, IntegrationHttpClient],
+          : new DhaHttpClient(http, config, logger),
+      inject: [IntegrationConfigService, IntegrationHttpClient, IntegrationLoggerService],
     },
     EtimsService,
     DhaService,

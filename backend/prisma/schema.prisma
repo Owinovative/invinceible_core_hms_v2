@@ -372,6 +372,7 @@ model Patient {
   @@index([facilityId, phonePrimary])
   @@index([facilityId, createdAt])
   @@index([nationalIdNumber])
+  @@index([shaMemberNumber])
   @@map("patients")
 }
 
@@ -1269,6 +1270,8 @@ model ShaClaim {
   @@index([invoiceId])
   @@index([statusCode])
   @@index([createdAt])
+  @@index([fidCode])
+  @@index([memberNumber])
   @@map("sha_claims")
 }
 

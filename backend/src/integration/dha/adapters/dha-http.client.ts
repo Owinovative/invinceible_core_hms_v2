@@ -2,6 +2,7 @@ import { IntegrationHttpClient } from '../../http/integration-http.client';
 import { IntegrationHttpError } from '../../http/retry-policy';
 import type { IntegrationConfigService } from '../../integration-config.service';
 import { INTEGRATION_NAMES } from '../../integration.constants';
+import type { IntegrationLoggerService } from '../../integration-logger.service';
 import type {
   HttpMethod,
   IntegrationCallContext,
@@ -49,8 +50,9 @@ export class DhaHttpClient implements DhaClientPort {
   constructor(
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
+    private readonly logger: IntegrationLoggerService,
   ) {
-    this.tokenManager = new TokenManager(() => this.fetchToken());
+    this.tokenManager = new TokenManager(() => this.fetchToken(), 60, this.logger);
   }
 
   private async fetchToken() {
@@ -119,11 +121,18 @@ export class DhaHttpClient implements DhaClientPort {
           error instanceof IntegrationHttpError &&
           error.httpStatus === 401
         ) {
+          this.logger.warn('DHA API returned 401, invalidating token and retrying');
           this.tokenManager.invalidate();
           token = await this.tokenManager.getToken();
           continue;
         }
         if (error instanceof IntegrationHttpError) {
+          this.logger.error(`DHA API call failed: ${error.message}`, {
+            httpStatus: error.httpStatus,
+            retryable: error.retryable,
+            resource,
+            correlationId: ctx?.correlationId,
+          });
           throw new DhaApiError(
             error.message,
             error.httpStatus,

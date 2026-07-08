@@ -654,8 +654,10 @@ export class DhaService implements OnModuleInit {
       );
 
       let newStatus = claim.statusCode;
-      if (response.status === 'ACCEPTED' || response.status === 'SETTLED') {
+      if (response.status === 'ACCEPTED') {
         newStatus = 'ACCEPTED';
+      } else if (response.status === 'SETTLED') {
+        newStatus = 'PAID';
       } else if (response.status === 'REJECTED') {
         newStatus = 'REJECTED';
       }
