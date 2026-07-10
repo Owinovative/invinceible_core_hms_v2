@@ -7,6 +7,7 @@ import type {
   HttpMethod,
   IntegrationCallContext,
 } from '../../integration.types';
+import type { PrismaService } from '../../../prisma/prisma.service';
 import { TokenManager } from '../../token/token-manager';
 import {
   DhaApiError,
@@ -45,17 +46,37 @@ interface DhaEnvelope {
  * adapter needs updating — the DhaClientPort contract stays stable.
  */
 export class DhaHttpClient implements DhaClientPort {
-  private readonly tokenManager: TokenManager;
+  private readonly tokenManagers = new Map<number, TokenManager>();
 
   constructor(
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
     private readonly logger: IntegrationLoggerService,
-  ) {
-    this.tokenManager = new TokenManager(() => this.fetchToken(), 60, this.logger);
+    private readonly prisma: PrismaService,
+  ) {}
+
+  private getTokenManager(facilityId?: number): TokenManager {
+    const key = facilityId ?? 0;
+    let manager = this.tokenManagers.get(key);
+    if (!manager) {
+      manager = new TokenManager(() => this.fetchToken(facilityId), 60, this.logger);
+      this.tokenManagers.set(key, manager);
+    }
+    return manager;
   }
 
-  private async fetchToken() {
+  private async fetchToken(facilityId?: number) {
+    let clientId = this.config.dhaClientId;
+    let clientSecret = this.config.dhaClientSecret;
+
+    if (facilityId) {
+      const facility = await this.prisma.facility.findUnique({ where: { id: facilityId } });
+      if (facility?.shaClientId && facility?.shaClientSecret) {
+        clientId = facility.shaClientId;
+        clientSecret = facility.shaClientSecret;
+      }
+    }
+
     const response = await this.http.request<{
       access_token?: string;
       expires_in?: number;
@@ -66,7 +87,7 @@ export class DhaHttpClient implements DhaClientPort {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(
-          `${this.config.dhaClientId}:${this.config.dhaClientSecret}`,
+          `${clientId}:${clientSecret}`,
         ).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -90,7 +111,16 @@ export class DhaHttpClient implements DhaClientPort {
     ctx?: IntegrationCallContext,
     query?: Record<string, string | number | undefined>,
   ): Promise<DhaEnvelope> {
-    let token = await this.tokenManager.getToken();
+    const tokenManager = this.getTokenManager(ctx?.facilityId);
+    let token = await tokenManager.getToken();
+
+    let facilityCode = this.config.dhaFacilityCode;
+    if (ctx?.facilityId) {
+      const facility = await this.prisma.facility.findUnique({ where: { id: ctx.facilityId } });
+      if (facility?.shaFidCode) {
+        facilityCode = facility.shaFidCode;
+      }
+    }
 
     for (let attempt = 1; ; attempt += 1) {
       try {
@@ -104,7 +134,7 @@ export class DhaHttpClient implements DhaClientPort {
             Accept: 'application/fhir+json',
             'Content-Type': 'application/fhir+json',
             'X-API-Version': this.config.dhaApiVersion,
-            'X-Facility-Code': this.config.dhaFacilityCode,
+            'X-Facility-Code': facilityCode,
           },
           query,
           body,
@@ -122,8 +152,8 @@ export class DhaHttpClient implements DhaClientPort {
           error.httpStatus === 401
         ) {
           this.logger.warn('DHA API returned 401, invalidating token and retrying');
-          this.tokenManager.invalidate();
-          token = await this.tokenManager.getToken();
+          tokenManager.invalidate();
+          token = await tokenManager.getToken();
           continue;
         }
         if (error instanceof IntegrationHttpError) {

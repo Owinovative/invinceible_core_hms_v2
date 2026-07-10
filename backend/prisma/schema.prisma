@@ -49,8 +49,14 @@ model Facility {
   showTillOnInvoice       Boolean                       @default(true)
   showPochiOnInvoice      Boolean                       @default(true)
   shaFidCode              String?                       @db.VarChar(120)
+  shaClientId             String?                       @db.VarChar(255)
+  shaClientSecret         String?                       @db.LongText
   shaClaimStartNumber     Int                           @default(1)
   shaClaimNextNumber      Int                           @default(1)
+  etimsTin                String?                       @db.VarChar(50)
+  etimsBranchId           String?                       @default("00") @db.VarChar(10)
+  etimsCmcKey             String?                       @db.LongText
+  etimsDeviceSerial       String?                       @db.VarChar(100)
   subscriptionMonthlyFee  Float                         @default(5000)
   subscriptionStartedAt   DateTime?
   subscriptionPaidThrough DateTime?

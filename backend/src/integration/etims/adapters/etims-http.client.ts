@@ -1,5 +1,6 @@
 import { IntegrationHttpClient } from '../../http/integration-http.client';
 import type { IntegrationConfigService } from '../../integration-config.service';
+import type { PrismaService } from '../../../prisma/prisma.service';
 import { INTEGRATION_NAMES } from '../../integration.constants';
 import type { IntegrationCallContext } from '../../integration.types';
 import {
@@ -32,13 +33,33 @@ export class EtimsHttpClient implements EtimsClientPort {
   constructor(
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
-  private authHeaders(): Record<string, string> {
+  private async getCredentials(facilityId?: number) {
+    let tin = this.config.etimsTin;
+    let bhfId = this.config.etimsBranchId;
+    let cmcKey = this.config.etimsCmcKey;
+    let serial = this.config.etimsDeviceSerial;
+
+    if (facilityId) {
+      const facility = await this.prisma.facility.findUnique({ where: { id: facilityId } });
+      if (facility) {
+        tin = facility.etimsTin || tin;
+        bhfId = facility.etimsBranchId || bhfId;
+        cmcKey = facility.etimsCmcKey || cmcKey;
+        serial = facility.etimsDeviceSerial || serial;
+      }
+    }
+    return { tin, bhfId, cmcKey, serial };
+  }
+
+  private async authHeaders(ctx?: IntegrationCallContext): Promise<Record<string, string>> {
+    const creds = await this.getCredentials(ctx?.facilityId);
     return {
-      tin: this.config.etimsTin,
-      bhfId: this.config.etimsBranchId,
-      cmcKey: this.config.etimsCmcKey,
+      tin: creds.tin,
+      bhfId: creds.bhfId,
+      cmcKey: creds.cmcKey,
     };
   }
 
@@ -52,7 +73,7 @@ export class EtimsHttpClient implements EtimsClientPort {
       baseUrl: this.config.etimsBaseUrl,
       path,
       method: 'POST',
-      headers: this.authHeaders(),
+      headers: await this.authHeaders(ctx),
       body,
       timeoutMs: this.config.etimsTimeoutMs,
       maxAttempts: 3,
@@ -77,14 +98,15 @@ export class EtimsHttpClient implements EtimsClientPort {
   async initializeDevice(
     ctx?: IntegrationCallContext,
   ): Promise<EtimsDeviceInfo> {
+    const creds = await this.getCredentials(ctx?.facilityId);
     const envelope = await this.post<{
       info?: { sdcId?: string; mrcNo?: string; cmcKey?: string };
     }>(
       '/selectInitOsdcInfo',
       {
-        tin: this.config.etimsTin,
-        bhfId: this.config.etimsBranchId,
-        dvcSrlNo: this.config.etimsDeviceSerial,
+        tin: creds.tin,
+        bhfId: creds.bhfId,
+        dvcSrlNo: creds.serial,
       },
       ctx,
     );
@@ -128,11 +150,12 @@ export class EtimsHttpClient implements EtimsClientPort {
     invcNo: number,
     ctx?: IntegrationCallContext,
   ): Promise<EtimsStatusResult> {
+    const creds = await this.getCredentials(ctx?.facilityId);
     const envelope = await this.post<{ sttsCd?: string }>(
       '/selectTrnsSalesStatus',
       {
-        tin: this.config.etimsTin,
-        bhfId: this.config.etimsBranchId,
+        tin: creds.tin,
+        bhfId: creds.bhfId,
         invcNo,
       },
       ctx,

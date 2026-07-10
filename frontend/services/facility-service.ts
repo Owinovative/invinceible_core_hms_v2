@@ -103,6 +103,12 @@ export interface CreateFacilityPayload {
   shaFidCode?: string;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
+  shaClientId?: string;
+  shaClientSecret?: string;
+  etimsTin?: string;
+  etimsBranchId?: string;
+  etimsCmcKey?: string;
+  etimsDeviceSerial?: string;
   complianceStatus?: string;
   complianceReason?: string;
   isHeadOffice?: boolean;
@@ -153,6 +159,12 @@ export interface UpdateFacilityPayload {
   shaFidCode?: string;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
+  shaClientId?: string;
+  shaClientSecret?: string;
+  etimsTin?: string;
+  etimsBranchId?: string;
+  etimsCmcKey?: string;
+  etimsDeviceSerial?: string;
   complianceStatus?: string;
   complianceReason?: string;
   isHeadOffice?: boolean;

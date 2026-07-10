@@ -27,8 +27,19 @@ function makeClient(script: ScriptedResponse[]) {
       });
     }),
   } as unknown as IntegrationHttpClient;
-  const client = new DhaHttpClient(http, makeConfig({ DHA_MODE: 'sandbox' }));
-  return { client, calls };
+  const prisma = {
+    facility: {
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
+  } as any;
+  const logger = {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  } as any;
+  const client = new DhaHttpClient(http, makeConfig({ DHA_MODE: 'sandbox' }), logger, prisma);
+  return { client, calls, prisma };
 }
 
 const TOKEN_RESPONSE = {
