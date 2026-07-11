@@ -54,6 +54,7 @@ import { DataOutboxModule } from './data-outbox/data-outbox.module';
 import { IntegrationModule } from './integration/integration.module';
 import { SyncJobsModule } from './integration/sync-jobs/sync-jobs.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LegalModule } from './legal/legal.module';
 
 @Module({
   imports: [
@@ -105,6 +106,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     UserReviewModule,
     FeedbackModule,
     FacilitySubscriptionModule,
+    LegalModule,
   ],
   controllers: [AppController],
   providers: [

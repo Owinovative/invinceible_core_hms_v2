@@ -108,57 +108,57 @@ model Facility {
 }
 
 model Branch {
-  id                   Int                   @id @default(autoincrement())
-  code                 String                @unique @db.VarChar(50)
-  name                 String                @db.VarChar(150)
-  facilityId           Int
-  county               String?               @db.VarChar(120)
-  town                 String?               @db.VarChar(120)
-  country              String?               @db.VarChar(120)
-  phone                String?               @db.VarChar(50)
-  email                String?               @db.VarChar(255)
-  address              String?               @db.VarChar(255)
-  postalAddress        String?               @db.VarChar(255)
-  timezone             String?               @db.VarChar(100)
-  currency             String?               @db.VarChar(20)
-  mpesaShortcode       String?               @db.VarChar(50)
-  mpesaPaybill         String?               @db.VarChar(50)
-  mpesaAccountNumber   String?               @db.VarChar(80)
-  mpesaTillNumber      String?               @db.VarChar(50)
-  mpesaPochiNumber     String?               @db.VarChar(80)
-  latitude             Float?
-  longitude            Float?
-  mapLocationLabel     String?               @db.VarChar(255)
-  googleMapsUrl        String?               @db.VarChar(500)
-  isDefault            Boolean               @default(false)
-  isActive             Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  admissions           Admission[]
-  appointments         Appointment[]
-  triages              Triage[]
-  auditLogs            AuditLog[]
-  beds                 Bed[]
-  facility             Facility              @relation(fields: [facilityId], references: [id])
-  clinics              Clinic[]
-  consultations        Consultation[]
-  departments          Department[]
-  invoices             Invoice[]
-  labOrders            LabOrder[]
-  notifications        Notification[]
-  payments             Payment[]
-  prescriptions        Prescription[]
-  staffMembers         Staff[]
-  userAccesses         UserBranchAccess[]
-  users                User[]
-  wards                Ward[]
-  branchMedicineStocks BranchMedicineStock[]
-  dispenses            Dispense[]
-  serviceTariffs       ServiceTariff[]
-  shaClaims            ShaClaim[]
-  userFeedback         UserFeedback[]
-  otcSales             OtcSale[]
-  otcSalePayments      OtcSalePayment[]
+  id                     Int                     @id @default(autoincrement())
+  code                   String                  @unique @db.VarChar(50)
+  name                   String                  @db.VarChar(150)
+  facilityId             Int
+  county                 String?                 @db.VarChar(120)
+  town                   String?                 @db.VarChar(120)
+  country                String?                 @db.VarChar(120)
+  phone                  String?                 @db.VarChar(50)
+  email                  String?                 @db.VarChar(255)
+  address                String?                 @db.VarChar(255)
+  postalAddress          String?                 @db.VarChar(255)
+  timezone               String?                 @db.VarChar(100)
+  currency               String?                 @db.VarChar(20)
+  mpesaShortcode         String?                 @db.VarChar(50)
+  mpesaPaybill           String?                 @db.VarChar(50)
+  mpesaAccountNumber     String?                 @db.VarChar(80)
+  mpesaTillNumber        String?                 @db.VarChar(50)
+  mpesaPochiNumber       String?                 @db.VarChar(80)
+  latitude               Float?
+  longitude              Float?
+  mapLocationLabel       String?                 @db.VarChar(255)
+  googleMapsUrl          String?                 @db.VarChar(500)
+  isDefault              Boolean                 @default(false)
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  admissions             Admission[]
+  appointments           Appointment[]
+  triages                Triage[]
+  auditLogs              AuditLog[]
+  beds                   Bed[]
+  facility               Facility                @relation(fields: [facilityId], references: [id])
+  clinics                Clinic[]
+  consultations          Consultation[]
+  departments            Department[]
+  invoices               Invoice[]
+  labOrders              LabOrder[]
+  notifications          Notification[]
+  payments               Payment[]
+  prescriptions          Prescription[]
+  staffMembers           Staff[]
+  userAccesses           UserBranchAccess[]
+  users                  User[]
+  wards                  Ward[]
+  branchMedicineStocks   BranchMedicineStock[]
+  dispenses              Dispense[]
+  serviceTariffs         ServiceTariff[]
+  shaClaims              ShaClaim[]
+  userFeedback           UserFeedback[]
+  otcSales               OtcSale[]
+  otcSalePayments        OtcSalePayment[]
   pharmacyStockMovements PharmacyStockMovement[]
 
   @@index([facilityId])
@@ -237,6 +237,7 @@ model User {
   homeBranch                       Branch?               @relation(fields: [homeBranchId], references: [id])
   homeFacility                     Facility?             @relation("UserHomeFacility", fields: [homeFacilityId], references: [id])
   role                             Role                  @relation(fields: [roleId], references: [id])
+  legalAcceptances                 LegalAcceptance[]
 
   @@index([roleId])
   @@index([homeFacilityId])
@@ -290,24 +291,24 @@ model Staff {
   roleId                      Int
   userId                      Int?     @unique
 
-  admissions            Admission[]           @relation("AdmittedByStaff")
-  appointments          Appointment[]         @relation("AppointmentDoctor")
-  auditLogs             AuditLog[]            @relation("AuditActorStaff")
+  admissions            Admission[]             @relation("AdmittedByStaff")
+  appointments          Appointment[]           @relation("AppointmentDoctor")
+  auditLogs             AuditLog[]              @relation("AuditActorStaff")
   consultations         Consultation[]
-  createdInvoices       Invoice[]             @relation("InvoiceCreatedByStaff")
-  ipdProgressNotes      IpdProgressNote[]     @relation("IpdProgressRecordedBy")
-  ipdVitalRecords       IpdVitalRecord[]      @relation("IpdVitalRecordedBy")
-  ipdDoctorReviews      IpdDoctorReview[]     @relation("IpdDoctorReviewedBy")
-  ipdDischargeSummaries IpdDischargeSummary[] @relation("IpdDischargedBy")
-  labOrders             LabOrder[]            @relation("LabRequestedBy")
-  resolvedNotifications Notification[]        @relation("NotificationResolvedByStaff")
-  receivedPayments      Payment[]             @relation("PaymentReceivedByStaff")
-  prescriptions         Prescription[]        @relation("PrescribedByStaff")
-  dispenses             Dispense[]            @relation("DispensedByStaff")
-  shaClaims             ShaClaim[]            @relation("ShaClaimCreatedBy")
-  createdFeedback       UserFeedback[]        @relation("FeedbackCreatedByStaff")
-  createdOtcSales       OtcSale[]             @relation("OtcSaleCreatedByStaff")
-  otcSalePayments       OtcSalePayment[]      @relation("OtcSalePaymentReceivedByStaff")
+  createdInvoices       Invoice[]               @relation("InvoiceCreatedByStaff")
+  ipdProgressNotes      IpdProgressNote[]       @relation("IpdProgressRecordedBy")
+  ipdVitalRecords       IpdVitalRecord[]        @relation("IpdVitalRecordedBy")
+  ipdDoctorReviews      IpdDoctorReview[]       @relation("IpdDoctorReviewedBy")
+  ipdDischargeSummaries IpdDischargeSummary[]   @relation("IpdDischargedBy")
+  labOrders             LabOrder[]              @relation("LabRequestedBy")
+  resolvedNotifications Notification[]          @relation("NotificationResolvedByStaff")
+  receivedPayments      Payment[]               @relation("PaymentReceivedByStaff")
+  prescriptions         Prescription[]          @relation("PrescribedByStaff")
+  dispenses             Dispense[]              @relation("DispensedByStaff")
+  shaClaims             ShaClaim[]              @relation("ShaClaimCreatedBy")
+  createdFeedback       UserFeedback[]          @relation("FeedbackCreatedByStaff")
+  createdOtcSales       OtcSale[]               @relation("OtcSaleCreatedByStaff")
+  otcSalePayments       OtcSalePayment[]        @relation("OtcSalePaymentReceivedByStaff")
   otcStockMovements     PharmacyStockMovement[] @relation("PharmacyStockMovementStaff")
 
   branch     Branch?     @relation(fields: [branchId], references: [id])
@@ -335,39 +336,39 @@ model Staff {
 }
 
 model Patient {
-  id             Int            @id @default(autoincrement())
-  patientNumber  String         @unique @db.VarChar(50)
-  firstName      String         @db.VarChar(100)
-  middleName     String?        @db.VarChar(100)
-  lastName       String         @db.VarChar(100)
-  gender         String?        @db.VarChar(20)
-  dateOfBirth    DateTime?
-  phonePrimary   String?        @db.VarChar(30)
-  phoneSecondary String?        @db.VarChar(30)
-  email          String?        @db.VarChar(255)
-  occupation     String?        @db.VarChar(120)
-  isDeceased     Boolean        @default(false)
-  isActive       Boolean        @default(true)
-  shaStatus      String?        @db.VarChar(50)
+  id                      Int            @id @default(autoincrement())
+  patientNumber           String         @unique @db.VarChar(50)
+  firstName               String         @db.VarChar(100)
+  middleName              String?        @db.VarChar(100)
+  lastName                String         @db.VarChar(100)
+  gender                  String?        @db.VarChar(20)
+  dateOfBirth             DateTime?
+  phonePrimary            String?        @db.VarChar(30)
+  phoneSecondary          String?        @db.VarChar(30)
+  email                   String?        @db.VarChar(255)
+  occupation              String?        @db.VarChar(120)
+  isDeceased              Boolean        @default(false)
+  isActive                Boolean        @default(true)
+  shaStatus               String?        @db.VarChar(50)
   shaEligibilityUpdatedAt DateTime?
-  shaMemberNumber String?       @db.VarChar(120)
-  nationalIdNumber String?      @db.VarChar(80)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  facilityId     Int
-  portalUserId   Int?           @unique
-  admissions     Admission[]
-  triages        Triage[]
-  appointments   Appointment[]
-  consultations  Consultation[]
-  invoices       Invoice[]
-  shaClaims      ShaClaim[]
-  labOrders      LabOrder[]
-  facility       Facility       @relation(fields: [facilityId], references: [id])
-  portalUser     User?          @relation("PatientPortalUser", fields: [portalUserId], references: [id])
-  prescriptions  Prescription[]
-  dispenses      Dispense[]
-  otcSales       OtcSale[]
+  shaMemberNumber         String?        @db.VarChar(120)
+  nationalIdNumber        String?        @db.VarChar(80)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  facilityId              Int
+  portalUserId            Int?           @unique
+  admissions              Admission[]
+  triages                 Triage[]
+  appointments            Appointment[]
+  consultations           Consultation[]
+  invoices                Invoice[]
+  shaClaims               ShaClaim[]
+  labOrders               LabOrder[]
+  facility                Facility       @relation(fields: [facilityId], references: [id])
+  portalUser              User?          @relation("PatientPortalUser", fields: [portalUserId], references: [id])
+  prescriptions           Prescription[]
+  dispenses               Dispense[]
+  otcSales                OtcSale[]
 
   @@index([facilityId])
   @@index([phonePrimary])
@@ -645,18 +646,18 @@ model LabResult {
 }
 
 model Medicine {
-  id                Int                   @id @default(autoincrement())
-  code              String                @unique @db.VarChar(50)
-  name              String                @db.VarChar(150)
-  dosageForm        String?               @db.VarChar(100)
-  strength          String?               @db.VarChar(100)
-  manufacturer      String?               @db.VarChar(150)
-  unitPrice         Float?                @default(0)
-  stockQuantity     Int                   @default(0)
-  reorderLevel      Int                   @default(0)
-  isActive          Boolean               @default(true)
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  id                Int                     @id @default(autoincrement())
+  code              String                  @unique @db.VarChar(50)
+  name              String                  @db.VarChar(150)
+  dosageForm        String?                 @db.VarChar(100)
+  strength          String?                 @db.VarChar(100)
+  manufacturer      String?                 @db.VarChar(150)
+  unitPrice         Float?                  @default(0)
+  stockQuantity     Int                     @default(0)
+  reorderLevel      Int                     @default(0)
+  isActive          Boolean                 @default(true)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
   prescriptionItems PrescriptionItem[]
   branchStocks      BranchMedicineStock[]
   dispenseItems     DispenseItem[]
@@ -1067,20 +1068,20 @@ model ServiceTariff {
 }
 
 model Invoice {
-  id               Int           @id @default(autoincrement())
-  invoiceNumber    String        @unique @db.VarChar(50)
-  statusCode       String        @default("PENDING") @db.VarChar(50)
-  subtotal         Float         @default(0)
-  discountAmount   Float         @default(0)
-  taxAmount        Float         @default(0)
-  totalAmount      Float         @default(0)
-  paidAmount       Float         @default(0)
-  balanceAmount    Float         @default(0)
-  notes            String?       @db.Text
-  issuedAt         DateTime      @default(now())
+  id               Int            @id @default(autoincrement())
+  invoiceNumber    String         @unique @db.VarChar(50)
+  statusCode       String         @default("PENDING") @db.VarChar(50)
+  subtotal         Float          @default(0)
+  discountAmount   Float          @default(0)
+  taxAmount        Float          @default(0)
+  totalAmount      Float          @default(0)
+  paidAmount       Float          @default(0)
+  balanceAmount    Float          @default(0)
+  notes            String?        @db.Text
+  issuedAt         DateTime       @default(now())
   settledAt        DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   facilityId       Int
   branchId         Int?
   patientId        Int
@@ -1089,13 +1090,13 @@ model Invoice {
   admissionId      Int?
   createdByStaffId Int?
   items            InvoiceItem[]
-  admission        Admission?    @relation(fields: [admissionId], references: [id])
-  appointment      Appointment?  @relation(fields: [appointmentId], references: [id])
-  branch           Branch?       @relation(fields: [branchId], references: [id])
-  consultation     Consultation? @relation(fields: [consultationId], references: [id])
-  createdBy        Staff?        @relation("InvoiceCreatedByStaff", fields: [createdByStaffId], references: [id])
-  facility         Facility      @relation(fields: [facilityId], references: [id])
-  patient          Patient       @relation(fields: [patientId], references: [id])
+  admission        Admission?     @relation(fields: [admissionId], references: [id])
+  appointment      Appointment?   @relation(fields: [appointmentId], references: [id])
+  branch           Branch?        @relation(fields: [branchId], references: [id])
+  consultation     Consultation?  @relation(fields: [consultationId], references: [id])
+  createdBy        Staff?         @relation("InvoiceCreatedByStaff", fields: [createdByStaffId], references: [id])
+  facility         Facility       @relation(fields: [facilityId], references: [id])
+  patient          Patient        @relation(fields: [patientId], references: [id])
   payments         Payment[]
   shaClaims        ShaClaim[]
   etimsInvoices    EtimsInvoice[]
@@ -1557,9 +1558,9 @@ model BranchMedicineStock {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  facility Facility @relation(fields: [facilityId], references: [id])
-  branch   Branch   @relation(fields: [branchId], references: [id])
-  medicine Medicine @relation(fields: [medicineId], references: [id])
+  facility       Facility                @relation(fields: [facilityId], references: [id])
+  branch         Branch                  @relation(fields: [branchId], references: [id])
+  medicine       Medicine                @relation(fields: [medicineId], references: [id])
   stockMovements PharmacyStockMovement[]
 
   @@unique([branchId, medicineId])
@@ -1575,34 +1576,34 @@ model BranchMedicineStock {
 }
 
 model OtcSale {
-  id               Int      @id @default(autoincrement())
-  saleNumber       String   @unique @db.VarChar(50)
-  saleType         String   @default("OTC") @db.VarChar(20)
-  customerName     String?  @db.VarChar(150)
-  customerPhone    String?  @db.VarChar(30)
-  status           String   @default("DRAFT") @db.VarChar(50)
-  paymentStatus    String   @default("UNPAID") @db.VarChar(50)
-  subtotal         Float    @default(0)
-  discountAmount   Float    @default(0)
-  taxAmount        Float    @default(0)
-  totalAmount      Float    @default(0)
-  paidAmount       Float    @default(0)
-  balanceAmount    Float    @default(0)
+  id               Int       @id @default(autoincrement())
+  saleNumber       String    @unique @db.VarChar(50)
+  saleType         String    @default("OTC") @db.VarChar(20)
+  customerName     String?   @db.VarChar(150)
+  customerPhone    String?   @db.VarChar(30)
+  status           String    @default("DRAFT") @db.VarChar(50)
+  paymentStatus    String    @default("UNPAID") @db.VarChar(50)
+  subtotal         Float     @default(0)
+  discountAmount   Float     @default(0)
+  taxAmount        Float     @default(0)
+  totalAmount      Float     @default(0)
+  paidAmount       Float     @default(0)
+  balanceAmount    Float     @default(0)
   soldAt           DateTime?
-  notes            String?  @db.Text
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   facilityId       Int
   branchId         Int
   patientId        Int?
   createdByStaffId Int
 
-  facility  Facility      @relation(fields: [facilityId], references: [id])
-  branch    Branch        @relation(fields: [branchId], references: [id])
-  patient   Patient?      @relation(fields: [patientId], references: [id])
-  createdBy Staff        @relation("OtcSaleCreatedByStaff", fields: [createdByStaffId], references: [id])
-  items     OtcSaleItem[]
-  payments  OtcSalePayment[]
+  facility       Facility                @relation(fields: [facilityId], references: [id])
+  branch         Branch                  @relation(fields: [branchId], references: [id])
+  patient        Patient?                @relation(fields: [patientId], references: [id])
+  createdBy      Staff                   @relation("OtcSaleCreatedByStaff", fields: [createdByStaffId], references: [id])
+  items          OtcSaleItem[]
+  payments       OtcSalePayment[]
   stockMovements PharmacyStockMovement[]
 
   @@index([facilityId])
@@ -1633,8 +1634,8 @@ model OtcSaleItem {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  sale      OtcSale   @relation(fields: [saleId], references: [id])
-  medicine  Medicine  @relation(fields: [medicineId], references: [id])
+  sale           OtcSale                 @relation(fields: [saleId], references: [id])
+  medicine       Medicine                @relation(fields: [medicineId], references: [id])
   stockMovements PharmacyStockMovement[]
 
   @@index([saleId])
@@ -1693,22 +1694,22 @@ model OtcSalePayment {
 }
 
 model PharmacyStockMovement {
-  id              Int      @id @default(autoincrement())
-  facilityId      Int
-  branchId        Int
-  medicineId      Int
-  branchStockId   Int?
-  sourceType      String   @db.VarChar(50)
-  sourceEntityId  String?  @db.VarChar(100)
-  movementType    String   @db.VarChar(50)
-  quantity        Int
-  stockBefore     Int
-  stockAfter      Int
-  otcSaleId       Int?
-  otcSaleItemId   Int?
+  id                 Int      @id @default(autoincrement())
+  facilityId         Int
+  branchId           Int
+  medicineId         Int
+  branchStockId      Int?
+  sourceType         String   @db.VarChar(50)
+  sourceEntityId     String?  @db.VarChar(100)
+  movementType       String   @db.VarChar(50)
+  quantity           Int
+  stockBefore        Int
+  stockAfter         Int
+  otcSaleId          Int?
+  otcSaleItemId      Int?
   performedByStaffId Int?
-  notes           String?  @db.Text
-  createdAt       DateTime @default(now())
+  notes              String?  @db.Text
+  createdAt          DateTime @default(now())
 
   facility    Facility             @relation(fields: [facilityId], references: [id])
   branch      Branch               @relation(fields: [branchId], references: [id])
@@ -1807,43 +1808,43 @@ model DataOutboxEvent {
 // KRA eTIMS. An invoice has at most one active SALE document plus any number
 // of CREDIT_NOTE / DEBIT_NOTE amendments referencing it.
 model EtimsInvoice {
-  id                  Int       @id @default(autoincrement())
-  documentType        String    @default("SALE") @db.VarChar(30)
-  traderInvoiceNumber String    @unique @db.VarChar(100)
-  statusCode          String    @default("PENDING") @db.VarChar(40)
-  receiptTypeCode     String    @default("S") @db.VarChar(5)
-  paymentTypeCode     String?   @db.VarChar(5)
-  cuInvoiceNumber     String?   @db.VarChar(120)
-  cuReceiptNumber     String?   @db.VarChar(120)
-  internalData        String?   @db.VarChar(255)
-  receiptSignature    String?   @db.VarChar(255)
-  sdcId               String?   @db.VarChar(120)
-  mrcNumber           String?   @db.VarChar(120)
+  id                  Int            @id @default(autoincrement())
+  documentType        String         @default("SALE") @db.VarChar(30)
+  traderInvoiceNumber String         @unique @db.VarChar(100)
+  statusCode          String         @default("PENDING") @db.VarChar(40)
+  receiptTypeCode     String         @default("S") @db.VarChar(5)
+  paymentTypeCode     String?        @db.VarChar(5)
+  cuInvoiceNumber     String?        @db.VarChar(120)
+  cuReceiptNumber     String?        @db.VarChar(120)
+  internalData        String?        @db.VarChar(255)
+  receiptSignature    String?        @db.VarChar(255)
+  sdcId               String?        @db.VarChar(120)
+  mrcNumber           String?        @db.VarChar(120)
   sdcDateTime         DateTime?
-  qrCodeUrl           String?   @db.Text
-  qrCodeData          String?   @db.LongText
-  totalTaxableAmount  Float     @default(0)
-  totalTaxAmount      Float     @default(0)
-  totalAmount         Float     @default(0)
-  currency            String    @default("KES") @db.VarChar(10)
+  qrCodeUrl           String?        @db.Text
+  qrCodeData          String?        @db.LongText
+  totalTaxableAmount  Float          @default(0)
+  totalTaxAmount      Float          @default(0)
+  totalAmount         Float          @default(0)
+  currency            String         @default("KES") @db.VarChar(10)
   taxBreakdown        Json?
   requestPayload      Json?
   responsePayload     Json?
-  errorMessage        String?   @db.Text
-  cancelReason        String?   @db.Text
-  attemptCount        Int       @default(0)
-  correlationId       String?   @db.VarChar(120)
+  errorMessage        String?        @db.Text
+  cancelReason        String?        @db.Text
+  attemptCount        Int            @default(0)
+  correlationId       String?        @db.VarChar(120)
   lastAttemptAt       DateTime?
   submittedAt         DateTime?
   acceptedAt          DateTime?
   cancelledAt         DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
   invoiceId           Int
   originalId          Int?
   facilityId          Int
   branchId            Int?
-  invoice             Invoice   @relation(fields: [invoiceId], references: [id])
+  invoice             Invoice        @relation(fields: [invoiceId], references: [id])
   original            EtimsInvoice?  @relation("EtimsInvoiceAmendments", fields: [originalId], references: [id])
   amendments          EtimsInvoice[] @relation("EtimsInvoiceAmendments")
 
@@ -1947,4 +1948,37 @@ model DhaTransaction {
   @@index([correlationId])
   @@index([createdAt])
   @@map("dha_transactions")
+}
+
+model LegalDocument {
+  id          Int               @id @default(autoincrement())
+  type        String            @db.VarChar(50)
+  version     String            @db.VarChar(50)
+  title       String            @db.VarChar(255)
+  content     String            @db.LongText
+  status      String            @default("DRAFT") @db.VarChar(50)
+  publishedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  acceptances LegalAcceptance[]
+
+  @@unique([type, version])
+  @@index([type, status])
+  @@map("legal_documents")
+}
+
+model LegalAcceptance {
+  id         Int           @id @default(autoincrement())
+  userId     Int
+  documentId Int
+  acceptedAt DateTime      @default(now())
+  ipAddress  String?       @db.VarChar(100)
+  userAgent  String?       @db.Text
+  user       User          @relation(fields: [userId], references: [id])
+  document   LegalDocument @relation(fields: [documentId], references: [id])
+
+  @@unique([userId, documentId])
+  @@index([userId])
+  @@index([documentId])
+  @@map("legal_acceptances")
 }

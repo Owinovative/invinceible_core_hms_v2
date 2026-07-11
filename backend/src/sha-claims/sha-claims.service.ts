@@ -275,7 +275,7 @@ export class ShaClaimsService {
     return claim;
   }
 
-  private appendResubmissionMetadata(claim: { statusCode: string; metadata: any }, userId: string) {
+  private appendResubmissionMetadata(claim: { statusCode: string; metadata: any }, userId: number) {
     let metadata = claim.metadata as Record<string, unknown> | null;
     metadata = metadata || {};
     const resubmissions = (metadata.resubmissions as unknown[]) || [];

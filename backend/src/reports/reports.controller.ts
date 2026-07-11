@@ -40,10 +40,10 @@ export class ReportsController {
   ) {
     const scopedFilter = this.reportsService.applyUserScopeToFilter(user, filter);
     return this.shaPerformanceService.getClaimAgingReport({
-      facilityId: scopedFilter.facilityId,
+      facilityId: scopedFilter.facilityId ?? 0,
       branchId: scopedFilter.branchId,
-      startDate: scopedFilter.startDate,
-      endDate: scopedFilter.endDate,
+      startDate: scopedFilter.startDate ?? '',
+      endDate: scopedFilter.endDate ?? '',
     });
   }
 
@@ -54,10 +54,10 @@ export class ReportsController {
   ) {
     const scopedFilter = this.reportsService.applyUserScopeToFilter(user, filter);
     return this.shaPerformanceService.getFacilityPerformanceReport({
-      facilityId: scopedFilter.facilityId,
+      facilityId: scopedFilter.facilityId ?? 0,
       branchId: scopedFilter.branchId,
-      startDate: scopedFilter.startDate,
-      endDate: scopedFilter.endDate,
+      startDate: scopedFilter.startDate ?? '',
+      endDate: scopedFilter.endDate ?? '',
     });
   }
 

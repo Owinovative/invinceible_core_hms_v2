@@ -44,6 +44,13 @@ export function ShellStatusFooter({ label, scope }: ShellStatusFooterProps) {
           {scope}
         </span>
       ) : null}
+      
+      <span className="hidden items-center gap-3 border-l border-border pl-4 md:flex">
+        <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Terms</a>
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Privacy</a>
+        <span className="opacity-75">&copy; Invinceible Core</span>
+      </span>
+
       <span className="tabular ml-auto flex shrink-0 items-center gap-1.5">
         <Clock3 className="size-3.5 text-module" aria-hidden />
         {now ? formatClock(now) : "—"}

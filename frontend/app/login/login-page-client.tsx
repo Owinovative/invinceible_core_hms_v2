@@ -85,12 +85,14 @@ export default function LoginPageClient() {
     setError(null);
 
     try {
-      await login({
+      const result = await login({
         username: values.username.trim(),
         password: values.password.trim(),
       });
 
-      if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) {
+      if (result?.requiresLegalConsent) {
+        router.replace("/consent");
+      } else if (nextPath?.startsWith("/") && !nextPath.startsWith("//")) {
         router.replace(nextPath);
       } else {
         router.replace("/dashboard");
@@ -294,6 +296,18 @@ export default function LoginPageClient() {
                   {isLoading ? "Signing in…" : "Sign in"}
                   <ArrowRight data-icon="inline-end" aria-hidden />
                 </Button>
+                
+                <p className="mt-6 text-center text-[0.8rem] text-muted-foreground">
+                  By signing in to Invinceible Core HMS, you acknowledge that you have read and agree to our{" "}
+                  <a href="/terms" className="font-medium text-brand hover:underline" target="_blank" rel="noopener noreferrer">
+                    Terms of Use
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" className="font-medium text-brand hover:underline" target="_blank" rel="noopener noreferrer">
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
 
                 <Button
                   asChild
