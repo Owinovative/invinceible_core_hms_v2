@@ -21,8 +21,7 @@ export class ShaPerformanceService {
       where: {
         facilityId: query.facilityId,
         ...(query.branchId ? { branchId: query.branchId } : {}),
-        submittedAt: { not: null },
-        createdAt: { gte: start, lte: end },
+        submittedAt: { gte: start, lte: end },
         statusCode: { in: ['SUBMITTED', 'PENDING'] },
       },
       select: {

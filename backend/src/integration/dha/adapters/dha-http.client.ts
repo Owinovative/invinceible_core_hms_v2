@@ -58,8 +58,25 @@ export class DhaHttpClient implements DhaClientPort {
   private getTokenManager(facilityId?: number): TokenManager {
     const key = facilityId ?? 0;
     let manager = this.tokenManagers.get(key);
-    if (!manager) {
-      manager = new TokenManager(() => this.fetchToken(facilityId), 60, this.logger);
+    if (manager) {
+      // Re-insert to mark as recently used (LRU)
+      this.tokenManagers.delete(key);
+      this.tokenManagers.set(key, manager);
+    } else {
+      if (this.tokenManagers.size >= 100) {
+        // Map iterates in insertion order, so the first key is the oldest
+        const firstKey = this.tokenManagers.keys().next().value as
+          | number
+          | undefined;
+        if (firstKey !== undefined) {
+          this.tokenManagers.delete(firstKey);
+        }
+      }
+      manager = new TokenManager(
+        () => this.fetchToken(facilityId),
+        60,
+        this.logger,
+      );
       this.tokenManagers.set(key, manager);
     }
     return manager;
@@ -70,7 +87,9 @@ export class DhaHttpClient implements DhaClientPort {
     let clientSecret = this.config.dhaClientSecret;
 
     if (facilityId) {
-      const facility = await this.prisma.facility.findUnique({ where: { id: facilityId } });
+      const facility = await this.prisma.facility.findUnique({
+        where: { id: facilityId },
+      });
       if (facility?.shaClientId && facility?.shaClientSecret) {
         clientId = facility.shaClientId;
         clientSecret = facility.shaClientSecret;
@@ -116,7 +135,9 @@ export class DhaHttpClient implements DhaClientPort {
 
     let facilityCode = this.config.dhaFacilityCode;
     if (ctx?.facilityId) {
-      const facility = await this.prisma.facility.findUnique({ where: { id: ctx.facilityId } });
+      const facility = await this.prisma.facility.findUnique({
+        where: { id: ctx.facilityId },
+      });
       if (facility?.shaFidCode) {
         facilityCode = facility.shaFidCode;
       }
@@ -151,7 +172,9 @@ export class DhaHttpClient implements DhaClientPort {
           error instanceof IntegrationHttpError &&
           error.httpStatus === 401
         ) {
-          this.logger.warn('DHA API returned 401, invalidating token and retrying');
+          this.logger.warn(
+            'DHA API returned 401, invalidating token and retrying',
+          );
           tokenManager.invalidate();
           token = await tokenManager.getToken();
           continue;

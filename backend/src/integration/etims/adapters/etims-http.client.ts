@@ -43,7 +43,9 @@ export class EtimsHttpClient implements EtimsClientPort {
     let serial = this.config.etimsDeviceSerial;
 
     if (facilityId) {
-      const facility = await this.prisma.facility.findUnique({ where: { id: facilityId } });
+      const facility = await this.prisma.facility.findUnique({
+        where: { id: facilityId },
+      });
       if (facility) {
         tin = facility.etimsTin || tin;
         bhfId = facility.etimsBranchId || bhfId;
@@ -54,7 +56,9 @@ export class EtimsHttpClient implements EtimsClientPort {
     return { tin, bhfId, cmcKey, serial };
   }
 
-  private async authHeaders(ctx?: IntegrationCallContext): Promise<Record<string, string>> {
+  private async authHeaders(
+    ctx?: IntegrationCallContext,
+  ): Promise<Record<string, string>> {
     const creds = await this.getCredentials(ctx?.facilityId);
     return {
       tin: creds.tin,

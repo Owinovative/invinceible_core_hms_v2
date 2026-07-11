@@ -38,7 +38,12 @@ function makeClient(script: ScriptedResponse[]) {
     warn: jest.fn(),
     error: jest.fn(),
   } as any;
-  const client = new DhaHttpClient(http, makeConfig({ DHA_MODE: 'sandbox' }), logger, prisma);
+  const client = new DhaHttpClient(
+    http,
+    makeConfig({ DHA_MODE: 'sandbox' }),
+    logger,
+    prisma,
+  );
   return { client, calls, prisma };
 }
 

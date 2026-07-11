@@ -68,7 +68,12 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
         config.dhaMode === 'mock'
           ? new DhaMockClient()
           : new DhaHttpClient(http, config, logger, prisma),
-      inject: [IntegrationConfigService, IntegrationHttpClient, IntegrationLoggerService, PrismaService],
+      inject: [
+        IntegrationConfigService,
+        IntegrationHttpClient,
+        IntegrationLoggerService,
+        PrismaService,
+      ],
     },
     EtimsService,
     DhaService,

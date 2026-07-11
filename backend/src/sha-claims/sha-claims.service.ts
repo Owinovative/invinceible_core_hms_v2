@@ -275,6 +275,21 @@ export class ShaClaimsService {
     return claim;
   }
 
+  private appendResubmissionMetadata(claim: { statusCode: string; metadata: any }, userId: string) {
+    let metadata = claim.metadata as Record<string, unknown> | null;
+    metadata = metadata || {};
+    const resubmissions = (metadata.resubmissions as unknown[]) || [];
+    metadata.resubmissions = [
+      ...resubmissions,
+      {
+        timestamp: new Date().toISOString(),
+        previousStatus: claim.statusCode,
+        actorUserId: userId,
+      },
+    ];
+    return metadata;
+  }
+
   async update(id: number, dto: UpdateShaClaimDto, user: RequestUser) {
     const claim = await this.prisma.shaClaim.findUnique({
       where: { id },
@@ -298,16 +313,7 @@ export class ShaClaimsService {
 
     let metadata = claim.metadata as Record<string, unknown> | null;
     if (nextStatus === 'SUBMITTED' && (claim.submittedAt || claim.statusCode === 'REJECTED')) {
-      metadata = metadata || {};
-      const resubmissions = (metadata.resubmissions as unknown[]) || [];
-      metadata.resubmissions = [
-        ...resubmissions,
-        {
-          timestamp: new Date().toISOString(),
-          previousStatus: claim.statusCode,
-          actorUserId: user.userId,
-        },
-      ];
+      metadata = this.appendResubmissionMetadata(claim, user.userId);
     }
 
     const data: Prisma.ShaClaimUpdateInput = {
@@ -404,16 +410,7 @@ export class ShaClaimsService {
       let metadata = claim.metadata as Record<string, unknown> | null;
       
       if (isResubmission) {
-        metadata = metadata || {};
-        const resubmissions = (metadata.resubmissions as unknown[]) || [];
-        metadata.resubmissions = [
-          ...resubmissions,
-          {
-            timestamp: new Date().toISOString(),
-            previousStatus: claim.statusCode,
-            actorUserId: user.userId,
-          },
-        ];
+        metadata = this.appendResubmissionMetadata(claim, user.userId);
       }
 
       updated = await this.prisma.shaClaim.update({

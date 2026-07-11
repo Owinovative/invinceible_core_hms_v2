@@ -28,12 +28,14 @@ export class TokenManager {
     }
     if (!this.inflight) {
       this.logger?.info('Token expired or missing, initiating refresh');
-      this.inflight = this.refresh().catch((error) => {
-        this.logger?.error('Token refresh failed', { error });
-        throw error;
-      }).finally(() => {
-        this.inflight = undefined;
-      });
+      this.inflight = this.refresh()
+        .catch((error) => {
+          this.logger?.error('Token refresh failed', { error });
+          throw error;
+        })
+        .finally(() => {
+          this.inflight = undefined;
+        });
     }
     return this.inflight;
   }
