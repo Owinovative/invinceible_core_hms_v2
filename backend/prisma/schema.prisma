@@ -338,27 +338,27 @@ model Staff {
 }
 
 model Patient {
-  id                      Int            @id @default(autoincrement())
-  patientNumber           String         @unique @db.VarChar(50)
-  firstName               String         @db.VarChar(100)
-  middleName              String?        @db.VarChar(100)
-  lastName                String         @db.VarChar(100)
-  gender                  String?        @db.VarChar(20)
+  id                      Int                    @id @default(autoincrement())
+  patientNumber           String                 @unique @db.VarChar(50)
+  firstName               String                 @db.VarChar(100)
+  middleName              String?                @db.VarChar(100)
+  lastName                String                 @db.VarChar(100)
+  gender                  String?                @db.VarChar(20)
   dateOfBirth             DateTime?
-  phonePrimary            String?        @db.VarChar(30)
-  phoneSecondary          String?        @db.VarChar(30)
-  email                   String?        @db.VarChar(255)
-  occupation              String?        @db.VarChar(120)
-  isDeceased              Boolean        @default(false)
-  isActive                Boolean        @default(true)
-  shaStatus               String?        @db.VarChar(50)
+  phonePrimary            String?                @db.VarChar(30)
+  phoneSecondary          String?                @db.VarChar(30)
+  email                   String?                @db.VarChar(255)
+  occupation              String?                @db.VarChar(120)
+  isDeceased              Boolean                @default(false)
+  isActive                Boolean                @default(true)
+  shaStatus               String?                @db.VarChar(50)
   shaEligibilityUpdatedAt DateTime?
-  shaMemberNumber         String?        @db.VarChar(120)
-  nationalIdNumber        String?        @db.VarChar(80)
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  shaMemberNumber         String?                @db.VarChar(120)
+  nationalIdNumber        String?                @db.VarChar(80)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
   facilityId              Int
-  portalUserId            Int?           @unique
+  portalUserId            Int?                   @unique
   admissions              Admission[]
   triages                 Triage[]
   appointments            Appointment[]
@@ -366,14 +366,15 @@ model Patient {
   invoices                Invoice[]
   shaClaims               ShaClaim[]
   labOrders               LabOrder[]
-  facility                Facility       @relation(fields: [facilityId], references: [id])
-  portalUser              User?          @relation("PatientPortalUser", fields: [portalUserId], references: [id])
+  facility                Facility               @relation(fields: [facilityId], references: [id])
+  portalUser              User?                  @relation("PatientPortalUser", fields: [portalUserId], references: [id])
   prescriptions           Prescription[]
   dispenses               Dispense[]
   otcSales                OtcSale[]
   consentRequests         ConsentRequest[]
   consentAuthorizations   ConsentAuthorization[]
   consentAuditLogs        ConsentAuditLog[]
+  shrPublications         ShrPublication[]
 
   @@index([facilityId])
   @@index([phonePrimary])
@@ -522,37 +523,38 @@ model Triage {
 }
 
 model Consultation {
-  id                  Int            @id @default(autoincrement())
-  consultationNumber  String         @unique @db.VarChar(50)
-  chiefComplaint      String?        @db.Text
-  historyOfPresenting String?        @db.Text
-  examinationFindings String?        @db.Text
-  diagnosis           String?        @db.Text
-  primaryDiagnosisId  Int?
-  primaryDiagnosis    TerminologyConcept? @relation("ConsultationPrimaryDiagnosis", fields: [primaryDiagnosisId], references: [id])
-  secondaryDiagnoses  TerminologyConcept[] @relation("ConsultationSecondaryDiagnoses")
-  treatmentPlan       String?        @db.Text
-  notes               String?        @db.Text
-  statusCode          String         @default("IN_PROGRESS") @db.VarChar(50)
-  startedAt           DateTime       @default(now())
-  completedAt         DateTime?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  facilityId          Int
-  branchId            Int?
-  appointmentId       Int            @unique
-  patientId           Int
-  doctorId            Int
-  admissions          Admission[]
-  appointment         Appointment    @relation(fields: [appointmentId], references: [id])
-  branch              Branch?        @relation(fields: [branchId], references: [id])
-  doctor              Staff          @relation(fields: [doctorId], references: [id])
-  facility            Facility       @relation(fields: [facilityId], references: [id])
-  patient             Patient        @relation(fields: [patientId], references: [id])
-  invoices            Invoice[]
-  prescriptions       Prescription[]
+  id                    Int                     @id @default(autoincrement())
+  consultationNumber    String                  @unique @db.VarChar(50)
+  chiefComplaint        String?                 @db.Text
+  historyOfPresenting   String?                 @db.Text
+  examinationFindings   String?                 @db.Text
+  diagnosis             String?                 @db.Text
+  primaryDiagnosisId    Int?
+  primaryDiagnosis      TerminologyConcept?     @relation("ConsultationPrimaryDiagnosis", fields: [primaryDiagnosisId], references: [id])
+  secondaryDiagnoses    TerminologyConcept[]    @relation("ConsultationSecondaryDiagnoses")
+  treatmentPlan         String?                 @db.Text
+  notes                 String?                 @db.Text
+  statusCode            String                  @default("IN_PROGRESS") @db.VarChar(50)
+  startedAt             DateTime                @default(now())
+  completedAt           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  facilityId            Int
+  branchId              Int?
+  appointmentId         Int                     @unique
+  patientId             Int
+  doctorId              Int
+  admissions            Admission[]
+  appointment           Appointment             @relation(fields: [appointmentId], references: [id])
+  branch                Branch?                 @relation(fields: [branchId], references: [id])
+  doctor                Staff                   @relation(fields: [doctorId], references: [id])
+  facility              Facility                @relation(fields: [facilityId], references: [id])
+  patient               Patient                 @relation(fields: [patientId], references: [id])
+  invoices              Invoice[]
+  prescriptions         Prescription[]
   consentAuthorizations ConsentAuthorization[]
   performedProcedures   ConsultationProcedure[]
+  shrPublications       ShrPublication[]
 
   @@index([facilityId])
   @@index([branchId])
@@ -567,15 +569,15 @@ model Consultation {
 }
 
 model ConsultationProcedure {
-  id                    Int                @id @default(autoincrement())
-  consultationId        Int
-  terminologyConceptId  Int
-  notes                 String?            @db.Text
-  performedAt           DateTime?          @default(now())
-  createdAt             DateTime           @default(now())
+  id                   Int       @id @default(autoincrement())
+  consultationId       Int
+  terminologyConceptId Int
+  notes                String?   @db.Text
+  performedAt          DateTime? @default(now())
+  createdAt            DateTime  @default(now())
 
-  consultation          Consultation       @relation(fields: [consultationId], references: [id])
-  terminologyConcept    TerminologyConcept @relation("ProcedureTerminology", fields: [terminologyConceptId], references: [id])
+  consultation       Consultation       @relation(fields: [consultationId], references: [id])
+  terminologyConcept TerminologyConcept @relation("ProcedureTerminology", fields: [terminologyConceptId], references: [id])
 
   @@unique([consultationId, terminologyConceptId])
   @@index([consultationId])
@@ -584,16 +586,16 @@ model ConsultationProcedure {
 }
 
 model LabTestCatalog {
-  id             Int             @id @default(autoincrement())
-  testName       String          @db.VarChar(150)
-  category       String?         @db.VarChar(100)
-  specimenType   String?         @db.VarChar(100)
+  id                   Int                 @id @default(autoincrement())
+  testName             String              @db.VarChar(150)
+  category             String?             @db.VarChar(100)
+  specimenType         String?             @db.VarChar(100)
   terminologyConceptId Int?
   terminologyConcept   TerminologyConcept? @relation("LabTestTerminology", fields: [terminologyConceptId], references: [id])
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  orderItems     LabOrderItem[]
-  serviceTariffs ServiceTariff[]
+  isActive             Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  orderItems           LabOrderItem[]
+  serviceTariffs       ServiceTariff[]
 
   @@index([testName])
   @@index([category])
@@ -675,25 +677,25 @@ model LabResult {
 }
 
 model Medicine {
-  id                Int                     @id @default(autoincrement())
-  code              String                  @unique @db.VarChar(50)
-  name              String                  @db.VarChar(150)
-  dosageForm        String?                 @db.VarChar(100)
-  strength          String?                 @db.VarChar(100)
-  manufacturer      String?                 @db.VarChar(150)
+  id                   Int                     @id @default(autoincrement())
+  code                 String                  @unique @db.VarChar(50)
+  name                 String                  @db.VarChar(150)
+  dosageForm           String?                 @db.VarChar(100)
+  strength             String?                 @db.VarChar(100)
+  manufacturer         String?                 @db.VarChar(150)
   terminologyConceptId Int?
-  terminologyConcept   TerminologyConcept? @relation("MedicineTerminology", fields: [terminologyConceptId], references: [id])
-  unitPrice         Float?                  @default(0)
-  stockQuantity     Int                     @default(0)
-  reorderLevel      Int                     @default(0)
-  isActive          Boolean                 @default(true)
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  prescriptionItems PrescriptionItem[]
-  branchStocks      BranchMedicineStock[]
-  dispenseItems     DispenseItem[]
-  otcSaleItems      OtcSaleItem[]
-  stockMovements    PharmacyStockMovement[]
+  terminologyConcept   TerminologyConcept?     @relation("MedicineTerminology", fields: [terminologyConceptId], references: [id])
+  unitPrice            Float?                  @default(0)
+  stockQuantity        Int                     @default(0)
+  reorderLevel         Int                     @default(0)
+  isActive             Boolean                 @default(true)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  prescriptionItems    PrescriptionItem[]
+  branchStocks         BranchMedicineStock[]
+  dispenseItems        DispenseItem[]
+  otcSaleItems         OtcSaleItem[]
+  stockMovements       PharmacyStockMovement[]
 
   @@index([name])
   @@index([isActive])
@@ -1266,43 +1268,43 @@ model UserReview {
 }
 
 model ShaClaim {
-  id                   Int       @id @default(autoincrement())
-  claimNumber          String    @unique @db.VarChar(80)
-  statusCode           String    @default("DRAFT") @db.VarChar(50)
-  fidCode              String?   @db.VarChar(120)
-  memberNumber         String?   @db.VarChar(120)
-  diagnosisCode        String?   @db.VarChar(80)
-  diagnosisText        String?   @db.VarChar(255)
+  id                   Int                 @id @default(autoincrement())
+  claimNumber          String              @unique @db.VarChar(80)
+  statusCode           String              @default("DRAFT") @db.VarChar(50)
+  fidCode              String?             @db.VarChar(120)
+  memberNumber         String?             @db.VarChar(120)
+  diagnosisCode        String?             @db.VarChar(80)
+  diagnosisText        String?             @db.VarChar(255)
   diagnosisConceptId   Int?
   diagnosisConcept     TerminologyConcept? @relation("ShaClaimDiagnosis", fields: [diagnosisConceptId], references: [id])
   servicePeriodStart   DateTime?
   servicePeriodEnd     DateTime?
-  claimedAmount        Float     @default(0)
-  approvedAmount       Float     @default(0)
-  paidAmount           Float     @default(0)
-  rejectedAmount       Float     @default(0)
-  rejectionReason      String?   @db.Text
-  patientSignatureUrl  String?   @db.LongText
-  facilitySignatureUrl String?   @db.LongText
-  rubberStampUrl       String?   @db.LongText
+  claimedAmount        Float               @default(0)
+  approvedAmount       Float               @default(0)
+  paidAmount           Float               @default(0)
+  rejectedAmount       Float               @default(0)
+  rejectionReason      String?             @db.Text
+  patientSignatureUrl  String?             @db.LongText
+  facilitySignatureUrl String?             @db.LongText
+  rubberStampUrl       String?             @db.LongText
   submittedAt          DateTime?
   approvedAt           DateTime?
   paidAt               DateTime?
-  notes                String?   @db.Text
+  notes                String?             @db.Text
   metadata             Json?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   facilityId           Int
   branchId             Int?
   patientId            Int
   invoiceId            Int?
   createdByStaffId     Int?
-  facility             Facility  @relation(fields: [facilityId], references: [id])
-  branch               Branch?   @relation(fields: [branchId], references: [id])
-  patient              Patient   @relation(fields: [patientId], references: [id])
-  invoice              Invoice?  @relation(fields: [invoiceId], references: [id])
-  createdBy            Staff?    @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
-  payments             Payment[] @relation("ShaClaimPayments")
+  facility             Facility            @relation(fields: [facilityId], references: [id])
+  branch               Branch?             @relation(fields: [branchId], references: [id])
+  patient              Patient             @relation(fields: [patientId], references: [id])
+  invoice              Invoice?            @relation(fields: [invoiceId], references: [id])
+  createdBy            Staff?              @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
+  payments             Payment[]           @relation("ShaClaimPayments")
 
   @@index([facilityId])
   @@index([branchId])
@@ -2020,13 +2022,13 @@ model ConsentRequest {
   id                  Int      @id @default(autoincrement())
   patientId           Int
   contactId           Int
-  interventionCodes   Json     // Array of intervention codes
+  interventionCodes   Json // Array of intervention codes
   status              String   @default("PENDING") @db.VarChar(50)
   dhaConsentRequestId String   @db.VarChar(120) // ID from the Send OTP response
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  
-  patient             Patient  @relation(fields: [patientId], references: [id])
+
+  patient Patient @relation(fields: [patientId], references: [id])
 
   @@index([patientId])
   @@index([status])
@@ -2035,18 +2037,18 @@ model ConsentRequest {
 }
 
 model ConsentAuthorization {
-  id              Int      @id @default(autoincrement())
-  patientId       Int
-  consultationId  Int?     // Optional initial link, but typically required once visit formally started
-  consentToken    String   @db.LongText
-  authGuid        String?  @db.VarChar(120) // For biometric
-  status          String   @default("AUTHORIZED") @db.VarChar(50)
-  expiresAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int       @id @default(autoincrement())
+  patientId      Int
+  consultationId Int? // Optional initial link, but typically required once visit formally started
+  consentToken   String    @db.LongText
+  authGuid       String?   @db.VarChar(120) // For biometric
+  status         String    @default("AUTHORIZED") @db.VarChar(50)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  patient         Patient  @relation(fields: [patientId], references: [id])
-  consultation    Consultation? @relation(fields: [consultationId], references: [id])
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  consultation Consultation? @relation(fields: [consultationId], references: [id])
 
   @@index([patientId])
   @@index([consultationId])
@@ -2055,19 +2057,19 @@ model ConsentAuthorization {
 }
 
 model ConsentAuditLog {
-  id              Int      @id @default(autoincrement())
-  patientId       Int
-  userId          Int?
-  facilityId      Int?
-  action          String   @db.VarChar(100) // REQUESTED, VERIFIED, FAILED
-  outcome         String   @db.VarChar(100)
-  ipAddress       String?  @db.VarChar(100)
-  correlationId   String?  @db.VarChar(120)
-  createdAt       DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  patientId     Int
+  userId        Int?
+  facilityId    Int?
+  action        String   @db.VarChar(100) // REQUESTED, VERIFIED, FAILED
+  outcome       String   @db.VarChar(100)
+  ipAddress     String?  @db.VarChar(100)
+  correlationId String?  @db.VarChar(120)
+  createdAt     DateTime @default(now())
 
-  patient         Patient  @relation(fields: [patientId], references: [id])
-  user            User?    @relation(fields: [userId], references: [id])
-  facility        Facility? @relation(fields: [facilityId], references: [id])
+  patient  Patient   @relation(fields: [patientId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
+  facility Facility? @relation(fields: [facilityId], references: [id])
 
   @@index([patientId])
   @@index([userId])
@@ -2104,56 +2106,56 @@ model TerminologyCollection {
   description  String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  sourceId     Int?
-  source       TerminologySource? @relation(fields: [sourceId], references: [id])
-  concepts     TerminologyConcept[] @relation("CollectionConcepts")
+
+  sourceId Int?
+  source   TerminologySource?   @relation(fields: [sourceId], references: [id])
+  concepts TerminologyConcept[] @relation("CollectionConcepts")
 
   @@index([sourceId])
   @@map("terminology_collections")
 }
 
 model TerminologyVersion {
-  id          Int      @id @default(autoincrement())
-  system      String   @db.VarChar(120) // e.g. ICD-11, LOINC
-  version     String   @db.VarChar(120) // e.g. 2024-01
-  isCurrent   Boolean  @default(true)
-  syncedAt    DateTime @default(now())
-  
+  id        Int      @id @default(autoincrement())
+  system    String   @db.VarChar(120) // e.g. ICD-11, LOINC
+  version   String   @db.VarChar(120) // e.g. 2024-01
+  isCurrent Boolean  @default(true)
+  syncedAt  DateTime @default(now())
+
   @@unique([system, version])
   @@index([isCurrent])
   @@map("terminology_versions")
 }
 
 model TerminologyConcept {
-  id             Int      @id @default(autoincrement())
-  uuid           String   @unique @db.VarChar(120)
-  system         String   @db.VarChar(255) // FHIR system URL
-  code           String   @db.VarChar(120)
-  display        String   @db.VarChar(500)
-  conceptClass   String?  @db.VarChar(120) // Diagnosis, Procedure, Drug, Lab
-  datatype       String?  @db.VarChar(120)
-  retired        Boolean  @default(false)
-  owner          String   @db.VarChar(120)
-  version        String?  @db.VarChar(120)
-  metadata       Json?    // Stores synonyms and names array
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           Int     @id @default(autoincrement())
+  uuid         String  @unique @db.VarChar(120)
+  system       String  @db.VarChar(255) // FHIR system URL
+  code         String  @db.VarChar(120)
+  display      String  @db.VarChar(500)
+  conceptClass String? @db.VarChar(120) // Diagnosis, Procedure, Drug, Lab
+  datatype     String? @db.VarChar(120)
+  retired      Boolean @default(false)
+  owner        String  @db.VarChar(120)
+  version      String? @db.VarChar(120)
+  metadata     Json? // Stores synonyms and names array
 
-  sourceId       Int?
-  source         TerminologySource? @relation(fields: [sourceId], references: [id])
-  collections    TerminologyCollection[] @relation("CollectionConcepts")
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sourceId    Int?
+  source      TerminologySource?      @relation(fields: [sourceId], references: [id])
+  collections TerminologyCollection[] @relation("CollectionConcepts")
+
   mappingsAsSource TerminologyMapping[] @relation("MappingSource")
   mappingsAsTarget TerminologyMapping[] @relation("MappingTarget")
 
   // Relationships back to clinical tables
-  consultationPrimaryDiagnoses   Consultation[] @relation("ConsultationPrimaryDiagnosis")
-  consultationSecondaryDiagnoses Consultation[] @relation("ConsultationSecondaryDiagnoses")
-  medicines                      Medicine[]     @relation("MedicineTerminology")
-  labTestCatalogs                LabTestCatalog[] @relation("LabTestTerminology")
-  shaClaims                      ShaClaim[]     @relation("ShaClaimDiagnosis")
+  consultationPrimaryDiagnoses   Consultation[]          @relation("ConsultationPrimaryDiagnosis")
+  consultationSecondaryDiagnoses Consultation[]          @relation("ConsultationSecondaryDiagnoses")
+  medicines                      Medicine[]              @relation("MedicineTerminology")
+  labTestCatalogs                LabTestCatalog[]        @relation("LabTestTerminology")
+  shaClaims                      ShaClaim[]              @relation("ShaClaimDiagnosis")
   consultationProcedures         ConsultationProcedure[] @relation("ProcedureTerminology")
 
   @@unique([system, code, version])
@@ -2170,8 +2172,8 @@ model TerminologyMapping {
   mapType         String   @db.VarChar(100) // e.g. equivalent, broader, narrower
   createdAt       DateTime @default(now())
 
-  sourceConcept   TerminologyConcept @relation("MappingSource", fields: [sourceConceptId], references: [id])
-  targetConcept   TerminologyConcept @relation("MappingTarget", fields: [targetConceptId], references: [id])
+  sourceConcept TerminologyConcept @relation("MappingSource", fields: [sourceConceptId], references: [id])
+  targetConcept TerminologyConcept @relation("MappingTarget", fields: [targetConceptId], references: [id])
 
   @@unique([sourceConceptId, targetConceptId, mapType])
   @@index([sourceConceptId])
@@ -2180,18 +2182,161 @@ model TerminologyMapping {
 }
 
 model TerminologySyncHistory {
-  id             Int      @id @default(autoincrement())
-  syncMode       String   @db.VarChar(50) // INITIAL, INCREMENTAL, MANUAL
-  targetSystem   String?  @db.VarChar(120) // e.g. ICD-11 (null for full sync)
-  status         String   @db.VarChar(50) // SUCCESS, FAILED, IN_PROGRESS
-  conceptsAdded  Int      @default(0)
-  conceptsUpdated Int     @default(0)
-  durationMs     Int      @default(0)
-  errorMessage   String?  @db.Text
-  startedAt      DateTime @default(now())
-  completedAt    DateTime?
+  id              Int       @id @default(autoincrement())
+  syncMode        String    @db.VarChar(50) // INITIAL, INCREMENTAL, MANUAL
+  targetSystem    String?   @db.VarChar(120) // e.g. ICD-11 (null for full sync)
+  status          String    @db.VarChar(50) // SUCCESS, FAILED, IN_PROGRESS
+  conceptsAdded   Int       @default(0)
+  conceptsUpdated Int       @default(0)
+  durationMs      Int       @default(0)
+  errorMessage    String?   @db.Text
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
 
   @@index([status])
   @@index([startedAt])
   @@map("terminology_sync_history")
+}
+
+model ShrPublication {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid()) @db.VarChar(36)
+  encounterId Int? // Link to Consultation if applicable
+  patientId   Int
+  policy      String   @db.VarChar(100) // e.g. Encounter Only, Full Record
+  state       String   @default("CREATED") @db.VarChar(50) // State Machine status
+  priority    Int      @default(0) // Higher number = higher priority
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  consultation Consultation? @relation(fields: [encounterId], references: [id])
+
+  snapshots    ShrBundleSnapshot[]
+  attempts     ShrPublicationAttempt[]
+  dependencies ShrBundleDependency[]
+
+  @@index([patientId])
+  @@index([encounterId])
+  @@index([state])
+  @@map("shr_publications")
+}
+
+model ShrBundleSnapshot {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid()) @db.VarChar(36)
+  publicationId  Int
+  version        Int      @default(1)
+  fhirVersion    String   @db.VarChar(20) // e.g. 4.0.1
+  profileVersion String?  @db.VarChar(100) // e.g. Kenya_Patient_Profile_v1
+  bundleHash     String   @db.VarChar(64) // SHA-256
+  payload        Json // The actual FHIR Transaction Bundle
+  createdAt      DateTime @default(now())
+
+  publication ShrPublication          @relation(fields: [publicationId], references: [id])
+  attempts    ShrPublicationAttempt[]
+
+  @@unique([publicationId, version])
+  @@index([bundleHash])
+  @@map("shr_bundle_snapshots")
+}
+
+model ShrPublicationAttempt {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid()) @db.VarChar(36)
+  publicationId Int
+  snapshotId    Int
+  queueJobId    String?   @db.VarChar(100)
+  status        String    @db.VarChar(50) // QUEUED, TRANSMITTING, SUCCESS, FAILED
+  correlationId String?   @db.VarChar(100)
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  publication ShrPublication    @relation(fields: [publicationId], references: [id])
+  snapshot    ShrBundleSnapshot @relation(fields: [snapshotId], references: [id])
+
+  transmissions   ShrTransmissionHistory[]
+  errors          ShrPublicationError[]
+  acknowledgement ShrAcknowledgement?
+
+  @@index([publicationId])
+  @@index([status])
+  @@index([correlationId])
+  @@map("shr_publication_attempts")
+}
+
+model ShrTransmissionHistory {
+  id              Int      @id @default(autoincrement())
+  attemptId       Int
+  endpoint        String   @db.VarChar(255)
+  method          String   @db.VarChar(10)
+  requestHeaders  Json?
+  responseStatus  Int?
+  responseHeaders Json?
+  responseBody    String?  @db.LongText
+  durationMs      Int?
+  transmittedAt   DateTime @default(now())
+
+  attempt ShrPublicationAttempt @relation(fields: [attemptId], references: [id])
+
+  @@index([attemptId])
+  @@map("shr_transmission_history")
+}
+
+model ShrAcknowledgement {
+  id           Int      @id @default(autoincrement())
+  attemptId    Int      @unique
+  dhaReceiptId String?  @db.VarChar(100)
+  status       String   @db.VarChar(50) // ACCEPTED, REJECTED
+  message      String?  @db.Text
+  payload      Json?
+  receivedAt   DateTime @default(now())
+
+  attempt ShrPublicationAttempt @relation(fields: [attemptId], references: [id])
+
+  @@index([dhaReceiptId])
+  @@map("shr_acknowledgements")
+}
+
+model ShrPublicationError {
+  id        Int      @id @default(autoincrement())
+  attemptId Int
+  errorType String   @db.VarChar(100) // VALIDATION, NETWORK, COMPLIANCE, DHA_REJECTED
+  message   String   @db.Text
+  details   Json?
+  createdAt DateTime @default(now())
+
+  attempt ShrPublicationAttempt @relation(fields: [attemptId], references: [id])
+
+  @@index([attemptId])
+  @@index([errorType])
+  @@map("shr_publication_errors")
+}
+
+model ShrPublicationMetrics {
+  id                  Int      @id @default(autoincrement())
+  date                DateTime @db.Date
+  totalPublications   Int      @default(0)
+  successfulCount     Int      @default(0)
+  failedCount         Int      @default(0)
+  avgValidationTimeMs Int      @default(0)
+  avgPublishTimeMs    Int      @default(0)
+  totalRetries        Int      @default(0)
+
+  @@unique([date])
+  @@map("shr_publication_metrics")
+}
+
+model ShrBundleDependency {
+  id            Int    @id @default(autoincrement())
+  publicationId Int
+  resourceType  String @db.VarChar(50) // e.g. Observation
+  resourceId    String @db.VarChar(100) // HMS ID
+  fhirReference String @db.VarChar(255) // urn:uuid:xxx
+
+  publication ShrPublication @relation(fields: [publicationId], references: [id])
+
+  @@index([publicationId])
+  @@index([resourceType, resourceId])
+  @@map("shr_bundle_dependencies")
 }

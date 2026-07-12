@@ -57,6 +57,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { LegalModule } from './legal/legal.module';
 import { ConsentModule } from './consent/consent.module';
 import { TerminologyModule } from './terminology/terminology.module';
+import { ShrModule } from './shr/shr.module';
 
 @Module({
   imports: [
@@ -111,6 +112,7 @@ import { TerminologyModule } from './terminology/terminology.module';
     LegalModule,
     ConsentModule,
     TerminologyModule,
+    ShrModule,
   ],
   controllers: [AppController],
   providers: [
