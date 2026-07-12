@@ -41,6 +41,9 @@ import { ShrBundleRepository } from './repository/shr-bundle.repository';
 import { RetryCoordinator } from './workers/retry-coordinator.service';
 import { DeadLetterRecoveryService } from './workers/dead-letter.service';
 
+// Event Bus Subscriber
+import { ShrEventSubscriber } from './shr-event-subscriber';
+
 @Module({
   imports: [
     TerminologyModule,
@@ -90,6 +93,9 @@ import { DeadLetterRecoveryService } from './workers/dead-letter.service';
     // Workers
     RetryCoordinator,
     DeadLetterRecoveryService,
+
+    // Event Bus Subscribers
+    ShrEventSubscriber,
   ],
   exports: [ShrService, ShrTimelineService],
 })

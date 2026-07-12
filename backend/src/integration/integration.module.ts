@@ -87,6 +87,8 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     IntegrationLoggerService,
     IntegrationHttpClient,
     FhirSystemsService,
+    FhirMapperService,
+    DHA_CLIENT,
   ],
 })
 export class IntegrationModule {}

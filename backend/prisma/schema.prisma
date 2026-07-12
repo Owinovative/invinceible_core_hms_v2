@@ -2340,3 +2340,198 @@ model ShrBundleDependency {
   @@index([resourceType, resourceId])
   @@map("shr_bundle_dependencies")
 }
+
+// =============================================================================
+// PHASE 4: CLINICAL EVENT PLATFORM — TRANSACTIONAL OUTBOX & EVENT STORE
+// =============================================================================
+
+/// Transactional Outbox — events written atomically with business operations.
+/// The EventDispatcher (Milestone 2) reads this table and dispatches to subscribers.
+model ClinicalEventOutbox {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @db.VarChar(36)        // UUIDv4 — globally unique event ID
+  correlationId String    @db.VarChar(36)                // Links events across one patient journey
+  aggregateId   String    @db.VarChar(100)               // e.g., "patient_42", "encounter_99"
+  aggregateType String    @db.VarChar(50)                // e.g., "PATIENT", "ENCOUNTER"
+  eventType     String    @db.VarChar(100)               // e.g., "VitalsRecorded"
+  eventCategory String    @db.VarChar(20)                // DOMAIN | INTEGRATION
+  eventVersion  Int       @default(1)
+  patientId     Int
+  encounterId   Int?
+  facilityId    Int
+  branchId      Int?
+  tenantId      Int       @default(1)
+  userId        Int?
+  sourceModule  String    @db.VarChar(50)
+  priority      String    @db.VarChar(20)                // CRITICAL | HIGH | MEDIUM | LOW
+  priorityOrder Int       @default(2)                    // Numeric for ORDER BY DESC
+  slaSeconds    Int?
+  payload       Json
+  checksum      String    @db.VarChar(64)                // SHA-256 of payload
+  signature     String    @db.VarChar(64)                // HMAC-SHA256 tamper detection
+  metadata      Json?
+  occurredAt    DateTime
+  status        String    @default("PENDING") @db.VarChar(20) // PENDING | DISPATCHING | DISPATCHED | FAILED
+  dispatchedAt  DateTime?
+  failureReason String?   @db.Text
+  retryCount    Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([status, priorityOrder(sort: Desc), occurredAt])
+  @@index([aggregateId, status])
+  @@index([patientId])
+  @@index([facilityId])
+  @@index([correlationId])
+  @@index([eventType])
+  @@map("clinical_event_outbox")
+}
+
+/// Immutable event store — every successfully dispatched clinical event.
+/// This is the permanent record and forms the basis for replay, timeline, and audit.
+model ClinicalEvent {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @db.VarChar(36)
+  correlationId String    @db.VarChar(36)
+  aggregateId   String    @db.VarChar(100)
+  aggregateType String    @db.VarChar(50)
+  eventType     String    @db.VarChar(100)
+  eventCategory String    @db.VarChar(20)
+  eventVersion  Int       @default(1)
+  sequenceNumber Int?                                    // Monotonically increasing per aggregate
+  patientId     Int
+  encounterId   Int?
+  facilityId    Int
+  branchId      Int?
+  tenantId      Int       @default(1)
+  userId        Int?
+  sourceModule  String    @db.VarChar(50)
+  priority      String    @db.VarChar(20)
+  slaSeconds    Int?
+  payload       Json
+  checksum      String    @db.VarChar(64)
+  signature     String    @db.VarChar(64)
+  metadata      Json?
+  occurredAt    DateTime
+  processedAt   DateTime?
+  status        String    @default("PROCESSED") @db.VarChar(20) // PROCESSED | FAILED | DEAD_LETTER | ARCHIVED
+  slaBreached   Boolean   @default(false)
+  processingMs  Int?                                    // Actual processing duration in ms
+  outboxId      Int?                                    // Link back to originating outbox entry
+
+  @@index([patientId, occurredAt])
+  @@index([facilityId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([correlationId])
+  @@index([aggregateId])
+  @@index([status])
+  @@index([tenantId, facilityId, patientId])
+  @@map("clinical_events")
+}
+
+/// Subscriber processing status — tracks each subscriber's processing of each event.
+model EventSubscriberStatus {
+  id              Int       @id @default(autoincrement())
+  eventId         Int
+  subscriberName  String    @db.VarChar(100)             // e.g., "ShrModule"
+  isolationLevel  String    @db.VarChar(20)              // CRITICAL | NORMAL | OPTIONAL
+  status          String    @default("PENDING") @db.VarChar(20) // PENDING | SUCCESS | FAILED | SKIPPED
+  startedAt       DateTime?
+  completedAt     DateTime?
+  processingMs    Int?
+  slaBreached     Boolean   @default(false)
+  retryCount      Int       @default(0)
+  failureReason   String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  @@unique([eventId, subscriberName])
+  @@index([eventId])
+  @@index([subscriberName, status])
+  @@index([status, isolationLevel])
+  @@map("event_subscriber_statuses")
+}
+
+/// Dead Letter Queue — events that have exhausted retries and require manual intervention.
+model DeadLetterEvent {
+  id                Int       @id @default(autoincrement())
+
+  // Original event identity
+  originalEventId   String    @db.VarChar(36)               // UUID of the original event
+  eventType         String    @db.VarChar(100)
+  eventCategory     String    @db.VarChar(20)               // DOMAIN | INTEGRATION
+  eventVersion      Int       @default(1)
+  correlationId     String    @db.VarChar(100)
+  aggregateId       String    @db.VarChar(100)
+  aggregateType     String    @db.VarChar(100)
+
+  // Clinical context
+  patientId         Int?
+  encounterId       Int?
+  facilityId        Int?
+  tenantId          Int?
+  sourceModule      String?   @db.VarChar(100)
+
+  // Payload (immutable copy from failed event)
+  payload           Json
+  checksum          String    @db.VarChar(64)
+  signature         String    @db.VarChar(128)
+  metadata          Json      @default("{}")
+  occurredAt        DateTime
+
+  // DLQ classification
+  failureReason     String    @db.Text
+  failureType       String    @db.VarChar(50)               // SUBSCRIBER_FAILURE | TAMPER_DETECTED | SCHEMA_VIOLATION | TIMEOUT | UNKNOWN
+  failedSubscriber  String?   @db.VarChar(150)              // Which subscriber failed
+  retryCount        Int       @default(0)
+  lastRetryAt       DateTime?
+
+  // DLQ lifecycle
+  status            String    @default("PENDING") @db.VarChar(30) // PENDING | REPLAYED | ARCHIVED | IGNORED | DELETED
+  resolution        String?   @db.VarChar(30)              // MANUAL | AUTO_RETRY | TIMEOUT
+  resolvedAt        DateTime?
+  resolvedBy        String?   @db.VarChar(150)             // Admin who resolved it
+  notes             String?   @db.Text
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([originalEventId])
+  @@index([status, createdAt])
+  @@index([eventType, status])
+  @@index([patientId, status])
+  @@index([facilityId, status])
+  @@index([failureType])
+  @@map("dead_letter_events")
+}
+
+/// Event Replay Job — tracks a replay operation from start to finish.
+model EventReplayJob {
+  id              Int       @id @default(autoincrement())
+  jobId           String    @unique @db.VarChar(36)         // UUID
+  mode            String    @db.VarChar(20)                 // FULL | SAFE | SIMULATION
+  status          String    @default("RUNNING") @db.VarChar(20) // RUNNING | COMPLETED | FAILED | CANCELLED
+
+  // Replay filters (serialized)
+  filters         Json      @default("{}")                  // patientId, aggregateId, correlationId, eventTypes, dateRange
+
+  // Progress tracking
+  totalEvents     Int       @default(0)
+  processedEvents Int       @default(0)
+  skippedEvents   Int       @default(0)
+  failedEvents    Int       @default(0)
+
+  // Timing
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  durationMs      Int?
+
+  // Initiated by
+  initiatedBy     String?   @db.VarChar(150)
+  notes           String?   @db.Text
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([mode, status])
+  @@map("event_replay_jobs")
+}

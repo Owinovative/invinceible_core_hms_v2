@@ -58,6 +58,7 @@ import { LegalModule } from './legal/legal.module';
 import { ConsentModule } from './consent/consent.module';
 import { TerminologyModule } from './terminology/terminology.module';
 import { ShrModule } from './shr/shr.module';
+import { EventBusModule } from './events/event-bus.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { ShrModule } from './shr/shr.module';
       validate: validateEnvironment,
     }),
     EnterpriseModule,
+    EventBusModule,
     ResilienceModule,
     ClinicalSafetyModule,
     PatientPortalModule,

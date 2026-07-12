@@ -6,7 +6,7 @@ import { INTEGRATION_NAMES } from '../../integration/integration.constants';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { TokenManager } from '../../integration/token/token-manager';
 import { DhaApiError } from '../../integration/dha/dha.types';
-import type { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import type {
   TerminologyConceptQuery,
   TerminologyPaginatedResponse,

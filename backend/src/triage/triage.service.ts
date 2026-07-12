@@ -12,6 +12,8 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { CreateTriageDto } from './dto/create-triage.dto';
 import { UpdateTriageDto } from './dto/update-triage.dto';
 import { AppointmentService } from '../appointment/appointment.service';
+import { EventPublisher } from '../events/event-publisher';
+import { ClinicalEventTypes } from '../events/registry/event-registry';
 
 @Injectable()
 export class TriageService {
@@ -22,6 +24,7 @@ export class TriageService {
     private readonly facilityService: FacilityService,
     private readonly appointmentService: AppointmentService,
     private readonly scopeService: ScopeService,
+    private readonly eventPublisher: EventPublisher,
   ) {}
 
   private async generateTriageNumber(facilityId: number) {
@@ -397,40 +400,86 @@ export class TriageService {
       appointmentId = createdAppointment.id;
     }
 
-    return this.prisma.triage.update({
-      where: { id },
-      data: {
-        chiefComplaint: dto.chiefComplaint ?? existing.chiefComplaint,
-        temperatureC: dto.temperatureC ?? existing.temperatureC,
-        systolicBp: dto.systolicBp ?? existing.systolicBp,
-        diastolicBp: dto.diastolicBp ?? existing.diastolicBp,
-        pulseRate: dto.pulseRate ?? existing.pulseRate,
-        respiratoryRate: dto.respiratoryRate ?? existing.respiratoryRate,
-        oxygenSaturation: dto.oxygenSaturation ?? existing.oxygenSaturation,
-        weightKg,
-        heightCm,
-        bmi,
-        painScore: dto.painScore ?? existing.painScore,
-        triagePriority: finalPriority,
-        notes: dto.notes ?? existing.notes,
-        clinicId: dto.clinicId ?? existing.clinicId,
-        appointmentId,
-        performedByStaffId:
-          dto.performedByStaffId ?? existing.performedByStaffId,
-        routedDoctorId: dto.routedDoctorId ?? existing.routedDoctorId,
-        statusCode: dto.statusCode ?? 'READY_FOR_DOCTOR',
-        completedAt: new Date(),
-        startedAt: existing.startedAt ?? new Date(),
-      },
-      include: {
-        facility: true,
-        branch: true,
-        patient: true,
-        clinic: true,
-        appointment: true,
-        performedBy: true,
-        routedDoctor: true,
-      },
+    const updatedTriage = await this.prisma.$transaction(async (tx) => {
+      const triage = await tx.triage.update({
+        where: { id },
+        data: {
+          chiefComplaint: dto.chiefComplaint ?? existing.chiefComplaint,
+          temperatureC: dto.temperatureC ?? existing.temperatureC,
+          systolicBp: dto.systolicBp ?? existing.systolicBp,
+          diastolicBp: dto.diastolicBp ?? existing.diastolicBp,
+          pulseRate: dto.pulseRate ?? existing.pulseRate,
+          respiratoryRate: dto.respiratoryRate ?? existing.respiratoryRate,
+          oxygenSaturation: dto.oxygenSaturation ?? existing.oxygenSaturation,
+          weightKg,
+          heightCm,
+          bmi,
+          painScore: dto.painScore ?? existing.painScore,
+          triagePriority: finalPriority,
+          notes: dto.notes ?? existing.notes,
+          clinicId: dto.clinicId ?? existing.clinicId,
+          appointmentId,
+          performedByStaffId:
+            dto.performedByStaffId ?? existing.performedByStaffId,
+          routedDoctorId: dto.routedDoctorId ?? existing.routedDoctorId,
+          statusCode: dto.statusCode ?? 'READY_FOR_DOCTOR',
+          completedAt: new Date(),
+          startedAt: existing.startedAt ?? new Date(),
+        },
+        include: {
+          facility: true,
+          branch: true,
+          patient: true,
+          clinic: true,
+          appointment: true,
+          performedBy: true,
+          routedDoctor: true,
+        },
+      });
+
+      const triageEvent = this.eventPublisher.create({
+        correlationId: `triage-${triage.id}-${Date.now()}`,
+        aggregateId: `triage-${triage.id}`,
+        aggregateType: 'Triage',
+        eventType: ClinicalEventTypes.TRIAGE_COMPLETED,
+        eventCategory: 'DOMAIN',
+        eventVersion: 1,
+        patientId: triage.patientId,
+        encounterId: null,
+        facilityId: triage.facilityId,
+        branchId: triage.branchId,
+        tenantId: triage.facilityId,
+        userId: user.userId,
+        sourceModule: 'TriageModule',
+        priority: 'HIGH',
+        slaSeconds: 10,
+        payload: {
+          triageId: triage.id,
+          patientId: triage.patientId,
+          facilityId: triage.facilityId,
+          triagePriority: triage.triagePriority,
+          chiefComplaint: triage.chiefComplaint,
+          temperatureC: triage.temperatureC,
+          systolicBp: triage.systolicBp,
+          diastolicBp: triage.diastolicBp,
+          pulseRate: triage.pulseRate,
+          respiratoryRate: triage.respiratoryRate,
+          oxygenSaturation: triage.oxygenSaturation,
+          weightKg: triage.weightKg,
+          heightCm: triage.heightCm,
+          bmi: triage.bmi,
+          appointmentId: triage.appointmentId,
+        },
+        metadata: {},
+        timestamp: new Date(),
+      });
+
+      // Transactional Outbox: Event commits atomically with the business data
+      await this.eventPublisher.publish(triageEvent, tx);
+      
+      return triage;
     });
+
+    return updatedTriage;
   }
 }
