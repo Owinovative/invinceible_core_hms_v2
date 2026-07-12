@@ -100,7 +100,37 @@ export const ClinicalEventTypes = {
   SHR_PUBLICATION_FAILED:       'ShrPublicationFailed',
   NOTIFICATION_REQUESTED:       'NotificationRequested',
   CLAIM_SUBMISSION_REQUESTED:   'ClaimSubmissionRequested',
+
 } as const;
+
+/**
+ * Canonical list of all Phase 5 Workflow lifecycle event types.
+ * Published exclusively by the WorkflowModule — never by clinical modules.
+ */
+export const WorkflowEventTypes = {
+  WORKFLOW_CREATED:             'WorkflowCreated',
+  WORKFLOW_STARTED:             'WorkflowStarted',
+  WORKFLOW_PAUSED:              'WorkflowPaused',
+  WORKFLOW_RESUMED:             'WorkflowResumed',
+  WORKFLOW_ESCALATED:           'WorkflowEscalated',
+  WORKFLOW_TIMED_OUT:           'WorkflowTimedOut',
+  WORKFLOW_FAILED:              'WorkflowFailed',
+  WORKFLOW_ROLLED_BACK:         'WorkflowRolledBack',
+  WORKFLOW_ARCHIVED:            'WorkflowArchived',
+  WORKFLOW_DELETED:             'WorkflowDeleted',
+  WORKFLOW_COMPLETED:           'WorkflowCompleted',
+  WORKFLOW_CANCELLED:           'WorkflowCancelled',
+  TASK_ASSIGNED:                'TaskAssigned',
+  TASK_CLAIMED:                 'TaskClaimed',
+  TASK_IN_PROGRESS:             'TaskInProgress',
+  TASK_COMPLETED:               'TaskCompleted',
+  TASK_EXPIRED:                 'TaskExpired',
+  TASK_ESCALATED:               'TaskEscalated',
+  WORKFLOW_STEP_STARTED:        'WorkflowStepStarted',
+  WORKFLOW_STEP_COMPLETED:      'WorkflowStepCompleted',
+} as const;
+
+export type WorkflowEventType = typeof WorkflowEventTypes[keyof typeof WorkflowEventTypes];
 
 export type ClinicalEventType = typeof ClinicalEventTypes[keyof typeof ClinicalEventTypes];
 
@@ -236,7 +266,7 @@ export const EVENT_REGISTRY: Record<string, EventRegistryEntry> = {
       riskLevel: 'HIGH',
       approvalStatus: 'APPROVED',
     },
-    knownSubscribers: ['ShrModule'],
+    knownSubscribers: ['ShrModule', 'WorkflowModule'],
   },
 
   [ClinicalEventTypes.TRIAGE_COMPLETED]: {
@@ -268,7 +298,7 @@ export const EVENT_REGISTRY: Record<string, EventRegistryEntry> = {
       riskLevel: 'HIGH',
       approvalStatus: 'APPROVED',
     },
-    knownSubscribers: ['ShrModule'],
+    knownSubscribers: ['ShrModule', 'WorkflowModule'],
   },
 
   [ClinicalEventTypes.CLAIM_SUBMITTED]: {
@@ -296,5 +326,32 @@ export const EVENT_REGISTRY: Record<string, EventRegistryEntry> = {
       approvalStatus: 'APPROVED',
     },
     knownSubscribers: ['ShrModule'],
+  },
+
+  [ClinicalEventTypes.DISCHARGE_COMPLETED]: {
+    name: ClinicalEventTypes.DISCHARGE_COMPLETED,
+    category: 'DOMAIN',
+    priority: 'HIGH',
+    slaSeconds: 10,
+    currentVersion: 1,
+    schemas: {
+      1: {
+        version: 1,
+        requiredFields: ['encounterId', 'patientId', 'facilityId'],
+        optionalFields: ['dischargeReason', 'dischargeNotes'],
+        validationRules: {
+          encounterId: 'Must be a positive integer',
+          patientId: 'Must be a positive integer',
+        },
+      },
+    },
+    governance: {
+      owner: 'Clinical Workflows',
+      businessDomain: 'Encounter',
+      introducedVersion: '4.0.0',
+      riskLevel: 'MEDIUM',
+      approvalStatus: 'APPROVED',
+    },
+    knownSubscribers: ['WorkflowModule'],
   },
 };

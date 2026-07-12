@@ -59,6 +59,7 @@ import { ConsentModule } from './consent/consent.module';
 import { TerminologyModule } from './terminology/terminology.module';
 import { ShrModule } from './shr/shr.module';
 import { EventBusModule } from './events/event-bus.module';
+import { WorkflowModule } from './workflows/workflow.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { EventBusModule } from './events/event-bus.module';
     }),
     EnterpriseModule,
     EventBusModule,
+    WorkflowModule,
     ResilienceModule,
     ClinicalSafetyModule,
     PatientPortalModule,

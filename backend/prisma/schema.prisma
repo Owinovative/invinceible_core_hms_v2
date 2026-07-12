@@ -2349,12 +2349,12 @@ model ShrBundleDependency {
 /// The EventDispatcher (Milestone 2) reads this table and dispatches to subscribers.
 model ClinicalEventOutbox {
   id            Int       @id @default(autoincrement())
-  uuid          String    @unique @db.VarChar(36)        // UUIDv4 — globally unique event ID
-  correlationId String    @db.VarChar(36)                // Links events across one patient journey
-  aggregateId   String    @db.VarChar(100)               // e.g., "patient_42", "encounter_99"
-  aggregateType String    @db.VarChar(50)                // e.g., "PATIENT", "ENCOUNTER"
-  eventType     String    @db.VarChar(100)               // e.g., "VitalsRecorded"
-  eventCategory String    @db.VarChar(20)                // DOMAIN | INTEGRATION
+  uuid          String    @unique @db.VarChar(36) // UUIDv4 — globally unique event ID
+  correlationId String    @db.VarChar(36) // Links events across one patient journey
+  aggregateId   String    @db.VarChar(100) // e.g., "patient_42", "encounter_99"
+  aggregateType String    @db.VarChar(50) // e.g., "PATIENT", "ENCOUNTER"
+  eventType     String    @db.VarChar(100) // e.g., "VitalsRecorded"
+  eventCategory String    @db.VarChar(20) // DOMAIN | INTEGRATION
   eventVersion  Int       @default(1)
   patientId     Int
   encounterId   Int?
@@ -2363,12 +2363,12 @@ model ClinicalEventOutbox {
   tenantId      Int       @default(1)
   userId        Int?
   sourceModule  String    @db.VarChar(50)
-  priority      String    @db.VarChar(20)                // CRITICAL | HIGH | MEDIUM | LOW
-  priorityOrder Int       @default(2)                    // Numeric for ORDER BY DESC
+  priority      String    @db.VarChar(20) // CRITICAL | HIGH | MEDIUM | LOW
+  priorityOrder Int       @default(2) // Numeric for ORDER BY DESC
   slaSeconds    Int?
   payload       Json
-  checksum      String    @db.VarChar(64)                // SHA-256 of payload
-  signature     String    @db.VarChar(64)                // HMAC-SHA256 tamper detection
+  checksum      String    @db.VarChar(64) // SHA-256 of payload
+  signature     String    @db.VarChar(64) // HMAC-SHA256 tamper detection
   metadata      Json?
   occurredAt    DateTime
   status        String    @default("PENDING") @db.VarChar(20) // PENDING | DISPATCHING | DISPATCHED | FAILED
@@ -2389,34 +2389,34 @@ model ClinicalEventOutbox {
 /// Immutable event store — every successfully dispatched clinical event.
 /// This is the permanent record and forms the basis for replay, timeline, and audit.
 model ClinicalEvent {
-  id            Int       @id @default(autoincrement())
-  uuid          String    @unique @db.VarChar(36)
-  correlationId String    @db.VarChar(36)
-  aggregateId   String    @db.VarChar(100)
-  aggregateType String    @db.VarChar(50)
-  eventType     String    @db.VarChar(100)
-  eventCategory String    @db.VarChar(20)
-  eventVersion  Int       @default(1)
-  sequenceNumber Int?                                    // Monotonically increasing per aggregate
-  patientId     Int
-  encounterId   Int?
-  facilityId    Int
-  branchId      Int?
-  tenantId      Int       @default(1)
-  userId        Int?
-  sourceModule  String    @db.VarChar(50)
-  priority      String    @db.VarChar(20)
-  slaSeconds    Int?
-  payload       Json
-  checksum      String    @db.VarChar(64)
-  signature     String    @db.VarChar(64)
-  metadata      Json?
-  occurredAt    DateTime
-  processedAt   DateTime?
-  status        String    @default("PROCESSED") @db.VarChar(20) // PROCESSED | FAILED | DEAD_LETTER | ARCHIVED
-  slaBreached   Boolean   @default(false)
-  processingMs  Int?                                    // Actual processing duration in ms
-  outboxId      Int?                                    // Link back to originating outbox entry
+  id             Int       @id @default(autoincrement())
+  uuid           String    @unique @db.VarChar(36)
+  correlationId  String    @db.VarChar(36)
+  aggregateId    String    @db.VarChar(100)
+  aggregateType  String    @db.VarChar(50)
+  eventType      String    @db.VarChar(100)
+  eventCategory  String    @db.VarChar(20)
+  eventVersion   Int       @default(1)
+  sequenceNumber Int? // Monotonically increasing per aggregate
+  patientId      Int
+  encounterId    Int?
+  facilityId     Int
+  branchId       Int?
+  tenantId       Int       @default(1)
+  userId         Int?
+  sourceModule   String    @db.VarChar(50)
+  priority       String    @db.VarChar(20)
+  slaSeconds     Int?
+  payload        Json
+  checksum       String    @db.VarChar(64)
+  signature      String    @db.VarChar(64)
+  metadata       Json?
+  occurredAt     DateTime
+  processedAt    DateTime?
+  status         String    @default("PROCESSED") @db.VarChar(20) // PROCESSED | FAILED | DEAD_LETTER | ARCHIVED
+  slaBreached    Boolean   @default(false)
+  processingMs   Int? // Actual processing duration in ms
+  outboxId       Int? // Link back to originating outbox entry
 
   @@index([patientId, occurredAt])
   @@index([facilityId, occurredAt])
@@ -2430,18 +2430,18 @@ model ClinicalEvent {
 
 /// Subscriber processing status — tracks each subscriber's processing of each event.
 model EventSubscriberStatus {
-  id              Int       @id @default(autoincrement())
-  eventId         Int
-  subscriberName  String    @db.VarChar(100)             // e.g., "ShrModule"
-  isolationLevel  String    @db.VarChar(20)              // CRITICAL | NORMAL | OPTIONAL
-  status          String    @default("PENDING") @db.VarChar(20) // PENDING | SUCCESS | FAILED | SKIPPED
-  startedAt       DateTime?
-  completedAt     DateTime?
-  processingMs    Int?
-  slaBreached     Boolean   @default(false)
-  retryCount      Int       @default(0)
-  failureReason   String?   @db.Text
-  createdAt       DateTime  @default(now())
+  id             Int       @id @default(autoincrement())
+  eventId        Int
+  subscriberName String    @db.VarChar(100) // e.g., "ShrModule"
+  isolationLevel String    @db.VarChar(20) // CRITICAL | NORMAL | OPTIONAL
+  status         String    @default("PENDING") @db.VarChar(20) // PENDING | SUCCESS | FAILED | SKIPPED
+  startedAt      DateTime?
+  completedAt    DateTime?
+  processingMs   Int?
+  slaBreached    Boolean   @default(false)
+  retryCount     Int       @default(0)
+  failureReason  String?   @db.Text
+  createdAt      DateTime  @default(now())
 
   @@unique([eventId, subscriberName])
   @@index([eventId])
@@ -2452,47 +2452,47 @@ model EventSubscriberStatus {
 
 /// Dead Letter Queue — events that have exhausted retries and require manual intervention.
 model DeadLetterEvent {
-  id                Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   // Original event identity
-  originalEventId   String    @db.VarChar(36)               // UUID of the original event
-  eventType         String    @db.VarChar(100)
-  eventCategory     String    @db.VarChar(20)               // DOMAIN | INTEGRATION
-  eventVersion      Int       @default(1)
-  correlationId     String    @db.VarChar(100)
-  aggregateId       String    @db.VarChar(100)
-  aggregateType     String    @db.VarChar(100)
+  originalEventId String @db.VarChar(36) // UUID of the original event
+  eventType       String @db.VarChar(100)
+  eventCategory   String @db.VarChar(20) // DOMAIN | INTEGRATION
+  eventVersion    Int    @default(1)
+  correlationId   String @db.VarChar(100)
+  aggregateId     String @db.VarChar(100)
+  aggregateType   String @db.VarChar(100)
 
   // Clinical context
-  patientId         Int?
-  encounterId       Int?
-  facilityId        Int?
-  tenantId          Int?
-  sourceModule      String?   @db.VarChar(100)
+  patientId    Int?
+  encounterId  Int?
+  facilityId   Int?
+  tenantId     Int?
+  sourceModule String? @db.VarChar(100)
 
   // Payload (immutable copy from failed event)
-  payload           Json
-  checksum          String    @db.VarChar(64)
-  signature         String    @db.VarChar(128)
-  metadata          Json      @default("{}")
-  occurredAt        DateTime
+  payload    Json
+  checksum   String   @db.VarChar(64)
+  signature  String   @db.VarChar(128)
+  metadata   Json     @default("{}")
+  occurredAt DateTime
 
   // DLQ classification
-  failureReason     String    @db.Text
-  failureType       String    @db.VarChar(50)               // SUBSCRIBER_FAILURE | TAMPER_DETECTED | SCHEMA_VIOLATION | TIMEOUT | UNKNOWN
-  failedSubscriber  String?   @db.VarChar(150)              // Which subscriber failed
-  retryCount        Int       @default(0)
-  lastRetryAt       DateTime?
+  failureReason    String    @db.Text
+  failureType      String    @db.VarChar(50) // SUBSCRIBER_FAILURE | TAMPER_DETECTED | SCHEMA_VIOLATION | TIMEOUT | UNKNOWN
+  failedSubscriber String?   @db.VarChar(150) // Which subscriber failed
+  retryCount       Int       @default(0)
+  lastRetryAt      DateTime?
 
   // DLQ lifecycle
-  status            String    @default("PENDING") @db.VarChar(30) // PENDING | REPLAYED | ARCHIVED | IGNORED | DELETED
-  resolution        String?   @db.VarChar(30)              // MANUAL | AUTO_RETRY | TIMEOUT
-  resolvedAt        DateTime?
-  resolvedBy        String?   @db.VarChar(150)             // Admin who resolved it
-  notes             String?   @db.Text
+  status     String    @default("PENDING") @db.VarChar(30) // PENDING | REPLAYED | ARCHIVED | IGNORED | DELETED
+  resolution String?   @db.VarChar(30) // MANUAL | AUTO_RETRY | TIMEOUT
+  resolvedAt DateTime?
+  resolvedBy String?   @db.VarChar(150) // Admin who resolved it
+  notes      String?   @db.Text
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([originalEventId])
   @@index([status, createdAt])
@@ -2505,33 +2505,287 @@ model DeadLetterEvent {
 
 /// Event Replay Job — tracks a replay operation from start to finish.
 model EventReplayJob {
-  id              Int       @id @default(autoincrement())
-  jobId           String    @unique @db.VarChar(36)         // UUID
-  mode            String    @db.VarChar(20)                 // FULL | SAFE | SIMULATION
-  status          String    @default("RUNNING") @db.VarChar(20) // RUNNING | COMPLETED | FAILED | CANCELLED
+  id     Int    @id @default(autoincrement())
+  jobId  String @unique @db.VarChar(36) // UUID
+  mode   String @db.VarChar(20) // FULL | SAFE | SIMULATION
+  status String @default("RUNNING") @db.VarChar(20) // RUNNING | COMPLETED | FAILED | CANCELLED
 
   // Replay filters (serialized)
-  filters         Json      @default("{}")                  // patientId, aggregateId, correlationId, eventTypes, dateRange
+  filters Json @default("{}") // patientId, aggregateId, correlationId, eventTypes, dateRange
 
   // Progress tracking
-  totalEvents     Int       @default(0)
-  processedEvents Int       @default(0)
-  skippedEvents   Int       @default(0)
-  failedEvents    Int       @default(0)
+  totalEvents     Int @default(0)
+  processedEvents Int @default(0)
+  skippedEvents   Int @default(0)
+  failedEvents    Int @default(0)
 
   // Timing
-  startedAt       DateTime  @default(now())
-  completedAt     DateTime?
-  durationMs      Int?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
 
   // Initiated by
-  initiatedBy     String?   @db.VarChar(150)
-  notes           String?   @db.Text
+  initiatedBy String? @db.VarChar(150)
+  notes       String? @db.Text
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([mode, status])
   @@map("event_replay_jobs")
+}
+
+// ==========================================
+// PHASE 5: ENTERPRISE WORKFLOW ENGINE
+// ==========================================
+
+/// Workflow Definition — The core template metadata.
+model WorkflowDefinition {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(50) // e.g. "OUTPATIENT_V1"
+  name        String   @db.VarChar(100) // e.g. "Standard Outpatient Workflow"
+  description String?  @db.Text
+  category    String   @db.VarChar(50) // e.g. "CLINICAL", "ADMINISTRATIVE"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions  WorkflowVersion[]
+  instances WorkflowInstance[]
+
+  @@map("workflow_definitions")
+}
+
+/// Workflow Version — Immutable JSON schema contract.
+model WorkflowVersion {
+  id                   Int       @id @default(autoincrement())
+  workflowDefinitionId Int
+  versionNumber        Int
+  schema               Json // The proprietary JSON schema (triggers, steps, variables, SLAs)
+  isPublished          Boolean   @default(false)
+  isDeprecated         Boolean   @default(false)
+  publishedAt          DateTime?
+  deprecatedAt         DateTime?
+  createdBy            String?   @db.VarChar(150)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  definition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id], onDelete: Cascade)
+  instances  WorkflowInstance[]
+
+  @@unique([workflowDefinitionId, versionNumber])
+  @@map("workflow_versions")
+}
+
+/// Workflow Instance — An active or completed workflow execution.
+model WorkflowInstance {
+  id                   Int    @id @default(autoincrement())
+  instanceId           String @unique @db.VarChar(36) // UUID
+  workflowDefinitionId Int
+  workflowVersionId    Int
+
+  // Clinical context
+  patientId   Int?
+  encounterId Int?
+  facilityId  Int
+  tenantId    Int  @default(1)
+
+  // State Machine
+  status        String  @default("CREATED") @db.VarChar(30) // CREATED, READY, IN_PROGRESS, WAITING, BLOCKED, COMPLETED, CANCELLED, FAILED, ESCALATED
+  currentStepId String? @db.VarChar(100) // Maps to the step ID in the JSON schema
+
+  // Data
+  contextVariables Json @default("{}") // Runtime variables injected/evaluated
+
+  // Timing
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  definition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  version    WorkflowVersion    @relation(fields: [workflowVersionId], references: [id])
+
+  steps  WorkflowStep[]
+  tasks  WorkflowTask[]
+  timers WorkflowTimer[]
+  audits WorkflowAudit[]
+
+  @@index([patientId, status])
+  @@index([encounterId])
+  @@index([facilityId, status])
+  @@index([workflowDefinitionId, status])
+  @@map("workflow_instances")
+}
+
+/// Workflow Step — Individual execution states within an instance.
+model WorkflowStep {
+  id                 Int    @id @default(autoincrement())
+  workflowInstanceId Int
+  stepDefinitionId   String @db.VarChar(100) // Maps to the JSON schema step ID
+
+  status      String    @default("PENDING") @db.VarChar(30) // PENDING, ACTIVE, COMPLETED, SKIPPED, FAILED
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Idempotency fingerprint component
+  triggerEventId String? @db.VarChar(36)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  instance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowInstanceId, stepDefinitionId, triggerEventId])
+  @@index([workflowInstanceId, status])
+  @@map("workflow_steps")
+}
+
+/// Workflow Transition — Represents a state jump.
+model WorkflowTransition {
+  id                 Int      @id @default(autoincrement())
+  workflowInstanceId Int
+  fromStepId         String?  @db.VarChar(100)
+  toStepId           String   @db.VarChar(100)
+  triggerEventId     String?  @db.VarChar(36)
+  conditionMet       String?  @db.Text
+  transitionedAt     DateTime @default(now())
+
+  @@index([workflowInstanceId])
+  @@map("workflow_transitions")
+}
+
+/// Workflow Task — Human task management.
+model WorkflowTask {
+  id                 Int    @id @default(autoincrement())
+  taskId             String @unique @db.VarChar(36) // UUID
+  workflowInstanceId Int
+  stepDefinitionId   String @db.VarChar(100)
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+  priority    String  @default("NORMAL") @db.VarChar(20) // LOW, NORMAL, HIGH, URGENT
+
+  status String @default("UNASSIGNED") @db.VarChar(30) // UNASSIGNED, ASSIGNED, CLAIMED, IN_PROGRESS, COMPLETED, CANCELLED, EXPIRED
+
+  // Assignment criteria
+  targetRole       String? @db.VarChar(100)
+  targetDepartment String? @db.VarChar(100)
+  targetSkill      String? @db.VarChar(100)
+
+  // SLA
+  dueDate   DateTime?
+  isOverdue Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  instance    WorkflowInstance     @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  assignments WorkflowAssignment[]
+  escalations WorkflowEscalation[]
+
+  @@index([workflowInstanceId, status])
+  @@index([targetRole, status])
+  @@index([targetDepartment, status])
+  @@map("workflow_tasks")
+}
+
+/// Workflow Assignment — Allocation of a task to a user.
+model WorkflowAssignment {
+  id             Int      @id @default(autoincrement())
+  workflowTaskId Int
+  userId         Int
+  assignedAt     DateTime @default(now())
+  status         String   @default("ACTIVE") @db.VarChar(30) // ACTIVE, REASSIGNED, COMPLETED
+
+  task WorkflowTask @relation(fields: [workflowTaskId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([workflowTaskId])
+  @@map("workflow_assignments")
+}
+
+/// Workflow Timer — Scheduled hooks for Reminders, Deadlines, Escalations.
+model WorkflowTimer {
+  id                 Int      @id @default(autoincrement())
+  workflowInstanceId Int
+  timerType          String   @db.VarChar(50) // DEADLINE, REMINDER, ESCALATION, AUTO_TRANSITION
+  executeAt          DateTime
+  status             String   @default("PENDING") @db.VarChar(30) // PENDING, EXECUTED, CANCELLED
+  payload            Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  instance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+
+  @@index([status, executeAt])
+  @@index([workflowInstanceId])
+  @@map("workflow_timers")
+}
+
+/// Workflow Escalation — SLA/Timer breach resolution.
+model WorkflowEscalation {
+  id                Int       @id @default(autoincrement())
+  workflowTaskId    Int
+  reason            String    @db.Text
+  escalatedToRole   String?   @db.VarChar(100)
+  escalatedToUserId Int?
+  status            String    @default("ACTIVE") @db.VarChar(30) // ACTIVE, RESOLVED
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  task WorkflowTask @relation(fields: [workflowTaskId], references: [id], onDelete: Cascade)
+
+  @@index([workflowTaskId])
+  @@index([status])
+  @@map("workflow_escalations")
+}
+
+/// Workflow Audit — Immutable log of all transitions.
+model WorkflowAudit {
+  id                 Int      @id @default(autoincrement())
+  workflowInstanceId Int
+  oldState           String?  @db.VarChar(100)
+  newState           String   @db.VarChar(100)
+  triggerEvent       String?  @db.VarChar(100)
+  actor              String?  @db.VarChar(150)
+  reason             String?  @db.Text
+  correlationId      String?  @db.VarChar(100)
+  durationMs         Int?
+  metadata           Json?
+  timestamp          DateTime @default(now())
+
+  instance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+
+  @@index([workflowInstanceId, timestamp])
+  @@index([correlationId])
+  @@map("workflow_audits")
+}
+
+/// Workflow Metric
+model WorkflowMetric {
+  id         Int      @id @default(autoincrement())
+  metricName String   @db.VarChar(100)
+  value      Float
+  tags       Json?
+  timestamp  DateTime @default(now())
+
+  @@index([metricName, timestamp])
+  @@map("workflow_metrics")
+}
+
+/// Workflow Snapshot
+model WorkflowSnapshot {
+  id                 Int      @id @default(autoincrement())
+  timestamp          DateTime @default(now())
+  activeInstances    Int
+  completedInstances Int
+  failedInstances    Int
+  overdueTasks       Int
+  data               Json
+
+  @@index([timestamp])
+  @@map("workflow_snapshots")
 }
