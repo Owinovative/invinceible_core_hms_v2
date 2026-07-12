@@ -94,6 +94,12 @@ export class PharmacyService {
       throw new BadRequestException('Medicine code or name already exists');
     }
 
+    if (!createMedicineDto.terminologyConceptId) {
+      this.safeLogger.warn(
+        `Medicine "${createMedicineDto.name}" created without a Terminology concept link. This may block FHIR compliance.`,
+      );
+    }
+
     const medicine = await this.prisma.medicine.create({
       data: {
         code: createMedicineDto.code,
@@ -101,6 +107,7 @@ export class PharmacyService {
         dosageForm: createMedicineDto.dosageForm,
         strength: createMedicineDto.strength,
         manufacturer: createMedicineDto.manufacturer,
+        terminologyConceptId: createMedicineDto.terminologyConceptId,
         unitPrice: createMedicineDto.unitPrice ?? 0,
         stockQuantity: createMedicineDto.stockQuantity ?? 0,
         reorderLevel: createMedicineDto.reorderLevel ?? 0,

@@ -16,7 +16,9 @@ export interface DhaResult<T = unknown> {
     | 'REJECTED'
     | 'ELIGIBLE'
     | 'SETTLED'
-    | 'NOT_ELIGIBLE';
+    | 'NOT_ELIGIBLE'
+    | 'SUCCESS'
+    | 'FAILED';
   /** DHA-side identifier for the interaction, when provided. */
   externalRef?: string;
   data?: T;
@@ -44,6 +46,49 @@ export interface EligibilityQuery {
   nationalId?: string;
   serviceDate?: string;
   interventionCode?: string;
+}
+
+export interface PatientContact {
+  contact_id: number;
+  contact_value: string;
+}
+
+export interface SendOtpRequest {
+  patient_id: string;
+  intervention_codes: string[];
+  contact_id: number;
+}
+
+export interface SendOtpResponse {
+  consent_request_id: string;
+  status: string;
+}
+
+export interface AuthorizeConsentRequest {
+  patient_id: string;
+  consent_request_id?: string; // Required for OTP path
+  otp_code?: string; // Required for OTP path
+  auth_guid?: string; // Required for Biometrics path
+  intervention_codes: string[];
+  service_type: 'INPATIENT' | 'OUTPATIENT';
+  practitioner_identification_type?: string;
+  practitioner_identification_number?: string;
+  practitioner_regulation_body?: string;
+}
+
+export interface AuthorizeConsentResponse {
+  consent_token: string;
+  auth_guid?: string;
+  status: string;
+  expires_at: string;
+}
+
+export interface SendDischargeOtpRequest {
+  patient_id: string;
+  contact_id: number;
+  otp_type: 'discharge';
+  encounter_id: string;
+  service_type: 'INPATIENT' | 'OUTPATIENT';
 }
 
 /**
@@ -109,6 +154,28 @@ export interface DhaClientPort {
     claimNumber: string,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult>;
+
+  // --- Consent Management ---
+
+  getPatientContacts(
+    patientId: string,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<PatientContact[]>>;
+
+  sendVisitOtp(
+    request: SendOtpRequest,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<SendOtpResponse>>;
+
+  createAuthorization(
+    request: AuthorizeConsentRequest,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<AuthorizeConsentResponse>>;
+
+  sendDischargeOtp(
+    request: SendDischargeOtpRequest,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<SendOtpResponse>>;
 }
 
 export class DhaApiError extends Error {

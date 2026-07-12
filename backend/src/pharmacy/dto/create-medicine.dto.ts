@@ -46,4 +46,8 @@ export class CreateMedicineDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  terminologyConceptId?: number;
 }

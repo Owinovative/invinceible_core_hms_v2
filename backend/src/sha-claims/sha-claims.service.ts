@@ -204,6 +204,12 @@ export class ShaClaimsService {
       );
     }
 
+    if (!dto.diagnosisConceptId) {
+      throw new BadRequestException(
+        'A standardized diagnosis concept is required to create a SHA claim.',
+      );
+    }
+
     const claim = await this.prisma.$transaction(async (tx) => {
       const lockedFacility = await tx.facility.findUnique({
         where: { id: dto.facilityId },
@@ -275,7 +281,10 @@ export class ShaClaimsService {
     return claim;
   }
 
-  private appendResubmissionMetadata(claim: { statusCode: string; metadata: any }, userId: number) {
+  private appendResubmissionMetadata(
+    claim: { statusCode: string; metadata: any },
+    userId: number,
+  ) {
     let metadata = claim.metadata as Record<string, unknown> | null;
     metadata = metadata || {};
     const resubmissions = (metadata.resubmissions as unknown[]) || [];
@@ -312,8 +321,21 @@ export class ShaClaimsService {
         : dto.rejectedAmount;
 
     let metadata = claim.metadata as Record<string, unknown> | null;
-    if (nextStatus === 'SUBMITTED' && (claim.submittedAt || claim.statusCode === 'REJECTED')) {
+    if (
+      nextStatus === 'SUBMITTED' &&
+      (claim.submittedAt || claim.statusCode === 'REJECTED')
+    ) {
       metadata = this.appendResubmissionMetadata(claim, user.userId);
+    }
+
+    const finalDiagnosisId =
+      dto.diagnosisConceptId !== undefined
+        ? dto.diagnosisConceptId
+        : claim.diagnosisConceptId;
+    if (!finalDiagnosisId) {
+      throw new BadRequestException(
+        'A standardized diagnosis concept is required for SHA claims.',
+      );
     }
 
     const data: Prisma.ShaClaimUpdateInput = {
@@ -334,6 +356,12 @@ export class ShaClaimsService {
       memberNumber: dto.memberNumber,
       diagnosisCode: dto.diagnosisCode,
       diagnosisText: dto.diagnosisText,
+      diagnosisConcept:
+        dto.diagnosisConceptId === undefined
+          ? undefined
+          : dto.diagnosisConceptId === null
+            ? { disconnect: true }
+            : { connect: { id: dto.diagnosisConceptId } },
       servicePeriodStart: dto.servicePeriodStart
         ? new Date(dto.servicePeriodStart)
         : undefined,
@@ -406,9 +434,10 @@ export class ShaClaimsService {
     // Advance to SUBMITTED if still in DRAFT or REJECTED
     let updated = claim;
     if (claim.statusCode === 'DRAFT' || claim.statusCode === 'REJECTED') {
-      const isResubmission = claim.statusCode === 'REJECTED' || !!claim.submittedAt;
+      const isResubmission =
+        claim.statusCode === 'REJECTED' || !!claim.submittedAt;
       let metadata = claim.metadata as Record<string, unknown> | null;
-      
+
       if (isResubmission) {
         metadata = this.appendResubmissionMetadata(claim, user.userId);
       }

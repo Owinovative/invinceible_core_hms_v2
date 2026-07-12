@@ -1,6 +1,19 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Req, Ip } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Req,
+  Ip,
+} from '@nestjs/common';
 import { LegalService } from './legal.service';
-import { CreateOrUpdateLegalDocumentDto, AcceptLegalDocumentDto } from './dto/legal.dto';
+import {
+  CreateOrUpdateLegalDocumentDto,
+  AcceptLegalDocumentDto,
+} from './dto/legal.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
@@ -29,7 +42,12 @@ export class LegalController {
     @Ip() ipAddress: string,
   ) {
     const userAgent = req.headers['user-agent'];
-    return this.legalService.acceptDocument(dto, req.user, ipAddress, userAgent);
+    return this.legalService.acceptDocument(
+      dto,
+      req.user,
+      ipAddress,
+      userAgent,
+    );
   }
 
   // Admin APIs
@@ -42,13 +60,19 @@ export class LegalController {
 
   @UseGuards(JwtAuthGuard)
   @Post('admin/documents')
-  saveDraft(@Body() dto: CreateOrUpdateLegalDocumentDto, @Req() req: AuthenticatedRequest) {
+  saveDraft(
+    @Body() dto: CreateOrUpdateLegalDocumentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.legalService.saveDraft(dto, req.user);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('admin/documents/:id/publish')
-  publishDocument(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
+  publishDocument(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.legalService.publishDocument(id, req.user);
   }
 }

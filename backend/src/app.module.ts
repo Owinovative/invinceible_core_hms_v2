@@ -55,6 +55,8 @@ import { IntegrationModule } from './integration/integration.module';
 import { SyncJobsModule } from './integration/sync-jobs/sync-jobs.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LegalModule } from './legal/legal.module';
+import { ConsentModule } from './consent/consent.module';
+import { TerminologyModule } from './terminology/terminology.module';
 
 @Module({
   imports: [
@@ -107,6 +109,8 @@ import { LegalModule } from './legal/legal.module';
     FeedbackModule,
     FacilitySubscriptionModule,
     LegalModule,
+    ConsentModule,
+    TerminologyModule,
   ],
   controllers: [AppController],
   providers: [

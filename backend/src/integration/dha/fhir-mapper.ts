@@ -46,15 +46,26 @@ export interface HmsStaffLike {
   cadre?: string | null;
 }
 
+export interface TerminologyConceptRef {
+  system: string;
+  code: string;
+  display: string;
+  version?: string | null;
+}
+
 export interface HmsEncounterLike {
   id: number;
   patientId: number;
   startedAt?: Date | null;
   endedAt?: Date | null;
   encounterClass?: 'AMB' | 'IMP' | 'EMER';
+  /** Legacy free-text diagnosis — preserved for backward compatibility with pre-Terminology records. */
   diagnosisText?: string | null;
+  /** Legacy code string — preserved for backward compatibility. */
   diagnosisCode?: string | null;
   practitionerRef?: string | null;
+  /** Structured diagnosis from TerminologyConcept — preferred over free-text when present. */
+  primaryDiagnosis?: TerminologyConceptRef | null;
 }
 
 /**
@@ -145,6 +156,49 @@ export class FhirMapperService {
     patientRef: string,
     facilityRef: string,
   ): FhirEncounter {
+    // Build reasonCode preferring structured TerminologyConcept over legacy free-text
+    let reasonCode: FhirEncounter['reasonCode'] = undefined;
+
+    if (encounter.primaryDiagnosis) {
+      // Structured path: full CodeableConcept from TerminologyConcept
+      const coding: Array<{
+        system?: string;
+        code?: string;
+        display?: string;
+        version?: string;
+      }> = [
+        {
+          system: encounter.primaryDiagnosis.system,
+          code: encounter.primaryDiagnosis.code,
+          display: encounter.primaryDiagnosis.display,
+          ...(encounter.primaryDiagnosis.version
+            ? { version: encounter.primaryDiagnosis.version }
+            : {}),
+        },
+      ];
+      reasonCode = [
+        {
+          coding,
+          text: encounter.primaryDiagnosis.display,
+        },
+      ];
+    } else if (encounter.diagnosisText) {
+      // Legacy fallback path: free-text with optional code
+      reasonCode = [
+        {
+          coding: encounter.diagnosisCode
+            ? [
+                {
+                  system: this.systems.icd11,
+                  code: encounter.diagnosisCode,
+                },
+              ]
+            : undefined,
+          text: encounter.diagnosisText,
+        },
+      ];
+    }
+
     return {
       resourceType: 'Encounter',
       status: encounter.endedAt ? 'finished' : 'in-progress',
@@ -160,21 +214,7 @@ export class FhirMapperService {
         start: encounter.startedAt?.toISOString(),
         end: encounter.endedAt?.toISOString(),
       },
-      reasonCode: encounter.diagnosisText
-        ? [
-            {
-              coding: encounter.diagnosisCode
-                ? [
-                    {
-                      system: this.systems.icd11,
-                      code: encounter.diagnosisCode,
-                    },
-                  ]
-                : undefined,
-              text: encounter.diagnosisText,
-            },
-          ]
-        : undefined,
+      reasonCode,
       serviceProvider: { reference: facilityRef },
     };
   }

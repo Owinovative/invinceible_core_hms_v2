@@ -60,6 +60,7 @@ export interface CreateShaClaimPayload {
   memberNumber?: string;
   diagnosisCode?: string;
   diagnosisText?: string;
+  diagnosisConceptId?: number;
   servicePeriodStart?: string;
   servicePeriodEnd?: string;
   claimedAmount?: number;
@@ -76,6 +77,7 @@ export interface UpdateShaClaimPayload {
   memberNumber?: string;
   diagnosisCode?: string;
   diagnosisText?: string;
+  diagnosisConceptId?: number;
   servicePeriodStart?: string;
   servicePeriodEnd?: string;
   claimedAmount?: number;

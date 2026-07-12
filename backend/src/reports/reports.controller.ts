@@ -38,7 +38,10 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
     @CurrentUser() user: RequestUser,
   ) {
-    const scopedFilter = this.reportsService.applyUserScopeToFilter(user, filter);
+    const scopedFilter = this.reportsService.applyUserScopeToFilter(
+      user,
+      filter,
+    );
     return this.shaPerformanceService.getClaimAgingReport({
       facilityId: scopedFilter.facilityId ?? 0,
       branchId: scopedFilter.branchId,
@@ -52,7 +55,10 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
     @CurrentUser() user: RequestUser,
   ) {
-    const scopedFilter = this.reportsService.applyUserScopeToFilter(user, filter);
+    const scopedFilter = this.reportsService.applyUserScopeToFilter(
+      user,
+      filter,
+    );
     return this.shaPerformanceService.getFacilityPerformanceReport({
       facilityId: scopedFilter.facilityId ?? 0,
       branchId: scopedFilter.branchId,

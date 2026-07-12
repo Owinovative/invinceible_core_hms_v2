@@ -20,6 +20,8 @@ export const HMS_PERMISSIONS = [
   'users.manage',
   'facility.manage',
   'patient.portal.read',
+  'consent.read',
+  'consent.manage',
 ] as const;
 
 export type HmsPermission = (typeof HMS_PERMISSIONS)[number];
@@ -48,6 +50,8 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'audit.read',
     'users.manage',
     'facility.manage',
+    'consent.read',
+    'consent.manage',
   ],
   BRANCH_ADMIN: [
     'patient.read',
@@ -74,9 +78,16 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'patient.write',
     'billing.read',
     'billing.write',
+    'consent.read',
+    'consent.manage',
   ],
-  TRIAGE_NURSE: ['patient.read', 'consultation.write'],
-  NURSE: ['patient.read', 'consultation.write', 'admission.manage'],
+  TRIAGE_NURSE: ['patient.read', 'consultation.write', 'consent.read'],
+  NURSE: [
+    'patient.read',
+    'consultation.write',
+    'admission.manage',
+    'consent.read',
+  ],
   IPD_NURSE: ['patient.read', 'consultation.write', 'admission.manage'],
   WARD_MANAGER: [
     'patient.read',
@@ -90,6 +101,8 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'lab.order',
     'consultation.write',
     'discharge.complete',
+    'consent.read',
+    'consent.manage',
   ],
   CLINICIAN: [
     'patient.read',

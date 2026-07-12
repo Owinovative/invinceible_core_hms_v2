@@ -26,6 +26,14 @@ import type {
   FhirEncounter,
   FhirServiceRequest,
 } from '../fhir.types';
+import type {
+  PatientContact,
+  SendOtpRequest,
+  SendOtpResponse,
+  AuthorizeConsentRequest,
+  AuthorizeConsentResponse,
+  SendDischargeOtpRequest,
+} from '../dha.types';
 
 interface DhaEnvelope {
   status?: string;
@@ -156,6 +164,9 @@ export class DhaHttpClient implements DhaClientPort {
             'Content-Type': 'application/fhir+json',
             'X-API-Version': this.config.dhaApiVersion,
             'X-Facility-Code': facilityCode,
+            ...(ctx?.consentToken
+              ? { 'Authorization-Consent': `Bearer ${ctx.consentToken}` }
+              : {}),
           },
           query,
           body,
@@ -323,10 +334,53 @@ export class DhaHttpClient implements DhaClientPort {
   ): Promise<DhaResult> {
     const envelope = await this.call(
       'GET',
-      `ClaimResponse?request=${encodeURIComponent(claimNumber)}`,
+      `claims/${claimNumber}/status`,
       undefined,
       ctx,
     );
     return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
+  }
+
+  // --- Consent Management ---
+  async getPatientContacts(
+    patientId: string,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<any>> {
+    const envelope = await this.call(
+      'GET',
+      `patients/${patientId}/contacts`,
+      undefined,
+      ctx,
+    );
+    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+  }
+
+  async sendVisitOtp(
+    request: any,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<any>> {
+    const envelope = await this.call('POST', 'consent/otp/visit', request, ctx);
+    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+  }
+
+  async createAuthorization(
+    request: any,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<any>> {
+    const envelope = await this.call('POST', 'consent/authorize', request, ctx);
+    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+  }
+
+  async sendDischargeOtp(
+    request: any,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<any>> {
+    const envelope = await this.call(
+      'POST',
+      'consent/otp/discharge',
+      request,
+      ctx,
+    );
+    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
   }
 }

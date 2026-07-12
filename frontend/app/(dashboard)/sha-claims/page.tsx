@@ -33,7 +33,8 @@ import { useShaClaimSummary } from "@/hooks/use-sha-claim-summary";
 import { useShaClaims } from "@/hooks/use-sha-claims";
 import { useUpdateShaClaim } from "@/hooks/use-update-sha-claim";
 import { useCheckShaEligibility } from "@/hooks/use-sha-eligibility";
-import { searchDiagnoses } from "@/lib/diagnosis-catalog";
+import { TerminologySearch } from "@/components/shared/terminology/TerminologySearch";
+import type { TerminologyConcept } from "@/services/terminology.service";
 import { downloadShaClaimPdf } from "@/services/sha-claim-service";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,9 +162,10 @@ type ClaimRecord = {
   memberNumber?: string | null;
   diagnosisCode?: string | null;
   diagnosisText?: string | null;
+  diagnosisConceptId?: number | null;
+  claimedAmount?: number;
   servicePeriodStart?: string | null;
   servicePeriodEnd?: string | null;
-  claimedAmount: number;
   approvedAmount: number;
   paidAmount: number;
   rejectedAmount: number;
@@ -423,9 +425,7 @@ export default function ShaClaimsPage() {
   const [selectedPatientId, setSelectedPatientId] = React.useState("");
   const [selectedInvoiceId, setSelectedInvoiceId] = React.useState("");
   const [memberNumber, setMemberNumber] = React.useState("");
-  const [diagnosisQuery, setDiagnosisQuery] = React.useState("");
-  const [diagnosisCode, setDiagnosisCode] = React.useState("");
-  const [diagnosisText, setDiagnosisText] = React.useState("");
+  const [primaryDiagnosis, setPrimaryDiagnosis] = React.useState<TerminologyConcept | null>(null);
   const [claimedAmount, setClaimedAmount] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [patientSignatureUrl, setPatientSignatureUrl] = React.useState("");
@@ -451,7 +451,6 @@ export default function ShaClaimsPage() {
   const selectedPatient = patients.find((p) => String(p.id) === selectedPatientId);
   const patientInvoices = invoices.filter((inv) => String(inv.patientId) === selectedPatientId);
   const selectedInvoice = invoices.find((inv) => String(inv.id) === selectedInvoiceId);
-  const diagnosisMatches = searchDiagnoses(diagnosisQuery);
 
   const filteredClaims = React.useMemo(() => {
     let list = claims;
@@ -480,16 +479,22 @@ export default function ShaClaimsPage() {
       setMessage({ type: "error", text: "Choose a patient before creating a claim." });
       return;
     }
+    if (!primaryDiagnosis) {
+      setMessage({ type: "error", text: "A standardized diagnosis concept is required to create a SHA claim." });
+      return;
+    }
+
     try {
       const created = await createMutation.mutateAsync({
         facilityId: (selectedInvoice as any)?.facilityId ?? patient.facilityId,
         branchId: (selectedInvoice as any)?.branchId ?? (patient as any)?.branchId ?? undefined,
         patientId: patient.id,
         invoiceId: selectedInvoice?.id,
-        memberNumber: memberNumber.trim() || undefined,
-        diagnosisCode: diagnosisCode || undefined,
-        diagnosisText: diagnosisText || undefined,
-        claimedAmount: claimedAmount ? Number(claimedAmount) : (selectedInvoice as any)?.totalAmount,
+        memberNumber: memberNumber || undefined,
+        diagnosisCode: primaryDiagnosis?.code || undefined,
+        diagnosisText: primaryDiagnosis?.display || undefined,
+        diagnosisConceptId: primaryDiagnosis?.id || undefined,
+        claimedAmount: claimedAmount ? parseFloat(claimedAmount) : (selectedInvoice as any)?.totalAmount,
         notes: notes.trim() || undefined,
         patientSignatureUrl: patientSignatureUrl || undefined,
         facilitySignatureUrl: facilitySignatureUrl || undefined,
@@ -498,7 +503,7 @@ export default function ShaClaimsPage() {
       setMessage({ type: "success", text: `SHA Claim ${created.claimNumber} created successfully.` });
       setSelectedInvoiceId(""); setClaimedAmount(""); setNotes("");
       setPatientSignatureUrl(""); setFacilitySignatureUrl(""); setRubberStampUrl("");
-      setDiagnosisCode(""); setDiagnosisText(""); setDiagnosisQuery(""); setMemberNumber("");
+      setPrimaryDiagnosis(null); setMemberNumber("");
     } catch (e: any) {
       setMessage({ type: "error", text: e?.message ?? "Failed to create claim." });
     }
@@ -684,34 +689,13 @@ export default function ShaClaimsPage() {
             {/* Diagnosis */}
             <div>
               <label className="mb-1.5 block text-sm font-medium">Diagnosis (ICD-11)</label>
-              <Input
-                value={diagnosisQuery}
-                onChange={(e) => setDiagnosisQuery(e.target.value)}
-                className="h-10 rounded-2xl text-sm"
-                placeholder="Type diagnosis or code…"
+              <TerminologySearch
+                value={primaryDiagnosis}
+                onChange={setPrimaryDiagnosis}
+                conceptClass="diagnosis"
+                placeholder="Search DHA ICD-11 diagnosis concepts..."
+                className="mb-4"
               />
-              {diagnosisQuery && diagnosisMatches.length > 0 && (
-                <div className="mt-1 max-h-44 overflow-y-auto rounded-2xl border border-border bg-background shadow-lg">
-                  {diagnosisMatches.map((d) => (
-                    <button
-                      key={d.code}
-                      type="button"
-                      className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent transition-colors"
-                      onClick={() => {
-                        setDiagnosisCode(d.code);
-                        setDiagnosisText(d.label);
-                        setDiagnosisQuery(`${d.code} — ${d.label}`);
-                      }}
-                    >
-                      <span className="font-mono font-semibold text-primary">{d.code}</span>
-                      <span className="text-muted-foreground ml-2">{d.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {diagnosisCode && (
-                <p className="mt-1 text-xs text-muted-foreground font-mono">Selected: {diagnosisCode}</p>
-              )}
             </div>
 
             {/* Notes */}

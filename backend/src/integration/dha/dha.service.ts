@@ -254,6 +254,8 @@ export class DhaService implements OnModuleInit {
           practitionerRef: consultation.doctor
             ? `Practitioner/${consultation.doctor.staffCode ?? consultation.doctor.id}`
             : undefined,
+          // Prefer structured TerminologyConcept; fall back to legacy free-text strings
+          primaryDiagnosis: (claim as any).diagnosisConcept ?? null,
           diagnosisCode: claim.diagnosisCode ?? undefined,
           diagnosisText: claim.diagnosisText ?? undefined,
         },
@@ -274,8 +276,32 @@ export class DhaService implements OnModuleInit {
       identifier: [{ system: 'urn:hms:sha-claim', value: claim.claimNumber }],
       total: { value: claim.claimedAmount, currency: 'KES' },
       ...(encounterRef ? { encounter: [{ reference: encounterRef }] } : {}),
-      ...(claim.diagnosisCode || claim.diagnosisText
-        ? {
+      ...(() => {
+        const concept = (claim as any).diagnosisConcept;
+        if (concept) {
+          // Preferred path: structured TerminologyConcept → full FHIR CodeableConcept
+          return {
+            diagnosis: [
+              {
+                sequence: 1,
+                diagnosisCodeableConcept: {
+                  coding: [
+                    {
+                      system: concept.system,
+                      code: concept.code,
+                      display: concept.display,
+                      ...(concept.version ? { version: concept.version } : {}),
+                    },
+                  ],
+                  text: concept.display,
+                },
+              },
+            ],
+          };
+        }
+        // Legacy fallback path
+        if (claim.diagnosisCode || claim.diagnosisText) {
+          return {
             diagnosis: [
               {
                 sequence: 1,
@@ -292,8 +318,10 @@ export class DhaService implements OnModuleInit {
                 },
               },
             ],
-          }
-        : {}),
+          };
+        }
+        return {};
+      })(),
     } as FhirResource);
 
     const bundle = this.mapper.toTransactionBundle(resources);
@@ -373,6 +401,8 @@ export class DhaService implements OnModuleInit {
           startedAt: consultation.startedAt,
           endedAt: consultation.completedAt,
           encounterClass: 'AMB',
+          // Prefer structured TerminologyConcept; fall back to legacy free-text
+          primaryDiagnosis: (consultation as any).primaryDiagnosis ?? null,
           diagnosisText: consultation.diagnosis ?? undefined,
           practitionerRef: `Practitioner/${consultation.doctor.staffCode}`,
         },
@@ -486,10 +516,33 @@ export class DhaService implements OnModuleInit {
       return;
     }
 
-    const ctx = {
+    const ctx: any = {
       correlationId: item.correlationId ?? undefined,
       facilityId: transaction.facilityId,
     };
+
+    if (transaction.patientId) {
+      // Find active consent for this patient (and specifically this consultation if linked)
+      const consentWhere: any = {
+        patientId: transaction.patientId,
+        status: 'AUTHORIZED',
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      };
+
+      if (transaction.consultationId) {
+        consentWhere.consultationId = transaction.consultationId;
+      }
+
+      const activeConsent = await this.prisma.consentAuthorization.findFirst({
+        where: consentWhere,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (activeConsent) {
+        ctx.consentToken = activeConsent.consentToken;
+      }
+    }
+
     const requestPayload = transaction.requestPayload as unknown as FhirBundle;
 
     try {

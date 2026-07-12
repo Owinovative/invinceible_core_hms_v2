@@ -33,7 +33,7 @@ export function SidebarProvider({
       if (stored !== null) {
         setCollapsed(stored === "true");
       }
-    } catch (_e) {}
+    } catch {}
     setMounted(true);
   }, []);
 
@@ -42,7 +42,7 @@ export function SidebarProvider({
       const next = !prev;
       try {
         localStorage.setItem(STORAGE_KEY, String(next));
-      } catch (_e) {}
+      } catch {}
       return next;
     });
   }, []);

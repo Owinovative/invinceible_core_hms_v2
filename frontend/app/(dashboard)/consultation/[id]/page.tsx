@@ -54,11 +54,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
-import { searchDiagnoses } from "@/lib/diagnosis-catalog";
 import { downloadConsultationMedicalReportPdf } from "@/services/report-service";
-
-
-function formatDate(value?: string | null) {
+import { TerminologySearch } from "@/components/shared/terminology/TerminologySearch";
+import type { TerminologyConcept } from "@/services/terminology.service";function formatDate(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -173,15 +171,11 @@ export default function ConsultationDetailPage() {
   const [historyOfPresenting, setHistoryOfPresenting] = React.useState("");
   const [examinationFindings, setExaminationFindings] = React.useState("");
   const [diagnosis, setDiagnosis] = React.useState("");
-  const [diagnosisSearch, setDiagnosisSearch] = React.useState("");
+  const [primaryDiagnosis, setPrimaryDiagnosis] = React.useState<TerminologyConcept | null>(null);
   const [treatmentPlan, setTreatmentPlan] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
   const [reportDownloading, setReportDownloading] = React.useState(false);
-  const diagnosisMatches = React.useMemo(
-    () => searchDiagnoses(diagnosisSearch),
-    [diagnosisSearch],
-  );
 
 
   const [prescriptionNotes, setPrescriptionNotes] = React.useState("");
@@ -230,6 +224,9 @@ export default function ConsultationDetailPage() {
     setHistoryOfPresenting(data.historyOfPresenting ?? "");
     setExaminationFindings(data.examinationFindings ?? "");
     setDiagnosis(data.diagnosis ?? "");
+    if ((data as any).primaryDiagnosis) {
+      setPrimaryDiagnosis((data as any).primaryDiagnosis);
+    }
     setTreatmentPlan(data.treatmentPlan ?? "");
     setNotes(data.notes ?? "");
   }, [data]);
@@ -260,9 +257,9 @@ export default function ConsultationDetailPage() {
         chiefComplaint: chiefComplaint || data?.chiefComplaint,
         historyOfPresenting:
           historyOfPresenting || data?.historyOfPresenting,
-        examinationFindings:
-          examinationFindings || data?.examinationFindings,
+        examinationFindings: examinationFindings || data?.examinationFindings,
         diagnosis: diagnosis || data?.diagnosis,
+        primaryDiagnosisId: primaryDiagnosis?.id || (data as any)?.primaryDiagnosisId,
         treatmentPlan: treatmentPlan || data?.treatmentPlan,
         notes: notes || data?.notes,
       },
@@ -510,6 +507,7 @@ export default function ConsultationDetailPage() {
         historyOfPresenting: historyOfPresenting || undefined,
         examinationFindings: examinationFindings || undefined,
         diagnosis: diagnosis || undefined,
+        primaryDiagnosisId: primaryDiagnosis?.id || undefined,
         treatmentPlan: treatmentPlan || undefined,
         notes: notes || undefined,
         statusCode: "IN_PROGRESS",
@@ -524,6 +522,15 @@ export default function ConsultationDetailPage() {
   const handleComplete = async () => {
     if (!data) return;
     setMessage(null);
+
+    // Save any pending changes first
+    await handleSave();
+
+    if (!primaryDiagnosis && !diagnosis) {
+      setMessage("Error: A standardized primary diagnosis is required before completing the consultation.");
+      return;
+    }
+
     await completeMutation.mutateAsync(data.id);
     setMessage("Consultation completed successfully.");
   };
@@ -1111,41 +1118,21 @@ export default function ConsultationDetailPage() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Diagnosis</label>
-                    <Input
-                      value={diagnosisSearch}
-                      onChange={(e) => setDiagnosisSearch(e.target.value)}
-                      className="mb-2 h-11 rounded-2xl"
-                      placeholder="Search diagnosis code or name"
+                    <label className="mb-2 block text-sm font-medium">Primary Diagnosis (Standardized)</label>
+                    <TerminologySearch
+                      value={primaryDiagnosis}
+                      onChange={setPrimaryDiagnosis}
+                      conceptClass="diagnosis"
+                      placeholder="Search DHA ICD-11 diagnosis concepts..."
+                      className="mb-4"
                     />
-                    {diagnosisSearch ? (
-                      <div className="mb-2 max-h-44 overflow-y-auto rounded-2xl border border-white/10 bg-background">
-                        {diagnosisMatches.map((item) => (
-                          <button
-                            key={item.code}
-                            type="button"
-                            className="block w-full px-3 py-2 text-left text-sm hover:bg-primary/10"
-                            onClick={() => {
-                              const next = `${item.code} - ${item.label}`;
-                              setDiagnosis((current) =>
-                                current.trim()
-                                  ? `${current.trim()}\n${next}`
-                                  : next,
-                              );
-                              setDiagnosisSearch("");
-                            }}
-                          >
-                            <span className="font-semibold">{item.code}</span>{" "}
-                            {item.label}
-                          </button>
-                        ))}
+
+                    {diagnosis && (
+                      <div className="mb-4 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning-foreground">
+                        <p className="font-semibold mb-1">Legacy Free-Text Diagnosis (Read-Only)</p>
+                        <p className="whitespace-pre-wrap">{diagnosis}</p>
                       </div>
-                    ) : null}
-                    <Textarea
-                      value={diagnosis}
-                      onChange={(e) => setDiagnosis(e.target.value)}
-                      className="min-h-[120px] rounded-2xl"
-                    />
+                    )}
                   </div>
 
 

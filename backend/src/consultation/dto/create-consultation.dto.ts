@@ -31,6 +31,10 @@ export class CreateConsultationDto {
   diagnosis?: string;
 
   @IsOptional()
+  @IsInt()
+  primaryDiagnosisId?: number;
+
+  @IsOptional()
   @IsString()
   treatmentPlan?: string;
 

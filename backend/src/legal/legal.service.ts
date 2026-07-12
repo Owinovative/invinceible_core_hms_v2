@@ -1,7 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { CreateOrUpdateLegalDocumentDto, AcceptLegalDocumentDto } from './dto/legal.dto';
+import {
+  CreateOrUpdateLegalDocumentDto,
+  AcceptLegalDocumentDto,
+} from './dto/legal.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
 
 @Injectable()
@@ -19,14 +26,19 @@ export class LegalService {
         this.prisma.legalDocument.findFirst({
           where: { type, status: 'PUBLISHED' },
           orderBy: { publishedAt: 'desc' },
-        })
-      )
+        }),
+      ),
     );
 
     return documents.filter(Boolean);
   }
 
-  async acceptDocument(dto: AcceptLegalDocumentDto, user: RequestUser, ipAddress?: string, userAgent?: string) {
+  async acceptDocument(
+    dto: AcceptLegalDocumentDto,
+    user: RequestUser,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const document = await this.prisma.legalDocument.findUnique({
       where: {
         type_version: {
@@ -37,7 +49,9 @@ export class LegalService {
     });
 
     if (!document) {
-      throw new NotFoundException(`Legal document ${dto.type} v${dto.version} not found`);
+      throw new NotFoundException(
+        `Legal document ${dto.type} v${dto.version} not found`,
+      );
     }
 
     if (document.status !== 'PUBLISHED') {
@@ -86,10 +100,7 @@ export class LegalService {
 
   async getAllDocuments() {
     return this.prisma.legalDocument.findMany({
-      orderBy: [
-        { type: 'asc' },
-        { createdAt: 'desc' }
-      ]
+      orderBy: [{ type: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
@@ -105,7 +116,9 @@ export class LegalService {
 
     if (existing) {
       if (existing.status === 'PUBLISHED') {
-        throw new BadRequestException('Cannot edit a published document. Create a new version instead.');
+        throw new BadRequestException(
+          'Cannot edit a published document. Create a new version instead.',
+        );
       }
       return this.prisma.legalDocument.update({
         where: { id: existing.id },
@@ -128,9 +141,11 @@ export class LegalService {
   }
 
   async publishDocument(id: number, user: RequestUser) {
-    const document = await this.prisma.legalDocument.findUnique({ where: { id } });
+    const document = await this.prisma.legalDocument.findUnique({
+      where: { id },
+    });
     if (!document) throw new NotFoundException('Document not found');
-    
+
     if (document.status === 'PUBLISHED') {
       return document;
     }

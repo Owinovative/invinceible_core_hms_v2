@@ -9,9 +9,11 @@ import { getPublishedLegalDocuments, acceptLegalDocument } from "@/services/lega
 import type { LegalDocument } from "@/services/legal-service";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function ConsentPage() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,7 +107,7 @@ export default function ConsentPage() {
               <Checkbox
                 id="terms"
                 checked={acceptedTerms}
-                onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
               />
               <label
                 htmlFor="terms"
@@ -137,7 +139,7 @@ export default function ConsentPage() {
               <Checkbox
                 id="privacy"
                 checked={acceptedPrivacy}
-                onCheckedChange={(checked) => setAcceptedPrivacy(checked as boolean)}
+                onChange={(e) => setAcceptedPrivacy(e.target.checked)}
               />
               <label
                 htmlFor="privacy"
@@ -153,7 +155,7 @@ export default function ConsentPage() {
           <Button
             variant="outline"
             onClick={() => {
-              authService.logout();
+              logout();
               router.push("/login");
             }}
           >
