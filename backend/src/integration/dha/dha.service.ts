@@ -20,6 +20,7 @@ import {
 } from '../integration.constants';
 import {
   NonRetryableIntegrationError,
+  type IntegrationCallContext,
   type OutboundQueueItem,
 } from '../integration.types';
 import { toErrorMessage } from '../http/retry-policy';
@@ -255,7 +256,9 @@ export class DhaService implements OnModuleInit {
             ? `Practitioner/${consultation.doctor.staffCode ?? consultation.doctor.id}`
             : undefined,
           // Prefer structured TerminologyConcept; fall back to legacy free-text strings
-          primaryDiagnosis: (claim as any).diagnosisConcept ?? null,
+          primaryDiagnosis:
+            (claim as unknown as { diagnosisConcept: Record<string, unknown> })
+              .diagnosisConcept ?? null,
           diagnosisCode: claim.diagnosisCode ?? undefined,
           diagnosisText: claim.diagnosisText ?? undefined,
         },
@@ -277,7 +280,16 @@ export class DhaService implements OnModuleInit {
       total: { value: claim.claimedAmount, currency: 'KES' },
       ...(encounterRef ? { encounter: [{ reference: encounterRef }] } : {}),
       ...(() => {
-        const concept = (claim as any).diagnosisConcept;
+        const concept = (
+          claim as unknown as {
+            diagnosisConcept?: {
+              system: string;
+              code: string;
+              display: string;
+              version?: string;
+            };
+          }
+        ).diagnosisConcept;
         if (concept) {
           // Preferred path: structured TerminologyConcept → full FHIR CodeableConcept
           return {
@@ -402,7 +414,12 @@ export class DhaService implements OnModuleInit {
           endedAt: consultation.completedAt,
           encounterClass: 'AMB',
           // Prefer structured TerminologyConcept; fall back to legacy free-text
-          primaryDiagnosis: (consultation as any).primaryDiagnosis ?? null,
+          primaryDiagnosis:
+            (
+              consultation as unknown as {
+                primaryDiagnosis: Record<string, unknown>;
+              }
+            ).primaryDiagnosis ?? null,
           diagnosisText: consultation.diagnosis ?? undefined,
           practitionerRef: `Practitioner/${consultation.doctor.staffCode}`,
         },
@@ -516,14 +533,14 @@ export class DhaService implements OnModuleInit {
       return;
     }
 
-    const ctx: any = {
+    const ctx: IntegrationCallContext = {
       correlationId: item.correlationId ?? undefined,
       facilityId: transaction.facilityId,
     };
 
     if (transaction.patientId) {
       // Find active consent for this patient (and specifically this consultation if linked)
-      const consentWhere: any = {
+      const consentWhere: Prisma.ConsentAuthorizationWhereInput = {
         patientId: transaction.patientId,
         status: 'AUTHORIZED',
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
@@ -539,7 +556,9 @@ export class DhaService implements OnModuleInit {
       });
 
       if (activeConsent) {
-        ctx.consentToken = activeConsent.consentToken;
+        ctx.consentToken = (
+          activeConsent as unknown as { consentToken: string }
+        ).consentToken;
       }
     }
 

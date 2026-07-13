@@ -345,42 +345,56 @@ export class DhaHttpClient implements DhaClientPort {
   async getPatientContacts(
     patientId: string,
     ctx?: IntegrationCallContext,
-  ): Promise<DhaResult<any>> {
+  ): Promise<DhaResult<PatientContact[]>> {
     const envelope = await this.call(
       'GET',
       `patients/${patientId}/contacts`,
       undefined,
       ctx,
     );
-    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+    return this.toResult(envelope, 'SUCCESS', 'FAILED') as unknown as DhaResult<
+      PatientContact[]
+    >;
   }
 
   async sendVisitOtp(
-    request: any,
+    request: SendOtpRequest,
     ctx?: IntegrationCallContext,
-  ): Promise<DhaResult<any>> {
+  ): Promise<DhaResult<SendOtpResponse>> {
     const envelope = await this.call('POST', 'consent/otp/visit', request, ctx);
-    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+    return this.toResult(
+      envelope,
+      'SUCCESS',
+      'FAILED',
+    ) as unknown as DhaResult<SendOtpResponse>;
   }
 
   async createAuthorization(
-    request: any,
+    request: AuthorizeConsentRequest,
     ctx?: IntegrationCallContext,
-  ): Promise<DhaResult<any>> {
+  ): Promise<DhaResult<AuthorizeConsentResponse>> {
     const envelope = await this.call('POST', 'consent/authorize', request, ctx);
-    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+    return this.toResult(
+      envelope,
+      'SUCCESS',
+      'FAILED',
+    ) as unknown as DhaResult<AuthorizeConsentResponse>;
   }
 
   async sendDischargeOtp(
-    request: any,
+    request: SendDischargeOtpRequest,
     ctx?: IntegrationCallContext,
-  ): Promise<DhaResult<any>> {
+  ): Promise<DhaResult<SendOtpResponse>> {
     const envelope = await this.call(
       'POST',
       'consent/otp/discharge',
       request,
       ctx,
     );
-    return this.toResult(envelope, 'SUCCESS', 'FAILED') as any;
+    return this.toResult(
+      envelope,
+      'SUCCESS',
+      'FAILED',
+    ) as unknown as DhaResult<SendOtpResponse>;
   }
 }
