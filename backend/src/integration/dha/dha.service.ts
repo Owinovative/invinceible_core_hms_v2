@@ -35,6 +35,7 @@ import type {
   PractitionerVerificationQuery,
 } from './dha.types';
 import { FhirMapperService } from './fhir-mapper';
+import type { TerminologyConceptRef } from './fhir-mapper';
 import type { FhirBundle, FhirResource } from './fhir.types';
 import { FhirSystemsService } from './fhir-systems';
 import { FhirValidationService } from './fhir-validation.service';
@@ -257,7 +258,7 @@ export class DhaService implements OnModuleInit {
             : undefined,
           // Prefer structured TerminologyConcept; fall back to legacy free-text strings
           primaryDiagnosis:
-            (claim as unknown as { diagnosisConcept: Record<string, unknown> })
+            (claim as unknown as { diagnosisConcept: TerminologyConceptRef })
               .diagnosisConcept ?? null,
           diagnosisCode: claim.diagnosisCode ?? undefined,
           diagnosisText: claim.diagnosisText ?? undefined,
@@ -417,7 +418,7 @@ export class DhaService implements OnModuleInit {
           primaryDiagnosis:
             (
               consultation as unknown as {
-                primaryDiagnosis: Record<string, unknown>;
+                primaryDiagnosis: TerminologyConceptRef;
               }
             ).primaryDiagnosis ?? null,
           diagnosisText: consultation.diagnosis ?? undefined,
