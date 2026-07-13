@@ -2,10 +2,12 @@ import { IntegrationHttpClient } from '../../http/integration-http.client';
 import { IntegrationHttpError } from '../../http/retry-policy';
 import type { IntegrationConfigService } from '../../integration-config.service';
 import { INTEGRATION_NAMES } from '../../integration.constants';
+import type { IntegrationLoggerService } from '../../integration-logger.service';
 import type {
   HttpMethod,
   IntegrationCallContext,
 } from '../../integration.types';
+import type { PrismaService } from '../../../prisma/prisma.service';
 import { TokenManager } from '../../token/token-manager';
 import {
   DhaApiError,
@@ -24,6 +26,14 @@ import type {
   FhirEncounter,
   FhirServiceRequest,
 } from '../fhir.types';
+import type {
+  PatientContact,
+  SendOtpRequest,
+  SendOtpResponse,
+  AuthorizeConsentRequest,
+  AuthorizeConsentResponse,
+  SendDischargeOtpRequest,
+} from '../dha.types';
 
 interface DhaEnvelope {
   status?: string;
@@ -44,16 +54,56 @@ interface DhaEnvelope {
  * adapter needs updating — the DhaClientPort contract stays stable.
  */
 export class DhaHttpClient implements DhaClientPort {
-  private readonly tokenManager: TokenManager;
+  private readonly tokenManagers = new Map<number, TokenManager>();
 
   constructor(
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
-  ) {
-    this.tokenManager = new TokenManager(() => this.fetchToken());
+    private readonly logger: IntegrationLoggerService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  private getTokenManager(facilityId?: number): TokenManager {
+    const key = facilityId ?? 0;
+    let manager = this.tokenManagers.get(key);
+    if (manager) {
+      // Re-insert to mark as recently used (LRU)
+      this.tokenManagers.delete(key);
+      this.tokenManagers.set(key, manager);
+    } else {
+      if (this.tokenManagers.size >= 100) {
+        // Map iterates in insertion order, so the first key is the oldest
+        const firstKey = this.tokenManagers.keys().next().value as
+          | number
+          | undefined;
+        if (firstKey !== undefined) {
+          this.tokenManagers.delete(firstKey);
+        }
+      }
+      manager = new TokenManager(
+        () => this.fetchToken(facilityId),
+        60,
+        this.logger,
+      );
+      this.tokenManagers.set(key, manager);
+    }
+    return manager;
   }
 
-  private async fetchToken() {
+  private async fetchToken(facilityId?: number) {
+    let clientId = this.config.dhaClientId;
+    let clientSecret = this.config.dhaClientSecret;
+
+    if (facilityId) {
+      const facility = await this.prisma.facility.findUnique({
+        where: { id: facilityId },
+      });
+      if (facility?.shaClientId && facility?.shaClientSecret) {
+        clientId = facility.shaClientId;
+        clientSecret = facility.shaClientSecret;
+      }
+    }
+
     const response = await this.http.request<{
       access_token?: string;
       expires_in?: number;
@@ -64,7 +114,7 @@ export class DhaHttpClient implements DhaClientPort {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(
-          `${this.config.dhaClientId}:${this.config.dhaClientSecret}`,
+          `${clientId}:${clientSecret}`,
         ).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -88,7 +138,18 @@ export class DhaHttpClient implements DhaClientPort {
     ctx?: IntegrationCallContext,
     query?: Record<string, string | number | undefined>,
   ): Promise<DhaEnvelope> {
-    let token = await this.tokenManager.getToken();
+    const tokenManager = this.getTokenManager(ctx?.facilityId);
+    let token = await tokenManager.getToken();
+
+    let facilityCode = this.config.dhaFacilityCode;
+    if (ctx?.facilityId) {
+      const facility = await this.prisma.facility.findUnique({
+        where: { id: ctx.facilityId },
+      });
+      if (facility?.shaFidCode) {
+        facilityCode = facility.shaFidCode;
+      }
+    }
 
     for (let attempt = 1; ; attempt += 1) {
       try {
@@ -102,7 +163,10 @@ export class DhaHttpClient implements DhaClientPort {
             Accept: 'application/fhir+json',
             'Content-Type': 'application/fhir+json',
             'X-API-Version': this.config.dhaApiVersion,
-            'X-Facility-Code': this.config.dhaFacilityCode,
+            'X-Facility-Code': facilityCode,
+            ...(ctx?.consentToken
+              ? { 'Authorization-Consent': `Bearer ${ctx.consentToken}` }
+              : {}),
           },
           query,
           body,
@@ -119,11 +183,20 @@ export class DhaHttpClient implements DhaClientPort {
           error instanceof IntegrationHttpError &&
           error.httpStatus === 401
         ) {
-          this.tokenManager.invalidate();
-          token = await this.tokenManager.getToken();
+          this.logger.warn(
+            'DHA API returned 401, invalidating token and retrying',
+          );
+          tokenManager.invalidate();
+          token = await tokenManager.getToken();
           continue;
         }
         if (error instanceof IntegrationHttpError) {
+          this.logger.error(`DHA API call failed: ${error.message}`, {
+            httpStatus: error.httpStatus,
+            retryable: error.retryable,
+            resource,
+            correlationId: ctx?.correlationId,
+          });
           throw new DhaApiError(
             error.message,
             error.httpStatus,
@@ -261,10 +334,67 @@ export class DhaHttpClient implements DhaClientPort {
   ): Promise<DhaResult> {
     const envelope = await this.call(
       'GET',
-      `ClaimResponse?request=${encodeURIComponent(claimNumber)}`,
+      `claims/${claimNumber}/status`,
       undefined,
       ctx,
     );
     return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
+  }
+
+  // --- Consent Management ---
+  async getPatientContacts(
+    patientId: string,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<PatientContact[]>> {
+    const envelope = await this.call(
+      'GET',
+      `patients/${patientId}/contacts`,
+      undefined,
+      ctx,
+    );
+    return this.toResult(envelope, 'SUCCESS', 'FAILED') as unknown as DhaResult<
+      PatientContact[]
+    >;
+  }
+
+  async sendVisitOtp(
+    request: SendOtpRequest,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<SendOtpResponse>> {
+    const envelope = await this.call('POST', 'consent/otp/visit', request, ctx);
+    return this.toResult(
+      envelope,
+      'SUCCESS',
+      'FAILED',
+    ) as unknown as DhaResult<SendOtpResponse>;
+  }
+
+  async createAuthorization(
+    request: AuthorizeConsentRequest,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<AuthorizeConsentResponse>> {
+    const envelope = await this.call('POST', 'consent/authorize', request, ctx);
+    return this.toResult(
+      envelope,
+      'SUCCESS',
+      'FAILED',
+    ) as unknown as DhaResult<AuthorizeConsentResponse>;
+  }
+
+  async sendDischargeOtp(
+    request: SendDischargeOtpRequest,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<SendOtpResponse>> {
+    const envelope = await this.call(
+      'POST',
+      'consent/otp/discharge',
+      request,
+      ctx,
+    );
+    return this.toResult(
+      envelope,
+      'SUCCESS',
+      'FAILED',
+    ) as unknown as DhaResult<SendOtpResponse>;
   }
 }

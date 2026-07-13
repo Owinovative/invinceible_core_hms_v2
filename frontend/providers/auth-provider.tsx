@@ -34,7 +34,7 @@ type AuthContextValue = {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (payload: { username: string; password: string }) => Promise<void>;
+  login: (payload: { username: string; password: string }) => Promise<{ requiresLegalConsent?: boolean } | void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -125,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: scopedUser.role ?? result.user.role,
           }),
         );
+        return { requiresLegalConsent: result.requiresLegalConsent };
       } catch (error) {
         console.error("Login failed:", error);
         throw error;

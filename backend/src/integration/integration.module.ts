@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
 import { DhaHttpClient } from './dha/adapters/dha-http.client';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
@@ -49,22 +50,30 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
       useFactory: (
         config: IntegrationConfigService,
         http: IntegrationHttpClient,
+        prisma: PrismaService,
       ) =>
         config.etimsMode === 'mock'
           ? new EtimsMockClient()
-          : new EtimsHttpClient(http, config),
-      inject: [IntegrationConfigService, IntegrationHttpClient],
+          : new EtimsHttpClient(http, config, prisma),
+      inject: [IntegrationConfigService, IntegrationHttpClient, PrismaService],
     },
     {
       provide: DHA_CLIENT,
       useFactory: (
         config: IntegrationConfigService,
         http: IntegrationHttpClient,
+        logger: IntegrationLoggerService,
+        prisma: PrismaService,
       ) =>
         config.dhaMode === 'mock'
           ? new DhaMockClient()
-          : new DhaHttpClient(http, config),
-      inject: [IntegrationConfigService, IntegrationHttpClient],
+          : new DhaHttpClient(http, config, logger, prisma),
+      inject: [
+        IntegrationConfigService,
+        IntegrationHttpClient,
+        IntegrationLoggerService,
+        PrismaService,
+      ],
     },
     EtimsService,
     DhaService,
@@ -78,6 +87,8 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     IntegrationLoggerService,
     IntegrationHttpClient,
     FhirSystemsService,
+    FhirMapperService,
+    DHA_CLIENT,
   ],
 })
 export class IntegrationModule {}

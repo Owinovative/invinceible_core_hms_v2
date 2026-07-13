@@ -3,7 +3,7 @@ import {
   Clock3, CreditCard, Dumbbell, FileCheck2, FlaskConical, HeartPulse,
   LayoutDashboard, Microscope, Monitor, Pill, Plus, Receipt, ScanLine,
   Settings, ShieldCheck, ShoppingCart, Sparkles, Stethoscope, Truck,
-  UserPlus, Users, Warehouse, Network, Link2, type LucideIcon,
+  UserPlus, Users, Warehouse, Network, type LucideIcon,
 } from "lucide-react";
 
 /**

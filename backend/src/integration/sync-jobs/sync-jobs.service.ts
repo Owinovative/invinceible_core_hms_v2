@@ -4,6 +4,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { DhaService } from '../dha/dha.service';
 import { IntegrationConfigService } from '../integration-config.service';
 
+import { TerminologySyncService } from '../../terminology/terminology-sync.service';
+
 @Injectable()
 export class SyncJobsService {
   private readonly logger = new Logger(SyncJobsService.name);
@@ -12,6 +14,7 @@ export class SyncJobsService {
     private readonly prisma: PrismaService,
     private readonly dhaService: DhaService,
     private readonly config: IntegrationConfigService,
+    private readonly terminologySync: TerminologySyncService,
   ) {}
 
   @Cron(CronExpression.EVERY_30_MINUTES)
@@ -42,6 +45,33 @@ export class SyncJobsService {
       this.logger.log(`Finished polling ${pendingClaims.length} claims`);
     } catch (error) {
       this.logger.error('Error during claim polling job', error);
+    }
+  }
+
+  // Runs daily at 2:00 AM
+  @Cron('0 2 * * *')
+  async synchronizeTerminology() {
+    if (!this.config.terminologyEnabled) {
+      return;
+    }
+
+    this.logger.log('Starting scheduled Terminology synchronization...');
+    try {
+      // In a real production system, the target systems might be configured dynamically
+      // or fetched from the /sources endpoint. For the MVP we will sync a few known systems.
+      const systemsToSync = ['ICD-11', 'LOINC'];
+
+      for (const system of systemsToSync) {
+        // Sync the latest version. In reality, we might query the latest version from Gateway.
+        await this.terminologySync.synchronizeSystem(
+          system,
+          'latest',
+          'INCREMENTAL',
+        );
+      }
+      this.logger.log('Terminology synchronization complete.');
+    } catch (error) {
+      this.logger.error('Error during terminology synchronization job', error);
     }
   }
 }

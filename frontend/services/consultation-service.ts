@@ -44,11 +44,14 @@ export interface ConsultationItem {
 
 export interface ConsultationWorkspaceResponse {
   consultation: ConsultationItem;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   latestTriage?: Record<string, any> | null;
   recentConsultations: ConsultationItem[];
   consultationPrescriptions: PrescriptionRecord[];
   patientPrescriptions: PrescriptionRecord[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   labOrders: Array<Record<string, any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   activeAdmission?: Record<string, any> | null;
   meta?: {
     durationMs?: number;
@@ -73,13 +76,16 @@ export interface CreateConsultationPayload {
 
 
 export interface UpdateConsultationPayload {
+  appointmentId?: number;
   chiefComplaint?: string;
   historyOfPresenting?: string;
   examinationFindings?: string;
   diagnosis?: string;
+  primaryDiagnosisId?: number;
   treatmentPlan?: string;
   notes?: string;
   statusCode?: string;
+  completedAt?: string;
 }
 
 

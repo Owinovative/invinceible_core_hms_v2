@@ -37,6 +37,10 @@ export class UpdateShaClaimDto {
   diagnosisText?: string;
 
   @IsOptional()
+  @IsInt()
+  diagnosisConceptId?: number;
+
+  @IsOptional()
   @IsDateString()
   servicePeriodStart?: string;
 

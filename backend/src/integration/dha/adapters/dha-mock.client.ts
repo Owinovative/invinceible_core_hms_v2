@@ -145,4 +145,43 @@ export class DhaMockClient implements DhaClientPort {
       raw: { mock: true },
     });
   }
+
+  getPatientContacts(): Promise<DhaResult<any>> {
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref('CNT'),
+      data: [{ contactId: 1, phone: '0712345678', relationship: 'SELF' }],
+      raw: { mock: true },
+    });
+  }
+
+  sendVisitOtp(): Promise<DhaResult<any>> {
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref('OTP'),
+      data: { requestId: this.ref('REQ') },
+      raw: { mock: true },
+    });
+  }
+
+  createAuthorization(): Promise<DhaResult<any>> {
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref('AUTH'),
+      data: {
+        consentToken: 'mock-token',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      },
+      raw: { mock: true },
+    });
+  }
+
+  sendDischargeOtp(): Promise<DhaResult<any>> {
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref('OTP'),
+      data: { requestId: this.ref('REQ') },
+      raw: { mock: true },
+    });
+  }
 }

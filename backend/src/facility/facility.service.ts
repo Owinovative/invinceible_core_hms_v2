@@ -22,14 +22,22 @@ export class FacilityService {
   ) {}
 
   private sanitizeFacility<T extends Record<string, any>>(facility: T) {
-    const { mpesaConsumerKey, mpesaConsumerSecret, mpesaPasskey, ...safe } =
-      facility;
+    const {
+      mpesaConsumerKey,
+      mpesaConsumerSecret,
+      mpesaPasskey,
+      shaClientSecret,
+      etimsCmcKey,
+      ...safe
+    } = facility;
 
     return {
       ...safe,
       hasMpesaConsumerKey: Boolean(mpesaConsumerKey),
       hasMpesaConsumerSecret: Boolean(mpesaConsumerSecret),
       hasMpesaPasskey: Boolean(mpesaPasskey),
+      hasShaClientSecret: Boolean(shaClientSecret),
+      hasEtimsCmcKey: Boolean(etimsCmcKey),
       accessStatus: computeFacilityAccessStatus(facility as any),
     };
   }
@@ -223,9 +231,15 @@ export class FacilityService {
         showTillOnInvoice: dto.showTillOnInvoice ?? true,
         showPochiOnInvoice: dto.showPochiOnInvoice ?? true,
         shaFidCode: dto.shaFidCode,
+        shaClientId: dto.shaClientId,
+        shaClientSecret: dto.shaClientSecret,
         shaClaimStartNumber: dto.shaClaimStartNumber ?? 1,
         shaClaimNextNumber:
           dto.shaClaimNextNumber ?? dto.shaClaimStartNumber ?? 1,
+        etimsTin: dto.etimsTin,
+        etimsBranchId: dto.etimsBranchId ?? '00',
+        etimsCmcKey: dto.etimsCmcKey,
+        etimsDeviceSerial: dto.etimsDeviceSerial,
         isHeadOffice: dto.isHeadOffice ?? false,
         isDefault: dto.isDefault ?? false,
         isActive: dto.isActive ?? true,

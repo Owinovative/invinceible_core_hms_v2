@@ -25,6 +25,8 @@ import {
   DHA_OPERATIONS,
 } from '../integration/integration.constants';
 import { IntegrationLoggerService } from '../integration/integration-logger.service';
+import { EventPublisher } from '../events/event-publisher';
+import { ClinicalEventTypes } from '../events/registry/event-registry';
 
 @Injectable()
 export class PatientService {
@@ -38,6 +40,7 @@ export class PatientService {
     private readonly dhaService: DhaService,
     private readonly integrationLoggerService: IntegrationLoggerService,
     private readonly configService: ConfigService,
+    private readonly eventPublisher: EventPublisher,
   ) {}
 
   private async generatePatientNumber(facilityId: number) {
@@ -102,58 +105,97 @@ export class PatientService {
       throw new BadRequestException('Patient number already exists');
     }
 
-    const patient = await this.prisma.patient.create({
-      data: {
-        patientNumber,
-        firstName: createPatientDto.firstName,
-        middleName: createPatientDto.middleName,
-        lastName: createPatientDto.lastName,
-        gender: createPatientDto.gender,
-        dateOfBirth: createPatientDto.dateOfBirth
-          ? new Date(createPatientDto.dateOfBirth)
-          : undefined,
-        phonePrimary: createPatientDto.phonePrimary,
-        phoneSecondary: createPatientDto.phoneSecondary,
-        email: createPatientDto.email,
-        occupation: createPatientDto.occupation,
-        shaMemberNumber: createPatientDto.shaMemberNumber,
-        nationalIdNumber: createPatientDto.nationalIdNumber,
-        facilityId: createPatientDto.facilityId,
-        isDeceased: createPatientDto.isDeceased ?? false,
-        isActive: createPatientDto.isActive ?? true,
-      },
-      include: {
-        facility: true,
-      },
+    const createdPatient = await this.prisma.$transaction(async (tx) => {
+      const patient = await tx.patient.create({
+        data: {
+          patientNumber,
+          firstName: createPatientDto.firstName,
+          middleName: createPatientDto.middleName,
+          lastName: createPatientDto.lastName,
+          gender: createPatientDto.gender,
+          dateOfBirth: createPatientDto.dateOfBirth
+            ? new Date(createPatientDto.dateOfBirth)
+            : undefined,
+          phonePrimary: createPatientDto.phonePrimary,
+          phoneSecondary: createPatientDto.phoneSecondary,
+          email: createPatientDto.email,
+          occupation: createPatientDto.occupation,
+          shaMemberNumber: createPatientDto.shaMemberNumber,
+          nationalIdNumber: createPatientDto.nationalIdNumber,
+          facilityId: createPatientDto.facilityId,
+          isDeceased: createPatientDto.isDeceased ?? false,
+          isActive: createPatientDto.isActive ?? true,
+        },
+        include: {
+          facility: true,
+        },
+      });
+
+      // Emit PatientRegistered domain event for all Event Bus subscribers (e.g., ShrEventSubscriber)
+      const patientEvent = this.eventPublisher.create({
+        correlationId: `patient-${patient.id}-${Date.now()}`,
+        aggregateId: `patient-${patient.id}`,
+        aggregateType: 'Patient',
+        eventType: ClinicalEventTypes.PATIENT_REGISTERED,
+        eventCategory: 'DOMAIN',
+        eventVersion: 1,
+        patientId: patient.id,
+        encounterId: null,
+        facilityId: patient.facilityId,
+        branchId: patient.facilityId, // defaults to facility until branch is in DTO
+        tenantId: patient.facilityId,
+        userId: null,
+        sourceModule: 'PatientModule',
+        priority: 'HIGH',
+        slaSeconds: 30,
+        payload: {
+          patientId: patient.id,
+          facilityId: patient.facilityId,
+          firstName: patient.firstName,
+          middleName: patient.middleName,
+          lastName: patient.lastName,
+          gender: patient.gender,
+          dateOfBirth: patient.dateOfBirth,
+          nationalIdNumber: patient.nationalIdNumber,
+          phoneNumber: patient.phonePrimary,
+        },
+        metadata: {},
+        timestamp: new Date(),
+      });
+
+      // Transactional Outbox: Event commits atomically with the business data
+      await this.eventPublisher.publish(patientEvent, tx);
+
+      return patient;
     });
 
-    // Attempt to register in HIE CR asynchronously
+    // Attempt to register in HIE CR asynchronously (outbound DHA transport — unchanged)
     this.integrationQueueService
       .enqueue({
         integration: INTEGRATION_NAMES.DHA,
         operation: DHA_OPERATIONS.REGISTER_PATIENT,
         entityType: 'Patient',
-        entityId: String(patient.id),
-        idempotencyKey: `dha:patient-register:${patient.id}`,
-        facilityId: patient.facilityId,
+        entityId: String(createdPatient.id),
+        idempotencyKey: `dha:patient-register:${createdPatient.id}`,
+        facilityId: createdPatient.facilityId,
         payload: {
-          id: String(patient.id),
-          firstName: patient.firstName,
-          middleName: patient.middleName || undefined,
-          lastName: patient.lastName,
-          gender: patient.gender || 'unknown',
-          dateOfBirth: patient.dateOfBirth || undefined,
-          phone: patient.phonePrimary || undefined,
+          id: String(createdPatient.id),
+          firstName: createdPatient.firstName,
+          middleName: createdPatient.middleName || undefined,
+          lastName: createdPatient.lastName,
+          gender: createdPatient.gender || 'unknown',
+          dateOfBirth: createdPatient.dateOfBirth || undefined,
+          phone: createdPatient.phonePrimary || undefined,
         },
       })
       .catch((err) =>
         this.integrationLoggerService.error(
           'Failed to queue patient for HIE CR',
-          { error: err, patientId: patient.id },
+          { error: err, patientId: createdPatient.id },
         ),
       );
 
-    return patient;
+    return createdPatient;
   }
 
   async createScoped(createPatientDto: CreatePatientDto, user: RequestUser) {

@@ -107,6 +107,7 @@ export class ConsultationService {
         historyOfPresenting: createConsultationDto.historyOfPresenting,
         examinationFindings: createConsultationDto.examinationFindings,
         diagnosis: createConsultationDto.diagnosis,
+        primaryDiagnosisId: createConsultationDto.primaryDiagnosisId,
         treatmentPlan: createConsultationDto.treatmentPlan,
         notes: createConsultationDto.notes,
         statusCode: createConsultationDto.statusCode ?? 'IN_PROGRESS',
@@ -207,6 +208,10 @@ export class ConsultationService {
         historyOfPresenting: true,
         examinationFindings: true,
         diagnosis: true,
+        primaryDiagnosisId: true,
+        primaryDiagnosis: {
+          select: { id: true, code: true, display: true, system: true },
+        },
         treatmentPlan: true,
         notes: true,
         statusCode: true,
@@ -659,6 +664,12 @@ export class ConsultationService {
   async complete(id: number) {
     const consultation = await this.findOne(id);
     await this.facilityService.assertOperational(consultation.facilityId);
+
+    if (!consultation.primaryDiagnosisId) {
+      throw new BadRequestException(
+        'A valid primary diagnosis from the Terminology Service is required to complete the consultation.',
+      );
+    }
 
     const updated = await this.prisma.consultation.update({
       where: { id },

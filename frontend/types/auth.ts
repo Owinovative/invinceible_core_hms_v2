@@ -47,4 +47,5 @@ export interface LoginResponse {
   message: string;
   accessToken: string;
   user: AuthUser;
+  requiresLegalConsent?: boolean;
 }

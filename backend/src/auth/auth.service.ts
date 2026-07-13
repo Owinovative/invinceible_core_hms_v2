@@ -320,7 +320,30 @@ export class AuthService {
         pendingDeactivationAt: user.pendingDeactivationAt,
         pendingDeactivationReason: user.pendingDeactivationReason,
       },
+      requiresLegalConsent: await this.checkLegalConsentRequirement(user.id),
     };
+  }
+
+  private async checkLegalConsentRequirement(userId: number): Promise<boolean> {
+    const publishedDocs = await this.prisma.legalDocument.findMany({
+      where: { status: 'PUBLISHED' },
+      select: { id: true },
+    });
+
+    if (publishedDocs.length === 0) {
+      return false; // No documents to accept
+    }
+
+    const acceptances = await this.prisma.legalAcceptance.findMany({
+      where: {
+        userId,
+        documentId: { in: publishedDocs.map((d) => d.id) },
+      },
+      select: { documentId: true },
+    });
+
+    // If the user hasn't accepted every published document, they need to consent
+    return acceptances.length < publishedDocs.length;
   }
 
   async acceptOwnDeactivation(user: any) {

@@ -12,6 +12,7 @@ export interface IntegrationCallContext {
   correlationId?: string;
   facilityId?: number;
   branchId?: number;
+  consentToken?: string;
 }
 
 export interface IntegrationHttpRequest {

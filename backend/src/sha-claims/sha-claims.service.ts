@@ -204,6 +204,12 @@ export class ShaClaimsService {
       );
     }
 
+    if (!dto.diagnosisConceptId) {
+      throw new BadRequestException(
+        'A standardized diagnosis concept is required to create a SHA claim.',
+      );
+    }
+
     const claim = await this.prisma.$transaction(async (tx) => {
       const lockedFacility = await tx.facility.findUnique({
         where: { id: dto.facilityId },
@@ -275,6 +281,24 @@ export class ShaClaimsService {
     return claim;
   }
 
+  private appendResubmissionMetadata(
+    claim: { statusCode: string; metadata: any },
+    userId: number,
+  ) {
+    let metadata = claim.metadata as Record<string, unknown> | null;
+    metadata = metadata || {};
+    const resubmissions = (metadata.resubmissions as unknown[]) || [];
+    metadata.resubmissions = [
+      ...resubmissions,
+      {
+        timestamp: new Date().toISOString(),
+        previousStatus: claim.statusCode,
+        actorUserId: userId,
+      },
+    ];
+    return metadata;
+  }
+
   async update(id: number, dto: UpdateShaClaimDto, user: RequestUser) {
     const claim = await this.prisma.shaClaim.findUnique({
       where: { id },
@@ -295,8 +319,28 @@ export class ShaClaimsService {
       nextStatus === 'REJECTED'
         ? (dto.rejectedAmount ?? dto.claimedAmount ?? claim.claimedAmount)
         : dto.rejectedAmount;
+
+    let metadata = claim.metadata as Record<string, unknown> | null;
+    if (
+      nextStatus === 'SUBMITTED' &&
+      (claim.submittedAt || claim.statusCode === 'REJECTED')
+    ) {
+      metadata = this.appendResubmissionMetadata(claim, user.userId);
+    }
+
+    const finalDiagnosisId =
+      dto.diagnosisConceptId !== undefined
+        ? dto.diagnosisConceptId
+        : claim.diagnosisConceptId;
+    if (!finalDiagnosisId) {
+      throw new BadRequestException(
+        'A standardized diagnosis concept is required for SHA claims.',
+      );
+    }
+
     const data: Prisma.ShaClaimUpdateInput = {
       statusCode: nextStatus,
+      metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       branch:
         dto.branchId === undefined
           ? undefined
@@ -312,6 +356,12 @@ export class ShaClaimsService {
       memberNumber: dto.memberNumber,
       diagnosisCode: dto.diagnosisCode,
       diagnosisText: dto.diagnosisText,
+      diagnosisConcept:
+        dto.diagnosisConceptId === undefined
+          ? undefined
+          : dto.diagnosisConceptId === null
+            ? { disconnect: true }
+            : { connect: { id: dto.diagnosisConceptId } },
       servicePeriodStart: dto.servicePeriodStart
         ? new Date(dto.servicePeriodStart)
         : undefined,
@@ -381,14 +431,23 @@ export class ShaClaimsService {
       claim.branchId,
     );
 
-    // Advance to SUBMITTED if still in DRAFT
+    // Advance to SUBMITTED if still in DRAFT or REJECTED
     let updated = claim;
-    if (claim.statusCode === 'DRAFT') {
+    if (claim.statusCode === 'DRAFT' || claim.statusCode === 'REJECTED') {
+      const isResubmission =
+        claim.statusCode === 'REJECTED' || !!claim.submittedAt;
+      let metadata = claim.metadata as Record<string, unknown> | null;
+
+      if (isResubmission) {
+        metadata = this.appendResubmissionMetadata(claim, user.userId);
+      }
+
       updated = await this.prisma.shaClaim.update({
         where: { id },
         data: {
           statusCode: 'SUBMITTED',
           submittedAt: new Date(),
+          metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
         },
         include: SHA_CLAIM_INCLUDE,
       });

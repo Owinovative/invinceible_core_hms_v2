@@ -204,6 +204,34 @@ export class CreateFacilityDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(255)
+  shaClientId?: string;
+
+  @IsOptional()
+  @IsString()
+  shaClientSecret?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  etimsTin?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  etimsBranchId?: string;
+
+  @IsOptional()
+  @IsString()
+  etimsCmcKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  etimsDeviceSerial?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(50)
   complianceStatus?: string;
 

@@ -28,7 +28,8 @@ export class UserService {
   private withoutSensitiveUserFields<T extends { passwordHash?: string }>(
     user: T,
   ) {
-    const { passwordHash: _passwordHash, ...safeUser } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...safeUser } = user;
     return safeUser;
   }
 

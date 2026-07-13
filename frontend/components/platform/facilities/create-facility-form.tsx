@@ -59,6 +59,12 @@ const facilitySchema = z.object({
   showPochiOnInvoice: z.boolean().optional(),
   shaFidCode: z.string().optional(),
   shaClaimStartNumber: z.string().optional(),
+  shaClientId: z.string().optional(),
+  shaClientSecret: z.string().optional(),
+  etimsTin: z.string().optional(),
+  etimsBranchId: z.string().optional(),
+  etimsCmcKey: z.string().optional(),
+  etimsDeviceSerial: z.string().optional(),
 });
 
 type FacilityFormValues = z.infer<typeof facilitySchema>;
@@ -110,6 +116,12 @@ export function CreateFacilityForm() {
       showPochiOnInvoice: true,
       shaFidCode: "",
       shaClaimStartNumber: "1",
+      shaClientId: "",
+      shaClientSecret: "",
+      etimsTin: "",
+      etimsBranchId: "00",
+      etimsCmcKey: "",
+      etimsDeviceSerial: "",
     },
   });
 
@@ -161,6 +173,12 @@ export function CreateFacilityForm() {
         shaFidCode: values.shaFidCode || undefined,
         shaClaimStartNumber: Number(values.shaClaimStartNumber || 1),
         shaClaimNextNumber: Number(values.shaClaimStartNumber || 1),
+        shaClientId: values.shaClientId || undefined,
+        shaClientSecret: values.shaClientSecret || undefined,
+        etimsTin: values.etimsTin || undefined,
+        etimsBranchId: values.etimsBranchId || undefined,
+        etimsCmcKey: values.etimsCmcKey || undefined,
+        etimsDeviceSerial: values.etimsDeviceSerial || undefined,
         isHeadOffice: false,
         isDefault: false,
         isActive: true,
@@ -209,6 +227,12 @@ export function CreateFacilityForm() {
         showPochiOnInvoice: true,
         shaFidCode: "",
         shaClaimStartNumber: "1",
+        shaClientId: "",
+        shaClientSecret: "",
+        etimsTin: "",
+        etimsBranchId: "00",
+        etimsCmcKey: "",
+        etimsDeviceSerial: "",
       });
     } catch {
       setSuccessMessage(null);
@@ -849,6 +873,106 @@ export function CreateFacilityForm() {
                       <FormLabel>Starting Claim Number</FormLabel>
                       <FormControl>
                         <Input type="number" min="1" className="h-11 rounded-xl" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* SHA / DHA API Credentials */}
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <p className="font-semibold">SHA / DHA API credentials</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                OAuth2 client credentials issued by the Digital Health Agency for this facility.
+                Leave empty to fall back to the global DHA credentials.
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="shaClientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>DHA Client ID</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" autoComplete="off" placeholder="client_id issued by DHA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="shaClientSecret"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>DHA Client Secret</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" placeholder="client_secret issued by DHA" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* KRA eTIMS Credentials */}
+            <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
+              <p className="font-semibold">KRA eTIMS credentials</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                OSCU device credentials issued by KRA for this facility.
+                Leave empty to fall back to the global eTIMS credentials.
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="etimsTin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>KRA Tax PIN (TIN)</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" autoComplete="off" placeholder="P0012345678A" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="etimsBranchId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Branch ID (BHF ID)</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" placeholder="00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="etimsDeviceSerial"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Device Serial Number</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" autoComplete="off" placeholder="Serial from KRA OSCU device" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="etimsCmcKey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CMC Key</FormLabel>
+                      <FormControl>
+                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" placeholder="Issued during OSCU initialization" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -11,7 +11,6 @@ import {
 import { useNotifications } from "@/hooks/use-notifications";
 import { useMarkNotificationRead } from "@/hooks/use-mark-notification-read";
 import { useResolveNotification } from "@/hooks/use-resolve-notification";
-import { useAuth } from "@/providers/auth-provider";
 import type { NotificationItem } from "@/services/notification-service";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -32,7 +31,6 @@ export function NotificationsTable() {
   const { data, isLoading } = useNotifications();
   const markReadMutation = useMarkNotificationRead();
   const resolveMutation = useResolveNotification();
-  const { user } = useAuth();
 
   const items = React.useMemo<NotificationItem[]>(() => {
     return Array.isArray(data) ? data : [];

@@ -22,9 +22,15 @@ describe('EtimsHttpClient', () => {
         });
       }),
     } as unknown as IntegrationHttpClient;
+    const prisma = {
+      facility: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+    } as any;
     const client = new EtimsHttpClient(
       http,
       makeConfig({ ETIMS_MODE: 'sandbox' }),
+      prisma,
     );
     return { client, calls };
   }

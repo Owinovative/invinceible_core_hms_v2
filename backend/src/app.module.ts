@@ -54,6 +54,12 @@ import { DataOutboxModule } from './data-outbox/data-outbox.module';
 import { IntegrationModule } from './integration/integration.module';
 import { SyncJobsModule } from './integration/sync-jobs/sync-jobs.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LegalModule } from './legal/legal.module';
+import { ConsentModule } from './consent/consent.module';
+import { TerminologyModule } from './terminology/terminology.module';
+import { ShrModule } from './shr/shr.module';
+import { EventBusModule } from './events/event-bus.module';
+import { WorkflowModule } from './workflows/workflow.module';
 
 @Module({
   imports: [
@@ -62,6 +68,8 @@ import { ScheduleModule } from '@nestjs/schedule';
       validate: validateEnvironment,
     }),
     EnterpriseModule,
+    EventBusModule,
+    WorkflowModule,
     ResilienceModule,
     ClinicalSafetyModule,
     PatientPortalModule,
@@ -105,6 +113,10 @@ import { ScheduleModule } from '@nestjs/schedule';
     UserReviewModule,
     FeedbackModule,
     FacilitySubscriptionModule,
+    LegalModule,
+    ConsentModule,
+    TerminologyModule,
+    ShrModule,
   ],
   controllers: [AppController],
   providers: [

@@ -134,6 +134,27 @@ export class IntegrationConfigService {
     return this.num('DHA_MAX_ATTEMPTS', 8);
   }
 
+  // --- DHA Terminology -----------------------------------------------------
+
+  get terminologyEnabled(): boolean {
+    return this.bool('TERMINOLOGY_ENABLED', this.dhaEnabled);
+  }
+
+  get terminologyBaseUrl(): string {
+    return this.str(
+      'TERMINOLOGY_BASE_URL',
+      `${this.dhaBaseUrl}/${this.dhaApiVersion}/clinical`,
+    );
+  }
+
+  get terminologySyncIntervalMs(): number {
+    return this.num('TERMINOLOGY_SYNC_INTERVAL_MS', 86_400_000); // 24 hours
+  }
+
+  get terminologyDefaultPageSize(): number {
+    return this.num('TERMINOLOGY_DEFAULT_PAGE_SIZE', 25);
+  }
+
   // --- Queue worker --------------------------------------------------------
 
   get workerEnabled(): boolean {

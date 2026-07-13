@@ -1,5 +1,33 @@
 # Changelog
 
+## [v0.3.0] - 2026-07-12
+### Added
+- **Phase 3: Shared Health Record (SHR) Publisher**
+  - Implemented event-driven `ShrTimelineService` and strict `ShrStateMachine`.
+  - Added robust modular `FhirBuilder` architecture with dependency enforcement mapping HMS records to FHIR R4 standard.
+  - Implemented `ShrBundleAssembler` mapping `Patient`, `Encounter`, `Condition`, `Observation`, `Procedure`, `MedicationRequest`, `DiagnosticReport`, and `Provenance` resources.
+  - Introduced immutable `ShrBundleSnapshot` versioning and hashing (`BundleVersionManager`).
+  - Added strict `FhirProfileRegistry` enforcing Kenya DHA specific extensions and constraints.
+  - Added `DhaComplianceEngine` to enforce Terminology validity and Consent requirements before publication.
+  - Added robust retry coordination and `DeadLetterRecoveryService` connected to `IntegrationQueueService`.
+  - Added SHR Administrative Dashboard (Frontend Command Center) with dry-run simulation and bundle inspection capabilities.
+
+## [v0.2.0] - 2026-07-11
+### Added
+- **Phase 2: Terminology Gateway**
+  - Integrated full clinical terminology standardization across the HMS.
+  - Replaced legacy free-text diagnoses with standardized `TerminologyConcept` entities.
+  - Added caching layers and strict validation for LOINC, ICD-11, and SNOMED codes.
+  - Implemented `TerminologySyncWorker` ensuring continuous alignment with the master DHA Terminology service.
+
+## [v0.1.0] - 2026-07-10
+### Added
+- **Phase 1: Foundation & Registries**
+  - Established base integrations for Facility Registry and Provider Registry.
+  - Implemented `ClientRegistryService` for cross-facility Patient resolution.
+  - Implemented robust `ConsentService` to track and enforce patient privacy directives.
+  - Standardized OAuth2 client credential flows for DHA API access.
+
 ## Unreleased
 
 - Prepared Version 2 release cleanup with a fixed professional light-theme HMS interface.
