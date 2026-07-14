@@ -58,6 +58,12 @@ export function recoverDhaWorkflow(workflowId: number) {
   );
 }
 
+export function getDhaWorkflow(workflowId: number) {
+  return apiFetch<DhaWorkflow>(`/integrations/dha/claim-workflows/${workflowId}`, {
+    method: "GET",
+  });
+}
+
 export function uploadDhaWorkflowAttachment(
   workflowId: number,
   values: { documentType: string; interventionCode: string; file: File },

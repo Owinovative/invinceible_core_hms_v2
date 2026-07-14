@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Param, ParseIntPipe, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -17,6 +17,12 @@ export class DhaClaimWorkflowController {
   @Permissions('billing.write')
   create(@Body() dto: CreateDhaClaimWorkflowDto, @CurrentUser() user: RequestUser) {
     return this.workflows.create({ ...dto, actorUserId: user.userId });
+  }
+
+  @Get(':id')
+  @Permissions('billing.write')
+  get(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+    return this.workflows.get(id, user.homeFacilityId ?? undefined);
   }
 
   @Post(':id/recover')

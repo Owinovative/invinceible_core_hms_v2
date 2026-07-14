@@ -70,6 +70,9 @@ export function validateEnvironment(
         );
       }
     }
+    if (!/^https:\/\//i.test(requireString(config, 'ETIMS_BASE_URL'))) {
+      throw new Error('ETIMS_BASE_URL must use HTTPS outside mock mode');
+    }
   }
 
   const dhaEnabled = String(config.DHA_ENABLED ?? 'false') === 'true';
@@ -105,6 +108,9 @@ export function validateEnvironment(
       throw new Error(
         'DHA_ATTACHMENT_CLAMAV_HOST is required when DHA is enabled outside mock mode',
       );
+    }
+    if (String(config.INTEGRATION_WORKER_ENABLED ?? 'true').toLowerCase() !== 'true') {
+      throw new Error('INTEGRATION_WORKER_ENABLED must be true when DHA is enabled outside mock mode');
     }
   }
 

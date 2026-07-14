@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   createDhaWorkflow,
+  getDhaWorkflow,
   recoverDhaWorkflow,
   submitDhaWorkflowAction,
   uploadDhaWorkflowAttachment,
@@ -83,6 +84,12 @@ export default function DhaWorkflowsPage() {
     setNotice(result.recovered ? `${result.recovered} workflow action(s) requeued.` : "No recoverable actions were found.");
   });
 
+  const refresh = () => run(async () => {
+    if (!workflow) throw new Error("Create a DHA workflow first");
+    setWorkflow(await getDhaWorkflow(workflow.id));
+    setNotice("Workflow status reconciled from the server.");
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-10">
       <section className="flex flex-col gap-2 border-b pb-5 md:flex-row md:items-end md:justify-between">
@@ -100,7 +107,7 @@ export default function DhaWorkflowsPage() {
           <div className="border-t pt-4"><h2 className="mb-3 font-medium">2. Supporting attachment</h2><Input value={documentType} onChange={(event) => setDocumentType(event.target.value)} placeholder="DHA document type" /><Input className="mt-2" value={attachmentCode} onChange={(event) => setAttachmentCode(event.target.value)} placeholder="Intervention code" /><Input className="mt-2" type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /><Button className="mt-2 w-full" variant="outline" onClick={upload} disabled={busy || !workflow || !file || !attachmentCode}><FileUp className="mr-2 h-4 w-4" />Encrypt and scan</Button></div>
         </div>
         <div className="space-y-4 border p-4">
-          <div className="flex items-center justify-between"><h2 className="font-medium">3. Queue DHA action</h2><Button variant="outline" size="sm" onClick={recover} disabled={busy || !workflow}><RefreshCw className="mr-2 h-4 w-4" />Recover</Button></div>
+          <div className="flex items-center justify-between"><h2 className="font-medium">3. Queue DHA action</h2><div className="flex gap-2"><Button variant="outline" size="sm" onClick={refresh} disabled={busy || !workflow}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button><Button variant="outline" size="sm" onClick={recover} disabled={busy || !workflow}><RefreshCw className="mr-2 h-4 w-4" />Recover</Button></div></div>
           <select className="h-9 w-full border bg-background px-2 text-sm" value={action} onChange={(event) => setAction(event.target.value as DhaWorkflowAction)}>{actions.map((item) => <option key={item.value} value={item.value}>{item.label} - {item.hint}</option>)}</select>
           <Textarea value={payloadText} onChange={(event) => setPayloadText(event.target.value)} className="min-h-72 font-mono text-xs" aria-label="DHA action JSON payload" />
           <Button onClick={submitAction} disabled={busy || !workflow} className="w-full">{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Queue action</Button>

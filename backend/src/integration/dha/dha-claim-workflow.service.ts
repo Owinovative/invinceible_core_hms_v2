@@ -124,6 +124,38 @@ export class DhaClaimWorkflowService implements OnModuleInit {
     });
   }
 
+  async get(workflowId: number, facilityId?: number) {
+    const workflow = await this.prisma.dhaClaimWorkflow.findFirst({
+      where: {
+        id: workflowId,
+        ...(facilityId ? { facilityId } : {}),
+      },
+      include: {
+        steps: { orderBy: { sequence: 'asc' } },
+        attachments: {
+          select: {
+            id: true,
+            status: true,
+            documentType: true,
+            interventionCode: true,
+            fileName: true,
+            mimeType: true,
+            byteSize: true,
+            sha256: true,
+            dhaFileId: true,
+            dhaAttachmentId: true,
+            scanStatus: true,
+            scanDetail: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+    if (!workflow) throw new NotFoundException(`DHA workflow ${workflowId} not found`);
+    return workflow;
+  }
+
   async stageAttachment(params: {
     workflowId: number;
     documentType: string;
