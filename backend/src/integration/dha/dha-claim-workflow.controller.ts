@@ -19,6 +19,12 @@ export class DhaClaimWorkflowController {
     return this.workflows.create({ ...dto, actorUserId: user.userId });
   }
 
+  @Post(':id/recover')
+  @Permissions('billing.write')
+  recover(@Param('id', ParseIntPipe) id: number) {
+    return this.workflows.recover(id);
+  }
+
   @Post(':id/emergency')
   @Permissions('billing.write')
   emergency(

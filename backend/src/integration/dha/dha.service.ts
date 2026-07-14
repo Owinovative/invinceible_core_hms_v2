@@ -272,6 +272,61 @@ export class DhaService implements OnModuleInit {
     return { transaction };
   }
 
+  /** Re-enqueues an existing durable claim transaction without rebuilding its DHA command. */
+  async recoverEclaimsTransaction(transactionId: number) {
+    this.assertEnabled();
+    const transaction = await this.prisma.dhaTransaction.findUnique({
+      where: { id: transactionId },
+    });
+    if (
+      !transaction ||
+      transaction.transactionType !== DHA_TRANSACTION_TYPE.CLAIM_SUBMISSION ||
+      transaction.fhirResourceType !== 'DHA_ECLAIMS_COMMAND'
+    ) {
+      throw new NotFoundException(`DHA eClaims transaction ${transactionId} not found`);
+    }
+    if (transaction.statusCode === DHA_TRANSACTION_STATUS.COMPLETED) {
+      return { transaction, recovered: false, reason: 'COMPLETED' as const };
+    }
+    const existing = await this.prisma.integrationOutboundRequest.findFirst({
+      where: {
+        integration: INTEGRATION_NAMES.DHA,
+        operation: DHA_OPERATIONS.EXECUTE_ECLAIMS,
+        entityType: 'DHA_TRANSACTION',
+        entityId: String(transaction.id),
+      },
+      orderBy: { id: 'desc' },
+    });
+    if (existing?.status === 'DEAD_LETTER') {
+      await this.queue.requeueDeadLetter(existing.id);
+    } else if (!existing) {
+      await this.queue.enqueue({
+        integration: INTEGRATION_NAMES.DHA,
+        operation: DHA_OPERATIONS.EXECUTE_ECLAIMS,
+        entityType: 'DHA_TRANSACTION',
+        entityId: String(transaction.id),
+        payload: { dhaTransactionId: transaction.id },
+        idempotencyKey: `dha:eclaims:recovery:${transaction.id}`,
+        facilityId: transaction.facilityId,
+        branchId: transaction.branchId ?? undefined,
+      });
+    }
+    await this.prisma.dhaTransaction.update({
+      where: { id: transaction.id },
+      data: { statusCode: DHA_TRANSACTION_STATUS.QUEUED, errorMessage: null },
+    });
+    await this.audit.recordEvent({
+      moduleName: 'DHA',
+      actionName: 'ECLAIMS_TRANSACTION_RECOVERED',
+      entityType: 'DHA_TRANSACTION',
+      entityId: String(transaction.id),
+      description: `DHA eClaims transaction ${transaction.id} recovered for queue delivery`,
+      facilityId: transaction.facilityId,
+      branchId: transaction.branchId ?? undefined,
+    });
+    return { transaction, recovered: true, queueRequestId: existing?.id };
+  }
+
   // --- Queued document submissions -----------------------------------------
 
   /**
@@ -636,7 +691,16 @@ export class DhaService implements OnModuleInit {
       facilityId: transaction.facilityId,
     };
 
-    if (transaction.patientId) {
+    if (transaction.dhaWorkflowId) {
+      const workflow = await this.prisma.dhaClaimWorkflow.findUnique({
+        where: { id: transaction.dhaWorkflowId },
+        select: { dhaVisitToken: true, dhaAuthorizationToken: true },
+      });
+      ctx.consentToken =
+        workflow?.dhaVisitToken ?? workflow?.dhaAuthorizationToken ?? undefined;
+    }
+
+    if (!ctx.consentToken && transaction.patientId) {
       // Find active consent for this patient (and specifically this consultation if linked)
       const consentWhere: Prisma.ConsentAuthorizationWhereInput = {
         patientId: transaction.patientId,
@@ -777,6 +841,27 @@ export class DhaService implements OnModuleInit {
         );
       }
     } catch (error) {
+      if (transaction.dhaWorkflowId) {
+        const errorMessage = toErrorMessage(error).slice(0, 4_000);
+        const permanent = error instanceof NonRetryableIntegrationError;
+        await this.prisma.dhaClaimWorkflowStep.updateMany({
+          where: {
+            workflowId: transaction.dhaWorkflowId,
+            transactionId: transaction.id,
+          },
+          data: {
+            status: permanent ? 'FAILED' : 'QUEUED',
+            errorMessage,
+          },
+        });
+        await this.prisma.dhaClaimWorkflow.update({
+          where: { id: transaction.dhaWorkflowId },
+          data: {
+            status: permanent ? 'FAILED' : 'IN_PROGRESS',
+            lastError: errorMessage,
+          },
+        });
+      }
       if (!(error instanceof NonRetryableIntegrationError)) {
         await this.prisma.dhaTransaction.update({
           where: { id: transaction.id },

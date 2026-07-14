@@ -1,4 +1,11 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { Socket } from 'net';
 import { IntegrationConfigService } from '../integration-config.service';
@@ -300,6 +307,26 @@ export class DhaClaimWorkflowService implements OnModuleInit {
     if (['COMPLETED', 'CLOSED'].includes(workflow.status)) {
       throw new BadRequestException('DHA workflow is already terminal');
     }
+    const workflowStepKey = `dha:workflow:${workflowId}:${idempotencyKey}`;
+    const duplicate = workflow.steps.find(
+      (step) => step.idempotencyKey === workflowStepKey,
+    );
+    if (duplicate) {
+      if (!duplicate.transactionId) {
+        throw new ConflictException(
+          'The prior DHA workflow action is pending recovery; do not submit a duplicate action',
+        );
+      }
+      const transaction = await this.prisma.dhaTransaction.findUnique({
+        where: { id: duplicate.transactionId },
+      });
+      if (!transaction) {
+        throw new ConflictException(
+          'The prior DHA workflow action has an invalid transaction reference',
+        );
+      }
+      return { workflowId, stepId: duplicate.id, transaction, idempotent: true };
+    }
     const sequence = Math.max(0, ...workflow.steps.map((step) => step.sequence)) + 1;
     const predecessor = PREREQUISITE[action];
     if (predecessor && !workflow.steps.some((step) => step.action === predecessor && step.status === 'COMPLETED')) {
@@ -312,7 +339,7 @@ export class DhaClaimWorkflowService implements OnModuleInit {
         sequence,
         action,
         status: 'QUEUED',
-        idempotencyKey: `dha:workflow:${workflowId}:${idempotencyKey}`,
+        idempotencyKey: workflowStepKey,
         requestData: payload as never,
         queuedAt: new Date(),
       },
@@ -337,6 +364,32 @@ export class DhaClaimWorkflowService implements OnModuleInit {
       where: { id: workflowId }, data: { status: 'IN_PROGRESS', lastError: null },
     });
     return { workflowId, stepId: step.id, transaction };
+  }
+
+  async recover(workflowId: number) {
+    const workflow = await this.prisma.dhaClaimWorkflow.findUnique({
+      where: { id: workflowId },
+      include: { steps: { orderBy: { sequence: 'asc' } } },
+    });
+    if (!workflow) throw new NotFoundException(`DHA workflow ${workflowId} not found`);
+    const recoverable = workflow.steps.filter(
+      (step) => step.transactionId && ['QUEUED', 'FAILED'].includes(step.status),
+    );
+    if (recoverable.length === 0) {
+      return { workflowId, recovered: 0, reason: 'NO_RECOVERABLE_ACTIONS' as const };
+    }
+    const results = await Promise.all(
+      recoverable.map((step) => this.dha.recoverEclaimsTransaction(step.transactionId!)),
+    );
+    await this.prisma.dhaClaimWorkflow.update({
+      where: { id: workflowId },
+      data: { status: 'IN_PROGRESS', lastError: null },
+    });
+    await this.prisma.dhaClaimWorkflowStep.updateMany({
+      where: { id: { in: recoverable.map((step) => step.id) } },
+      data: { status: 'QUEUED', errorMessage: null, queuedAt: new Date() },
+    });
+    return { workflowId, recovered: results.filter((result) => result.recovered).length };
   }
 
   private withWorkflowValues(
