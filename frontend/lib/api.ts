@@ -56,10 +56,11 @@ export async function apiFetch<T>(
   }
 
   try {
+    const isFormData = typeof FormData !== "undefined" && rest.body instanceof FormData;
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
       headers: {
-        ...(rest.body ? { "Content-Type": "application/json" } : {}),
+        ...(rest.body && !isFormData ? { "Content-Type": "application/json" } : {}),
         ...(resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : {}),
         ...(headers || {}),
       },
