@@ -165,12 +165,12 @@ describe('DhaService', () => {
       expect(facility.result.status).toBe('VERIFIED');
     });
 
-    it('checks SHA eligibility through a FHIR CoverageEligibilityRequest', async () => {
+    it('checks SHA eligibility through the DHA identification query', async () => {
       const { result, transaction } = await service.checkEligibility({
         memberNumber: 'SHA-MEM-001',
       });
       expect(result.status).toBe('ELIGIBLE');
-      expect(transaction.fhirResourceType).toBe('CoverageEligibilityRequest');
+      expect(transaction.fhirResourceType).toBe('EligibilityQuery');
     });
 
     it('records consent for a known patient', async () => {

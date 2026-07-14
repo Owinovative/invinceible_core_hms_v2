@@ -66,10 +66,11 @@ export interface SendOtpResponse {
 
 export interface AuthorizeConsentRequest {
   patient_id: string;
-  consent_request_id?: string; // Required for OTP path
-  otp_code?: string; // Required for OTP path
-  auth_guid?: string; // Required for Biometrics path
-  intervention_codes: string[];
+  /** OTP flow: DHA requires `otp` and `interventions`. */
+  otp?: string;
+  /** Biometrics flow: DHA supplies an authorization GUID. */
+  auth_guid?: string;
+  interventions: string[];
   service_type: 'INPATIENT' | 'OUTPATIENT';
   practitioner_identification_type?: string;
   practitioner_identification_number?: string;

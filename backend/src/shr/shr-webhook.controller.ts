@@ -1,27 +1,35 @@
-import { Controller, Post, Body, Headers, Logger, UseGuards, UnauthorizedException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-import { ShrStateMachine, ShrState } from './engine/shr-state-machine';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Headers,
+  Logger,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
+import { ShrState } from './engine/shr-state-machine';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('api/v1/shr/webhooks')
 export class ShrWebhookController {
   private readonly logger = new Logger(ShrWebhookController.name);
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   @Post('dha-callback')
   async handleDhaCallback(
     @Headers('Authorization') authHeader: string,
     @Headers('X-Correlation-ID') correlationId: string,
-    @Body() payload: any
+    @Body() payload: { status?: string; receiptId?: string; message?: string },
   ) {
-    this.logger.log(`Received DHA Webhook Callback for Correlation ID: ${correlationId}`);
-
-    // Basic Callback Authentication - in reality, verify JWT signature from DHA
-    if (authHeader !== `Bearer ${process.env.DHA_WEBHOOK_SECRET}`) {
-      throw new UnauthorizedException('Invalid webhook signature');
+    if (!correlationId || !payload || typeof payload.status !== 'string') {
+      throw new BadRequestException('Callback requires correlation ID and status');
     }
 
-    if (!correlationId) {
-      throw new Error('Missing X-Correlation-ID header');
+    const configuredSecret = process.env.DHA_WEBHOOK_SECRET;
+    const suppliedSecret = authHeader?.replace(/^Bearer\s+/i, '') ?? '';
+    if (!configuredSecret || !this.secretsMatch(suppliedSecret, configuredSecret)) {
+      throw new UnauthorizedException('Invalid webhook signature');
     }
 
     const attempt = await this.prisma.shrPublicationAttempt.findFirst({
@@ -39,7 +47,7 @@ export class ShrWebhookController {
     }
 
     // Process callback payload
-    const isSuccess = payload.status === 'ACCEPTED' || payload.status === 'SUCCESS';
+    const isSuccess = ['ACCEPTED', 'SUCCESS'].includes(payload.status.toUpperCase());
     const newState = isSuccess ? ShrState.COMPLETED : ShrState.REJECTED;
 
     await this.prisma.shrAcknowledgement.create({
@@ -64,5 +72,11 @@ export class ShrWebhookController {
 
     this.logger.log(`Successfully processed callback for attempt ${attempt.id}. New State: ${newState}`);
     return { status: 'processed' };
+  }
+
+  private secretsMatch(actual: string, expected: string): boolean {
+    const actualBytes = Buffer.from(actual);
+    const expectedBytes = Buffer.from(expected);
+    return actualBytes.length === expectedBytes.length && timingSafeEqual(actualBytes, expectedBytes);
   }
 }

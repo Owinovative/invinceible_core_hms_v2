@@ -109,26 +109,26 @@ export class DhaHttpClient implements DhaClientPort {
       expires_in?: number;
     }>({
       integration: INTEGRATION_NAMES.DHA,
-      baseUrl: this.config.dhaTokenUrl || this.config.dhaBaseUrl,
-      path: this.config.dhaTokenUrl ? '' : '/oauth2/token',
+      baseUrl: this.config.dhaBaseUrl,
+      path: '/tenants/token',
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${clientId}:${clientSecret}`,
-        ).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: 'grant_type=client_credentials',
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
       timeoutMs: this.config.dhaTimeoutMs,
     });
+    const accessToken = response.data?.access_token;
+    if (!accessToken) {
+      throw new DhaApiError('DHA token response did not include access_token', 500, false);
+    }
     return {
-      accessToken: response.data?.access_token ?? '',
+      accessToken,
       expiresInSeconds: response.data?.expires_in ?? 300,
     };
-  }
-
-  private path(resource: string): string {
-    return `/api/${this.config.dhaApiVersion}/${resource}`;
   }
 
   private async call(
@@ -156,16 +156,17 @@ export class DhaHttpClient implements DhaClientPort {
         const response = await this.http.request<DhaEnvelope>({
           integration: INTEGRATION_NAMES.DHA,
           baseUrl: this.config.dhaBaseUrl,
-          path: this.path(resource),
+          path: resource,
           method,
           headers: {
             Authorization: `Bearer ${token}`,
-            Accept: 'application/fhir+json',
-            'Content-Type': 'application/fhir+json',
-            'X-API-Version': this.config.dhaApiVersion,
-            'X-Facility-Code': facilityCode,
-            ...(ctx?.consentToken
-              ? { 'Authorization-Consent': `Bearer ${ctx.consentToken}` }
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...(facilityCode
+              ? {
+                  'X-Facility-Id': facilityCode,
+                  'X-Facility-Id-Type': 'fr-code',
+                }
               : {}),
           },
           query,
@@ -232,12 +233,23 @@ export class DhaHttpClient implements DhaClientPort {
     queryParams: PatientVerificationQuery,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const envelope = await this.call(
-      'POST',
-      'patients/verify',
-      queryParams,
-      ctx,
-    );
+    const identificationNumber =
+      queryParams.nationalId ?? queryParams.shaNumber ?? queryParams.patientNumber;
+    if (!identificationNumber || queryParams.phoneNumber) {
+      throw new DhaApiError(
+        'DHA patient lookup requires an identification number and supported identification type',
+        400,
+        false,
+      );
+    }
+    const envelope = await this.call('GET', '/patients', undefined, ctx, {
+      identification_number: identificationNumber,
+      identification_type: queryParams.nationalId
+        ? 'National ID'
+        : queryParams.shaNumber
+          ? 'ClientRegistry ID'
+          : 'Temporary ID',
+    });
     return this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
   }
 
@@ -245,12 +257,11 @@ export class DhaHttpClient implements DhaClientPort {
     queryParams: PractitionerVerificationQuery,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const envelope = await this.call(
-      'POST',
-      'practitioners/verify',
-      queryParams,
-      ctx,
-    );
+    const envelope = await this.call('GET', '/professionals', undefined, ctx, {
+      identification_number: queryParams.registrationNumber,
+      identification_type: 'Registration Number',
+      regulator: queryParams.board,
+    });
     return this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
   }
 
@@ -258,12 +269,10 @@ export class DhaHttpClient implements DhaClientPort {
     queryParams: FacilityVerificationQuery,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const envelope = await this.call(
-      'POST',
-      'facilities/verify',
-      queryParams,
-      ctx,
-    );
+    const envelope = await this.call('GET', '/facilities/search', undefined, ctx, {
+      identifier: queryParams.facilityCode,
+      'identifier-type': 'fr-code',
+    });
     return this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
   }
 
@@ -271,12 +280,15 @@ export class DhaHttpClient implements DhaClientPort {
     request: FhirCoverageEligibilityRequest | EligibilityQuery,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const envelope = await this.call(
-      'POST',
-      'CoverageEligibilityRequest',
-      request,
-      ctx,
-    );
+    const query = request as EligibilityQuery;
+    const identificationNumber = query.nationalId ?? query.memberNumber;
+    if (!identificationNumber) {
+      throw new DhaApiError('DHA eligibility requires memberNumber or nationalId', 400, false);
+    }
+    const envelope = await this.call('GET', '/patients/eligibility', undefined, ctx, {
+      identification_number: identificationNumber,
+      identification_type: query.nationalId ? 'National ID' : 'ClientRegistry ID',
+    });
     return this.toResult(envelope, 'ELIGIBLE', 'NOT_ELIGIBLE');
   }
 
@@ -316,8 +328,11 @@ export class DhaHttpClient implements DhaClientPort {
     bundle: FhirBundle,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const envelope = await this.call('POST', 'Claim', bundle, ctx);
-    return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
+    throw new DhaApiError(
+      'Generic FHIR Claim submission is not a DHA eClaims request. Use the documented visit, intervention, line, preview and submit workflow.',
+      400,
+      false,
+    );
   }
 
   async submitAuditEvent(
@@ -334,9 +349,10 @@ export class DhaHttpClient implements DhaClientPort {
   ): Promise<DhaResult> {
     const envelope = await this.call(
       'GET',
-      `claims/${claimNumber}/status`,
+      '/claims/preview/payer',
       undefined,
       ctx,
+      { provider_claim_no: claimNumber },
     );
     return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
   }
@@ -348,9 +364,10 @@ export class DhaHttpClient implements DhaClientPort {
   ): Promise<DhaResult<PatientContact[]>> {
     const envelope = await this.call(
       'GET',
-      `patients/${patientId}/contacts`,
+      '/patients/contacts',
       undefined,
       ctx,
+      { patient_id: patientId },
     );
     return this.toResult(envelope, 'SUCCESS', 'FAILED') as unknown as DhaResult<
       PatientContact[]
@@ -361,7 +378,7 @@ export class DhaHttpClient implements DhaClientPort {
     request: SendOtpRequest,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult<SendOtpResponse>> {
-    const envelope = await this.call('POST', 'consent/otp/visit', request, ctx);
+    const envelope = await this.call('POST', '/claims/otp', request, ctx);
     return this.toResult(
       envelope,
       'SUCCESS',
@@ -373,7 +390,7 @@ export class DhaHttpClient implements DhaClientPort {
     request: AuthorizeConsentRequest,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult<AuthorizeConsentResponse>> {
-    const envelope = await this.call('POST', 'consent/authorize', request, ctx);
+    const envelope = await this.call('POST', '/claims/authorize', request, ctx);
     return this.toResult(
       envelope,
       'SUCCESS',
@@ -387,7 +404,7 @@ export class DhaHttpClient implements DhaClientPort {
   ): Promise<DhaResult<SendOtpResponse>> {
     const envelope = await this.call(
       'POST',
-      'consent/otp/discharge',
+      '/claims/otp/discharge',
       request,
       ctx,
     );

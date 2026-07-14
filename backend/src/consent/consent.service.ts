@@ -40,7 +40,7 @@ export class ConsentService {
       },
     );
 
-    if (response.status !== 'VERIFIED' && response.status !== 'ACCEPTED') {
+    if (response.status !== 'SUCCESS') {
       throw new BadRequestException(
         'Failed to retrieve patient contacts from DHA',
       );
@@ -69,7 +69,7 @@ export class ConsentService {
       { facilityId: user.homeFacilityId || undefined },
     );
 
-    if (!response.data || !response.data.consent_request_id) {
+    if (!response.data) {
       throw new BadRequestException('Failed to initiate OTP request');
     }
 
@@ -80,7 +80,10 @@ export class ConsentService {
         contactId: dto.contactId,
         interventionCodes: dto.interventionCodes,
         status: response.data.status,
-        dhaConsentRequestId: response.data.consent_request_id,
+        // DHA's documented OTP response is a SuccessResponse and does not
+        // promise a request identifier. Keep a local identifier when absent.
+        dhaConsentRequestId:
+          response.data.consent_request_id ?? `otp-${patient.id}-${Date.now()}`,
       },
     });
 
@@ -125,9 +128,8 @@ export class ConsentService {
       const response = await this.dhaClient.createAuthorization(
         {
           patient_id: patient.shaMemberNumber,
-          consent_request_id: pendingRequest.dhaConsentRequestId,
-          otp_code: dto.otpCode,
-          intervention_codes: dto.interventionCodes,
+          otp: dto.otpCode,
+          interventions: dto.interventionCodes,
           service_type: dto.serviceType,
         },
         { facilityId: user.homeFacilityId || undefined },

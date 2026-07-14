@@ -1,14 +1,18 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Post,
   Query,
   Req,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../../auth/interfaces/request-user.interface';
@@ -159,6 +163,7 @@ export class DhaController {
    */
   @Post('callbacks/claim-status')
   async claimStatusWebhook(
+    @Headers('authorization') authorization: string | undefined,
     @Body()
     payload: {
       request?: { reference?: string };
@@ -168,15 +173,28 @@ export class DhaController {
       claimNumber?: string;
     },
   ) {
+    if (!this.webhookSecretMatches(authorization)) {
+      throw new UnauthorizedException('Invalid DHA callback authorization');
+    }
     const claimNumber =
       payload?.claimNumber ||
       payload?.request?.reference?.split('/')?.[1] ||
       payload?.id;
     const status = payload?.status || payload?.outcome;
 
-    if (claimNumber && status) {
-      await this.dhaService.handleClaimStatusCallback({ claimNumber, status });
+    if (!claimNumber || !status) {
+      throw new BadRequestException('Callback requires claim number and status');
     }
+    await this.dhaService.handleClaimStatusCallback({ claimNumber, status });
     return { received: true };
+  }
+
+  private webhookSecretMatches(authorization?: string): boolean {
+    const expected = process.env.DHA_WEBHOOK_SECRET;
+    const actual = authorization?.replace(/^Bearer\s+/i, '') ?? '';
+    if (!expected) return false;
+    const actualBytes = Buffer.from(actual);
+    const expectedBytes = Buffer.from(expected);
+    return actualBytes.length === expectedBytes.length && timingSafeEqual(actualBytes, expectedBytes);
   }
 }

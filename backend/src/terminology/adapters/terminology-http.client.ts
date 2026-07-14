@@ -39,19 +39,25 @@ export class TerminologyHttpClient {
       expires_in?: number;
     }>({
       integration: INTEGRATION_NAMES.DHA,
-      baseUrl: this.config.dhaTokenUrl || this.config.dhaBaseUrl,
-      path: this.config.dhaTokenUrl ? '' : '/oauth2/token',
+      baseUrl: this.config.dhaBaseUrl,
+      path: '/tenants/token',
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: 'grant_type=client_credentials',
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
       timeoutMs: this.config.dhaTimeoutMs,
     });
 
+    const accessToken = response.data?.access_token;
+    if (!accessToken) {
+      throw new DhaApiError('DHA token response did not include access_token', 500, false);
+    }
     return {
-      accessToken: response.data?.access_token ?? '',
+      accessToken,
       expiresInSeconds: response.data?.expires_in ?? 300,
     };
   }
@@ -123,20 +129,36 @@ export class TerminologyHttpClient {
 
     return this.call<TerminologyPaginatedResponse<TerminologyConcept>>(
       'GET',
-      '/concepts',
+      '/clinical/concepts',
       queryParams,
     );
   }
 
-  async getSources(): Promise<any> {
-    return this.call<any>('GET', '/sources');
+  async getMappings(params: {
+    owner: string;
+    source: string;
+    fromConcept?: string;
+    mapType?: string;
+  }): Promise<any> {
+    return this.call<any>('GET', '/clinical/concepts/mappings', {
+      owner: params.owner,
+      source: params.source,
+      from_concept: params.fromConcept,
+      map_type: params.mapType,
+    });
   }
 
-  async getCollections(): Promise<any> {
-    return this.call<any>('GET', '/collections');
+  /** DHA publishes concept search and mappings, not source/collection/version
+   * discovery endpoints. Callers must use the configured OCL identifiers. */
+  async getSources(): Promise<never> {
+    throw new DhaApiError('DHA does not publish a terminology source discovery endpoint', 501, false);
   }
 
-  async getVersions(): Promise<any> {
-    return this.call<any>('GET', '/versions');
+  async getCollections(): Promise<never> {
+    throw new DhaApiError('DHA does not publish a terminology collection discovery endpoint', 501, false);
+  }
+
+  async getVersions(): Promise<never> {
+    throw new DhaApiError('DHA does not publish a terminology version discovery endpoint', 501, false);
   }
 }

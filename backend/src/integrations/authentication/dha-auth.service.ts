@@ -33,14 +33,11 @@ export class DhaAuthService {
   private async refreshToken(): Promise<string> {
     this.logger.info('Refreshing DHA access token', { integration: 'DHA' });
 
-    const tokenUrl = this.configService.get<string>(
-      'DHA_TOKEN_URL',
-      'https://auth.dha.go.ke/oauth/token',
-    );
+    const baseUrl = this.configService.get<string>('DHA_BASE_URL');
     const clientId = this.configService.get<string>('DHA_CLIENT_ID');
     const clientSecret = this.configService.get<string>('DHA_CLIENT_SECRET');
 
-    if (!clientId || !clientSecret) {
+    if (!baseUrl || !clientId || !clientSecret) {
       this.logger.error('DHA credentials missing in configuration', {
         integration: 'DHA',
       });
@@ -50,12 +47,11 @@ export class DhaAuthService {
     try {
       const response = await this.httpClient.request({
         integration: 'DHA',
-        baseUrl: tokenUrl,
-        path: '',
+        baseUrl,
+        path: '/tenants/token',
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          grant_type: 'client_credentials',
           client_id: clientId,
           client_secret: clientSecret,
         }).toString(),

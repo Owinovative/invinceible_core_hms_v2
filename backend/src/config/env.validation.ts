@@ -79,7 +79,6 @@ export function validateEnvironment(
       'DHA_BASE_URL',
       'DHA_CLIENT_ID',
       'DHA_CLIENT_SECRET',
-      'DHA_TOKEN_URL',
       'DHA_FACILITY_CODE',
     ];
     for (const key of requiredKeys) {
@@ -88,6 +87,13 @@ export function validateEnvironment(
           `${key} is required when DHA_ENABLED=true and DHA_MODE=${dhaMode}`,
         );
       }
+    }
+    const dhaBaseUrl = requireString(config, 'DHA_BASE_URL');
+    if (!/^https:\/\//i.test(dhaBaseUrl)) {
+      throw new Error('DHA_BASE_URL must use HTTPS outside mock mode');
+    }
+    if (!hasValue(config, 'DHA_WEBHOOK_SECRET')) {
+      throw new Error('DHA_WEBHOOK_SECRET is required when DHA is enabled outside mock mode');
     }
   }
 
@@ -149,6 +155,7 @@ export function validateEnvironment(
     DHA_API_VERSION: config.DHA_API_VERSION ?? 'v1',
     DHA_TIMEOUT_MS: config.DHA_TIMEOUT_MS ?? '15000',
     DHA_MAX_ATTEMPTS: config.DHA_MAX_ATTEMPTS ?? '8',
+    DHA_WEBHOOK_SECRET: config.DHA_WEBHOOK_SECRET ?? '',
     INTEGRATION_WORKER_ENABLED: config.INTEGRATION_WORKER_ENABLED ?? 'true',
     INTEGRATION_WORKER_POLL_MS: config.INTEGRATION_WORKER_POLL_MS ?? '5000',
     INTEGRATION_QUEUE_BATCH_SIZE: config.INTEGRATION_QUEUE_BATCH_SIZE ?? '10',

@@ -141,10 +141,7 @@ export class IntegrationConfigService {
   }
 
   get terminologyBaseUrl(): string {
-    return this.str(
-      'TERMINOLOGY_BASE_URL',
-      `${this.dhaBaseUrl}/${this.dhaApiVersion}/clinical`,
-    );
+    return this.str('TERMINOLOGY_BASE_URL', this.dhaBaseUrl);
   }
 
   get terminologySyncIntervalMs(): number {

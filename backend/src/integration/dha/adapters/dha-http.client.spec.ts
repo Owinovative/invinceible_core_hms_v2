@@ -52,7 +52,7 @@ const TOKEN_RESPONSE = {
 };
 
 describe('DhaHttpClient', () => {
-  it('authenticates with client credentials, then calls versioned FHIR endpoints', async () => {
+  it('authenticates with the documented tenant-token form, then calls registry routes', async () => {
     const { client, calls } = makeClient([
       TOKEN_RESPONSE,
       { data: { status: 'VERIFIED', reference: 'PAT-1' } },
@@ -63,21 +63,21 @@ describe('DhaHttpClient', () => {
       { correlationId: 'corr-1' },
     );
 
-    // First call: token endpoint with basic auth and form body.
+    // First call: DHA tenant token form.
     expect(calls[0]).toMatchObject({
       method: 'POST',
-      body: 'grant_type=client_credentials',
+      path: '/tenants/token',
+      body: 'client_id=test-client&client_secret=test-secret',
     });
-    expect(calls[0].headers.Authorization).toMatch(/^Basic /);
 
-    // Second call: the API itself with the bearer token and version headers.
+    // Second call: the registry API with bearer and facility context headers.
     expect(calls[1]).toMatchObject({
-      path: '/api/v1/patients/verify',
+      path: '/patients',
       correlationId: 'corr-1',
     });
     expect(calls[1].headers.Authorization).toBe('Bearer dha-token-1');
-    expect(calls[1].headers['X-API-Version']).toBe('v1');
-    expect(calls[1].headers['X-Facility-Code']).toBe('KMHFL-001');
+    expect(calls[1].headers['X-Facility-Id']).toBe('KMHFL-001');
+    expect(calls[1].headers['X-Facility-Id-Type']).toBe('fr-code');
 
     expect(result.status).toBe('VERIFIED');
     expect(result.externalRef).toBe('PAT-1');
@@ -93,7 +93,7 @@ describe('DhaHttpClient', () => {
     await client.verifyFacility({ facilityCode: 'F1' });
 
     const tokenCalls = calls.filter(
-      (call) => call.body === 'grant_type=client_credentials',
+      (call) => String(call.path) === '/tenants/token',
     );
     expect(tokenCalls).toHaveLength(1);
   });
@@ -110,7 +110,7 @@ describe('DhaHttpClient', () => {
 
     expect(result.status).toBe('VERIFIED');
     const apiCalls = calls.filter((call) =>
-      String(call.path).includes('patients/verify'),
+      String(call.path).includes('/patients'),
     );
     expect(apiCalls).toHaveLength(2);
     expect(apiCalls[0].headers.Authorization).toBe('Bearer expired-token');
@@ -185,7 +185,10 @@ describe('DhaHttpClient', () => {
         })
       ).status,
     ).toBe('ACCEPTED');
-    expect((await client.submitClaim(bundle)).status).toBe('ACCEPTED');
+    await expect(client.submitClaim(bundle)).rejects.toMatchObject({
+      httpStatus: 400,
+      retryable: false,
+    });
     expect(
       (
         await client.checkEligibility({
@@ -203,13 +206,12 @@ describe('DhaHttpClient', () => {
 
     const paths = calls.slice(1).map((call) => call.path);
     expect(paths).toEqual([
-      '/api/v1/Encounter',
-      '/api/v1/Bundle',
-      '/api/v1/ServiceRequest',
-      '/api/v1/Consent',
-      '/api/v1/Claim',
-      '/api/v1/CoverageEligibilityRequest',
-      '/api/v1/AuditEvent',
+      '/Encounter',
+      '/Bundle',
+      '/ServiceRequest',
+      '/Consent',
+      '/patients/eligibility',
+      '/AuditEvent',
     ]);
   });
 });

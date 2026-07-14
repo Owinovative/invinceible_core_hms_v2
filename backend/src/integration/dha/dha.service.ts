@@ -150,16 +150,11 @@ export class DhaService implements OnModuleInit {
     options: DhaOperationOptions = {},
   ) {
     this.assertEnabled();
-    const request = this.mapper.toEligibilityRequest({
-      memberNumber: query.memberNumber,
-      nationalId: query.nationalId,
-      serviceDate: query.serviceDate,
-    });
     return this.runSyncTransaction(
       DHA_TRANSACTION_TYPE.ELIGIBILITY_CHECK,
-      'CoverageEligibilityRequest',
-      request,
-      () => this.client.checkEligibility(request, this.ctx(options)),
+      'EligibilityQuery',
+      query,
+      () => this.client.checkEligibility(query, this.ctx(options)),
       options,
     );
   }
