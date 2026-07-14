@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import { ShrPublisher } from '../shr-publisher.service';
 
 @Injectable()
 export class DeadLetterRecoveryService {
   private readonly logger = new Logger(DeadLetterRecoveryService.name);
-  private readonly prisma = new PrismaClient();
-
-  constructor(private readonly publisher: ShrPublisher) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly publisher: ShrPublisher,
+  ) {}
 
   async getDeadLetters(limit: number = 50) {
     return this.prisma.shrPublicationAttempt.findMany({
@@ -48,10 +49,6 @@ export class DeadLetterRecoveryService {
     });
 
     // Re-queue
-    const snapshot = await this.prisma.shrBundleSnapshot.findUnique({
-      where: { id: attempt.snapshotId }
-    });
-
-    return this.publisher.publishBundle(attempt.snapshotId, snapshot?.payload);
+    return this.publisher.publishBundle(attempt.snapshotId);
   }
 }

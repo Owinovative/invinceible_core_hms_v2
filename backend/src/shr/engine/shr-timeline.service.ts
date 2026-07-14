@@ -1,20 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ShrPublicationTrigger, ShrPublicationPolicyEngine } from './shr-publication.policy';
 import { ShrStateMachine, ShrState } from './shr-state-machine';
-import { ShrBundleAssembler } from '../fhir/fhir-bundle-assembler';
-import { ShrBundleValidator } from '../validation/fhir-bundle-validator';
-import { ShrBundleRepository } from '../repository/shr-bundle.repository';
-import { ShrPublisher } from '../shr-publisher.service';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { NonRetryableIntegrationError } from '../../integration/integration.types';
 
 @Injectable()
 export class ShrTimelineService {
   private readonly logger = new Logger(ShrTimelineService.name);
-  private readonly prisma = new PrismaClient(); // Simplified
-
   constructor(
     private readonly policyEngine: ShrPublicationPolicyEngine,
-    // ... inject assemblers, validators, repository, publisher
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -47,30 +42,16 @@ export class ShrTimelineService {
       // 3. Assemble Bundle
       stateMachine.transitionTo(ShrState.ASSEMBLING);
       await this.updatePublicationState(publication.id, stateMachine.getState());
-      // const bundle = await this.assembler.assemble(patientId, encounterId, requiredResources);
+      throw new NonRetryableIntegrationError(
+        'SHR clinical bundle assembly is unavailable until DHA issues a version-pinned clinical exchange/profile contract',
+      );
 
       // 4. Validate Schema & Compliance
       stateMachine.transitionTo(ShrState.VALIDATED);
       await this.updatePublicationState(publication.id, stateMachine.getState());
-      // await this.validator.validate(bundle, policy);
-      
-      stateMachine.transitionTo(ShrState.COMPLIANT);
-      await this.updatePublicationState(publication.id, stateMachine.getState());
-
-      // 5. Store Snapshot
-      stateMachine.transitionTo(ShrState.STORED_IN_REPO);
-      await this.updatePublicationState(publication.id, stateMachine.getState());
-      // const snapshot = await this.repository.storeSnapshot(publication.id, bundle);
-
-      // 6. Queue for Publishing
-      stateMachine.transitionTo(ShrState.QUEUED);
-      await this.updatePublicationState(publication.id, stateMachine.getState());
-      // await this.publisher.publishBundle(snapshot.id, bundle);
-
     } catch (error) {
       this.logger.error(`SHR Pipeline failed: ${error.message}`, error.stack);
-      // Handle failure state transitions (FAILED_VALIDATION, FAILED_COMPLIANCE, etc)
-      // await this.updatePublicationState(publication.id, ShrState.FAILED_VALIDATION);
+      await this.updatePublicationState(publication.id, ShrState.FAILED_VALIDATION);
       throw error;
     }
   }

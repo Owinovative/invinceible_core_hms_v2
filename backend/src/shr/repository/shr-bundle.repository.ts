@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import { BundleVersionManager } from '../engine/bundle-version-manager';
 
 @Injectable()
 export class ShrBundleRepository {
   private readonly logger = new Logger(ShrBundleRepository.name);
-  private readonly prisma = new PrismaClient(); // Simplification
-
-  constructor(private readonly versionManager: BundleVersionManager) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly versionManager: BundleVersionManager,
+  ) {}
 
   async storeSnapshot(publicationId: number, bundle: any, fhirVersion: string = '4.0.1', profileVersion: string = 'Kenya_SHR_v1'): Promise<any> {
     this.logger.log(`Storing immutable snapshot for publication ${publicationId}`);

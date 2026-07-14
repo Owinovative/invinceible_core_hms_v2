@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ShrService {
   private readonly logger = new Logger(ShrService.name);
-  private readonly prisma = new PrismaClient(); // Simplification, would typically inject a central PrismaService
+  constructor(private readonly prisma: PrismaService) {}
 
   async getMetrics() {
     return {
