@@ -146,6 +146,7 @@ export class DhaController {
       {
         operation: operation as import('./eclaims-contract').DhaEclaimsOperation,
         payload: dto.payload,
+        query: dto.query,
       },
       dto.idempotencyKey,
       {

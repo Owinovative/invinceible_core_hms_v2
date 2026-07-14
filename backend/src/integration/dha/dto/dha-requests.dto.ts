@@ -115,7 +115,12 @@ export class QueueEclaimsCommandDto {
   idempotencyKey: string;
 
   @IsObject()
-  payload: Record<string, unknown>;
+  @IsOptional()
+  payload?: Record<string, unknown>;
+
+  @IsObject()
+  @IsOptional()
+  query?: Record<string, string | number | undefined>;
 
   @IsOptional()
   @IsInt()

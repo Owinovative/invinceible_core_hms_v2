@@ -346,6 +346,7 @@ export class DhaHttpClient implements DhaClientPort {
       request.path,
       request.payload,
       ctx,
+      request.query,
     );
     return this.toResult(envelope, 'SUCCESS', 'REJECTED');
   }
