@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -105,4 +106,18 @@ export class SubmitReferralDto {
   @IsString()
   @MaxLength(50)
   targetFacilityCode?: string;
+}
+
+export class QueueEclaimsCommandDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(160)
+  idempotencyKey: string;
+
+  @IsObject()
+  payload: Record<string, unknown>;
+
+  @IsOptional()
+  @IsInt()
+  patientId?: number;
 }

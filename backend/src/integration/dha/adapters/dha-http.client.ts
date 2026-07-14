@@ -18,6 +18,7 @@ import {
   type PatientVerificationQuery,
   type PractitionerVerificationQuery,
 } from '../dha.types';
+import { eclaimsRequest, type DhaEclaimsCommand } from '../eclaims-contract';
 import type {
   FhirAuditEvent,
   FhirBundle,
@@ -333,6 +334,20 @@ export class DhaHttpClient implements DhaClientPort {
       400,
       false,
     );
+  }
+
+  async executeEclaims(
+    command: DhaEclaimsCommand,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult> {
+    const request = eclaimsRequest(command);
+    const envelope = await this.call(
+      request.method,
+      request.path,
+      request.payload,
+      ctx,
+    );
+    return this.toResult(envelope, 'SUCCESS', 'REJECTED');
   }
 
   async submitAuditEvent(

@@ -34,6 +34,10 @@ import type {
   PatientVerificationQuery,
   PractitionerVerificationQuery,
 } from './dha.types';
+import {
+  resolveEclaimsOperation,
+  type DhaEclaimsCommand,
+} from './eclaims-contract';
 import { FhirMapperService } from './fhir-mapper';
 import type { TerminologyConceptRef } from './fhir-mapper';
 import type { FhirBundle, FhirResource } from './fhir.types';
@@ -75,6 +79,11 @@ export class DhaService implements OnModuleInit {
     this.worker.registerHandler(
       INTEGRATION_NAMES.DHA,
       DHA_OPERATIONS.SUBMIT_CLAIM,
+      (item) => this.handleQueuedTransaction(item),
+    );
+    this.worker.registerHandler(
+      INTEGRATION_NAMES.DHA,
+      DHA_OPERATIONS.EXECUTE_ECLAIMS,
       (item) => this.handleQueuedTransaction(item),
     );
     this.worker.registerHandler(
@@ -186,6 +195,62 @@ export class DhaService implements OnModuleInit {
         facilityId: patient.facilityId,
       },
     );
+  }
+
+  /**
+   * Queues one documented DHA eClaims command. The payload is validated
+   * before it reaches the retry worker, preventing malformed claims from
+   * consuming a queue attempt or creating an uncertifiable exchange.
+   */
+  async queueEclaimsOperation(
+    command: DhaEclaimsCommand,
+    idempotencyKey: string,
+    options: DhaOperationOptions = {},
+  ) {
+    this.assertEnabled();
+    resolveEclaimsOperation(command);
+    if (!options.facilityId) {
+      throw new BadRequestException(
+        'A facility context is required for DHA eClaims operations',
+      );
+    }
+
+    const transaction = await this.createTransaction({
+      transactionType: DHA_TRANSACTION_TYPE.CLAIM_SUBMISSION,
+      fhirResourceType: 'DHA_ECLAIMS_COMMAND',
+      requestPayload: command,
+      statusCode: DHA_TRANSACTION_STATUS.QUEUED,
+      facilityId: options.facilityId,
+      branchId: options.branchId,
+      patientId: options.patientId,
+      correlationId: options.correlationId,
+    });
+
+    await this.queue.enqueue({
+      integration: INTEGRATION_NAMES.DHA,
+      operation: DHA_OPERATIONS.EXECUTE_ECLAIMS,
+      entityType: 'DHA_TRANSACTION',
+      entityId: String(transaction.id),
+      payload: { dhaTransactionId: transaction.id },
+      idempotencyKey: `dha:eclaims:${options.facilityId}:${idempotencyKey}`,
+      correlationId: options.correlationId,
+      facilityId: options.facilityId,
+      branchId: options.branchId,
+    });
+
+    await this.audit.recordEvent({
+      moduleName: 'DHA',
+      actionName: `ECLAIMS_${command.operation}_QUEUED`,
+      entityType: 'DHA_TRANSACTION',
+      entityId: String(transaction.id),
+      description: `DHA eClaims ${command.operation} queued`,
+      facilityId: options.facilityId,
+      branchId: options.branchId,
+      actorUserId: options.actorUserId,
+      actorStaffId: options.actorStaffId,
+    });
+
+    return { transaction };
   }
 
   // --- Queued document submissions -----------------------------------------
@@ -564,7 +629,15 @@ export class DhaService implements OnModuleInit {
       let result: DhaResult;
       switch (transaction.transactionType) {
         case DHA_TRANSACTION_TYPE.CLAIM_SUBMISSION:
-          result = await this.client.submitClaim(requestPayload, ctx);
+          if (transaction.fhirResourceType !== 'DHA_ECLAIMS_COMMAND') {
+            throw new NonRetryableIntegrationError(
+              'Legacy FHIR Claim transactions cannot be submitted to DHA. Create a documented DHA eClaims command instead.',
+            );
+          }
+          result = await this.client.executeEclaims(
+            transaction.requestPayload as unknown as DhaEclaimsCommand,
+            ctx,
+          );
           break;
         case DHA_TRANSACTION_TYPE.ENCOUNTER_SUBMISSION:
           result = await this.client.submitEncounter(requestPayload, ctx);

@@ -7,6 +7,7 @@ import type {
   PatientVerificationQuery,
   PractitionerVerificationQuery,
 } from '../dha.types';
+import type { DhaEclaimsCommand } from '../eclaims-contract';
 import type { FhirCoverageEligibilityRequest } from '../fhir.types';
 
 /**
@@ -126,6 +127,15 @@ export class DhaMockClient implements DhaClientPort {
       status: 'ACCEPTED',
       externalRef: this.ref('CLM'),
       raw: { mock: true },
+    });
+  }
+
+  executeEclaims(command: DhaEclaimsCommand): Promise<DhaResult> {
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref('ECL'),
+      data: { operation: command.operation },
+      raw: { mock: true, operation: command.operation },
     });
   }
 

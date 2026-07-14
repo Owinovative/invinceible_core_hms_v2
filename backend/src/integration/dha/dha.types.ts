@@ -1,4 +1,5 @@
 import type { IntegrationCallContext } from '../integration.types';
+import type { DhaEclaimsCommand } from './eclaims-contract';
 import type {
   FhirAuditEvent,
   FhirBundle,
@@ -143,6 +144,11 @@ export interface DhaClientPort {
   /** SHA/DHA claim submission (FHIR Claim bundle). */
   submitClaim(
     bundle: FhirBundle,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult>;
+
+  executeEclaims(
+    command: DhaEclaimsCommand,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult>;
 
