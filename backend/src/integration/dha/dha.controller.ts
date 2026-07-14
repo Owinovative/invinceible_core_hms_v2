@@ -25,7 +25,6 @@ import { DhaService } from './dha.service';
 import {
   CheckEligibilityDto,
   RecordConsentDto,
-  QueueEclaimsCommandDto,
   SubmitReferralDto,
   VerifyFacilityDto,
   VerifyPatientDto,
@@ -131,28 +130,6 @@ export class DhaController {
     return this.dhaService.submitEncounterForConsultation(
       consultationId,
       this.options(user, req),
-    );
-  }
-
-  @Post('eclaims/:operation')
-  @Permissions('billing.write')
-  queueEclaimsCommand(
-    @Param('operation') operation: string,
-    @Body() dto: QueueEclaimsCommandDto,
-    @CurrentUser() user: RequestUser,
-    @Req() req: RequestWithContext,
-  ) {
-    return this.dhaService.queueEclaimsOperation(
-      {
-        operation: operation as import('./eclaims-contract').DhaEclaimsOperation,
-        payload: dto.payload,
-        query: dto.query,
-      },
-      dto.idempotencyKey,
-      {
-        ...this.options(user, req),
-        patientId: dto.patientId,
-      },
     );
   }
 

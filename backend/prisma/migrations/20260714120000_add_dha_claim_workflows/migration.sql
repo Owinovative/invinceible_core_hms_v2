@@ -1,0 +1,75 @@
+ALTER TABLE `dha_transactions` ADD COLUMN `dhaWorkflowId` INTEGER NULL;
+CREATE INDEX `dha_transactions_dhaWorkflowId_idx` ON `dha_transactions`(`dhaWorkflowId`);
+
+CREATE TABLE `dha_claim_workflows` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `status` VARCHAR(40) NOT NULL DEFAULT 'DRAFT',
+    `serviceType` VARCHAR(30) NOT NULL,
+    `consentMethod` VARCHAR(30) NULL,
+    `dhaAuthorizationToken` LONGTEXT NULL,
+    `dhaAuthorizationGuid` VARCHAR(160) NULL,
+    `dhaVisitToken` LONGTEXT NULL,
+    `dhaVisitGuid` VARCHAR(160) NULL,
+    `dhaClaimReference` VARCHAR(160) NULL,
+    `lastError` TEXT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
+    `patientId` INTEGER NOT NULL,
+    `facilityId` INTEGER NOT NULL,
+    `branchId` INTEGER NULL,
+    `consultationId` INTEGER NULL,
+    `shaClaimId` INTEGER NULL,
+    `createdByUserId` INTEGER NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    PRIMARY KEY (`id`),
+    INDEX `dha_claim_workflows_patientId_status_idx`(`patientId`, `status`),
+    INDEX `dha_claim_workflows_shaClaimId_idx`(`shaClaimId`),
+    INDEX `dha_claim_workflows_facilityId_createdAt_idx`(`facilityId`, `createdAt`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `dha_claim_workflow_steps` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `workflowId` INTEGER NOT NULL,
+    `sequence` INTEGER NOT NULL,
+    `action` VARCHAR(60) NOT NULL,
+    `status` VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    `idempotencyKey` VARCHAR(191) NOT NULL,
+    `transactionId` INTEGER NULL,
+    `requestData` JSON NULL,
+    `responseData` JSON NULL,
+    `errorMessage` TEXT NULL,
+    `queuedAt` DATETIME(3) NULL,
+    `completedAt` DATETIME(3) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `dha_claim_workflow_steps_idempotencyKey_key`(`idempotencyKey`),
+    UNIQUE INDEX `dha_claim_workflow_steps_workflowId_sequence_key`(`workflowId`, `sequence`),
+    INDEX `dha_claim_workflow_steps_workflowId_status_idx`(`workflowId`, `status`),
+    INDEX `dha_claim_workflow_steps_transactionId_idx`(`transactionId`),
+    CONSTRAINT `dha_claim_workflow_steps_workflowId_fkey` FOREIGN KEY (`workflowId`) REFERENCES `dha_claim_workflows`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `dha_workflow_attachments` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `workflowId` INTEGER NOT NULL,
+    `status` VARCHAR(30) NOT NULL DEFAULT 'STAGED',
+    `documentType` VARCHAR(80) NOT NULL,
+    `fileName` VARCHAR(255) NOT NULL,
+    `mimeType` VARCHAR(120) NOT NULL,
+    `byteSize` INTEGER NOT NULL,
+    `sha256` CHAR(64) NOT NULL,
+    `encryptedData` LONGTEXT NOT NULL,
+    `encryptionIv` VARCHAR(64) NOT NULL,
+    `encryptionTag` VARCHAR(64) NOT NULL,
+    `dhaFileId` VARCHAR(160) NULL,
+    `dhaAttachmentId` VARCHAR(160) NULL,
+    `scanStatus` VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    `scanDetail` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    PRIMARY KEY (`id`),
+    INDEX `dha_workflow_attachments_workflowId_status_idx`(`workflowId`, `status`),
+    INDEX `dha_workflow_attachments_sha256_idx`(`sha256`),
+    CONSTRAINT `dha_workflow_attachments_workflowId_fkey` FOREIGN KEY (`workflowId`) REFERENCES `dha_claim_workflows`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

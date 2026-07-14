@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DhaHttpClient } from './dha/adapters/dha-http.client';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
+import { DhaClaimWorkflowController } from './dha/dha-claim-workflow.controller';
+import { DhaClaimWorkflowService } from './dha/dha-claim-workflow.service';
 import { DhaService } from './dha/dha.service';
 import { IntegrationQueueController } from './queue/integration-queue.controller';
 import { FhirMapperService } from './dha/fhir-mapper';
@@ -33,7 +35,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
  */
 @Module({
   imports: [PrismaModule, AuditLogModule],
-  controllers: [EtimsController, DhaController, IntegrationQueueController],
+  controllers: [EtimsController, DhaController, DhaClaimWorkflowController, IntegrationQueueController],
   providers: [
     IntegrationConfigService,
     IntegrationLoggerService,
@@ -77,6 +79,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     },
     EtimsService,
     DhaService,
+    DhaClaimWorkflowService,
   ],
   exports: [
     EtimsService,

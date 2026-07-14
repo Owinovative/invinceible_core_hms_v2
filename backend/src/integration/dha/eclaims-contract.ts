@@ -2,6 +2,7 @@ import { DhaApiError } from './dha.types';
 import type { HttpMethod } from '../integration.types';
 
 export type DhaEclaimsOperation =
+  | 'AUTHORIZE_CLAIM'
   | 'CREATE_VISIT'
   | 'ADD_INTERVENTION'
   | 'ADD_DIAGNOSIS'
@@ -65,6 +66,11 @@ interface EclaimsOperationSpec {
  * are taken from the DHA HIE Complete Reference endpoint contracts.
  */
 const ECLAIMS_OPERATIONS: Record<DhaEclaimsOperation, EclaimsOperationSpec> = {
+  AUTHORIZE_CLAIM: {
+    method: 'POST',
+    path: '/claims/authorize',
+    requiredPayloadFields: ['patient_id', 'service_type', 'interventions'],
+  },
   CREATE_VISIT: {
     method: 'POST',
     path: '/claims/visit',
@@ -348,6 +354,17 @@ export function resolveEclaimsOperation(command: DhaEclaimsCommand): EclaimsOper
         false,
       );
     }
+  }
+  if (
+    command.operation === 'AUTHORIZE_CLAIM' &&
+    !command.payload?.otp &&
+    !command.payload?.auth_guid
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims AUTHORIZE_CLAIM requires otp or auth_guid',
+      400,
+      false,
+    );
   }
   if (
     command.operation === 'CREATE_VISIT' &&

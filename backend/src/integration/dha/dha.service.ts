@@ -51,6 +51,8 @@ interface DhaOperationOptions {
   facilityId?: number;
   branchId?: number;
   patientId?: number;
+  workflowId?: number;
+  workflowStepId?: number;
 }
 
 /**
@@ -239,6 +241,7 @@ export class DhaService implements OnModuleInit {
       facilityId: options.facilityId,
       branchId: options.branchId,
       patientId: options.patientId,
+      dhaWorkflowId: options.workflowId,
       correlationId: options.correlationId,
     });
 
@@ -300,6 +303,24 @@ export class DhaService implements OnModuleInit {
     });
     if (!claim) {
       throw new NotFoundException(`SHA claim ${shaClaimId} not found`);
+    }
+
+    // DHA eClaims is a stateful visit workflow, not a FHIR Claim submission.
+    // Retain the local SHA claim but do not manufacture an unsupported DHA
+    // request from its summary fields.
+    if (this.enabled) {
+      await this.audit.recordEvent({
+        moduleName: 'DHA',
+        actionName: 'CLAIM_SUBMISSION_REQUIRES_WORKFLOW',
+        entityType: 'SHA_CLAIM',
+        entityId: String(claim.id),
+        description: 'DHA claim was not queued because no DHA claim workflow exists',
+        facilityId: claim.facilityId,
+        branchId: claim.branchId ?? undefined,
+        actorUserId: options.actorUserId,
+        actorStaffId: options.actorStaffId,
+      });
+      return { skipped: true as const, reason: 'DHA_WORKFLOW_REQUIRED' };
     }
 
     const resources: FhirResource[] = [
@@ -686,6 +707,45 @@ export class DhaService implements OnModuleInit {
         },
       });
 
+      if (transaction.dhaWorkflowId) {
+        const workflowStep = await this.prisma.dhaClaimWorkflowStep.findFirst({
+          where: { workflowId: transaction.dhaWorkflowId, transactionId: transaction.id },
+        });
+        await this.prisma.dhaClaimWorkflowStep.updateMany({
+          where: { workflowId: transaction.dhaWorkflowId, transactionId: transaction.id },
+          data: {
+            status: result.status === 'REJECTED' ? 'FAILED' : 'COMPLETED',
+            responseData: (result.raw ?? {}) as Prisma.InputJsonValue,
+            completedAt: new Date(),
+            errorMessage: result.status === 'REJECTED' ? 'DHA rejected workflow action' : null,
+          },
+        });
+        const response = (result.data ?? result.raw ?? {}) as Record<string, unknown>;
+        const workflowUpdate: Prisma.DhaClaimWorkflowUpdateInput = {
+          status: result.status === 'REJECTED' ? 'FAILED' : 'IN_PROGRESS',
+          lastError: result.status === 'REJECTED' ? 'DHA rejected workflow action' : null,
+        };
+        if (workflowStep?.action === 'AUTHORIZE') {
+          if (typeof response.consent_token === 'string') workflowUpdate.dhaAuthorizationToken = response.consent_token;
+          if (typeof response.auth_guid === 'string') workflowUpdate.dhaAuthorizationGuid = response.auth_guid;
+        }
+        if (workflowStep?.action === 'VISIT') {
+          if (typeof response.consent_token === 'string') workflowUpdate.dhaVisitToken = response.consent_token;
+          if (typeof response.guid === 'string') workflowUpdate.dhaVisitGuid = response.guid;
+          if (typeof result.externalRef === 'string') workflowUpdate.dhaClaimReference = result.externalRef;
+        }
+        if (workflowStep?.action === 'SUBMIT' && typeof result.externalRef === 'string') {
+          workflowUpdate.status = 'SUBMITTED';
+          workflowUpdate.dhaClaimReference = result.externalRef;
+        }
+        if (workflowStep?.action === 'DISCHARGE') workflowUpdate.status = 'DISCHARGED';
+        if (workflowStep?.action === 'CLOSE') workflowUpdate.status = 'CLOSED';
+        await this.prisma.dhaClaimWorkflow.update({
+          where: { id: transaction.dhaWorkflowId },
+          data: workflowUpdate,
+        });
+      }
+
       await this.audit.recordEvent({
         moduleName: 'DHA',
         actionName: `${transaction.transactionType}_${result.status}`,
@@ -900,6 +960,7 @@ export class DhaService implements OnModuleInit {
     invoiceId?: number;
     shaClaimId?: number;
     consultationId?: number;
+    dhaWorkflowId?: number;
     facilityId: number;
     branchId?: number;
     correlationId?: string;
@@ -916,6 +977,7 @@ export class DhaService implements OnModuleInit {
         invoiceId: params.invoiceId ?? null,
         shaClaimId: params.shaClaimId ?? null,
         consultationId: params.consultationId ?? null,
+        dhaWorkflowId: params.dhaWorkflowId ?? null,
         facilityId: params.facilityId,
         branchId: params.branchId ?? null,
       },

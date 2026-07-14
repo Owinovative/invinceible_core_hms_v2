@@ -1968,6 +1968,7 @@ model DhaTransaction {
   invoiceId        Int?
   shaClaimId       Int?
   consultationId   Int?
+  dhaWorkflowId    Int?
   facilityId       Int
   branchId         Int?
   submittedAt      DateTime?
@@ -2052,8 +2053,89 @@ model ConsentAuthorization {
 
   @@index([patientId])
   @@index([consultationId])
+  @@index([dhaWorkflowId])
   @@index([status])
   @@map("consent_authorizations")
+}
+
+// Durable DHA eClaims aggregate. DHA identifiers are deliberately persisted
+// separately from request JSON so retries always resume the same visit.
+model DhaClaimWorkflow {
+  id                    Int      @id @default(autoincrement())
+  status                String   @default("DRAFT") @db.VarChar(40)
+  serviceType           String   @db.VarChar(30)
+  consentMethod         String?  @db.VarChar(30)
+  dhaAuthorizationToken String?  @db.LongText
+  dhaAuthorizationGuid  String?  @db.VarChar(160)
+  dhaVisitToken         String?  @db.LongText
+  dhaVisitGuid          String?  @db.VarChar(160)
+  dhaClaimReference     String?  @db.VarChar(160)
+  lastError             String?  @db.Text
+  version               Int      @default(1)
+  patientId             Int
+  facilityId            Int
+  branchId              Int?
+  consultationId        Int?
+  shaClaimId            Int?
+  createdByUserId       Int?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  steps                 DhaClaimWorkflowStep[]
+  attachments           DhaWorkflowAttachment[]
+
+  @@index([patientId, status])
+  @@index([shaClaimId])
+  @@index([facilityId, createdAt])
+  @@map("dha_claim_workflows")
+}
+
+model DhaClaimWorkflowStep {
+  id             Int      @id @default(autoincrement())
+  workflowId     Int
+  sequence       Int
+  action         String   @db.VarChar(60)
+  status         String   @default("PENDING") @db.VarChar(30)
+  idempotencyKey String   @unique @db.VarChar(191)
+  transactionId  Int?
+  requestData    Json?
+  responseData   Json?
+  errorMessage   String?  @db.Text
+  queuedAt       DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  workflow       DhaClaimWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, sequence])
+  @@index([workflowId, status])
+  @@index([transactionId])
+  @@map("dha_claim_workflow_steps")
+}
+
+// Ciphertext only. Raw files never enter transaction or queue JSON.
+model DhaWorkflowAttachment {
+  id             Int      @id @default(autoincrement())
+  workflowId     Int
+  status         String   @default("STAGED") @db.VarChar(30)
+  documentType   String   @db.VarChar(80)
+  fileName       String   @db.VarChar(255)
+  mimeType       String   @db.VarChar(120)
+  byteSize       Int
+  sha256         String   @db.Char(64)
+  encryptedData  String   @db.LongText
+  encryptionIv   String   @db.VarChar(64)
+  encryptionTag  String   @db.VarChar(64)
+  dhaFileId      String?  @db.VarChar(160)
+  dhaAttachmentId String? @db.VarChar(160)
+  scanStatus     String   @default("PENDING") @db.VarChar(30)
+  scanDetail     String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  workflow       DhaClaimWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, status])
+  @@index([sha256])
+  @@map("dha_workflow_attachments")
 }
 
 model ConsentAuditLog {
