@@ -67,15 +67,19 @@ export class IntegrationHttpClient {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         let response: Response;
         try {
+          const isFormData =
+            typeof FormData !== 'undefined' && request.body instanceof FormData;
           response = await fetch(url, {
             method: request.method,
             headers: {
-              'Content-Type': 'application/json',
               Accept: 'application/json',
               'X-Request-Id': requestId,
               ...(request.correlationId
                 ? { 'X-Correlation-Id': request.correlationId }
                 : {}),
+              // fetch supplies the multipart boundary for FormData. Supplying
+              // application/json here corrupts DHA attachment/preauth uploads.
+              ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
               ...request.headers,
             },
             body:
@@ -83,7 +87,9 @@ export class IntegrationHttpClient {
                 ? undefined
                 : typeof request.body === 'string'
                   ? request.body
-                  : JSON.stringify(request.body),
+                  : isFormData
+                    ? (request.body as FormData)
+                    : JSON.stringify(request.body),
             signal: controller.signal,
           });
         } finally {

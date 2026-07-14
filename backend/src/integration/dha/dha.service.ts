@@ -215,10 +215,26 @@ export class DhaService implements OnModuleInit {
       );
     }
 
+    const commandPayload = { ...(command.payload ?? {}) };
+    if (commandPayload.consent_token !== undefined) {
+      if (!options.patientId) {
+        throw new BadRequestException(
+          'A patient context is required for DHA consent-token operations',
+        );
+      }
+      // The active consent is loaded by the worker immediately before the
+      // request. Do not persist a bearer-equivalent token in queue JSON.
+      delete commandPayload.consent_token;
+    }
+    const persistedCommand: DhaEclaimsCommand = {
+      ...command,
+      payload: commandPayload,
+    };
+
     const transaction = await this.createTransaction({
       transactionType: DHA_TRANSACTION_TYPE.CLAIM_SUBMISSION,
       fhirResourceType: 'DHA_ECLAIMS_COMMAND',
-      requestPayload: command,
+      requestPayload: persistedCommand,
       statusCode: DHA_TRANSACTION_STATUS.QUEUED,
       facilityId: options.facilityId,
       branchId: options.branchId,
@@ -240,10 +256,10 @@ export class DhaService implements OnModuleInit {
 
     await this.audit.recordEvent({
       moduleName: 'DHA',
-      actionName: `ECLAIMS_${command.operation}_QUEUED`,
+      actionName: `ECLAIMS_${persistedCommand.operation}_QUEUED`,
       entityType: 'DHA_TRANSACTION',
       entityId: String(transaction.id),
-      description: `DHA eClaims ${command.operation} queued`,
+      description: `DHA eClaims ${persistedCommand.operation} queued`,
       facilityId: options.facilityId,
       branchId: options.branchId,
       actorUserId: options.actorUserId,

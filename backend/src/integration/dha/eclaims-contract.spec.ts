@@ -56,4 +56,43 @@ describe('DHA eClaims contract', () => {
     expect(request.method).toBe('GET');
     expect(request.query).toEqual({ consent_token: 'consent-1' });
   });
+
+  it('accepts DHA biometric visits while requiring one consent strategy', () => {
+    const request = eclaimsRequest({
+      operation: 'CREATE_VISIT',
+      payload: {
+        intervention_codes: ['SHA-01'],
+        patient_id: 'cr-1',
+        service_type: 'OUTPATIENT',
+        auth_guid: 'auth-1',
+      },
+    });
+
+    expect(request.path).toBe('/claims/visit');
+    expect(() =>
+      resolveEclaimsOperation({
+        operation: 'CREATE_VISIT',
+        payload: {
+          intervention_codes: ['SHA-01'],
+          patient_id: 'cr-1',
+          service_type: 'OUTPATIENT',
+        },
+      }),
+    ).toThrow('requires otp or auth_guid');
+  });
+
+  it('requires DHA practitioner details to be supplied as a complete set', () => {
+    expect(() =>
+      resolveEclaimsOperation({
+        operation: 'ADD_LINE',
+        payload: {
+          consent_token: 'consent-1',
+          intervention_code: 'SHA-01',
+          unit_price: '100',
+          quantity: '1',
+          practitioner_identification_number: 'KMPDC-1',
+        },
+      }),
+    ).toThrow('requires all practitioner identification fields together');
+  });
 });

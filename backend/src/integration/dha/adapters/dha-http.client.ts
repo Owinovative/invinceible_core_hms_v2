@@ -47,8 +47,8 @@ interface DhaEnvelope {
 /**
  * HTTP adapter for the Digital Health Agency APIs. Uses OAuth2 client
  * credentials with cached token refresh; a 401 invalidates the token and the
- * call is retried once with a fresh one. All endpoints are versioned under
- * /api/{DHA_API_VERSION}/ and exchange FHIR R4 JSON.
+ * call is retried once with a fresh one. Paths follow published DHA HIE API
+ * contracts; FHIR is retained only for local clinical mapping.
  *
  * Endpoint paths are best-effort placeholders following FHIR REST
  * conventions; when the official DHA specification is published only this
@@ -340,11 +340,18 @@ export class DhaHttpClient implements DhaClientPort {
     command: DhaEclaimsCommand,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const request = eclaimsRequest(command);
+    const hydratedCommand: DhaEclaimsCommand =
+      ctx?.consentToken && !command.payload?.consent_token
+        ? {
+            ...command,
+            payload: { ...(command.payload ?? {}), consent_token: ctx.consentToken },
+          }
+        : command;
+    const request = eclaimsRequest(hydratedCommand);
     const envelope = await this.call(
       request.method,
       request.path,
-      request.payload,
+      request.method === 'GET' ? undefined : request.payload,
       ctx,
       request.query,
     );

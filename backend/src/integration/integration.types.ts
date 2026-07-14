@@ -23,6 +23,7 @@ export interface IntegrationHttpRequest {
   /** Header values may contain secrets; they are never logged or persisted. */
   headers?: Record<string, string>;
   query?: Record<string, string | number | undefined>;
+  /** JSON-serializable values, raw strings, or FormData for DHA uploads. */
   body?: unknown;
   timeoutMs?: number;
   /** Transport-level attempts (1 = no retry). Queue-level retries stack on top. */

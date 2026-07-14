@@ -24,7 +24,27 @@ export type DhaEclaimsOperation =
   | 'DISPENSE_PRESCRIPTION'
   | 'REMOVE_PRESCRIPTION_DOCTOR'
   | 'GET_EMERGENCY_PROTOCOLS'
-  | 'ADD_EMERGENCY_PROTOCOL';
+  | 'ADD_EMERGENCY_PROTOCOL'
+  | 'RESOLVE_PMF_TARIFFS'
+  | 'EVALUATE_POMSF_RATES'
+  | 'REMOVE_ATTACHMENT'
+  | 'GET_AUTHORIZATIONS'
+  | 'REMOVE_DIAGNOSIS'
+  | 'ADD_EMERGENCY_DOCTOR'
+  | 'REMOVE_EMERGENCY_DOCTOR'
+  | 'REMOVE_LINE'
+  | 'EDIT_LINE'
+  | 'GET_PAYER_PREVIEW'
+  | 'GET_FACILITY_OCCUPANCY'
+  | 'GET_PATIENT_BENEFITS'
+  | 'GET_PATIENT_INTERVENTIONS'
+  | 'GET_PATIENT_UTILIZATION'
+  | 'GET_PATIENT_POMSF_BALANCES'
+  | 'GET_PATIENT_SUB_BENEFITS'
+  | 'CREATE_EMERGENCY_CLAIM'
+  | 'RESEND_DOCTOR_CONSENT'
+  | 'GET_OTP_WHITELIST_CALLBACK'
+  | 'GET_UPLOAD_URL';
 
 export interface DhaEclaimsCommand {
   operation: DhaEclaimsOperation;
@@ -48,7 +68,7 @@ const ECLAIMS_OPERATIONS: Record<DhaEclaimsOperation, EclaimsOperationSpec> = {
   CREATE_VISIT: {
     method: 'POST',
     path: '/claims/visit',
-    requiredPayloadFields: ['intervention_codes', 'patient_id', 'service_type', 'otp'],
+    requiredPayloadFields: ['intervention_codes', 'patient_id', 'service_type'],
   },
   ADD_INTERVENTION: {
     method: 'POST',
@@ -185,6 +205,122 @@ const ECLAIMS_OPERATIONS: Record<DhaEclaimsOperation, EclaimsOperationSpec> = {
       'quantity',
     ],
   },
+  RESOLVE_PMF_TARIFFS: {
+    method: 'POST',
+    path: '/benefits/pmf-tariffs/resolve',
+    requiredPayloadFields: ['fr_code', 'intervention_codes'],
+  },
+  EVALUATE_POMSF_RATES: {
+    method: 'POST',
+    path: '/benefits/pomsf-rates',
+    requiredPayloadFields: ['fr_code', 'intervention_codes'],
+  },
+  REMOVE_ATTACHMENT: {
+    method: 'PATCH',
+    path: '/claims/attachments',
+    requiredPayloadFields: [
+      'attachment_id',
+      'consent_token',
+      'intervention_code',
+    ],
+  },
+  GET_AUTHORIZATIONS: {
+    method: 'GET',
+    path: '/claims/authorizations',
+  },
+  REMOVE_DIAGNOSIS: {
+    method: 'PATCH',
+    path: '/claims/diagnoses',
+    requiredPayloadFields: ['consent_token', 'icd_code', 'intervention_code'],
+  },
+  ADD_EMERGENCY_DOCTOR: {
+    method: 'POST',
+    path: '/claims/doctors',
+    requiredPayloadFields: [
+      'consent_token',
+      'identification_number',
+      'identification_type',
+      'regulation_body',
+    ],
+  },
+  REMOVE_EMERGENCY_DOCTOR: {
+    method: 'DELETE',
+    path: '/claims/doctors',
+    requiredPayloadFields: ['consent_token'],
+  },
+  REMOVE_LINE: {
+    method: 'PATCH',
+    path: '/claims/lines',
+    requiredPayloadFields: ['consent_token', 'line_guid'],
+  },
+  EDIT_LINE: {
+    method: 'PATCH',
+    path: '/claims/lines/edit',
+    requiredPayloadFields: ['consent_token', 'line_id'],
+  },
+  GET_PAYER_PREVIEW: {
+    method: 'GET',
+    path: '/claims/preview/payer',
+  },
+  GET_FACILITY_OCCUPANCY: {
+    method: 'GET',
+    path: '/facilities/{facilityCode}/beds/occupancy',
+    requiredPayloadFields: ['facilityCode'],
+    removePathPayloadFields: ['facilityCode'],
+  },
+  GET_PATIENT_BENEFITS: {
+    method: 'GET',
+    path: '/patients/benefits',
+    requiredQueryFields: ['patient_id'],
+  },
+  GET_PATIENT_INTERVENTIONS: {
+    method: 'GET',
+    path: '/patients/benefits/interventions',
+    requiredQueryFields: ['patient_id'],
+  },
+  GET_PATIENT_UTILIZATION: {
+    method: 'GET',
+    path: '/patients/benefits/utilization',
+    requiredQueryFields: ['patient_id', 'intervention_code'],
+  },
+  GET_PATIENT_POMSF_BALANCES: {
+    method: 'GET',
+    path: '/patients/pomsf-balances',
+    requiredQueryFields: ['patient_id'],
+  },
+  GET_PATIENT_SUB_BENEFITS: {
+    method: 'GET',
+    path: '/patients/sub-benefits',
+    requiredQueryFields: ['patient_id'],
+  },
+  CREATE_EMERGENCY_CLAIM: {
+    method: 'POST',
+    path: '/claims/emergency',
+    requiredPayloadFields: [
+      'interventions',
+      'mode_of_arrival',
+      'brought_by',
+      'reference_number',
+      'identification_number',
+      'identification_type',
+      'regulation_body',
+    ],
+  },
+  RESEND_DOCTOR_CONSENT: {
+    method: 'POST',
+    path: '/claims/doctor-consent',
+    requiredPayloadFields: ['request_type', 'consent_token'],
+  },
+  GET_OTP_WHITELIST_CALLBACK: {
+    method: 'GET',
+    path: '/patients/otp-whitelists/callback',
+  },
+  GET_UPLOAD_URL: {
+    method: 'GET',
+    path: '/uploads/{file_id}',
+    requiredPayloadFields: ['file_id'],
+    removePathPayloadFields: ['file_id'],
+  },
 };
 
 export function resolveEclaimsOperation(command: DhaEclaimsCommand): EclaimsOperationSpec {
@@ -212,6 +348,140 @@ export function resolveEclaimsOperation(command: DhaEclaimsCommand): EclaimsOper
         false,
       );
     }
+  }
+  if (
+    command.operation === 'CREATE_VISIT' &&
+    !command.payload?.otp &&
+    !command.payload?.auth_guid
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims CREATE_VISIT requires otp or auth_guid',
+      400,
+      false,
+    );
+  }
+  if (
+    ['CREATE_VISIT', 'ADD_DIAGNOSIS', 'ADD_LINE'].includes(command.operation)
+  ) {
+    const practitionerFields = [
+      'practitioner_identification_type',
+      'practitioner_identification_number',
+      'practitioner_regulation_body',
+    ];
+    const supplied = practitionerFields.filter(
+      (field) => command.payload?.[field] !== undefined,
+    );
+    if (supplied.length > 0 && supplied.length !== practitionerFields.length) {
+      throw new DhaApiError(
+        `DHA eClaims ${command.operation} requires all practitioner identification fields together`,
+        400,
+        false,
+      );
+    }
+  }
+  if (
+    command.operation === 'CREATE_EMERGENCY_CLAIM' &&
+    (command.payload?.beneficiary_cr_id !== undefined ||
+      command.payload?.otp !== undefined) &&
+    (!command.payload?.beneficiary_cr_id || !command.payload?.otp)
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims identified emergency claims require beneficiary_cr_id and otp together',
+      400,
+      false,
+    );
+  }
+  const emergencyInterventions = command.payload?.interventions;
+  if (
+    command.operation === 'CREATE_EMERGENCY_CLAIM' &&
+    Array.isArray(emergencyInterventions) &&
+    emergencyInterventions.length !== 1
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims CREATE_EMERGENCY_CLAIM requires exactly one emergency intervention',
+      400,
+      false,
+    );
+  }
+  if (
+    command.operation === 'RESEND_DOCTOR_CONSENT' &&
+    command.payload?.request_type === 'EMERGENCY_CLAIM_DOCTOR_APPROVAL_REQUEST' &&
+    command.payload?.service_type === 'EMT'
+  ) {
+    for (const field of [
+      'emergency_claim_id',
+      'intervention_code',
+      'identification_type',
+      'identification_number',
+      'regulation_body',
+    ]) {
+      if (!command.payload?.[field]) {
+        throw new DhaApiError(
+          `DHA eClaims RESEND_DOCTOR_CONSENT EMT request requires ${field}`,
+          400,
+          false,
+        );
+      }
+    }
+  }
+  if (
+    command.operation === 'RESEND_DOCTOR_CONSENT' &&
+    command.payload?.service_type !== 'EMT'
+  ) {
+    for (const field of ['practitioner_registration_number', 'intervention_code']) {
+      if (!command.payload?.[field]) {
+        throw new DhaApiError(
+          `DHA eClaims RESEND_DOCTOR_CONSENT requires ${field}`,
+          400,
+          false,
+        );
+      }
+    }
+  }
+  if (
+    command.operation === 'GET_OTP_WHITELIST_CALLBACK' &&
+    !command.query?.beneficiary_cr_id &&
+    !command.query?.guid
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims GET_OTP_WHITELIST_CALLBACK requires beneficiary_cr_id or guid',
+      400,
+      false,
+    );
+  }
+  if (
+    command.operation === 'GET_AUTHORIZATIONS' &&
+    !command.query?.token &&
+    !command.query?.patient_id &&
+    !command.query?.guid
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims GET_AUTHORIZATIONS requires token, patient_id, or guid',
+      400,
+      false,
+    );
+  }
+  if (
+    command.operation === 'GET_PAYER_PREVIEW' &&
+    !command.query?.guid &&
+    !command.query?.provider_claim_no
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims GET_PAYER_PREVIEW requires guid or provider_claim_no',
+      400,
+      false,
+    );
+  }
+  if (
+    command.operation === 'EDIT_LINE' &&
+    command.payload?.quantity === undefined &&
+    command.payload?.unit_price === undefined
+  ) {
+    throw new DhaApiError(
+      'DHA eClaims EDIT_LINE requires quantity or unit_price',
+      400,
+      false,
+    );
   }
   return spec;
 }
