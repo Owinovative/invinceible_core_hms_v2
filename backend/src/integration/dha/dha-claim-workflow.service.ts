@@ -338,7 +338,12 @@ export class DhaClaimWorkflowService implements OnModuleInit {
   }
 
   private withWorkflowValues(
-    workflow: { serviceType: string; dhaAuthorizationGuid: string | null },
+    workflow: {
+      serviceType: string;
+      dhaAuthorizationGuid: string | null;
+      dhaAuthorizationToken: string | null;
+      dhaVisitToken: string | null;
+    },
     action: WorkflowAction,
     payload: Record<string, unknown>,
   ) {
@@ -351,6 +356,12 @@ export class DhaClaimWorkflowService implements OnModuleInit {
           ? { auth_guid: workflow.dhaAuthorizationGuid } : {}),
       };
     }
-    return payload;
+    const consentToken = workflow.dhaVisitToken ?? workflow.dhaAuthorizationToken;
+    return {
+      ...payload,
+      ...(consentToken && !payload.consent_token
+        ? { consent_token: consentToken }
+        : {}),
+    };
   }
 }

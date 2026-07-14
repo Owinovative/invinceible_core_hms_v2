@@ -721,17 +721,21 @@ export class DhaService implements OnModuleInit {
           },
         });
         const response = (result.data ?? result.raw ?? {}) as Record<string, unknown>;
+        const responseData =
+          response.data && typeof response.data === 'object'
+            ? (response.data as Record<string, unknown>)
+            : response;
         const workflowUpdate: Prisma.DhaClaimWorkflowUpdateInput = {
           status: result.status === 'REJECTED' ? 'FAILED' : 'IN_PROGRESS',
           lastError: result.status === 'REJECTED' ? 'DHA rejected workflow action' : null,
         };
         if (workflowStep?.action === 'AUTHORIZE') {
-          if (typeof response.consent_token === 'string') workflowUpdate.dhaAuthorizationToken = response.consent_token;
-          if (typeof response.auth_guid === 'string') workflowUpdate.dhaAuthorizationGuid = response.auth_guid;
+          if (typeof responseData.consent_token === 'string') workflowUpdate.dhaAuthorizationToken = responseData.consent_token;
+          if (typeof responseData.auth_guid === 'string') workflowUpdate.dhaAuthorizationGuid = responseData.auth_guid;
         }
         if (workflowStep?.action === 'VISIT') {
-          if (typeof response.consent_token === 'string') workflowUpdate.dhaVisitToken = response.consent_token;
-          if (typeof response.guid === 'string') workflowUpdate.dhaVisitGuid = response.guid;
+          if (typeof responseData.consent_token === 'string') workflowUpdate.dhaVisitToken = responseData.consent_token;
+          if (typeof responseData.guid === 'string') workflowUpdate.dhaVisitGuid = responseData.guid;
           if (typeof result.externalRef === 'string') workflowUpdate.dhaClaimReference = result.externalRef;
         }
         if (workflowStep?.action === 'SUBMIT' && typeof result.externalRef === 'string') {
