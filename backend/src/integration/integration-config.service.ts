@@ -139,6 +139,19 @@ export class IntegrationConfigService {
     return this.str('DHA_ATTACHMENT_ENCRYPTION_KEY');
   }
 
+  /** ClamAV daemon used to fail closed before DHA attachment submission. */
+  get dhaAttachmentClamavHost(): string {
+    return this.str('DHA_ATTACHMENT_CLAMAV_HOST');
+  }
+
+  get dhaAttachmentClamavPort(): number {
+    return this.num('DHA_ATTACHMENT_CLAMAV_PORT', 3310);
+  }
+
+  get dhaAttachmentScanTimeoutMs(): number {
+    return this.num('DHA_ATTACHMENT_SCAN_TIMEOUT_MS', 30_000);
+  }
+
   // --- DHA Terminology -----------------------------------------------------
 
   get terminologyEnabled(): boolean {

@@ -93,6 +93,16 @@ export interface SendDischargeOtpRequest {
   service_type: 'INPATIENT' | 'OUTPATIENT';
 }
 
+/** Decrypted only inside the durable worker immediately before multipart submission. */
+export interface DhaMultipartAttachment {
+  consentToken: string;
+  documentType: string;
+  interventionCode: string;
+  fileName: string;
+  mimeType: string;
+  bytes: Buffer;
+}
+
 /**
  * Port implemented by every DHA adapter (mock, sandbox, production).
  * Business modules depend on this interface via the DHA_CLIENT token; the
@@ -149,6 +159,12 @@ export interface DhaClientPort {
 
   executeEclaims(
     command: DhaEclaimsCommand,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult>;
+
+  /** Official POST /claims/attachments multipart contract. */
+  uploadClaimAttachment(
+    attachment: DhaMultipartAttachment,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult>;
 

@@ -6,6 +6,7 @@ import type {
   FacilityVerificationQuery,
   PatientVerificationQuery,
   PractitionerVerificationQuery,
+  DhaMultipartAttachment,
 } from '../dha.types';
 import type { DhaEclaimsCommand } from '../eclaims-contract';
 import type { FhirCoverageEligibilityRequest } from '../fhir.types';
@@ -136,6 +137,14 @@ export class DhaMockClient implements DhaClientPort {
       externalRef: this.ref('ECL'),
       data: { operation: command.operation },
       raw: { mock: true, operation: command.operation },
+    });
+  }
+
+  uploadClaimAttachment(_attachment: DhaMultipartAttachment): Promise<DhaResult> {
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref('ATT'),
+      raw: { mock: true },
     });
   }
 

@@ -2118,6 +2118,7 @@ model DhaWorkflowAttachment {
   workflowId     Int
   status         String   @default("STAGED") @db.VarChar(30)
   documentType   String   @db.VarChar(80)
+  interventionCode String? @db.VarChar(80)
   fileName       String   @db.VarChar(255)
   mimeType       String   @db.VarChar(120)
   byteSize       Int

@@ -36,4 +36,9 @@ export class StageDhaWorkflowAttachmentDto {
   @IsNotEmpty()
   @MaxLength(80)
   documentType: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  interventionCode: string;
 }

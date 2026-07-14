@@ -33,7 +33,12 @@ export class DhaClaimWorkflowController {
     @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
   ) {
     if (!file) throw new BadRequestException('DHA attachment file is required');
-    return this.workflows.stageAttachment({ workflowId: id, documentType: dto.documentType, file });
+    return this.workflows.stageAttachment({
+      workflowId: id,
+      documentType: dto.documentType,
+      interventionCode: dto.interventionCode,
+      file,
+    });
   }
 
   @Post(':id/visit') @Permissions('billing.write')

@@ -17,6 +17,7 @@ import {
   type FacilityVerificationQuery,
   type PatientVerificationQuery,
   type PractitionerVerificationQuery,
+  type DhaMultipartAttachment,
 } from '../dha.types';
 import { eclaimsRequest, type DhaEclaimsCommand } from '../eclaims-contract';
 import type {
@@ -162,7 +163,9 @@ export class DhaHttpClient implements DhaClientPort {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
-            'Content-Type': 'application/json',
+            ...(typeof FormData !== 'undefined' && body instanceof FormData
+              ? {}
+              : { 'Content-Type': 'application/json' }),
             ...(facilityCode
               ? {
                   'X-Facility-Id': facilityCode,
@@ -355,6 +358,25 @@ export class DhaHttpClient implements DhaClientPort {
       ctx,
       request.query,
     );
+    return this.toResult(envelope, 'SUCCESS', 'REJECTED');
+  }
+
+  async uploadClaimAttachment(
+    attachment: DhaMultipartAttachment,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult> {
+    const form = new FormData();
+    form.set('consent_token', attachment.consentToken);
+    form.set('document_type', attachment.documentType);
+    form.set('intervention_code', attachment.interventionCode);
+    form.set(
+      'file_blob',
+      new Blob([attachment.bytes as unknown as BlobPart], {
+        type: attachment.mimeType,
+      }),
+      attachment.fileName,
+    );
+    const envelope = await this.call('POST', '/claims/attachments', form, ctx);
     return this.toResult(envelope, 'SUCCESS', 'REJECTED');
   }
 

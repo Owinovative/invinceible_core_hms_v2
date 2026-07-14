@@ -101,6 +101,11 @@ export function validateEnvironment(
         'DHA_ATTACHMENT_ENCRYPTION_KEY must be a 64-character hexadecimal AES-256 key',
       );
     }
+    if (!hasValue(config, 'DHA_ATTACHMENT_CLAMAV_HOST')) {
+      throw new Error(
+        'DHA_ATTACHMENT_CLAMAV_HOST is required when DHA is enabled outside mock mode',
+      );
+    }
   }
 
   return {
@@ -164,6 +169,10 @@ export function validateEnvironment(
     DHA_WEBHOOK_SECRET: config.DHA_WEBHOOK_SECRET ?? '',
     DHA_ATTACHMENT_ENCRYPTION_KEY:
       config.DHA_ATTACHMENT_ENCRYPTION_KEY ?? '',
+    DHA_ATTACHMENT_CLAMAV_HOST: config.DHA_ATTACHMENT_CLAMAV_HOST ?? '',
+    DHA_ATTACHMENT_CLAMAV_PORT: config.DHA_ATTACHMENT_CLAMAV_PORT ?? '3310',
+    DHA_ATTACHMENT_SCAN_TIMEOUT_MS:
+      config.DHA_ATTACHMENT_SCAN_TIMEOUT_MS ?? '30000',
     INTEGRATION_WORKER_ENABLED: config.INTEGRATION_WORKER_ENABLED ?? 'true',
     INTEGRATION_WORKER_POLL_MS: config.INTEGRATION_WORKER_POLL_MS ?? '5000',
     INTEGRATION_QUEUE_BATCH_SIZE: config.INTEGRATION_QUEUE_BATCH_SIZE ?? '10',
