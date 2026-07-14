@@ -19,6 +19,22 @@ export class DhaClaimWorkflowController {
     return this.workflows.create({ ...dto, actorUserId: user.userId });
   }
 
+  @Post(':id/emergency')
+  @Permissions('billing.write')
+  emergency(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DhaWorkflowActionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.workflows.queueAction(
+      id,
+      'EMERGENCY',
+      dto.payload,
+      dto.idempotencyKey,
+      user.userId,
+    );
+  }
+
   @Post(':id/authorize') @Permissions('billing.write')
   authorize(@Param('id', ParseIntPipe) id: number, @Body() dto: DhaWorkflowActionDto, @CurrentUser() user: RequestUser) {
     return this.workflows.queueAction(id, 'AUTHORIZE', dto.payload, dto.idempotencyKey, user.userId);

@@ -733,6 +733,17 @@ export class DhaService implements OnModuleInit {
           if (typeof responseData.consent_token === 'string') workflowUpdate.dhaAuthorizationToken = responseData.consent_token;
           if (typeof responseData.auth_guid === 'string') workflowUpdate.dhaAuthorizationGuid = responseData.auth_guid;
         }
+        if (workflowStep?.action === 'EMERGENCY') {
+          if (typeof responseData.consent_token === 'string') {
+            workflowUpdate.dhaVisitToken = responseData.consent_token;
+          }
+          if (typeof responseData.guid === 'string') {
+            workflowUpdate.dhaVisitGuid = responseData.guid;
+          }
+          if (typeof result.externalRef === 'string') {
+            workflowUpdate.dhaClaimReference = result.externalRef;
+          }
+        }
         if (workflowStep?.action === 'VISIT') {
           if (typeof responseData.consent_token === 'string') workflowUpdate.dhaVisitToken = responseData.consent_token;
           if (typeof responseData.guid === 'string') workflowUpdate.dhaVisitGuid = responseData.guid;

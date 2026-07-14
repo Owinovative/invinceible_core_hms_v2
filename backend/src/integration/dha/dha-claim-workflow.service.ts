@@ -12,6 +12,7 @@ import { IntegrationQueueWorker } from '../queue/integration-queue.worker';
 import { NonRetryableIntegrationError, type OutboundQueueItem } from '../integration.types';
 
 type WorkflowAction =
+  | 'EMERGENCY'
   | 'AUTHORIZE'
   | 'VISIT'
   | 'INTERVENTION'
@@ -23,6 +24,7 @@ type WorkflowAction =
   | 'CLOSE';
 
 const ACTION_OPERATION: Record<WorkflowAction, DhaEclaimsOperation> = {
+  EMERGENCY: 'CREATE_EMERGENCY_CLAIM',
   AUTHORIZE: 'AUTHORIZE_CLAIM',
   VISIT: 'CREATE_VISIT',
   INTERVENTION: 'ADD_INTERVENTION',
@@ -347,6 +349,9 @@ export class DhaClaimWorkflowService implements OnModuleInit {
     action: WorkflowAction,
     payload: Record<string, unknown>,
   ) {
+    if (action === 'EMERGENCY') {
+      return { ...payload };
+    }
     if (action === 'AUTHORIZE') return { ...payload, service_type: workflow.serviceType };
     if (action === 'VISIT') {
       return {
