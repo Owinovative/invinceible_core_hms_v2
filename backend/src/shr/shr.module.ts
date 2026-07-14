@@ -7,6 +7,7 @@ import { ShrStartupValidator } from './shr-startup-validator';
 import { TerminologyModule } from '../terminology/terminology.module';
 import { ConsentModule } from '../consent/consent.module';
 import { IntegrationModule } from '../integration/integration.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 // Engine
 import { ShrPublicationPolicyEngine } from './engine/shr-publication.policy';
@@ -49,6 +50,7 @@ import { ShrEventSubscriber } from './shr-event-subscriber';
     TerminologyModule,
     ConsentModule,
     IntegrationModule,
+    PrismaModule,
   ],
   controllers: [
     ShrController,

@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class RetryCoordinator {
   private readonly logger = new Logger(RetryCoordinator.name);
-  private readonly prisma = new PrismaClient();
+
+  constructor(private readonly prisma: PrismaService) {}
 
   async scheduleRetry(attemptId: number, error: any, currentRetryCount: number, maxRetries: number = 5) {
     if (currentRetryCount >= maxRetries) {

@@ -59,8 +59,7 @@ export class ShrStartupValidator implements OnModuleInit {
       ].join('\n');
 
       this.logger.error(errorMessage);
-      // In production, you would throw here to prevent startup:
-      // throw new Error('SHR Startup Validation Failed');
+      throw new Error('SHR Startup Validation Failed');
     } else {
       this.logger.log('SHR Startup Configuration Validation PASSED ✓');
     }
