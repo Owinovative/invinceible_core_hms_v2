@@ -18,6 +18,7 @@ import {
   type PatientVerificationQuery,
   type PractitionerVerificationQuery,
   type DhaMultipartAttachment,
+  type DhaMultipartWorkflowSubmission,
 } from '../dha.types';
 import { eclaimsRequest, type DhaEclaimsCommand } from '../eclaims-contract';
 import type {
@@ -377,6 +378,21 @@ export class DhaHttpClient implements DhaClientPort {
       attachment.fileName,
     );
     const envelope = await this.call('POST', '/claims/attachments', form, ctx);
+    return this.toResult(envelope, 'SUCCESS', 'REJECTED');
+  }
+
+  async submitMultipartWorkflow(
+    submission: DhaMultipartWorkflowSubmission,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult> {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(submission.fields)) form.set(name, value);
+    for (const file of submission.files) {
+      form.set(file.fieldName, new Blob([file.bytes as unknown as BlobPart], {
+        type: file.mimeType,
+      }), file.fileName);
+    }
+    const envelope = await this.call('POST', submission.path, form, ctx);
     return this.toResult(envelope, 'SUCCESS', 'REJECTED');
   }
 

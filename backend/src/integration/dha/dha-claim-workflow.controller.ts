@@ -41,6 +41,54 @@ export class DhaClaimWorkflowController {
     );
   }
 
+  @Post(':id/preauthorizations')
+  @Permissions('billing.write')
+  preauthorize(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DhaWorkflowActionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.workflows.queueMultipartAction(
+      id,
+      'PREAUTH_SUBMIT',
+      dto.payload,
+      dto.idempotencyKey,
+      user.userId,
+    );
+  }
+
+  @Post(':id/emt')
+  @Permissions('billing.write')
+  submitEmt(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DhaWorkflowActionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.workflows.queueMultipartAction(
+      id,
+      'EMT_SUBMIT',
+      dto.payload,
+      dto.idempotencyKey,
+      user.userId,
+    );
+  }
+
+  @Post(':id/otp-whitelist')
+  @Permissions('billing.write')
+  submitOtpWhitelist(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: DhaWorkflowActionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.workflows.queueMultipartAction(
+      id,
+      'OTP_WHITELIST_SUBMIT',
+      dto.payload,
+      dto.idempotencyKey,
+      user.userId,
+    );
+  }
+
   @Post(':id/authorize') @Permissions('billing.write')
   authorize(@Param('id', ParseIntPipe) id: number, @Body() dto: DhaWorkflowActionDto, @CurrentUser() user: RequestUser) {
     return this.workflows.queueAction(id, 'AUTHORIZE', dto.payload, dto.idempotencyKey, user.userId);

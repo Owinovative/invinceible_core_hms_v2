@@ -7,6 +7,7 @@ import type {
   PatientVerificationQuery,
   PractitionerVerificationQuery,
   DhaMultipartAttachment,
+  DhaMultipartWorkflowSubmission,
 } from '../dha.types';
 import type { DhaEclaimsCommand } from '../eclaims-contract';
 import type { FhirCoverageEligibilityRequest } from '../fhir.types';
@@ -146,6 +147,10 @@ export class DhaMockClient implements DhaClientPort {
       externalRef: this.ref('ATT'),
       raw: { mock: true },
     });
+  }
+
+  submitMultipartWorkflow(_submission: DhaMultipartWorkflowSubmission): Promise<DhaResult> {
+    return Promise.resolve({ status: 'SUCCESS', externalRef: this.ref('MPW'), raw: { mock: true } });
   }
 
   submitAuditEvent(): Promise<DhaResult> {

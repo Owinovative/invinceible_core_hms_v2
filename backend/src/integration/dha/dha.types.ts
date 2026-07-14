@@ -103,6 +103,13 @@ export interface DhaMultipartAttachment {
   bytes: Buffer;
 }
 
+/** A typed transport envelope; payload construction remains workflow-specific. */
+export interface DhaMultipartWorkflowSubmission {
+  path: '/preauths' | '/claims/emt' | '/patients/otp-whitelists';
+  fields: Record<string, string>;
+  files: Array<{ fieldName: string; fileName: string; mimeType: string; bytes: Buffer }>;
+}
+
 /**
  * Port implemented by every DHA adapter (mock, sandbox, production).
  * Business modules depend on this interface via the DHA_CLIENT token; the
@@ -165,6 +172,11 @@ export interface DhaClientPort {
   /** Official POST /claims/attachments multipart contract. */
   uploadClaimAttachment(
     attachment: DhaMultipartAttachment,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult>;
+
+  submitMultipartWorkflow(
+    submission: DhaMultipartWorkflowSubmission,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult>;
 

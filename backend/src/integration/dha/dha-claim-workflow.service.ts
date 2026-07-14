@@ -13,9 +13,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { DhaService } from './dha.service';
 import type { DhaEclaimsCommand, DhaEclaimsOperation } from './eclaims-contract';
 import { DHA_CLIENT, DHA_OPERATIONS, INTEGRATION_NAMES } from '../integration.constants';
-import type { DhaClientPort } from './dha.types';
+import type { DhaClientPort, DhaMultipartWorkflowSubmission } from './dha.types';
 import { IntegrationQueueService } from '../queue/integration-queue.service';
 import { IntegrationQueueWorker } from '../queue/integration-queue.worker';
+import { IntegrationAuditService } from '../integration-audit.service';
 import { NonRetryableIntegrationError, type OutboundQueueItem } from '../integration.types';
 
 type WorkflowAction =
@@ -29,6 +30,8 @@ type WorkflowAction =
   | 'SUBMIT'
   | 'DISCHARGE'
   | 'CLOSE';
+
+type MultipartWorkflowAction = 'PREAUTH_SUBMIT' | 'EMT_SUBMIT' | 'OTP_WHITELIST_SUBMIT';
 
 const ACTION_OPERATION: Record<WorkflowAction, DhaEclaimsOperation> = {
   EMERGENCY: 'CREATE_EMERGENCY_CLAIM',
@@ -62,6 +65,7 @@ export class DhaClaimWorkflowService implements OnModuleInit {
     private readonly config: IntegrationConfigService,
     private readonly queue: IntegrationQueueService,
     private readonly worker: IntegrationQueueWorker,
+    private readonly audit: IntegrationAuditService,
     @Inject(DHA_CLIENT) private readonly client: DhaClientPort,
   ) {}
 
@@ -70,6 +74,11 @@ export class DhaClaimWorkflowService implements OnModuleInit {
       INTEGRATION_NAMES.DHA,
       DHA_OPERATIONS.SCAN_WORKFLOW_ATTACHMENT,
       (item) => this.handleAttachmentScan(item),
+    );
+    this.worker.registerHandler(
+      INTEGRATION_NAMES.DHA,
+      DHA_OPERATIONS.SUBMIT_MULTIPART_WORKFLOW,
+      (item) => this.handleMultipartWorkflow(item),
     );
     this.worker.registerHandler(
       INTEGRATION_NAMES.DHA,
@@ -390,6 +399,149 @@ export class DhaClaimWorkflowService implements OnModuleInit {
       data: { status: 'QUEUED', errorMessage: null, queuedAt: new Date() },
     });
     return { workflowId, recovered: results.filter((result) => result.recovered).length };
+  }
+
+  async queueMultipartAction(
+    workflowId: number,
+    action: MultipartWorkflowAction,
+    payload: Record<string, unknown>,
+    idempotencyKey: string,
+    actorUserId?: number,
+  ) {
+    const workflow = await this.prisma.dhaClaimWorkflow.findUnique({
+      where: { id: workflowId },
+      include: { steps: true, attachments: true },
+    });
+    if (!workflow) throw new NotFoundException(`DHA workflow ${workflowId} not found`);
+    if (['SUBMITTED', 'DISCHARGED', 'CLOSED', 'COMPLETED'].includes(workflow.status)) {
+      throw new BadRequestException('DHA workflow is already terminal');
+    }
+    this.validateMultipartPayload(action, payload, workflow.attachments.length);
+    if (action === 'PREAUTH_SUBMIT') {
+      const hasVisit = workflow.steps.some(
+        (step) => step.action === 'VISIT' && step.status === 'COMPLETED',
+      );
+      const hasIntervention = workflow.steps.some(
+        (step) => step.action === 'INTERVENTION' && step.status === 'COMPLETED',
+      );
+      if (!hasVisit || !hasIntervention || !(workflow.dhaVisitToken ?? workflow.dhaAuthorizationToken)) {
+        throw new BadRequestException(
+          'DHA preauthorization requires completed visit, intervention, and consent token',
+        );
+      }
+    }
+    const key = `dha:workflow:${workflowId}:${idempotencyKey}`;
+    const duplicate = workflow.steps.find((step) => step.idempotencyKey === key);
+    if (duplicate) return { workflowId, stepId: duplicate.id, idempotent: true };
+    const step = await this.prisma.dhaClaimWorkflowStep.create({
+      data: {
+        workflowId,
+        sequence: Math.max(0, ...workflow.steps.map((item) => item.sequence)) + 1,
+        action,
+        status: 'QUEUED',
+        idempotencyKey: key,
+        requestData: payload as never,
+        queuedAt: new Date(),
+      },
+    });
+    await this.queue.enqueue({
+      integration: INTEGRATION_NAMES.DHA,
+      operation: DHA_OPERATIONS.SUBMIT_MULTIPART_WORKFLOW,
+      entityType: 'DHA_WORKFLOW_STEP',
+      entityId: String(step.id),
+      payload: { workflowId, stepId: step.id },
+      idempotencyKey: `dha:multipart:${step.id}`,
+      facilityId: workflow.facilityId,
+      branchId: workflow.branchId ?? undefined,
+    });
+    await this.prisma.dhaClaimWorkflow.update({
+      where: { id: workflowId }, data: { status: 'IN_PROGRESS', lastError: null },
+    });
+    await this.audit.recordEvent({
+      moduleName: 'DHA', actionName: `${action}_QUEUED`, entityType: 'DHA_CLAIM_WORKFLOW_STEP',
+      entityId: String(step.id), description: `DHA ${action} queued`, facilityId: workflow.facilityId,
+      branchId: workflow.branchId ?? undefined, actorUserId,
+    });
+    return { workflowId, stepId: step.id, idempotent: false };
+  }
+
+  private validateMultipartPayload(
+    action: MultipartWorkflowAction,
+    payload: Record<string, unknown>,
+    attachmentCount: number,
+  ) {
+    const required = action === 'PREAUTH_SUBMIT'
+      ? ['preauth_type', 'intervention_code', 'service_start', 'service_end', 'items', 'diagnoses', 'doctors', 'provider_notification_email']
+      : action === 'EMT_SUBMIT'
+        ? ['provider_registration_number', 'diagnoses', 'interventions']
+        : ['beneficiary_cr_id', 'reason_type', 'reason', 'biometric_attempts', 'facility_fr_code'];
+    for (const field of required) {
+      if (payload[field] === undefined || payload[field] === null || payload[field] === '') {
+        throw new BadRequestException(`DHA ${action} requires ${field}`);
+      }
+    }
+    if (action === 'PREAUTH_SUBMIT') {
+      const type = String(payload.preauth_type).toUpperCase();
+      const extensions: Record<string, string[]> = {
+        SURGICAL: ['chief_complaint', 'surgery_date', 'type_of_anaesthesia', 'vital_signs', 'history_of_present_illness', 'physical_examination', 'investigation_report_details'],
+        RENAL: ['number_of_sessions_required', 'frequency_of_sessions', 'clinical_indications', 'cost_per_session'],
+        ONCOLOGY: ['carcinoma_staging', 'number_of_sessions_required', 'comorbidity', 'cost_per_session', 'treatment_setting'],
+        OPTICAL: ['necessity_of_service', 'lens_prescription', 'lens_amount', 'eye_examination_amount', 'frame_amount', 'new_or_replacement'],
+        IMAGING: ['clinical_indications'],
+        NORMAL: [],
+      };
+      if (!extensions[type]) throw new BadRequestException('DHA preauth_type is invalid');
+      for (const field of extensions[type]) if (!payload[field]) throw new BadRequestException(`DHA ${type} preauth requires ${field}`);
+      if (attachmentCount === 0) throw new BadRequestException('DHA preauthorization requires supporting attachments');
+    }
+    if (action === 'OTP_WHITELIST_SUBMIT' && attachmentCount === 0) {
+      throw new BadRequestException('DHA OTP whitelist requests require supporting attachments');
+    }
+  }
+
+  private async handleMultipartWorkflow(item: OutboundQueueItem): Promise<void> {
+    const input = item.payload as { workflowId?: unknown; stepId?: unknown };
+    if (!Number.isInteger(input?.workflowId) || !Number.isInteger(input?.stepId)) throw new NonRetryableIntegrationError('Invalid DHA multipart workflow queue payload');
+    const step = await this.prisma.dhaClaimWorkflowStep.findUnique({
+      where: { id: input.stepId as number }, include: { workflow: { include: { attachments: true } } },
+    });
+    if (!step || step.workflowId !== input.workflowId) throw new NonRetryableIntegrationError('DHA multipart workflow step not found');
+    if (step.status === 'COMPLETED') return;
+    const payload = (step.requestData ?? {}) as Record<string, unknown>;
+    const attachments = step.workflow.attachments;
+    if (attachments.some((attachment) => attachment.scanStatus !== 'CLEAN')) throw new Error('DHA multipart workflow is waiting for clean attachment scans');
+    const action = step.action as MultipartWorkflowAction;
+    const submission = this.buildMultipartSubmission(action, payload, attachments, step.workflow.dhaVisitToken ?? step.workflow.dhaAuthorizationToken);
+    try {
+      const result = await this.client.submitMultipartWorkflow(submission, { facilityId: step.workflow.facilityId, branchId: step.workflow.branchId ?? undefined, correlationId: item.correlationId ?? undefined });
+      if (result.status === 'REJECTED' || result.status === 'FAILED') throw new NonRetryableIntegrationError(`DHA rejected ${action}`);
+      await this.prisma.dhaClaimWorkflowStep.update({ where: { id: step.id }, data: { status: 'COMPLETED', responseData: (result.raw ?? {}) as never, completedAt: new Date(), errorMessage: null } });
+      await this.prisma.dhaClaimWorkflow.update({ where: { id: step.workflowId }, data: { status: action === 'EMT_SUBMIT' ? 'SUBMITTED' : 'IN_PROGRESS', dhaClaimReference: result.externalRef ?? step.workflow.dhaClaimReference, lastError: null } });
+      await this.audit.recordEvent({ moduleName: 'DHA', actionName: `${action}_COMPLETED`, entityType: 'DHA_CLAIM_WORKFLOW_STEP', entityId: String(step.id), description: `DHA ${action} completed`, facilityId: step.workflow.facilityId, branchId: step.workflow.branchId ?? undefined });
+    } catch (error) {
+      const permanent = error instanceof NonRetryableIntegrationError;
+      const message = error instanceof Error ? error.message : String(error);
+      await this.prisma.dhaClaimWorkflowStep.update({ where: { id: step.id }, data: { status: permanent ? 'FAILED' : 'QUEUED', errorMessage: message.slice(0, 4_000) } });
+      await this.prisma.dhaClaimWorkflow.update({ where: { id: step.workflowId }, data: { status: permanent ? 'FAILED' : 'IN_PROGRESS', lastError: message.slice(0, 4_000) } });
+      throw error;
+    }
+  }
+
+  private buildMultipartSubmission(
+    action: MultipartWorkflowAction,
+    payload: Record<string, unknown>,
+    attachments: Array<{ documentType: string; fileName: string; mimeType: string; encryptedData: string; encryptionIv: string; encryptionTag: string }>,
+    consentToken: string | null,
+  ): DhaMultipartWorkflowSubmission {
+    const path = action === 'PREAUTH_SUBMIT' ? '/preauths' : action === 'EMT_SUBMIT' ? '/claims/emt' : '/patients/otp-whitelists';
+    const fields: Record<string, string> = {};
+    for (const [key, value] of Object.entries(payload)) {
+      if (key !== 'preauth_type') fields[key] = typeof value === 'string' ? value : JSON.stringify(value);
+    }
+    if (action === 'PREAUTH_SUBMIT' && consentToken && !fields.consent_token) fields.consent_token = consentToken;
+    const metadata = attachments.map((attachment, index) => ({ title: attachment.fileName, document_type: attachment.documentType, file_field_name: `attachments_${index}_file_blob` }));
+    if (attachments.length) fields.attachments = JSON.stringify(metadata);
+    return { path, fields, files: attachments.map((attachment, index) => ({ fieldName: `attachments_${index}_file_blob`, fileName: attachment.fileName, mimeType: attachment.mimeType, bytes: this.decryptAttachment(attachment) })) };
   }
 
   private withWorkflowValues(
