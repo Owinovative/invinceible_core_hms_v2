@@ -134,6 +134,11 @@ export class IntegrationConfigService {
     return this.num('DHA_MAX_ATTEMPTS', 8);
   }
 
+  /** AES-256 key used only by the durable DHA attachment store. */
+  get dhaAttachmentEncryptionKey(): string {
+    return this.str('DHA_ATTACHMENT_ENCRYPTION_KEY');
+  }
+
   // --- DHA Terminology -----------------------------------------------------
 
   get terminologyEnabled(): boolean {
