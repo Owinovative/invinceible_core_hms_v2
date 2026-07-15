@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConfigService } from '../integration-config.service';
@@ -10,6 +10,8 @@ import {
 } from '../integration.constants';
 import type { OutboundQueueItem } from '../integration.types';
 import { computeBackoffDelayMs } from '../http/retry-policy';
+import { ScopeService } from '../../auth/scope.service';
+import type { RequestUser } from '../../auth/interfaces/request-user.interface';
 
 export interface EnqueueParams {
   integration: IntegrationName;
@@ -41,6 +43,7 @@ export class IntegrationQueueService {
     private readonly prisma: PrismaService,
     private readonly config: IntegrationConfigService,
     private readonly logger: IntegrationLoggerService,
+    @Optional() private readonly scopeService?: ScopeService,
   ) {}
 
   async enqueue(params: EnqueueParams): Promise<EnqueueResult> {
@@ -248,6 +251,23 @@ export class IntegrationQueueService {
     return result.count === 1;
   }
 
+  async requeueDeadLetterScoped(
+    id: number,
+    user: RequestUser,
+  ): Promise<boolean> {
+    const scope = this.getScope(user);
+    const result = await this.prisma.integrationOutboundRequest.updateMany({
+      where: { id, status: OUTBOUND_STATUS.DEAD_LETTER, ...scope },
+      data: {
+        status: OUTBOUND_STATUS.PENDING,
+        attemptCount: 0,
+        nextAttemptAt: new Date(),
+        lastError: null,
+      },
+    });
+    return result.count === 1;
+  }
+
   async getStats(integration?: string): Promise<
     Array<{
       integration: string;
@@ -269,11 +289,63 @@ export class IntegrationQueueService {
     }));
   }
 
+  async getStatsScoped(
+    user: RequestUser,
+    integration?: string,
+  ): Promise<
+    Array<{
+      integration: string;
+      operation: string;
+      status: string;
+      count: number;
+    }>
+  > {
+    const scope = this.getScope(user);
+    const groups = await this.prisma.integrationOutboundRequest.groupBy({
+      by: ['integration', 'operation', 'status'],
+      _count: { _all: true },
+      where: {
+        ...scope,
+        ...(integration ? { integration } : {}),
+      },
+    });
+    return groups.map((group) => ({
+      integration: group.integration,
+      operation: group.operation,
+      status: group.status,
+      count: group._count._all,
+    }));
+  }
+
   async listDeadLetters(limit = 50) {
     return this.prisma.integrationOutboundRequest.findMany({
       where: { status: OUTBOUND_STATUS.DEAD_LETTER },
       orderBy: { updatedAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 200),
     });
+  }
+
+  async listDeadLettersScoped(
+    user: RequestUser,
+    integration?: string,
+    limit = 100,
+  ) {
+    const scope = this.getScope(user);
+    return this.prisma.integrationOutboundRequest.findMany({
+      where: {
+        status: OUTBOUND_STATUS.DEAD_LETTER,
+        ...scope,
+        ...(integration ? { integration } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: Math.min(Math.max(limit, 1), 200),
+    });
+  }
+
+  private getScope(user: RequestUser) {
+    if (!this.scopeService) {
+      throw new Error('ScopeService is required for user-facing queue access');
+    }
+    return this.scopeService.buildReadScope(user);
   }
 }

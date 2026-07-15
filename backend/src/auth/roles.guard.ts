@@ -30,7 +30,16 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User role information is missing');
     }
 
-    const hasRole = requiredRoles.includes(roleCode);
+    const normalizeRole = (value: string) =>
+      ({
+        SUPERADMIN: 'SUPER_ADMIN',
+        MEDICAL_OFFICER: 'DOCTOR',
+        LAB_TECHNOLOGIST: 'LAB_TECHNICIAN',
+      })[value] ?? value;
+
+    const hasRole = requiredRoles.some(
+      (requiredRole) => normalizeRole(requiredRole) === roleCode,
+    );
 
     if (!hasRole) {
       throw new ForbiddenException(

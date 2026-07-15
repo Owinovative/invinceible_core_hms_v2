@@ -198,8 +198,18 @@ describe('IntegrationQueueService', () => {
     const stats = await queue.getStats();
     expect(stats).toEqual(
       expect.arrayContaining([
-        { integration: 'ETIMS', status: 'PENDING', count: 1 },
-        { integration: 'DHA', status: 'PENDING', count: 1 },
+        {
+          integration: 'ETIMS',
+          operation: 'SUBMIT_INVOICE',
+          status: 'PENDING',
+          count: 1,
+        },
+        {
+          integration: 'DHA',
+          operation: 'SUBMIT_INVOICE',
+          status: 'PENDING',
+          count: 1,
+        },
       ]),
     );
   });

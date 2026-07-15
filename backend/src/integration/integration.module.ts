@@ -22,6 +22,7 @@ import { IntegrationLoggerService } from './integration-logger.service';
 import { DHA_CLIENT, ETIMS_CLIENT } from './integration.constants';
 import { IntegrationQueueService } from './queue/integration-queue.service';
 import { IntegrationQueueWorker } from './queue/integration-queue.worker';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Integration layer isolating all external government systems (KRA eTIMS,
@@ -32,7 +33,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
  * requires no business-code changes.
  */
 @Module({
-  imports: [PrismaModule, AuditLogModule],
+  imports: [PrismaModule, AuditLogModule, AuthModule],
   controllers: [EtimsController, DhaController, IntegrationQueueController],
   providers: [
     IntegrationConfigService,
