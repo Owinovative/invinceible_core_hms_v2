@@ -10,9 +10,9 @@ export class WorkflowAuditService {
   /**
    * Returns the complete, immutable audit trail for a workflow instance.
    */
-  async getAuditTrail(instanceId: string): Promise<any[]> {
-    const instance = await this.prisma.workflowInstance.findUnique({
-      where: { instanceId },
+  async getAuditTrail(instanceId: string, facilityId: number): Promise<any[]> {
+    const instance = await this.prisma.workflowInstance.findFirst({
+      where: { instanceId, facilityId },
     });
 
     if (!instance) throw new Error(`Workflow instance ${instanceId} not found`);
