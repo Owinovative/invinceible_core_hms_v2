@@ -46,6 +46,7 @@ export const ETIMS_STATUS = {
 export type EtimsStatus = (typeof ETIMS_STATUS)[keyof typeof ETIMS_STATUS];
 
 export const ETIMS_OPERATIONS = {
+  FISCALIZE_INVOICE: 'FISCALIZE_INVOICE',
   SUBMIT_INVOICE: 'SUBMIT_INVOICE',
 } as const;
 
