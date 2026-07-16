@@ -40,6 +40,14 @@ services:
         sync: false
       - key: FRONTEND_ORIGINS
         sync: false
+      # The frontend and API use different hosted origins. Cross-site browser
+      # requests require SameSite=None, which in turn requires Secure.
+      - key: AUTH_COOKIE_SAME_SITE
+        value: none
+      - key: AUTH_COOKIE_SECURE
+        value: "true"
+      - key: AUTH_COOKIE_DOMAIN
+        value: ""
       - key: TRUST_PROXY
         value: "true"
       - key: BODY_LIMIT
