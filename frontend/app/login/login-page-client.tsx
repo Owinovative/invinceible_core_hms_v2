@@ -218,20 +218,20 @@ export default function LoginPageClient() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Username or email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
+                      <div className="relative">
                           <User2
                             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                             aria-hidden
                           />
-                          <Input
-                            autoComplete="username"
-                            className="h-11 pl-9"
-                            placeholder="e.g. jane.wanjiku"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
+                          <FormControl>
+                            <Input
+                              autoComplete="username"
+                              className="h-11 pl-9"
+                              placeholder="e.g. jane.wanjiku"
+                              {...field}
+                            />
+                          </FormControl>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -243,19 +243,20 @@ export default function LoginPageClient() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
+                      <div className="relative">
                           <LockKeyhole
                             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                             aria-hidden
                           />
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="current-password"
-                            className="h-11 pr-11 pl-9"
-                            placeholder="Enter password"
-                            {...field}
-                          />
+                          <FormControl>
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              autoComplete="current-password"
+                              className="h-11 pr-11 pl-9"
+                              placeholder="Enter password"
+                              {...field}
+                            />
+                          </FormControl>
                           <button
                             type="button"
                             aria-label={
@@ -270,8 +271,7 @@ export default function LoginPageClient() {
                               <Eye className="size-4" aria-hidden />
                             )}
                           </button>
-                        </div>
-                      </FormControl>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}

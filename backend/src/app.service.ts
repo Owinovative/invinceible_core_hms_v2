@@ -11,7 +11,7 @@ export class AppService {
     const staffCount = await this.prisma.staff.count();
 
     return {
-      message: 'Backend is running with Prisma + MySQL',
+      message: 'Backend is running with Prisma',
       stats: {
         facilities: facilityCount,
         patients: patientCount,
