@@ -1177,7 +1177,7 @@ export class BillingService {
       summary: {
         invoiceCount: invoices.length,
         openBalance: invoices.reduce(
-          (sum, invoice) => sum + invoice.balanceAmount,
+          (sum, invoice) => sum + Number(invoice.balanceAmount),
           0,
         ),
         activeAdmissions: activeAdmissions.length,
@@ -1218,12 +1218,13 @@ export class BillingService {
     }
 
     const subtotal = invoice.items.reduce(
-      (sum, item) => sum + item.lineTotal,
+      (sum, item) => sum + Number(item.lineTotal),
       0,
     );
-    const totalAmount = subtotal - invoice.discountAmount + invoice.taxAmount;
+    const totalAmount =
+      subtotal - Number(invoice.discountAmount) + Number(invoice.taxAmount);
     const paidAmount = invoice.payments.reduce(
-      (sum, payment) => sum + payment.amount,
+      (sum, payment) => sum + Number(payment.amount),
       0,
     );
     const balanceAmount = totalAmount - paidAmount;
@@ -1384,7 +1385,7 @@ export class BillingService {
       code: string;
       name: string;
       category: string | null;
-      defaultPrice: number;
+      defaultPrice: number | { toNumber(): number };
     } | null = null;
     let sourceModule = 'BILLING';
     let sourceEntityType = 'MANUAL_LINE';
@@ -1421,7 +1422,7 @@ export class BillingService {
           category: billingService.category ?? 'SERVICE',
           code: billingService.code,
           billingServiceId: billingService.id,
-          fallbackPrice: billingService.defaultPrice,
+          fallbackPrice: Number(billingService.defaultPrice),
         });
       }
 
@@ -1511,7 +1512,7 @@ export class BillingService {
       }
 
       description = description || `Medicine: ${stock.medicine.name}`;
-      resolvedUnitPrice = dto.unitPrice ?? stock.unitPrice;
+      resolvedUnitPrice = dto.unitPrice ?? Number(stock.unitPrice);
       sourceModule = 'PHARMACY';
       sourceEntityType = 'BRANCH_MEDICINE_STOCK';
       sourceEntityId = `branch-stock-${stock.id}-${chargedAt.toISOString()}`;
@@ -1596,11 +1597,11 @@ export class BillingService {
     }
 
     const quantity = dto.quantity ?? item.quantity;
-    const unitPrice = dto.unitPrice ?? item.unitPrice;
+    const unitPrice = Number(dto.unitPrice ?? item.unitPrice);
     const line = this.calculateLineTotals(
       quantity,
       unitPrice,
-      dto.discountPercent ?? item.discountPercent,
+      Number(dto.discountPercent ?? item.discountPercent),
     );
 
     await this.prisma.invoiceItem.update({
@@ -1666,11 +1667,11 @@ export class BillingService {
   async closeInvoice(id: number, user: RequestUser) {
     const invoice = await this.getInvoiceByIdScoped(id, user);
 
-    if (invoice.totalAmount <= 0) {
+    if (Number(invoice.totalAmount) <= 0) {
       throw new BadRequestException('Invoice has no billable amount to close.');
     }
 
-    if (invoice.balanceAmount > 0) {
+    if (Number(invoice.balanceAmount) > 0) {
       throw new BadRequestException(
         `Invoice cannot be closed while ${invoice.balanceAmount} remains unpaid.`,
       );
@@ -2070,7 +2071,7 @@ export class BillingService {
         select: { defaultPrice: true },
       });
 
-      fallbackPrice = billingService?.defaultPrice ?? 0;
+      fallbackPrice = Number(billingService?.defaultPrice ?? 0);
     }
 
     const identityFilters: any[] = [];
@@ -2140,7 +2141,7 @@ export class BillingService {
       return score(b) - score(a);
     });
 
-    return ranked[0]?.unitPrice ?? fallbackPrice;
+    return Number(ranked[0]?.unitPrice ?? fallbackPrice);
   }
 
   async billAdmissionBedDay(
@@ -2292,7 +2293,7 @@ export class BillingService {
         }
 
         if (item.unitPrice == null) {
-          resolvedUnitPrice = service.defaultPrice;
+          resolvedUnitPrice = Number(service.defaultPrice);
         }
       }
 
@@ -2525,15 +2526,15 @@ export class BillingService {
     });
 
     const totalInvoiced = invoices.reduce(
-      (sum, invoice) => sum + invoice.totalAmount,
+      (sum, invoice) => sum + Number(invoice.totalAmount),
       0,
     );
     const totalPaid = invoices.reduce(
-      (sum, invoice) => sum + invoice.paidAmount,
+      (sum, invoice) => sum + Number(invoice.paidAmount),
       0,
     );
     const totalBalance = invoices.reduce(
-      (sum, invoice) => sum + invoice.balanceAmount,
+      (sum, invoice) => sum + Number(invoice.balanceAmount),
       0,
     );
 
@@ -2808,11 +2809,14 @@ export class BillingService {
           [
             {
               label: 'Amount',
-              value: formatPdfMoney(payment.amount, currency),
+              value: formatPdfMoney(Number(payment.amount), currency),
             },
             {
               label: 'Invoice Balance',
-              value: formatPdfMoney(payment.invoice?.balanceAmount, currency),
+              value: formatPdfMoney(
+                Number(payment.invoice?.balanceAmount ?? 0),
+                currency,
+              ),
             },
           ],
           'Amount received',
@@ -3371,7 +3375,7 @@ export class BillingService {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
-    if (dto.amount > invoice.balanceAmount) {
+    if (dto.amount > Number(invoice.balanceAmount)) {
       throw new BadRequestException(
         `Payment exceeds outstanding balance of ${invoice.balanceAmount}`,
       );
@@ -3466,8 +3470,8 @@ export class BillingService {
     }
 
     const maximumAllowed =
-      invoice.balanceAmount +
-      (existing?.statusCode === 'COMPLETED' ? existing.amount : 0);
+      Number(invoice.balanceAmount) +
+      (existing?.statusCode === 'COMPLETED' ? Number(existing.amount) : 0);
 
     if (requestedAmount > maximumAllowed) {
       throw new BadRequestException(
@@ -3672,7 +3676,7 @@ export class BillingService {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
-    if (amount > invoice.balanceAmount) {
+    if (amount > Number(invoice.balanceAmount)) {
       throw new BadRequestException(
         `Payment exceeds outstanding balance of ${invoice.balanceAmount}`,
       );
@@ -3823,7 +3827,7 @@ export class BillingService {
 
     const stk = await this.sendDarajaStkPush({
       invoice: payment.invoice,
-      amount: payment.amount,
+      amount: Number(payment.amount),
       phoneNumber: payment.phoneNumber,
     });
 
@@ -4264,7 +4268,7 @@ export class BillingService {
       (item) =>
         item.isAutoGenerated &&
         !item.isRemoved &&
-        (item.unitPrice <= 0 || item.lineTotal <= 0),
+        (Number(item.unitPrice) <= 0 || Number(item.lineTotal) <= 0),
     );
     const removedItems = exceptionItems.filter((item) => item.isRemoved);
     const autoGeneratedItems = await this.prisma.invoiceItem.count({
@@ -4358,7 +4362,7 @@ export class BillingService {
     const paymentsByMethod = payments.reduce<Record<string, number>>(
       (totals, payment) => {
         const method = payment.paymentMethod || 'UNKNOWN';
-        totals[method] = (totals[method] ?? 0) + payment.amount;
+        totals[method] = (totals[method] ?? 0) + Number(payment.amount);
         return totals;
       },
       {},
@@ -4369,17 +4373,17 @@ export class BillingService {
       summary: {
         paymentCount: payments.length,
         totalCollected: payments.reduce(
-          (sum, payment) => sum + payment.amount,
+          (sum, payment) => sum + Number(payment.amount),
           0,
         ),
         invoiceCount: invoicesIssued.length,
         invoiceTotal: invoicesIssued.reduce(
-          (sum, invoice) => sum + invoice.totalAmount,
+          (sum, invoice) => sum + Number(invoice.totalAmount),
           0,
         ),
         removedLineCount: removedItems.length,
         removedLineValue: removedItems.reduce(
-          (sum, item) => sum + item.lineTotal,
+          (sum, item) => sum + Number(item.lineTotal),
           0,
         ),
         paymentsByMethod,

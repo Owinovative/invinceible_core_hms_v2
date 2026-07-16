@@ -46,12 +46,12 @@ const COUNTED_PAYMENT_STATUSES = ['COMPLETED', 'PAID', 'CONFIRMED'];
 type OtcPaymentSummaryInput = {
   paymentMethod: string;
   statusCode?: string | null;
-  amount?: number | null;
-  insuranceCoveredAmount?: number | null;
+  amount?: number | Prisma.Decimal | null;
+  insuranceCoveredAmount?: number | Prisma.Decimal | null;
   insuranceClaimStatus?: string | null;
 };
 
-function roundMoney(value: number) {
+function roundMoney(value: number | Prisma.Decimal) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
@@ -84,7 +84,7 @@ export function stockStatus(
 }
 
 export function calculateOtcPaymentSummary(
-  totalAmount: number,
+  totalAmount: number | Prisma.Decimal,
   payments: OtcPaymentSummaryInput[],
 ) {
   let paidAmount = 0;
@@ -340,7 +340,7 @@ export class OtcSalesService {
     }
 
     const unitPrice = roundMoney(
-      dto.unitPrice ?? stock.unitPrice ?? stock.medicine.unitPrice ?? 0,
+      Number(dto.unitPrice ?? stock.unitPrice ?? stock.medicine.unitPrice ?? 0),
     );
     const lineTotal = roundMoney(dto.quantity * unitPrice);
 
@@ -493,7 +493,9 @@ export class OtcSalesService {
         manufacturer: stock.medicine.manufacturer,
         currentStock: stock.stockQuantity,
         reorderLevel: stock.reorderLevel,
-        unitPrice: roundMoney(stock.unitPrice || stock.medicine.unitPrice || 0),
+        unitPrice: roundMoney(
+          Number(stock.unitPrice || stock.medicine.unitPrice || 0),
+        ),
         stockStatus: stockStatus(stock.stockQuantity, stock.reorderLevel),
       })),
       { page: pagination.page, pageSize: pagination.pageSize, total },
@@ -690,7 +692,7 @@ export class OtcSalesService {
         );
       }
 
-      const unitPrice = roundMoney(dto.unitPrice ?? existing.unitPrice);
+      const unitPrice = roundMoney(Number(dto.unitPrice ?? existing.unitPrice));
       await tx.otcSaleItem.update({
         where: { id: itemId },
         data: {
@@ -747,7 +749,7 @@ export class OtcSalesService {
   }
 
   private validatePaymentInput(
-    sale: { totalAmount: number },
+    sale: { totalAmount: number | Prisma.Decimal },
     input: OtcSalePaymentInputDto,
   ) {
     const method = input.paymentMethod;

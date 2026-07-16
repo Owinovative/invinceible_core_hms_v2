@@ -57,7 +57,7 @@ model Facility {
   etimsBranchId           String?                       @default("00") @db.VarChar(10)
   etimsCmcKey             String?                       @db.LongText
   etimsDeviceSerial       String?                       @db.VarChar(100)
-  subscriptionMonthlyFee  Float                         @default(5000)
+  subscriptionMonthlyFee  Decimal                       @default(5000) @db.Decimal(18, 2)
   subscriptionStartedAt   DateTime?
   subscriptionPaidThrough DateTime?
   subscriptionStatus      String                        @default("ACTIVE") @db.VarChar(50)
@@ -685,7 +685,7 @@ model Medicine {
   manufacturer         String?                 @db.VarChar(150)
   terminologyConceptId Int?
   terminologyConcept   TerminologyConcept?     @relation("MedicineTerminology", fields: [terminologyConceptId], references: [id])
-  unitPrice            Float?                  @default(0)
+  unitPrice            Decimal?                @default(0) @db.Decimal(18, 2)
   stockQuantity        Int                     @default(0)
   reorderLevel         Int                     @default(0)
   isActive             Boolean                 @default(true)
@@ -802,8 +802,8 @@ model DispenseItem {
   medicineId         Int
   quantityPrescribed Int      @default(0)
   quantityDispensed  Int      @default(0)
-  unitPrice          Float    @default(0)
-  lineTotal          Float    @default(0)
+  unitPrice          Decimal  @default(0) @db.Decimal(18, 2)
+  lineTotal          Decimal  @default(0) @db.Decimal(18, 2)
   notes              String?  @db.Text
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -1044,7 +1044,7 @@ model BillingService {
   code           String          @unique @db.VarChar(50)
   name           String          @db.VarChar(150)
   category       String?         @db.VarChar(100)
-  defaultPrice   Float           @default(0)
+  defaultPrice   Decimal         @default(0) @db.Decimal(18, 2)
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -1064,7 +1064,7 @@ model ServiceTariff {
   code             String   @db.VarChar(80)
   name             String   @db.VarChar(150)
   category         String   @db.VarChar(80)
-  unitPrice        Float    @default(0)
+  unitPrice        Decimal  @default(0) @db.Decimal(18, 2)
   isActive         Boolean  @default(true)
   notes            String?  @db.Text
   createdAt        DateTime @default(now())
@@ -1104,12 +1104,12 @@ model Invoice {
   id               Int            @id @default(autoincrement())
   invoiceNumber    String         @unique @db.VarChar(50)
   statusCode       String         @default("PENDING") @db.VarChar(50)
-  subtotal         Float          @default(0)
-  discountAmount   Float          @default(0)
-  taxAmount        Float          @default(0)
-  totalAmount      Float          @default(0)
-  paidAmount       Float          @default(0)
-  balanceAmount    Float          @default(0)
+  subtotal         Decimal        @default(0) @db.Decimal(18, 2)
+  discountAmount   Decimal        @default(0) @db.Decimal(18, 2)
+  taxAmount        Decimal        @default(0) @db.Decimal(18, 2)
+  totalAmount      Decimal        @default(0) @db.Decimal(18, 2)
+  paidAmount       Decimal        @default(0) @db.Decimal(18, 2)
+  balanceAmount    Decimal        @default(0) @db.Decimal(18, 2)
   notes            String?        @db.Text
   issuedAt         DateTime       @default(now())
   settledAt        DateTime?
@@ -1155,10 +1155,10 @@ model InvoiceItem {
   id              Int    @id @default(autoincrement())
   description     String @db.VarChar(255)
   quantity        Int    @default(1)
-  unitPrice       Float  @default(0)
-  discountPercent Float  @default(0)
-  discountAmount  Float  @default(0)
-  lineTotal       Float  @default(0)
+  unitPrice       Decimal @default(0) @db.Decimal(18, 2)
+  discountPercent Decimal @default(0) @db.Decimal(5, 2)
+  discountAmount  Decimal @default(0) @db.Decimal(18, 2)
+  lineTotal       Decimal @default(0) @db.Decimal(18, 2)
   statusCode      String @default("BILLED") @db.VarChar(50)
 
   // Logical tracking fields for Billing Service
@@ -1191,7 +1191,7 @@ model InvoiceItem {
 model Payment {
   id                 Int       @id @default(autoincrement())
   receiptNumber      String    @unique @db.VarChar(50)
-  amount             Float     @default(0)
+  amount             Decimal   @default(0) @db.Decimal(18, 2)
   paymentMethod      String    @db.VarChar(50)
   statusCode         String    @default("PENDING") @db.VarChar(50)
   phoneNumber        String?   @db.VarChar(30)
@@ -1279,10 +1279,10 @@ model ShaClaim {
   diagnosisConcept     TerminologyConcept? @relation("ShaClaimDiagnosis", fields: [diagnosisConceptId], references: [id])
   servicePeriodStart   DateTime?
   servicePeriodEnd     DateTime?
-  claimedAmount        Float               @default(0)
-  approvedAmount       Float               @default(0)
-  paidAmount           Float               @default(0)
-  rejectedAmount       Float               @default(0)
+  claimedAmount        Decimal             @default(0) @db.Decimal(18, 2)
+  approvedAmount       Decimal             @default(0) @db.Decimal(18, 2)
+  paidAmount           Decimal             @default(0) @db.Decimal(18, 2)
+  rejectedAmount       Decimal             @default(0) @db.Decimal(18, 2)
   rejectionReason      String?             @db.Text
   patientSignatureUrl  String?             @db.LongText
   facilitySignatureUrl String?             @db.LongText
@@ -1352,8 +1352,8 @@ model FacilitySubscriptionPayment {
   id               Int       @id @default(autoincrement())
   paymentNumber    String    @unique @db.VarChar(80)
   facilityId       Int
-  amount           Float     @default(0)
-  monthlyFee       Float     @default(5000)
+  amount           Decimal   @default(0) @db.Decimal(18, 2)
+  monthlyFee       Decimal   @default(5000) @db.Decimal(18, 2)
   monthsCovered    Float     @default(0)
   paidFrom         DateTime?
   paidThrough      DateTime?
@@ -1587,8 +1587,8 @@ model BranchMedicineStock {
   medicineId    Int
   stockQuantity Int      @default(0)
   reorderLevel  Int      @default(0)
-  buyingPrice   Float    @default(0)
-  unitPrice     Float    @default(0)
+  buyingPrice   Decimal  @default(0) @db.Decimal(18, 2)
+  unitPrice     Decimal  @default(0) @db.Decimal(18, 2)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1618,12 +1618,12 @@ model OtcSale {
   customerPhone    String?   @db.VarChar(30)
   status           String    @default("DRAFT") @db.VarChar(50)
   paymentStatus    String    @default("UNPAID") @db.VarChar(50)
-  subtotal         Float     @default(0)
-  discountAmount   Float     @default(0)
-  taxAmount        Float     @default(0)
-  totalAmount      Float     @default(0)
-  paidAmount       Float     @default(0)
-  balanceAmount    Float     @default(0)
+  subtotal         Decimal   @default(0) @db.Decimal(18, 2)
+  discountAmount   Decimal   @default(0) @db.Decimal(18, 2)
+  taxAmount        Decimal   @default(0) @db.Decimal(18, 2)
+  totalAmount      Decimal   @default(0) @db.Decimal(18, 2)
+  paidAmount       Decimal   @default(0) @db.Decimal(18, 2)
+  balanceAmount    Decimal   @default(0) @db.Decimal(18, 2)
   soldAt           DateTime?
   notes            String?   @db.Text
   createdAt        DateTime  @default(now())
@@ -1661,8 +1661,8 @@ model OtcSaleItem {
   dosageFormSnapshot   String?  @db.VarChar(100)
   strengthSnapshot     String?  @db.VarChar(100)
   quantity             Int      @default(1)
-  unitPrice            Float    @default(0)
-  lineTotal            Float    @default(0)
+  unitPrice            Decimal  @default(0) @db.Decimal(18, 2)
+  lineTotal            Decimal  @default(0) @db.Decimal(18, 2)
   stockBefore          Int?
   stockAfter           Int?
   notes                String?  @db.Text
@@ -1685,7 +1685,7 @@ model OtcSalePayment {
   branchId                Int
   paymentMethod           String    @db.VarChar(50)
   statusCode              String    @default("COMPLETED") @db.VarChar(50)
-  amount                  Float     @default(0)
+  amount                  Decimal   @default(0) @db.Decimal(18, 2)
   transactionRef          String?   @db.VarChar(120)
   phoneNumber             String?   @db.VarChar(30)
   mpesaReceiptNumber      String?   @db.VarChar(100)
@@ -1698,8 +1698,8 @@ model OtcSalePayment {
   relationshipToPrincipal String?   @db.VarChar(80)
   authorizationNumber     String?   @db.VarChar(120)
   policyNumber            String?   @db.VarChar(120)
-  insuranceCoveredAmount  Float     @default(0)
-  patientCoPayAmount      Float     @default(0)
+  insuranceCoveredAmount  Decimal   @default(0) @db.Decimal(18, 2)
+  patientCoPayAmount      Decimal   @default(0) @db.Decimal(18, 2)
   insuranceClaimReference String?   @db.VarChar(120)
   insuranceClaimStatus    String?   @db.VarChar(50)
   paidAt                  DateTime?
@@ -1858,9 +1858,9 @@ model EtimsInvoice {
   sdcDateTime         DateTime?
   qrCodeUrl           String?        @db.Text
   qrCodeData          String?        @db.LongText
-  totalTaxableAmount  Float          @default(0)
-  totalTaxAmount      Float          @default(0)
-  totalAmount         Float          @default(0)
+  totalTaxableAmount  Decimal        @default(0) @db.Decimal(18, 2)
+  totalTaxAmount      Decimal        @default(0) @db.Decimal(18, 2)
+  totalAmount         Decimal        @default(0) @db.Decimal(18, 2)
   currency            String         @default("KES") @db.VarChar(10)
   taxBreakdown        Json?
   requestPayload      Json?
@@ -2768,7 +2768,7 @@ model WorkflowAudit {
 model WorkflowMetric {
   id         Int      @id @default(autoincrement())
   metricName String   @db.VarChar(100)
-  value      Float
+  value      Float  // non-monetary metric, kept as Float
   tags       Json?
   timestamp  DateTime @default(now())
 

@@ -48,16 +48,16 @@ export class ShaPerformanceService {
 
       if (daysOld <= 30) {
         buckets['0-30'].count++;
-        buckets['0-30'].amount += claim.claimedAmount;
+        buckets['0-30'].amount += Number(claim.claimedAmount);
       } else if (daysOld <= 60) {
         buckets['31-60'].count++;
-        buckets['31-60'].amount += claim.claimedAmount;
+        buckets['31-60'].amount += Number(claim.claimedAmount);
       } else if (daysOld <= 90) {
         buckets['61-90'].count++;
-        buckets['61-90'].amount += claim.claimedAmount;
+        buckets['61-90'].amount += Number(claim.claimedAmount);
       } else {
         buckets['90+'].count++;
-        buckets['90+'].amount += claim.claimedAmount;
+        buckets['90+'].amount += Number(claim.claimedAmount);
       }
     }
 
@@ -96,13 +96,13 @@ export class ShaPerformanceService {
 
     for (const group of claims) {
       const count = group._count.id;
-      const amount = group._sum.claimedAmount || 0;
+      const amount = Number(group._sum.claimedAmount || 0);
 
       summary.totalClaims += count;
       summary.totalClaimed += amount;
-      summary.totalApproved += group._sum.approvedAmount || 0;
-      summary.totalPaid += group._sum.paidAmount || 0;
-      summary.totalRejected += group._sum.rejectedAmount || 0;
+      summary.totalApproved += Number(group._sum.approvedAmount || 0);
+      summary.totalPaid += Number(group._sum.paidAmount || 0);
+      summary.totalRejected += Number(group._sum.rejectedAmount || 0);
 
       summary.byStatus[group.statusCode] = { count, amount };
     }
