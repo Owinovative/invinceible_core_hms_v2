@@ -23,7 +23,7 @@
     "lint:integration": "eslint \"src/integration/**/*.ts\"",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "node scripts/generate-prisma-client.mjs",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:schema:postgres": "node scripts/create-postgres-prisma-schema.mjs",
     "prisma:generate:postgres": "npm run prisma:schema:postgres && prisma generate --schema prisma-postgresql/schema.prisma",
@@ -38,7 +38,9 @@
     "db:cleanup": "node scripts/storage-cleanup.mjs --execute",
     "db:large-fields:report": "node scripts/large-fields-report.mjs",
     "db:index:audit": "node scripts/index-audit.mjs",
-    "postinstall": "prisma generate"
+    "prestart:dev": "npm run prisma:generate",
+    "prestart:debug": "npm run prisma:generate",
+    "postinstall": "node scripts/generate-prisma-client.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
