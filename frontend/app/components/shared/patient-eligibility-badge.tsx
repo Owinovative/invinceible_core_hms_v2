@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, ShieldAlert, ShieldCheck, Loader2 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
@@ -29,7 +29,7 @@ export function PatientEligibilityBadge({ patientId }: PatientEligibilityBadgePr
 
   if (status === 'LOADING') {
     return (
-      <Badge variant="outline" className="gap-1 text-slate-500 bg-slate-50 border-slate-200">
+      <Badge variant="outline" className="gap-1 border-border bg-muted text-muted-foreground">
         <Loader2 className="h-3 w-3 animate-spin" />
         Checking SHA...
       </Badge>

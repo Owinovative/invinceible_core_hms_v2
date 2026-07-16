@@ -33,10 +33,11 @@ import { WorkflowMetricsService } from './integration/workflow-metrics.service';
 import { WorkflowEventSubscriber } from './integration/workflow-event-subscriber';
 import { WorkflowEventPublisher } from './integration/workflow-event-publisher';
 import { WorkflowController } from './integration/workflow.controller';
+import { AuthModule } from '../auth/auth.module';
 
 @Global()
 @Module({
-  imports: [ScheduleModule.forRoot()],
+  imports: [ScheduleModule.forRoot(), AuthModule],
   providers: [
     // Engine
     WorkflowEngineService,

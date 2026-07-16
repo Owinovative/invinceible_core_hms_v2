@@ -22,8 +22,18 @@ export default function OperationalPulseChart({
   data: PulseDatum[];
 }) {
   return (
-    <div className="h-70 w-full" role="img" aria-label="Operational pulse chart">
-      <ResponsiveContainer width="100%" height="100%">
+    <div
+      className="h-70 min-w-0 w-full"
+      role="img"
+      aria-label="Operational pulse chart"
+    >
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={280}
+        initialDimension={{ width: 640, height: 280 }}
+      >
         <BarChart data={data} margin={{ left: -24, right: 8, top: 12 }}>
           <XAxis
             dataKey="label"

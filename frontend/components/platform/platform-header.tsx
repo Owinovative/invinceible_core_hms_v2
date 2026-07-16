@@ -7,6 +7,7 @@ import { useSidebar } from "@/providers/sidebar-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { AppLogo } from "@/components/shared/app-logo";
 import { SyncStatusIndicator } from "@/components/shared/sync-status-indicator";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export function PlatformHeader() {
   const { openMobileSidebar } = useSidebar();
@@ -50,6 +51,7 @@ export function PlatformHeader() {
         </div>
 
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
+            <ThemeToggle className="text-white hover:bg-white/10 hover:text-white" />
             <SyncStatusIndicator />
 
             <div className="flex min-w-0 items-center gap-3 rounded-lg border border-border-strong/60 bg-[#004f91] px-3 py-2.5 shadow-sm">

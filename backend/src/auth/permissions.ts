@@ -19,6 +19,7 @@ export const HMS_PERMISSIONS = [
   'audit.read',
   'users.manage',
   'facility.manage',
+  'legal.manage',
   'patient.portal.read',
   'consent.read',
   'consent.manage',

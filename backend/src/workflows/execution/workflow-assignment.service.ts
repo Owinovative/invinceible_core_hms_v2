@@ -16,12 +16,21 @@ export class WorkflowAssignmentService {
    * Assigns a task to a specific user by userId.
    * Validates state transition from UNASSIGNED → ASSIGNED.
    */
-  async assignTask(taskId: string, userId: number): Promise<any> {
+  async assignTask(
+    taskId: string,
+    userId: number,
+    facilityId: number,
+  ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
-      const task = await tx.workflowTask.findUnique({ where: { taskId } });
+      const task = await tx.workflowTask.findFirst({
+        where: { taskId, instance: { facilityId } },
+      });
       if (!task) throw new Error(`Task ${taskId} not found`);
 
-      this.stateMachine.assertTaskTransition(task.status as TaskStatus, 'ASSIGNED');
+      this.stateMachine.assertTaskTransition(
+        task.status as TaskStatus,
+        'ASSIGNED',
+      );
 
       const updated = await tx.workflowTask.update({
         where: { id: task.id },
@@ -56,12 +65,21 @@ export class WorkflowAssignmentService {
    * User claims a task that was assigned to them (or to their role).
    * ASSIGNED → CLAIMED
    */
-  async claimTask(taskId: string, userId: number): Promise<any> {
+  async claimTask(
+    taskId: string,
+    userId: number,
+    facilityId: number,
+  ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
-      const task = await tx.workflowTask.findUnique({ where: { taskId } });
+      const task = await tx.workflowTask.findFirst({
+        where: { taskId, instance: { facilityId } },
+      });
       if (!task) throw new Error(`Task ${taskId} not found`);
 
-      this.stateMachine.assertTaskTransition(task.status as TaskStatus, 'CLAIMED');
+      this.stateMachine.assertTaskTransition(
+        task.status as TaskStatus,
+        'CLAIMED',
+      );
 
       const updated = await tx.workflowTask.update({
         where: { id: task.id },
@@ -88,12 +106,21 @@ export class WorkflowAssignmentService {
    * Completes a task.
    * IN_PROGRESS → COMPLETED (or CLAIMED → COMPLETED shortcut not allowed; must go through IN_PROGRESS)
    */
-  async completeTask(taskId: string, userId: number): Promise<any> {
+  async completeTask(
+    taskId: string,
+    userId: number,
+    facilityId: number,
+  ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
-      const task = await tx.workflowTask.findUnique({ where: { taskId } });
+      const task = await tx.workflowTask.findFirst({
+        where: { taskId, instance: { facilityId } },
+      });
       if (!task) throw new Error(`Task ${taskId} not found`);
 
-      this.stateMachine.assertTaskTransition(task.status as TaskStatus, 'COMPLETED');
+      this.stateMachine.assertTaskTransition(
+        task.status as TaskStatus,
+        'COMPLETED',
+      );
 
       const updated = await tx.workflowTask.update({
         where: { id: task.id },
@@ -137,21 +164,19 @@ export class WorkflowAssignmentService {
           select: { instanceId: true, patientId: true, encounterId: true },
         },
       },
-      orderBy: [
-        { priority: 'desc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
   }
 
   /**
    * Retrieves tasks assigned to a specific user.
    */
-  async getTasksByUser(userId: number): Promise<any[]> {
+  async getTasksByUser(userId: number, facilityId: number): Promise<any[]> {
     return this.prisma.workflowTask.findMany({
       where: {
         assignments: { some: { userId, status: 'ACTIVE' } },
         status: { in: ['ASSIGNED', 'CLAIMED', 'IN_PROGRESS'] },
+        instance: { facilityId },
       },
       include: {
         instance: {

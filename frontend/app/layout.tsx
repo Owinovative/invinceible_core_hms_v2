@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { AppProvider } from "@/providers/app-provider";
+import { themeInitScript } from "@/lib/theme";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,8 +34,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
+      </head>
       <body
+        suppressHydrationWarning
         className={`${inter.variable} ${jetBrainsMono.variable} app-canvas font-sans`}
       >
         <AppProvider>{children}</AppProvider>

@@ -29,7 +29,7 @@ const imagePanels = [
 
 export default function InspirationPage() {
   return (
-    <main className="min-h-screen bg-[#f6fbff] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <PublicSiteHeader />
 
       <section className="border-b border-border bg-card">
@@ -57,7 +57,7 @@ export default function InspirationPage() {
                 ["Sponsor", "System build and hospital vision"],
                 ["Inspiration", "Service, order, and accountability"],
               ].map(([title, detail]) => (
-                <div key={title} className="border border-border bg-[#f7fcff] p-4">
+                <div key={title} className="border border-border bg-surface-2 p-4">
                   <p className="text-sm font-semibold uppercase text-module">
                     {title}
                   </p>
@@ -110,7 +110,7 @@ export default function InspirationPage() {
         </div>
       </section>
 
-      <section className="bg-[#eaf7ff]">
+      <section className="bg-surface-2">
         <div className="mx-auto grid max-w-[1500px] gap-6 px-5 py-14 md:px-8 lg:grid-cols-3">
           <article className="border border-border bg-card p-7 shadow-sm">
             <Building2 className="mb-5 h-8 w-8 text-module" />

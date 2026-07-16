@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   BedDouble,
-  ClipboardCheck,
   FlaskConical,
   HeartHandshake,
   MessageSquareText,
@@ -15,6 +14,7 @@ import {
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
 import { getWhatsappLink, supportContacts } from "@/lib/creator-contacts";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 const heroPhotos = [
   {
@@ -52,7 +52,7 @@ const controlLines = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <section
         className="relative min-h-screen overflow-hidden bg-cover bg-center"
         style={{
@@ -82,12 +82,15 @@ export default function HomePage() {
                 Creators
               </Link>
             </nav>
-            <Button asChild className="rounded-md bg-sky-400 text-[#06233e] hover:bg-sky-300">
-              <Link href="/login">
-                Enter system
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle className="text-white hover:bg-white/10 hover:text-white" />
+              <Button asChild className="rounded-md bg-sky-400 text-[#06233e] hover:bg-sky-300">
+                <Link href="/login">
+                  Enter system
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </header>
 
           <div className="grid flex-1 gap-8 py-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
@@ -182,7 +185,7 @@ export default function HomePage() {
               <Link
                 href="/workflow"
                 key={item.title}
-                className="border border-border bg-[#f7fcff] p-5 shadow-sm hover:border-border-strong"
+                className="border border-border bg-surface-2 p-5 shadow-sm hover:border-border-strong"
               >
                 <Icon className="h-6 w-6 text-module" />
                 <p className="mt-5 text-lg font-bold text-foreground">
@@ -197,7 +200,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#e7f6ff]">
+      <section className="bg-surface-2">
         <div className="mx-auto grid max-w-[1540px] gap-6 px-5 py-12 md:px-8 xl:grid-cols-[1.05fr_0.95fr]">
           <Link
             href="/inspiration"
@@ -266,7 +269,7 @@ export default function HomePage() {
                       href={getWhatsappLink(creator.whatsappNumber, creator.message)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-between border border-border bg-[#f7fcff] px-4 py-3 text-sm font-semibold text-foreground"
+                      className="flex items-center justify-between border border-border bg-surface-2 px-4 py-3 text-sm font-semibold text-foreground"
                     >
                       <span>{creator.name}</span>
                       <span className="text-module">{creator.phone}</span>

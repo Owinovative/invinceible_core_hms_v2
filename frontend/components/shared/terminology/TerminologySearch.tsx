@@ -83,12 +83,12 @@ export function TerminologySearch({
     <div ref={containerRef} className={`relative w-full ${className}`}>
       {value ? (
         <div 
-          className="flex items-center justify-between p-2 border rounded-md bg-slate-50 cursor-pointer"
+          className="flex cursor-pointer items-center justify-between rounded-md border bg-surface-2 p-2"
           onClick={() => !disabled && setIsOpen(true)}
         >
           <div className="flex flex-col flex-1 truncate mr-2">
             <span className="text-sm font-medium truncate">{value.display}</span>
-            <div className="flex gap-2 text-xs text-slate-500">
+            <div className="flex gap-2 text-xs text-muted-foreground">
               <span className="font-mono">{value.code}</span>
               <span className="truncate">{value.system}</span>
             </div>
@@ -129,7 +129,7 @@ export function TerminologySearch({
       )}
 
       {isOpen && !value && (query.length >= 2 || results.length > 0) && (
-        <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-lg">
           {results.length > 0 ? (
             <ul className="py-1">
               {results.map((concept) => (
@@ -138,10 +138,10 @@ export function TerminologySearch({
                   onClick={() => handleSelect(concept)}
                   className="px-3 py-2 cursor-pointer hover:bg-slate-100 flex flex-col group"
                 >
-                  <span className="text-sm font-medium text-slate-900 group-hover:text-blue-600 truncate">
+                  <span className="truncate text-sm font-medium text-foreground group-hover:text-primary">
                     {concept.display}
                   </span>
-                  <div className="flex justify-between items-center text-xs text-slate-500 mt-0.5">
+                  <div className="mt-0.5 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="font-mono bg-slate-100 group-hover:bg-slate-200 px-1.5 py-0.5 rounded">
                       {concept.code}
                     </span>
@@ -152,7 +152,7 @@ export function TerminologySearch({
             </ul>
           ) : (
             !isLoading && query.length >= 2 && (
-              <div className="px-3 py-4 text-sm text-center text-slate-500">
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                 No concepts found for &quot;{query}&quot;
               </div>
             )

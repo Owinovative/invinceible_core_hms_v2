@@ -23,9 +23,8 @@ sequenceDiagram
         API-->>FE: 401 (audited)
     else valid
         API->>DB: reset counters, bump sessionVersion
-        API-->>FE: { accessToken (JWT), user, role, permissions, scope }
-        FE->>FE: store token (localStorage hms_access_token)
-        FE->>API: GET /auth/me (hydrate session)
+        API-->>FE: Set-Cookie: hms_session (HttpOnly) + user/permissions
+        FE->>API: GET /auth/me with credentials (hydrate session)
     end
 ```
 
@@ -52,11 +51,16 @@ Key mechanics (all verifiable in `auth.service.ts`):
 | Token type | Signed JWT (HS256) — `JWT_SECRET` (min 32 chars; 48+ high-entropy enforced in production) |
 | Lifetime | `JWT_EXPIRES_IN` (default `1d`) |
 | Claims | `sub` (userId), username, roleId/code, staffId, facility/branch scope, sessionVersion |
-| Transport | `Authorization: Bearer` header only (no cookies → no CSRF surface) |
-| Storage (frontend) | `localStorage` `hms_access_token`; cleared on logout/401 |
+| Transport | Browser sessions use the HttpOnly `hms_session` cookie; bearer tokens remain supported for machine clients |
+| Storage (frontend) | No JavaScript-readable token storage; legacy `hms_access_token` values are removed during hydration |
 | Revocation | Session-version bump (login, password change, admin reset) invalidates outstanding tokens |
 | Idle timeout | Frontend auto-logout after 20 min inactivity (60s warning); activity events reset the timer |
 | Session registry | `UserSession` rows track sessions; `user-location` module records IP/geo per session for the security dashboard |
+
+Unsafe cookie-authenticated requests are accepted only when their `Origin`
+matches `FRONTEND_URL`/`FRONTEND_ORIGINS`. The cookie is `HttpOnly`, defaults
+to `SameSite=Lax`, and must be `Secure` in production. `POST /auth/logout`
+revokes the current server session and clears the cookie.
 
 ## 3. Step-up re-authentication
 

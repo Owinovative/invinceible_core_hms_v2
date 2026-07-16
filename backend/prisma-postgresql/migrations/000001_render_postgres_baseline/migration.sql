@@ -1,4 +1,4 @@
-﻿-- CreateSchema
+-- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
@@ -2407,4 +2407,3 @@ ALTER TABLE "branch_medicine_stocks" ADD CONSTRAINT "branch_medicine_stocks_medi
 
 -- AddForeignKey
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-

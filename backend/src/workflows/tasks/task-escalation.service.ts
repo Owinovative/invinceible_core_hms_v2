@@ -10,7 +10,12 @@ export class TaskEscalationService {
   /**
    * Creates an escalation record for a task that has breached its SLA.
    */
-  async escalateTask(taskId: number, reason: string, escalateToRole?: string, escalateToUserId?: number): Promise<any> {
+  async escalateTask(
+    taskId: number,
+    reason: string,
+    escalateToRole?: string,
+    escalateToUserId?: number,
+  ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
       const task = await tx.workflowTask.findUnique({ where: { id: taskId } });
       if (!task) throw new Error(`Task with id ${taskId} not found`);
@@ -51,9 +56,21 @@ export class TaskEscalationService {
   /**
    * Resolves an active escalation.
    */
-  async resolveEscalation(escalationId: number): Promise<any> {
+  async resolveEscalation(
+    escalationId: number,
+    facilityId: number,
+  ): Promise<any> {
+    const escalation = await this.prisma.workflowEscalation.findFirst({
+      where: {
+        id: escalationId,
+        task: { instance: { facilityId } },
+      },
+      select: { id: true },
+    });
+    if (!escalation) throw new Error(`Escalation ${escalationId} not found`);
+
     return this.prisma.workflowEscalation.update({
-      where: { id: escalationId },
+      where: { id: escalation.id },
       data: { status: 'RESOLVED', resolvedAt: new Date() },
     });
   }

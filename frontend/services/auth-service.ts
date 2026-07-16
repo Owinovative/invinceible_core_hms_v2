@@ -1,5 +1,4 @@
 import { apiFetch } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth-storage";
 import type { AuthUser, LoginResponse } from "@/types/auth";
 
 export async function loginUser(payload: {
@@ -13,15 +12,14 @@ export async function loginUser(payload: {
 }
 
 export async function getMe() {
-  const token = getAccessToken();
-
-  if (!token) {
-    throw new Error("No access token found");
-  }
-
   return apiFetch<AuthUser>("/auth/me", {
     method: "GET",
-    token,
+  });
+}
+
+export async function logoutUser() {
+  return apiFetch<{ message: string }>("/auth/logout", {
+    method: "POST",
   });
 }
 

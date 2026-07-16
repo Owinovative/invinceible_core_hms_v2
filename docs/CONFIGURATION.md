@@ -28,6 +28,10 @@ at startup by
 | --- | --- | --- |
 | `JWT_SECRET` | — **required** | ≥32 chars; production: ≥48 high-entropy (weak values rejected) |
 | `JWT_EXPIRES_IN` | `1d` | Token lifetime |
+| `AUTH_COOKIE_MAX_AGE_SECONDS` | `86400` | Browser session cookie lifetime |
+| `AUTH_COOKIE_SAME_SITE` | `lax` | Use `none` only for separate HTTPS sites |
+| `AUTH_COOKIE_SECURE` | production: `true` | Must be `true` with `SameSite=none` |
+| `AUTH_COOKIE_DOMAIN` | empty | Optional shared parent domain |
 | `PASSWORD_MIN_LENGTH` | `12` | Policy floor |
 | `AUTH_FAILED_LOGIN_DELAY_MAX_MS` | `2500` | Progressive delay cap |
 | `STEP_UP_ENFORCEMENT_ENABLED` | `false` | Enforce step-up re-auth |

@@ -112,7 +112,7 @@ export class AuthService {
 
   async login(loginDto: LoginDto, auditMeta?: LoginAuditMeta) {
     const username = loginDto.username.trim();
-    const password = loginDto.password.trim();
+    const password = loginDto.password;
     const user = await this.userService.findAuthUserByUsername(username);
 
     if (!user) {
@@ -344,6 +344,21 @@ export class AuthService {
 
     // If the user hasn't accepted every published document, they need to consent
     return acceptances.length < publishedDocs.length;
+  }
+
+  async logout(user: { userId: number; sessionId?: string | null }) {
+    if (!user.sessionId) return;
+    await this.prisma.userSession.updateMany({
+      where: {
+        id: user.sessionId,
+        userId: user.userId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokeReason: 'User logged out',
+      },
+    });
   }
 
   async acceptOwnDeactivation(user: any) {

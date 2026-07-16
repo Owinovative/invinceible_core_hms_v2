@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,7 +33,28 @@ export class IpdService {
     private readonly billingService: BillingService,
   ) {}
 
-  async createWard(createWardDto: CreateWardDto) {
+  async createWardScoped(createWardDto: CreateWardDto, user: RequestUser) {
+    const facilityId =
+      createWardDto.facilityId ?? user.homeFacilityId ?? undefined;
+    const branchId = createWardDto.branchId ?? user.homeBranchId ?? undefined;
+
+    if (!facilityId) {
+      throw new ForbiddenException('A facilityId is required to create a ward');
+    }
+    this.scopeService.assertBranchAccess(user, facilityId, branchId);
+
+    if (branchId) {
+      const branch = await this.prisma.branch.findFirst({
+        where: { id: branchId, facilityId, isActive: true },
+        select: { id: true },
+      });
+      if (!branch) {
+        throw new BadRequestException(
+          'Selected branch does not belong to the selected facility',
+        );
+      }
+    }
+
     const existing = await this.prisma.ward.findFirst({
       where: {
         OR: [{ code: createWardDto.code }, { name: createWardDto.name }],
@@ -49,13 +71,20 @@ export class IpdService {
         name: createWardDto.name,
         wardType: createWardDto.wardType,
         capacity: createWardDto.capacity ?? 0,
+        facilityId,
+        branchId,
         isActive: createWardDto.isActive ?? true,
       },
     });
   }
-  async updateBed(id: number, updateBedDto: UpdateBedDto) {
-    const bed = await this.prisma.bed.findUnique({
-      where: { id },
+  async updateBedScoped(
+    id: number,
+    updateBedDto: UpdateBedDto,
+    user: RequestUser,
+  ) {
+    const scope = this.scopeService.buildReadScope(user);
+    const bed = await this.prisma.bed.findFirst({
+      where: { id, ...scope },
     });
 
     if (!bed) {
@@ -82,8 +111,8 @@ export class IpdService {
     } | null = null;
 
     if (updateBedDto.wardId !== undefined) {
-      ward = await this.prisma.ward.findUnique({
-        where: { id: updateBedDto.wardId },
+      ward = await this.prisma.ward.findFirst({
+        where: { id: updateBedDto.wardId, ...scope },
         select: {
           id: true,
           facilityId: true,
@@ -129,9 +158,14 @@ export class IpdService {
     });
   }
 
-  async updateBedStatus(id: number, statusCode: string) {
-    const bed = await this.prisma.bed.findUnique({
-      where: { id },
+  async updateBedStatusScoped(
+    id: number,
+    statusCode: string,
+    user: RequestUser,
+  ) {
+    const scope = this.scopeService.buildReadScope(user);
+    const bed = await this.prisma.bed.findFirst({
+      where: { id, ...scope },
     });
 
     if (!bed) {
@@ -187,8 +221,10 @@ export class IpdService {
     });
   }
 
-  getAllWards() {
+  getAllWardsScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
     return this.prisma.ward.findMany({
+      where: scope,
       include: {
         facility: true,
         branch: true,
@@ -198,7 +234,7 @@ export class IpdService {
     });
   }
 
-  async createBed(createBedDto: CreateBedDto) {
+  async createBedScoped(createBedDto: CreateBedDto, user: RequestUser) {
     const existing = await this.prisma.bed.findFirst({
       where: { bedNumber: createBedDto.bedNumber },
     });
@@ -207,8 +243,9 @@ export class IpdService {
       throw new BadRequestException('Bed number already exists');
     }
 
-    const ward = await this.prisma.ward.findUnique({
-      where: { id: createBedDto.wardId },
+    const scope = this.scopeService.buildReadScope(user);
+    const ward = await this.prisma.ward.findFirst({
+      where: { id: createBedDto.wardId, ...scope },
     });
 
     if (!ward) {
@@ -235,8 +272,10 @@ export class IpdService {
     });
   }
 
-  getAllBeds() {
+  getAllBedsScoped(user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
     return this.prisma.bed.findMany({
+      where: scope,
       include: {
         facility: true,
         branch: true,
@@ -245,9 +284,14 @@ export class IpdService {
       orderBy: { id: 'asc' },
     });
   }
-  async updateWard(id: number, updateWardDto: UpdateWardDto) {
-    const ward = await this.prisma.ward.findUnique({
-      where: { id },
+  async updateWardScoped(
+    id: number,
+    updateWardDto: UpdateWardDto,
+    user: RequestUser,
+  ) {
+    const scope = this.scopeService.buildReadScope(user);
+    const ward = await this.prisma.ward.findFirst({
+      where: { id, ...scope },
     });
 
     if (!ward) {
@@ -287,7 +331,10 @@ export class IpdService {
     });
   }
 
-  async createAdmission(createAdmissionDto: CreateAdmissionDto) {
+  async createAdmissionScoped(
+    createAdmissionDto: CreateAdmissionDto,
+    user: RequestUser,
+  ) {
     const existing = await this.prisma.admission.findFirst({
       where: { admissionNumber: createAdmissionDto.admissionNumber },
     });
@@ -296,14 +343,16 @@ export class IpdService {
       throw new BadRequestException('Admission number already exists');
     }
 
-    const patient = await this.patientService.findOne(
+    const patient = await this.patientService.findOneScoped(
       createAdmissionDto.patientId,
+      user,
     );
 
     let appointment: any = null;
     if (createAdmissionDto.appointmentId) {
-      appointment = await this.appointmentService.findOne(
+      appointment = await this.appointmentService.findOneScoped(
         createAdmissionDto.appointmentId,
+        user,
       );
     }
     const existingActiveAdmission = await this.prisma.admission.findFirst({
@@ -325,20 +374,23 @@ export class IpdService {
 
     let consultation: any = null;
     if (createAdmissionDto.consultationId) {
-      consultation = await this.consultationService.findOne(
+      consultation = await this.consultationService.findOneScoped(
         createAdmissionDto.consultationId,
+        user,
       );
     }
 
     let admittedBy: any = null;
     if (createAdmissionDto.admittedByStaffId) {
-      admittedBy = await this.staffService.findOne(
+      admittedBy = await this.staffService.findOneScoped(
         createAdmissionDto.admittedByStaffId,
+        user,
       );
     }
 
-    const ward = await this.prisma.ward.findUnique({
-      where: { id: createAdmissionDto.wardId },
+    const scope = this.scopeService.buildReadScope(user);
+    const ward = await this.prisma.ward.findFirst({
+      where: { id: createAdmissionDto.wardId, ...scope },
     });
 
     if (!ward) {
@@ -348,8 +400,12 @@ export class IpdService {
     }
 
     if (createAdmissionDto.bedId) {
-      const bed = await this.prisma.bed.findUnique({
-        where: { id: createAdmissionDto.bedId },
+      const bed = await this.prisma.bed.findFirst({
+        where: {
+          id: createAdmissionDto.bedId,
+          wardId: createAdmissionDto.wardId,
+          ...scope,
+        },
       });
 
       if (!bed) {
@@ -394,6 +450,17 @@ export class IpdService {
       admittedBy?.branchId ??
       ward.branchId ??
       null;
+
+    this.scopeService.assertBranchAccess(user, facilityId, branchId);
+
+    if (
+      ward.facilityId !== facilityId ||
+      (ward.branchId && ward.branchId !== branchId)
+    ) {
+      throw new BadRequestException(
+        'Selected ward does not belong to the admission facility and branch',
+      );
+    }
 
     const admission = await this.prisma.admission.create({
       data: {
@@ -468,60 +535,6 @@ export class IpdService {
     return admission;
   }
 
-  getAllAdmissions() {
-    return this.prisma.admission.findMany({
-      include: {
-        facility: true,
-        branch: true,
-        patient: true,
-        appointment: true,
-        consultation: true,
-        admittedBy: true,
-        ward: true,
-        bed: true,
-      },
-      orderBy: { id: 'desc' },
-    });
-  }
-
-  async getAdmissionById(id: number) {
-    const admission = await this.prisma.admission.findUnique({
-      where: { id },
-      include: {
-        facility: true,
-        branch: true,
-        patient: true,
-        appointment: true,
-        consultation: true,
-        admittedBy: true,
-        ward: true,
-        bed: true,
-      },
-    });
-
-    if (!admission) {
-      throw new NotFoundException(`Admission with id ${id} not found`);
-    }
-
-    return admission;
-  }
-
-  async getActiveAdmissions() {
-    return this.prisma.admission.findMany({
-      where: {
-        statusCode: 'ADMITTED',
-      },
-      include: {
-        facility: true,
-        branch: true,
-        patient: true,
-        ward: true,
-        bed: true,
-        admittedBy: true,
-      },
-      orderBy: { admittedAt: 'desc' },
-    });
-  }
   getAllAdmissionsScoped(user: RequestUser) {
     const scope = this.scopeService.buildReadScope(user);
 
@@ -541,14 +554,29 @@ export class IpdService {
     });
   }
 
-  async getAdmissionByIdScoped(id: number, user: RequestUser) {
-    const admission = await this.getAdmissionById(id);
+  getAdmissionScope(user: RequestUser) {
+    return this.scopeService.buildReadScope(user);
+  }
 
-    this.scopeService.assertBranchAccess(
-      user,
-      admission.facilityId,
-      admission.branchId,
-    );
+  async getAdmissionByIdScoped(id: number, user: RequestUser) {
+    const scope = this.scopeService.buildReadScope(user);
+    const admission = await this.prisma.admission.findFirst({
+      where: { id, ...scope },
+      include: {
+        facility: true,
+        branch: true,
+        patient: true,
+        appointment: true,
+        consultation: true,
+        admittedBy: true,
+        ward: true,
+        bed: true,
+      },
+    });
+
+    if (!admission) {
+      throw new NotFoundException(`Admission with id ${id} not found`);
+    }
 
     return admission;
   }
@@ -572,19 +600,12 @@ export class IpdService {
       orderBy: { admittedAt: 'desc' },
     });
   }
-  async transferAdmissionBed(id: number, transferDto: TransferAdmissionBedDto) {
-    const admission = await this.prisma.admission.findUnique({
-      where: { id },
-      include: {
-        patient: true,
-        ward: true,
-        bed: true,
-      },
-    });
-
-    if (!admission) {
-      throw new NotFoundException(`Admission with id ${id} not found`);
-    }
+  async transferAdmissionBedScoped(
+    id: number,
+    transferDto: TransferAdmissionBedDto,
+    user: RequestUser,
+  ) {
+    const admission = await this.getAdmissionByIdScoped(id, user);
 
     if ((admission.statusCode || '').toUpperCase() !== 'ADMITTED') {
       throw new BadRequestException(
@@ -592,8 +613,14 @@ export class IpdService {
       );
     }
 
-    const targetWard = await this.prisma.ward.findUnique({
-      where: { id: transferDto.wardId },
+    const scope = this.scopeService.buildReadScope(user);
+    const targetWard = await this.prisma.ward.findFirst({
+      where: {
+        id: transferDto.wardId,
+        ...scope,
+        facilityId: admission.facilityId,
+        ...(admission.branchId ? { branchId: admission.branchId } : {}),
+      },
     });
 
     if (!targetWard) {
@@ -610,8 +637,14 @@ export class IpdService {
     } | null = null;
 
     if (transferDto.bedId) {
-      targetBed = await this.prisma.bed.findUnique({
-        where: { id: transferDto.bedId },
+      targetBed = await this.prisma.bed.findFirst({
+        where: {
+          id: transferDto.bedId,
+          wardId: transferDto.wardId,
+          ...scope,
+          facilityId: admission.facilityId,
+          ...(admission.branchId ? { branchId: admission.branchId } : {}),
+        },
         select: {
           id: true,
           bedNumber: true,
@@ -715,8 +748,8 @@ export class IpdService {
     return updatedAdmission;
   }
 
-  async dischargeAdmission(id: number) {
-    const admission = await this.getAdmissionById(id);
+  async dischargeAdmissionScoped(id: number, user: RequestUser) {
+    const admission = await this.getAdmissionByIdScoped(id, user);
 
     const updated = await this.prisma.admission.update({
       where: { id },

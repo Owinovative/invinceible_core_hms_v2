@@ -7,6 +7,14 @@ import {
 } from 'class-validator';
 
 export class CreateWardDto {
+  @IsOptional()
+  @IsInt()
+  facilityId?: number;
+
+  @IsOptional()
+  @IsInt()
+  branchId?: number;
+
   @IsString()
   @MaxLength(50)
   code: string;

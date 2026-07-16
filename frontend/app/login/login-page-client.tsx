@@ -33,6 +33,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1, "Username or email is required"),
@@ -87,7 +88,7 @@ export default function LoginPageClient() {
     try {
       const result = await login({
         username: values.username.trim(),
-        password: values.password.trim(),
+        password: values.password,
       });
 
       if (result?.requiresLegalConsent) {
@@ -99,7 +100,11 @@ export default function LoginPageClient() {
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        setError(error.message);
+        setError(
+          error.status === 401
+            ? "The username or password is incorrect, or the account is inactive or locked."
+            : error.message,
+        );
         return;
       }
 
@@ -111,6 +116,9 @@ export default function LoginPageClient() {
 
   return (
     <main className="app-canvas grid min-h-screen bg-background text-foreground lg:grid-cols-[1.05fr_1fr]">
+      <div className="fixed top-4 right-4 z-50 rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur-sm">
+        <ThemeToggle />
+      </div>
       {/* Brand panel */}
       <section
         aria-hidden

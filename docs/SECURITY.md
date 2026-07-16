@@ -53,20 +53,17 @@ checklists: [production-security-checklist.md](production-security-checklist.md)
 
 ## 5. Security recommendations (prioritized)
 
-1. **Token storage**: migrate the frontend token from `localStorage` to
-   an httpOnly, SameSite cookie (with CSRF token) to harden against XSS
-   exfiltration; alternatively add short-lived access + refresh rotation.
-2. **Enable step-up in production** (`STEP_UP_ENFORCEMENT_ENABLED=true`)
+1. **Enable step-up in production** (`STEP_UP_ENFORCEMENT_ENABLED=true`)
    for payment confirmation, user management, and M-PESA settings.
-3. **Content-Security-Policy**: add a strict CSP header on the frontend
+2. **Content-Security-Policy**: add a strict CSP header on the frontend
    (currently relying on framework defaults).
-4. **Decimal money migration** (integrity): move Float money columns to
+3. **Decimal money migration** (integrity): move Float money columns to
    `Decimal` (also listed in [ROADMAP.md](ROADMAP.md)).
-5. **Field-level encryption** for national IDs and signatures at rest if
+4. **Field-level encryption** for national IDs and signatures at rest if
    required by DPA/regulator guidance.
-6. **Webhook signatures**: when Safaricom/PayHero offer callback signing
+5. **Webhook signatures**: when Safaricom/PayHero offer callback signing
    in your tier, verify signatures in addition to request-ID matching.
-7. **Regular restore drills** of database backups
+6. **Regular restore drills** of database backups
    ([DEPLOYMENT.md](DEPLOYMENT.md) §Backups).
 
 ## 6. Vulnerability management

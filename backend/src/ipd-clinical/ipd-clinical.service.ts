@@ -36,11 +36,11 @@ export class IpdClinicalService {
     private readonly safeLogger: SafeLoggerService,
   ) {}
 
-  async createProgressNote(dto: CreateIpdProgressNoteDto) {
-    await this.ipdService.getAdmissionById(dto.admissionId);
+  async createProgressNote(dto: CreateIpdProgressNoteDto, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(dto.admissionId, user);
 
     if (dto.recordedByStaffId) {
-      await this.staffService.findOne(dto.recordedByStaffId);
+      await this.staffService.findOneScoped(dto.recordedByStaffId, user);
     }
 
     return this.prisma.ipdProgressNote.create({
@@ -57,8 +57,8 @@ export class IpdClinicalService {
     });
   }
 
-  async getProgressNotesByAdmission(admissionId: number) {
-    await this.ipdService.getAdmissionById(admissionId);
+  async getProgressNotesByAdmission(admissionId: number, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(admissionId, user);
 
     return this.prisma.ipdProgressNote.findMany({
       where: { admissionId },
@@ -69,11 +69,11 @@ export class IpdClinicalService {
     });
   }
 
-  async createVitalRecord(dto: CreateIpdVitalRecordDto) {
-    await this.ipdService.getAdmissionById(dto.admissionId);
+  async createVitalRecord(dto: CreateIpdVitalRecordDto, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(dto.admissionId, user);
 
     if (dto.recordedByStaffId) {
-      await this.staffService.findOne(dto.recordedByStaffId);
+      await this.staffService.findOneScoped(dto.recordedByStaffId, user);
     }
 
     return this.prisma.ipdVitalRecord.create({
@@ -100,8 +100,8 @@ export class IpdClinicalService {
     });
   }
 
-  async getVitalRecordsByAdmission(admissionId: number) {
-    await this.ipdService.getAdmissionById(admissionId);
+  async getVitalRecordsByAdmission(admissionId: number, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(admissionId, user);
 
     return this.prisma.ipdVitalRecord.findMany({
       where: { admissionId },
@@ -112,11 +112,11 @@ export class IpdClinicalService {
     });
   }
 
-  async createDoctorReview(dto: CreateIpdDoctorReviewDto) {
-    await this.ipdService.getAdmissionById(dto.admissionId);
+  async createDoctorReview(dto: CreateIpdDoctorReviewDto, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(dto.admissionId, user);
 
     if (dto.reviewedByStaffId) {
-      await this.staffService.findOne(dto.reviewedByStaffId);
+      await this.staffService.findOneScoped(dto.reviewedByStaffId, user);
     }
 
     return this.prisma.ipdDoctorReview.create({
@@ -138,8 +138,8 @@ export class IpdClinicalService {
     });
   }
 
-  async getDoctorReviewsByAdmission(admissionId: number) {
-    await this.ipdService.getAdmissionById(admissionId);
+  async getDoctorReviewsByAdmission(admissionId: number, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(admissionId, user);
 
     return this.prisma.ipdDoctorReview.findMany({
       where: { admissionId },
@@ -150,15 +150,18 @@ export class IpdClinicalService {
     });
   }
 
-  async createTreatmentEntry(dto: CreateTreatmentChartEntryDto) {
-    await this.ipdService.getAdmissionById(dto.admissionId);
+  async createTreatmentEntry(
+    dto: CreateTreatmentChartEntryDto,
+    user: RequestUser,
+  ) {
+    await this.ipdService.getAdmissionByIdScoped(dto.admissionId, user);
 
     if (dto.orderedByStaffId) {
-      await this.staffService.findOne(dto.orderedByStaffId);
+      await this.staffService.findOneScoped(dto.orderedByStaffId, user);
     }
 
     if (dto.administeredByStaffId) {
-      await this.staffService.findOne(dto.administeredByStaffId);
+      await this.staffService.findOneScoped(dto.administeredByStaffId, user);
     }
 
     return this.prisma.treatmentChartEntry.create({
@@ -186,8 +189,8 @@ export class IpdClinicalService {
     });
   }
 
-  async getTreatmentChartByAdmission(admissionId: number) {
-    await this.ipdService.getAdmissionById(admissionId);
+  async getTreatmentChartByAdmission(admissionId: number, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(admissionId, user);
 
     return this.prisma.treatmentChartEntry.findMany({
       where: { admissionId },
@@ -199,9 +202,14 @@ export class IpdClinicalService {
     });
   }
 
-  async administerTreatment(entryId: number, administeredByStaffId?: number) {
-    const entry = await this.prisma.treatmentChartEntry.findUnique({
-      where: { id: entryId },
+  async administerTreatment(
+    entryId: number,
+    administeredByStaffId: number | undefined,
+    user: RequestUser,
+  ) {
+    const scope = this.ipdService.getAdmissionScope(user);
+    const entry = await this.prisma.treatmentChartEntry.findFirst({
+      where: { id: entryId, admission: scope },
     });
 
     if (!entry) {
@@ -211,7 +219,7 @@ export class IpdClinicalService {
     }
 
     if (administeredByStaffId) {
-      await this.staffService.findOne(administeredByStaffId);
+      await this.staffService.findOneScoped(administeredByStaffId, user);
     }
 
     return this.prisma.treatmentChartEntry.update({
@@ -355,11 +363,17 @@ export class IpdClinicalService {
     return treatmentEntry;
   }
 
-  async createOrUpdateDischargeSummary(dto: CreateIpdDischargeSummaryDto) {
-    const admission = await this.ipdService.getAdmissionById(dto.admissionId);
+  async createOrUpdateDischargeSummary(
+    dto: CreateIpdDischargeSummaryDto,
+    user: RequestUser,
+  ) {
+    const admission = await this.ipdService.getAdmissionByIdScoped(
+      dto.admissionId,
+      user,
+    );
 
     if (dto.dischargedByStaffId) {
-      await this.staffService.findOne(dto.dischargedByStaffId);
+      await this.staffService.findOneScoped(dto.dischargedByStaffId, user);
     }
 
     const saved = await this.prisma.ipdDischargeSummary.upsert({
@@ -407,8 +421,8 @@ export class IpdClinicalService {
     return saved;
   }
 
-  async getDischargeSummaryByAdmission(admissionId: number) {
-    await this.ipdService.getAdmissionById(admissionId);
+  async getDischargeSummaryByAdmission(admissionId: number, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(admissionId, user);
 
     return this.prisma.ipdDischargeSummary.findUnique({
       where: { admissionId },
@@ -418,8 +432,8 @@ export class IpdClinicalService {
     });
   }
 
-  async getAdmissionLabOrders(admissionId: number) {
-    await this.ipdService.getAdmissionById(admissionId);
+  async getAdmissionLabOrders(admissionId: number, user: RequestUser) {
+    await this.ipdService.getAdmissionByIdScoped(admissionId, user);
 
     return this.prisma.labOrder.findMany({
       where: { admissionId },
@@ -436,8 +450,11 @@ export class IpdClinicalService {
     });
   }
 
-  async getAdmissionClinicalDashboard(admissionId: number) {
-    const admission = await this.ipdService.getAdmissionById(admissionId);
+  async getAdmissionClinicalDashboard(admissionId: number, user: RequestUser) {
+    const admission = await this.ipdService.getAdmissionByIdScoped(
+      admissionId,
+      user,
+    );
 
     const progressNotes = await this.prisma.ipdProgressNote.findMany({
       where: { admissionId },
@@ -842,7 +859,7 @@ export class IpdClinicalService {
 
   private addAdmissionIdentity(
     doc: PDFKit.PDFDocument,
-    admission: Awaited<ReturnType<IpdService['getAdmissionById']>>,
+    admission: Awaited<ReturnType<IpdService['getAdmissionByIdScoped']>>,
   ) {
     addSectionTitle(doc, 'Patient and admission details');
     addKeyValueGrid(doc, [

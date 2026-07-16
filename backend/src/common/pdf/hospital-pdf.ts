@@ -78,7 +78,10 @@ export function formatPdfDate(value?: string | Date | null) {
   }).format(date);
 }
 
-export function formatPdfMoney(value?: number | null, currency = 'KES') {
+export function formatPdfMoney(
+  value?: number | string | { toString(): string } | null,
+  currency = 'KES',
+) {
   return new Intl.NumberFormat('en-KE', {
     style: 'currency',
     currency,

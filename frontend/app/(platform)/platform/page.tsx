@@ -149,7 +149,7 @@ export default function PlatformHomePage() {
             {signalCards.map((item) => {
               const Icon = item.icon;
               return (
-              <div key={item.title} className="border border-border bg-[#f8fcff] p-5">
+              <div key={item.title} className="border border-border bg-surface-2 p-5">
                 <Icon className="mb-4 h-6 w-6 text-module" />
                 <p className="text-2xl font-bold text-foreground">{item.title}</p>
                 <p className="mt-1 text-sm font-semibold uppercase text-muted-foreground">
@@ -224,7 +224,7 @@ export default function PlatformHomePage() {
         </div>
       </section>
 
-      <section className="border border-border bg-[#eaf7ff] p-5 shadow-sm">
+      <section className="border border-border bg-surface-2 p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-3">

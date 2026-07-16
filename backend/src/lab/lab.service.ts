@@ -418,7 +418,7 @@ export class LabService {
           orderItem.test?.testName ?? `Lab test #${orderItem.testId}`
         }`,
         quantity: 1,
-        unitPrice,
+        unitPrice: Number(unitPrice),
         notes:
           createLabResultDto.remarks ??
           'Automatically posted when the lab result was recorded.',
