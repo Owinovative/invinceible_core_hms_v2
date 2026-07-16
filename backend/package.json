@@ -31,6 +31,7 @@
     "db:validate": "node scripts/validate-critical-data.mjs",
     "db:validate:dry-run": "node scripts/validate-critical-data.mjs --dry-run",
     "db:seed:safe": "node scripts/safe-seed.mjs",
+    "admin:create-super": "node scripts/create-super-admin.mjs",
     "db:backup:notes": "node scripts/render-db-backup-notes.mjs",
     "db:storage:audit": "node scripts/storage-audit.mjs",
     "db:cleanup:dry-run": "node scripts/storage-cleanup.mjs --dry-run",
@@ -60,6 +61,7 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sanitize-html": "2.17.0",
     "uuid": "^14.0.1"
   },
   "devDependencies": {
@@ -77,6 +79,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pdfkit": "^0.17.6",
     "@types/qrcode": "^1.5.6",
+    "@types/sanitize-html": "^2.16.1",
     "@types/supertest": "^7.0.0",
     "@types/uuid": "^10.0.0",
     "eslint": "^9.18.0",

@@ -10,6 +10,7 @@ import {
   AcceptLegalDocumentDto,
 } from './dto/legal.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
+import { sanitizeLegalHtml } from './legal-html-sanitizer';
 
 @Injectable()
 export class LegalService {
@@ -30,7 +31,14 @@ export class LegalService {
       ),
     );
 
-    return documents.filter(Boolean);
+    return documents
+      .filter((document): document is NonNullable<typeof document> =>
+        Boolean(document),
+      )
+      .map((document) => ({
+        ...document,
+        content: sanitizeLegalHtml(document.content),
+      }));
   }
 
   async acceptDocument(
@@ -99,12 +107,28 @@ export class LegalService {
   // Admin APIs
 
   async getAllDocuments() {
-    return this.prisma.legalDocument.findMany({
+    const documents = await this.prisma.legalDocument.findMany({
       orderBy: [{ type: 'asc' }, { createdAt: 'desc' }],
     });
+    return documents.map((document) => ({
+      ...document,
+      content: sanitizeLegalHtml(document.content),
+    }));
   }
 
   async saveDraft(dto: CreateOrUpdateLegalDocumentDto, user: RequestUser) {
+    const sanitizedContent = sanitizeLegalHtml(dto.content);
+    if (
+      !sanitizedContent
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/gi, '')
+        .trim()
+    ) {
+      throw new BadRequestException(
+        'Legal document content is empty after sanitization',
+      );
+    }
+
     const existing = await this.prisma.legalDocument.findUnique({
       where: {
         type_version: {
@@ -120,24 +144,42 @@ export class LegalService {
           'Cannot edit a published document. Create a new version instead.',
         );
       }
-      return this.prisma.legalDocument.update({
+      const updated = await this.prisma.legalDocument.update({
         where: { id: existing.id },
         data: {
           title: dto.title,
-          content: dto.content,
+          content: sanitizedContent,
         },
       });
+      await this.auditLogService.create({
+        moduleName: 'LEGAL',
+        actionName: 'UPDATE_LEGAL_DOCUMENT_DRAFT',
+        entityType: 'LEGAL_DOCUMENT',
+        entityId: String(updated.id),
+        description: `Updated ${updated.type} version ${updated.version} draft`,
+        actorUserId: user.userId,
+      });
+      return updated;
     }
 
-    return this.prisma.legalDocument.create({
+    const created = await this.prisma.legalDocument.create({
       data: {
         type: dto.type,
         version: dto.version,
         title: dto.title,
-        content: dto.content,
+        content: sanitizedContent,
         status: 'DRAFT',
       },
     });
+    await this.auditLogService.create({
+      moduleName: 'LEGAL',
+      actionName: 'CREATE_LEGAL_DOCUMENT_DRAFT',
+      entityType: 'LEGAL_DOCUMENT',
+      entityId: String(created.id),
+      description: `Created ${created.type} version ${created.version} draft`,
+      actorUserId: user.userId,
+    });
+    return created;
   }
 
   async publishDocument(id: number, user: RequestUser) {
@@ -150,6 +192,7 @@ export class LegalService {
       return document;
     }
 
+    const sanitizedContent = sanitizeLegalHtml(document.content);
     const updated = await this.prisma.$transaction(async (tx) => {
       // Archive other published versions of this type
       await tx.legalDocument.updateMany({
@@ -167,6 +210,7 @@ export class LegalService {
         data: {
           status: 'PUBLISHED',
           publishedAt: new Date(),
+          content: sanitizedContent,
         },
       });
     });

@@ -133,6 +133,9 @@ export function validateEnvironment(
     PASSWORD_MIN_LENGTH: config.PASSWORD_MIN_LENGTH ?? '12',
     AUTH_FAILED_LOGIN_DELAY_MAX_MS:
       config.AUTH_FAILED_LOGIN_DELAY_MAX_MS ?? '2500',
+    AUTH_COOKIE_MAX_AGE_SECONDS: config.AUTH_COOKIE_MAX_AGE_SECONDS ?? '86400',
+    AUTH_COOKIE_SAME_SITE: config.AUTH_COOKIE_SAME_SITE ?? 'lax',
+    AUTH_COOKIE_SECURE: config.AUTH_COOKIE_SECURE ?? 'false',
     STEP_UP_TTL_SECONDS: config.STEP_UP_TTL_SECONDS ?? '300',
     STEP_UP_ENFORCEMENT_ENABLED: config.STEP_UP_ENFORCEMENT_ENABLED ?? 'false',
     // Government integrations (KRA eTIMS + DHA). Disabled by default so

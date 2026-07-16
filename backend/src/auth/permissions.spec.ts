@@ -18,4 +18,11 @@ describe('roleHasPermission', () => {
     expect(roleHasPermission('CASHIER', 'payment.collect')).toBe(true);
     expect(roleHasPermission('CASHIER', 'mpesa.settings.update')).toBe(false);
   });
+
+  it('limits legal document management to platform administrators', () => {
+    expect(roleHasPermission('SUPER_ADMIN', 'legal.manage')).toBe(true);
+    expect(roleHasPermission('ADMIN', 'legal.manage')).toBe(true);
+    expect(roleHasPermission('FACILITY_ADMIN', 'legal.manage')).toBe(false);
+    expect(roleHasPermission('DOCTOR', 'legal.manage')).toBe(false);
+  });
 });

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
+import { isCookieMutationOriginAllowed } from './auth/cookie-csrf';
 
 function normalizeOrigin(origin: string) {
   try {
@@ -76,6 +77,26 @@ async function bootstrap() {
       return callback(new Error('CORS origin is not allowed'), false);
     },
     credentials: true,
+  });
+
+  app.use((req, res, next) => {
+    const originAllowed = isCookieMutationOriginAllowed({
+      method: req.method,
+      cookieHeader: req.headers.cookie,
+      authorizationHeader: req.headers.authorization,
+      origin: req.headers.origin,
+      allowedOrigins,
+    });
+
+    if (!originAllowed) {
+      return res.status(403).json({
+        statusCode: 403,
+        message: 'Request origin is not allowed',
+        error: 'Forbidden',
+      });
+    }
+
+    next();
   });
 
   app.use((_req, res, next) => {

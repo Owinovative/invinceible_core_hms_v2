@@ -11,7 +11,6 @@ export class LoginDto {
   @MaxLength(100)
   username: string;
 
-  @Transform(({ value }: { value: unknown }) => trimString(value))
   @IsString()
   @MinLength(6)
   @MaxLength(100)
