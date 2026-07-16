@@ -19,7 +19,7 @@ const facilityCards = [
 
 export default function FacilitiesPage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <PublicSiteHeader />
       <section className="border-b border-border bg-card">
         <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1500px] gap-8 px-5 py-8 md:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">

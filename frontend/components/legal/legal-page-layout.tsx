@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 interface TocItem {
   id: string;
@@ -71,6 +72,9 @@ export function LegalPageLayout({
 
   return (
     <div className="relative min-h-screen bg-background">
+      <div className="fixed top-4 right-4 z-40 rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur-sm print:hidden">
+        <ThemeToggle />
+      </div>
       {/* Scroll Progress Bar */}
       <div className="fixed top-0 left-0 z-50 h-1 w-full bg-muted print:hidden">
         <div

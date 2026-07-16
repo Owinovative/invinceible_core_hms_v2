@@ -102,7 +102,7 @@ export function RequestConsentModal({ patientId, isOpen, onClose, onSuccess }: R
                     <label
                       key={contact.contact_id}
                       className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedContact === contact.contact_id ? 'border-primary bg-primary/5' : 'hover:bg-gray-50'
+                        selectedContact === contact.contact_id ? 'border-primary bg-primary/5' : 'hover:bg-muted'
                       }`}
                     >
                       <input
@@ -117,7 +117,7 @@ export function RequestConsentModal({ patientId, isOpen, onClose, onSuccess }: R
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-gray-500">No contacts found for this patient on the DHA Registry.</div>
+                <div className="text-sm text-muted-foreground">No contacts found for this patient on the DHA Registry.</div>
               )}
               
               <div className="flex justify-end pt-4">
@@ -133,7 +133,7 @@ export function RequestConsentModal({ patientId, isOpen, onClose, onSuccess }: R
           ) : (
             <div className="space-y-4">
               <h4 className="text-sm font-medium">Enter Verification Code</h4>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Please ask the patient for the code sent to their selected contact method.
               </p>
               <Input

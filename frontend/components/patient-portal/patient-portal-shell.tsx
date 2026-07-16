@@ -35,7 +35,7 @@ export function PatientPortalShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-4 md:px-8">
           <AppLogo />
@@ -72,7 +72,7 @@ export function PatientPortalShell({
                 <Link
                   href={item.href}
                   key={item.href}
-                  className="flex items-center gap-3 border border-border bg-[#f7fcff] px-3 py-3 text-sm font-semibold text-foreground hover:border-border-strong"
+                  className="flex items-center gap-3 border border-border bg-surface-2 px-3 py-3 text-sm font-semibold text-foreground hover:border-border-strong"
                 >
                   <Icon className="h-4 w-4 text-module" />
                   {item.title}

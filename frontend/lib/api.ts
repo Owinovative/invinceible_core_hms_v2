@@ -16,11 +16,6 @@ type RequestOptions = RequestInit & {
   timeoutMs?: number;
 };
 
-function getStoredToken() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("hms_access_token");
-}
-
 function isLocalApiUrl(url: string) {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
 }
@@ -35,8 +30,6 @@ export async function apiFetch<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { token, headers, timeoutMs = 25000, signal, ...rest } = options;
-
-  const resolvedToken = token ?? getStoredToken();
 
   if (isLocalApiUrl(API_BASE_URL) && !isLocalBrowser()) {
     throw new ApiError(
@@ -58,9 +51,10 @@ export async function apiFetch<T>(
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...rest,
+      credentials: "include",
       headers: {
         ...(rest.body ? { "Content-Type": "application/json" } : {}),
-        ...(resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(headers || {}),
       },
       cache: "no-store",
@@ -107,15 +101,6 @@ export async function apiFetch<T>(
       // ignore
     }
 
-    if (
-      response.status === 401 &&
-      typeof window !== "undefined" &&
-      !path.startsWith("/auth/login")
-    ) {
-      localStorage.removeItem("hms_access_token");
-      window.location.assign("/login");
-    }
-
     throw new ApiError(message, response.status);
   }
 
@@ -123,8 +108,6 @@ export async function apiFetch<T>(
 }
 
 export async function apiDownload(path: string, fileName: string) {
-  const token = getStoredToken();
-
   if (isLocalApiUrl(API_BASE_URL) && !isLocalBrowser()) {
     throw new ApiError(
       "The hospital server URL is not configured for this deployment. Set NEXT_PUBLIC_API_BASE_URL to the deployed backend URL.",
@@ -138,9 +121,7 @@ export async function apiDownload(path: string, fileName: string) {
 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      credentials: "include",
       cache: "no-store",
       signal: controller.signal,
     });
@@ -168,11 +149,6 @@ export async function apiDownload(path: string, fileName: string) {
       if (text) message = text;
     } catch {
       // ignore
-    }
-
-    if (response.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("hms_access_token");
-      window.location.assign("/login");
     }
 
     throw new ApiError(message, response.status);

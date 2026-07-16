@@ -25,7 +25,7 @@ const panels = [
 
 export default function CreatorsPage() {
   return (
-    <main className="min-h-screen bg-[#eef8ff] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <PublicSiteHeader />
       <section className="border-b border-border bg-card">
         <div className="mx-auto grid min-h-[calc(100vh-82px)] max-w-[1540px] gap-6 px-5 py-8 md:px-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
@@ -46,7 +46,7 @@ export default function CreatorsPage() {
             {panels.map((panel) => {
               const Icon = panel.icon;
               return (
-                <div key={panel.label} className="border border-border bg-[#f7fcff] p-3 shadow-xl">
+                <div key={panel.label} className="border border-border bg-surface-2 p-3 shadow-xl">
                   <div
                     className="h-[470px] bg-cover bg-center"
                     style={{ backgroundImage: `url('${panel.image}')` }}

@@ -117,7 +117,7 @@ export default function FeedbackPage() {
             ) : (
               <div className="space-y-4">
                 {data.map((item) => (
-                  <article key={item.id} className="border border-border bg-[#f8fcff] p-4">
+                  <article key={item.id} className="border border-border bg-surface-2 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-foreground">
