@@ -18,6 +18,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:unit:ci": "jest --runInBand --testPathIgnorePatterns=integration/",
     "test:integration": "jest --config test/jest-integration.json --runInBand --testTimeout=15000",
     "test:integration:cov": "jest --config test/jest-integration.json --runInBand --coverage",
     "lint:integration": "eslint \"src/integration/**/*.ts\"",
@@ -110,6 +111,9 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^uuid$": "<rootDir>/testing/uuid.mock.ts"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
