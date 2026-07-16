@@ -19,48 +19,67 @@ import { UpdateWardDto } from './dto/update-ward.dto';
 import { UpdateBedDto } from './dto/update-bed.dto';
 import { UpdateBedStatusDto } from './dto/update-bed-status.dto';
 import { TransferAdmissionBedDto } from './dto/transfer-admission-bed.dto';
+import { Permissions } from '../auth/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
 
 @Controller('ipd')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class IpdController {
   constructor(private readonly ipdService: IpdService) {}
 
   @Post('wards')
-  createWard(@Body() createWardDto: CreateWardDto) {
-    return this.ipdService.createWard(createWardDto);
+  @Permissions('admission.manage')
+  createWard(
+    @Body() createWardDto: CreateWardDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdService.createWardScoped(createWardDto, user);
   }
 
   @Get('wards')
-  getAllWards() {
-    return this.ipdService.getAllWards();
+  @Permissions('patient.read')
+  getAllWards(@CurrentUser() user: RequestUser) {
+    return this.ipdService.getAllWardsScoped(user);
   }
 
   @Post('beds')
-  createBed(@Body() createBedDto: CreateBedDto) {
-    return this.ipdService.createBed(createBedDto);
+  @Permissions('admission.manage')
+  createBed(
+    @Body() createBedDto: CreateBedDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdService.createBedScoped(createBedDto, user);
   }
 
   @Get('beds')
-  getAllBeds() {
-    return this.ipdService.getAllBeds();
+  @Permissions('patient.read')
+  getAllBeds(@CurrentUser() user: RequestUser) {
+    return this.ipdService.getAllBedsScoped(user);
   }
 
   @Post('admissions')
-  createAdmission(@Body() createAdmissionDto: CreateAdmissionDto) {
-    return this.ipdService.createAdmission(createAdmissionDto);
+  @Permissions('admission.manage')
+  createAdmission(
+    @Body() createAdmissionDto: CreateAdmissionDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdService.createAdmissionScoped(createAdmissionDto, user);
   }
 
   @Get('admissions')
+  @Permissions('patient.read')
   getAllAdmissions(@CurrentUser() user: RequestUser) {
     return this.ipdService.getAllAdmissionsScoped(user);
   }
 
   @Get('admissions/active')
+  @Permissions('patient.read')
   getActiveAdmissions(@CurrentUser() user: RequestUser) {
     return this.ipdService.getActiveAdmissionsScoped(user);
   }
 
   @Get('admissions/:id')
+  @Permissions('patient.read')
   getAdmissionById(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -68,38 +87,58 @@ export class IpdController {
     return this.ipdService.getAdmissionByIdScoped(id, user);
   }
   @Patch('wards/:id')
+  @Permissions('admission.manage')
   updateWard(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateWardDto: UpdateWardDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdService.updateWard(id, updateWardDto);
+    return this.ipdService.updateWardScoped(id, updateWardDto, user);
   }
 
   @Patch('beds/:id')
+  @Permissions('admission.manage')
   updateBed(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateBedDto: UpdateBedDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdService.updateBed(id, updateBedDto);
+    return this.ipdService.updateBedScoped(id, updateBedDto, user);
   }
 
   @Patch('beds/:id/status')
+  @Permissions('admission.manage')
   updateBedStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateBedStatusDto: UpdateBedStatusDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdService.updateBedStatus(id, updateBedStatusDto.statusCode);
+    return this.ipdService.updateBedStatusScoped(
+      id,
+      updateBedStatusDto.statusCode,
+      user,
+    );
   }
   @Patch('admissions/:id/transfer-bed')
+  @Permissions('admission.manage')
   transferAdmissionBed(
     @Param('id', ParseIntPipe) id: number,
     @Body() transferAdmissionBedDto: TransferAdmissionBedDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdService.transferAdmissionBed(id, transferAdmissionBedDto);
+    return this.ipdService.transferAdmissionBedScoped(
+      id,
+      transferAdmissionBedDto,
+      user,
+    );
   }
 
   @Patch('admissions/:id/discharge')
-  dischargeAdmission(@Param('id', ParseIntPipe) id: number) {
-    return this.ipdService.dischargeAdmission(id);
+  @Permissions('discharge.complete')
+  dischargeAdmission(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdService.dischargeAdmissionScoped(id, user);
   }
 }
