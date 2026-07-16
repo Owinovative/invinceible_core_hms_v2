@@ -629,7 +629,8 @@ export class EtimsService implements OnModuleInit {
         statusCode: ETIMS_STATUS.PENDING,
         receiptTypeCode:
           params.documentType === ETIMS_DOCUMENT_TYPE.CREDIT_NOTE ? 'R' : 'S',
-        totalAmount: params.invoice.totalAmount,        requestPayload: params.itemIds?.length
+        totalAmount: params.invoice.totalAmount,
+        requestPayload: params.itemIds?.length
           ? ({ itemIds: params.itemIds } as Prisma.InputJsonValue)
           : Prisma.JsonNull,
         cancelReason: params.reason ?? null,
