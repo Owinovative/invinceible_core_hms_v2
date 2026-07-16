@@ -7,7 +7,7 @@ The Legal & Compliance Module ensures that Invinceible Core HMS meets the string
 
 ### 1. Database Schema
 Two new models have been introduced to manage legal documents and their acceptances:
-- `LegalDocument`: Stores versioned text (Markdown/HTML) for Terms of Use, Privacy Policy, and Cookie Policies. Includes states: `DRAFT`, `PUBLISHED`, and `ARCHIVED`.
+- `LegalDocument`: Stores versioned, server-sanitized HTML for Terms of Use, Privacy Policy, and Cookie Policies. Includes states: `DRAFT`, `PUBLISHED`, and `ARCHIVED`.
 - `LegalAcceptance`: Records the exact version of the document a user accepted, along with timestamp, IP address, and User-Agent, providing an irrefutable audit trail.
 
 ### 2. Mandatory Consent Flow (First Login)
@@ -24,6 +24,10 @@ These pages feature a sticky Table of Contents, scroll progress indicators, and 
 
 ### 4. Admin Management Console
 Accessible at `Settings > Legal Documents` by Super Admins.
+- Every administration API requires the explicit `legal.manage` permission.
+- Draft and published content is sanitized server-side using a strict tag,
+  attribute, and URL-scheme allowlist. The consent screen renders an escaped
+  text representation rather than injecting HTML into the DOM.
 - Enables the drafting of new versions.
 - Publishing a new version automatically archives the previous one.
 - Publishing instantly forces all users to re-consent on their next login or session refresh.
@@ -31,9 +35,9 @@ Accessible at `Settings > Legal Documents` by Super Admins.
 ## APIs
 - `GET /legal/documents/published`: Publicly retrieves current published versions.
 - `POST /legal/accept`: Authenticated endpoint to record consent.
-- `GET /legal/admin/documents`: Retrieves version history.
-- `POST /legal/admin/documents`: Creates or edits a draft.
-- `POST /legal/admin/documents/:id/publish`: Promotes a draft to published status.
+- `GET /legal/admin/documents`: Retrieves version history (`legal.manage`).
+- `POST /legal/admin/documents`: Creates or edits a sanitized draft (`legal.manage`).
+- `POST /legal/admin/documents/:id/publish`: Promotes a sanitized draft to published status (`legal.manage`).
 
 ## Future Enhancements
 - **Patient Portal Consent**: Extend the `LegalAcceptance` model to cover patients logging into the patient portal, explicitly capturing their consent for processing sensitive health data under the DPA.

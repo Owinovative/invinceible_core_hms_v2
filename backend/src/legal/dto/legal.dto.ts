@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsIn, MaxLength } from 'class-validator';
 
 export class CreateOrUpdateLegalDocumentDto {
   @IsString()
@@ -8,14 +8,17 @@ export class CreateOrUpdateLegalDocumentDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   version: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   title: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(100_000)
   content: string;
 }
 
@@ -27,5 +30,6 @@ export class AcceptLegalDocumentDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   version: string;
 }

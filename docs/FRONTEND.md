@@ -83,7 +83,7 @@ Conventions:
 | State | Owner | Notes |
 | --- | --- | --- |
 | Server data | TanStack Query | Query keys per domain; optimistic updates on selected mutations; devtools in development |
-| Auth session | `AuthProvider` | Token in `localStorage` (`hms_access_token`); hydrates `/auth/me`; 20-minute inactivity auto-logout with 60s warning; deactivation acceptance flow; precise geolocation reporting |
+| Auth session | `AuthProvider` | HttpOnly session cookie; hydrates `/auth/me` with credentials; 20-minute inactivity auto-logout with 60s warning; deactivation acceptance flow; precise geolocation reporting |
 | Tenant scope | `ScopeProvider` | Active facility/branch for multi-branch users; drives query params |
 | UI chrome | `SidebarProvider`, component state | Sidebar collapse, dialogs, filters |
 

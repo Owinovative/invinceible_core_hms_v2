@@ -17,6 +17,8 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { Permissions } from '../auth/permissions.decorator';
 
 // Extend Express Request to include user
 interface AuthenticatedRequest extends Request {
@@ -52,13 +54,15 @@ export class LegalController {
 
   // Admin APIs
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('legal.manage')
   @Get('admin/documents')
   getAllDocuments() {
     return this.legalService.getAllDocuments();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('legal.manage')
   @Post('admin/documents')
   saveDraft(
     @Body() dto: CreateOrUpdateLegalDocumentDto,
@@ -67,7 +71,8 @@ export class LegalController {
     return this.legalService.saveDraft(dto, req.user);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('legal.manage')
   @Post('admin/documents/:id/publish')
   publishDocument(
     @Param('id', ParseIntPipe) id: number,
