@@ -20,72 +20,114 @@ import { CreateIpdDischargeSummaryDto } from './dto/create-ipd-discharge-summary
 import { AdministerIpdMedicineDto } from './dto/administer-ipd-medicine.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { Permissions } from '../auth/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
 
 @Controller('ipd-clinical')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class IpdClinicalController {
   constructor(private readonly ipdClinicalService: IpdClinicalService) {}
 
   @Post('progress-notes')
-  createProgressNote(@Body() dto: CreateIpdProgressNoteDto) {
-    return this.ipdClinicalService.createProgressNote(dto);
+  @Permissions('admission.manage')
+  createProgressNote(
+    @Body() dto: CreateIpdProgressNoteDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdClinicalService.createProgressNote(dto, user);
   }
 
   @Get('progress-notes/admission/:admissionId')
+  @Permissions('patient.read')
   getProgressNotesByAdmission(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getProgressNotesByAdmission(admissionId);
+    return this.ipdClinicalService.getProgressNotesByAdmission(
+      admissionId,
+      user,
+    );
   }
 
   @Post('vitals')
-  createVitalRecord(@Body() dto: CreateIpdVitalRecordDto) {
-    return this.ipdClinicalService.createVitalRecord(dto);
+  @Permissions('admission.manage')
+  createVitalRecord(
+    @Body() dto: CreateIpdVitalRecordDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdClinicalService.createVitalRecord(dto, user);
   }
 
   @Get('vitals/admission/:admissionId')
+  @Permissions('patient.read')
   getVitalRecordsByAdmission(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getVitalRecordsByAdmission(admissionId);
+    return this.ipdClinicalService.getVitalRecordsByAdmission(
+      admissionId,
+      user,
+    );
   }
 
   @Post('doctor-reviews')
-  createDoctorReview(@Body() dto: CreateIpdDoctorReviewDto) {
-    return this.ipdClinicalService.createDoctorReview(dto);
+  @Permissions('consultation.write')
+  createDoctorReview(
+    @Body() dto: CreateIpdDoctorReviewDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdClinicalService.createDoctorReview(dto, user);
   }
 
   @Get('doctor-reviews/admission/:admissionId')
+  @Permissions('patient.read')
   getDoctorReviewsByAdmission(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getDoctorReviewsByAdmission(admissionId);
+    return this.ipdClinicalService.getDoctorReviewsByAdmission(
+      admissionId,
+      user,
+    );
   }
 
   @Post('treatment-chart')
-  createTreatmentEntry(@Body() dto: CreateTreatmentChartEntryDto) {
-    return this.ipdClinicalService.createTreatmentEntry(dto);
+  @Permissions('admission.manage')
+  createTreatmentEntry(
+    @Body() dto: CreateTreatmentChartEntryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdClinicalService.createTreatmentEntry(dto, user);
   }
 
   @Get('treatment-chart/admission/:admissionId')
+  @Permissions('patient.read')
   getTreatmentChartByAdmission(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getTreatmentChartByAdmission(admissionId);
+    return this.ipdClinicalService.getTreatmentChartByAdmission(
+      admissionId,
+      user,
+    );
   }
 
   @Patch('treatment-chart/:entryId/administer')
+  @Permissions('admission.manage')
   administerTreatment(
     @Param('entryId', ParseIntPipe) entryId: number,
     @Body() body: { administeredByStaffId?: number },
+    @CurrentUser() user: RequestUser,
   ) {
     return this.ipdClinicalService.administerTreatment(
       entryId,
       body?.administeredByStaffId,
+      user,
     );
   }
 
   @Post('admissions/:admissionId/medicine-administration')
+  @Permissions('admission.manage')
   administerAdmissionMedicine(
     @Param('admissionId', ParseIntPipe) admissionId: number,
     @Body() dto: AdministerIpdMedicineDto,
@@ -99,32 +141,49 @@ export class IpdClinicalController {
   }
 
   @Post('discharge-summary')
-  createOrUpdateDischargeSummary(@Body() dto: CreateIpdDischargeSummaryDto) {
-    return this.ipdClinicalService.createOrUpdateDischargeSummary(dto);
+  @Permissions('discharge.complete')
+  createOrUpdateDischargeSummary(
+    @Body() dto: CreateIpdDischargeSummaryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ipdClinicalService.createOrUpdateDischargeSummary(dto, user);
   }
 
   @Get('discharge-summary/admission/:admissionId')
+  @Permissions('patient.read')
   getDischargeSummaryByAdmission(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getDischargeSummaryByAdmission(admissionId);
+    return this.ipdClinicalService.getDischargeSummaryByAdmission(
+      admissionId,
+      user,
+    );
   }
 
   @Get('lab-orders/admission/:admissionId')
+  @Permissions('patient.read')
   getAdmissionLabOrders(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getAdmissionLabOrders(admissionId);
+    return this.ipdClinicalService.getAdmissionLabOrders(admissionId, user);
   }
 
   @Get('dashboard/admission/:admissionId')
+  @Permissions('patient.read')
   getAdmissionClinicalDashboard(
     @Param('admissionId', ParseIntPipe) admissionId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.ipdClinicalService.getAdmissionClinicalDashboard(admissionId);
+    return this.ipdClinicalService.getAdmissionClinicalDashboard(
+      admissionId,
+      user,
+    );
   }
 
   @Get('documents/admissions/:admissionId/medical-summary.pdf')
+  @Permissions('patient.read')
   async downloadMedicalSummaryPdf(
     @Param('admissionId', ParseIntPipe) admissionId: number,
     @CurrentUser() user: RequestUser,
@@ -139,6 +198,7 @@ export class IpdClinicalController {
   }
 
   @Get('documents/admissions/:admissionId/discharge-summary.pdf')
+  @Permissions('patient.read')
   async downloadDischargeSummaryPdf(
     @Param('admissionId', ParseIntPipe) admissionId: number,
     @CurrentUser() user: RequestUser,
@@ -153,6 +213,7 @@ export class IpdClinicalController {
   }
 
   @Get('documents/admissions/:admissionId/treatment-chart.pdf')
+  @Permissions('patient.read')
   async downloadTreatmentChartPdf(
     @Param('admissionId', ParseIntPipe) admissionId: number,
     @CurrentUser() user: RequestUser,
