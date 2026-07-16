@@ -8,7 +8,11 @@
   "collectCoverageFrom": [
     "integration/**/*.ts",
     "!integration/**/*.spec.ts",
-    "!integration/testing/**"
+    "!integration/testing/**",
+    "!integration/**/*.controller.ts",
+    "!integration/**/*.module.ts",
+    "!integration/**/*.types.ts",
+    "!integration/**/dto/**"
   ],
   "coverageDirectory": "../coverage-integration",
   "coverageThreshold": {

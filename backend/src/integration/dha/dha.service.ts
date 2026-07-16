@@ -324,6 +324,7 @@ export class DhaService implements OnModuleInit {
                         {
                           system: this.systems.icd11,
                           code: claim.diagnosisCode,
+                          display: claim.diagnosisText ?? claim.diagnosisCode,
                         },
                       ]
                     : undefined,

@@ -207,6 +207,30 @@ describe('DhaService', () => {
   });
 
   describe('queued claim submission', () => {
+    it('maps a structured terminology diagnosis into the claim bundle', async () => {
+      prisma.shaClaim.rows[0].diagnosisConcept = {
+        system: 'http://id.who.int/icd/release/11/mms',
+        code: 'CA40.0',
+        display: 'Bacterial pneumonia',
+        version: '2026-01',
+      };
+
+      await service.onShaClaimSubmitted(shaClaimId);
+
+      const bundle = prisma.dhaTransaction.rows[0].requestPayload as {
+        entry: Array<{ resource: Record<string, any> }>;
+      };
+      const claim = bundle.entry.find(
+        (entry) => entry.resource.resourceType === 'Claim',
+      )?.resource;
+      expect(claim?.diagnosis[0].diagnosisCodeableConcept.coding[0]).toEqual({
+        system: 'http://id.who.int/icd/release/11/mms',
+        code: 'CA40.0',
+        display: 'Bacterial pneumonia',
+        version: '2026-01',
+      });
+    });
+
     it('queues a FHIR claim bundle when a SHA claim is submitted', async () => {
       const outcome = await service.onShaClaimSubmitted(shaClaimId, {
         correlationId: 'corr-claim',
@@ -288,6 +312,46 @@ describe('DhaService', () => {
         'DEAD_LETTER',
       );
     });
+
+    it('passes an active patient consent token to the DHA adapter', async () => {
+      const client = new DhaMockClient();
+      client.submitClaim = jest
+        .fn()
+        .mockResolvedValue({ status: 'ACCEPTED', raw: { mock: true } });
+      buildService({}, client);
+      await prisma.consentAuthorization.create({
+        data: {
+          patientId,
+          status: 'AUTHORIZED',
+          expiresAt: null,
+          consentToken: 'consent-token-1',
+        },
+      });
+
+      await service.onShaClaimSubmitted(shaClaimId);
+      await worker.runOnce();
+
+      expect(client.submitClaim).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({ consentToken: 'consent-token-1' }),
+      );
+    });
+
+    it('dead-letters malformed DHA queue payloads', async () => {
+      await queue.enqueue({
+        integration: 'DHA',
+        operation: 'SUBMIT_CLAIM',
+        entityType: 'DHA_TRANSACTION',
+        entityId: 'missing',
+        payload: {},
+        idempotencyKey: 'dha:malformed:1',
+      });
+
+      expect(await worker.runOnce()).toEqual({ processed: 0, failed: 1 });
+      expect(prisma.integrationOutboundRequest.rows[0].status).toBe(
+        'DEAD_LETTER',
+      );
+    });
   });
 
   describe('encounters and referrals', () => {
@@ -346,6 +410,76 @@ describe('DhaService', () => {
       await service.verifyPatient({ nationalId: '222' }, { facilityId });
       const rows = await service.listTransactions({ facilityId, limit: 1 });
       expect(rows).toHaveLength(1);
+    });
+  });
+
+  describe('claim status synchronization', () => {
+    it.each([
+      ['ACCEPTED', 'ACCEPTED'],
+      ['SETTLED', 'PAID'],
+      ['REJECTED', 'REJECTED'],
+    ])(
+      'maps DHA %s responses to %s',
+      async (responseStatus, expectedStatus) => {
+        const client = new DhaMockClient();
+        client.pollClaimResponse = jest.fn().mockResolvedValue({
+          status: responseStatus,
+          raw: { mock: true },
+        });
+        buildService({}, client);
+
+        await service.pollClaimStatus(shaClaimId);
+
+        expect(prisma.shaClaim.rows[0].statusCode).toBe(expectedStatus);
+      },
+    );
+
+    it('rejects polling for an unknown claim', async () => {
+      await expect(service.pollClaimStatus(999)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('propagates polling errors without changing the claim', async () => {
+      const client = new DhaMockClient();
+      client.pollClaimResponse = jest
+        .fn()
+        .mockRejectedValue(new Error('polling unavailable'));
+      buildService({}, client);
+
+      await expect(service.pollClaimStatus(shaClaimId)).rejects.toThrow(
+        'polling unavailable',
+      );
+      expect(prisma.shaClaim.rows[0].statusCode).toBe('SUBMITTED');
+    });
+
+    it('handles callbacks for accepted and unknown claims', async () => {
+      const accepted = await service.handleClaimStatusCallback({
+        claimNumber: 'SHA-000001',
+        status: 'APPROVED',
+      });
+      expect(accepted).toMatchObject({
+        updated: true,
+        claimId: shaClaimId,
+        newStatus: 'ACCEPTED',
+      });
+      expect(prisma.shaClaim.rows[0].approvedAt).toBeInstanceOf(Date);
+
+      await expect(
+        service.handleClaimStatusCallback({
+          claimNumber: 'UNKNOWN',
+          status: 'PAID',
+        }),
+      ).resolves.toEqual({ skipped: true });
+    });
+
+    it('keeps the current status for an unrecognized callback status', async () => {
+      const outcome = await service.handleClaimStatusCallback({
+        claimNumber: 'SHA-000001',
+        status: 'UNRECOGNIZED',
+      });
+      expect(outcome.newStatus).toBe('SUBMITTED');
+      expect(prisma.shaClaim.rows[0].statusCode).toBe('SUBMITTED');
     });
   });
 });
