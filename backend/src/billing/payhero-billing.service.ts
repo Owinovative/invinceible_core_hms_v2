@@ -256,7 +256,7 @@ export class PayheroBillingService {
       throw new BadRequestException('PayHero amount must be greater than zero');
     }
 
-    if (dto.amount > invoice.balanceAmount) {
+    if (dto.amount > Number(invoice.balanceAmount)) {
       throw new BadRequestException(
         'PayHero amount cannot exceed the invoice balance',
       );
@@ -495,8 +495,8 @@ export class PayheroBillingService {
           statusCode,
           amount:
             statusCode === 'COMPLETED' && paidAmount !== undefined
-              ? Math.min(paidAmount, payment.amount)
-              : payment.amount,
+              ? Math.min(paidAmount, Number(payment.amount))
+              : Number(payment.amount),
           mpesaReceiptNumber: receiptNumber ?? payment.mpesaReceiptNumber,
           transactionRef: providerReference ?? payment.transactionRef,
           checkoutRequestId: providerReference ?? payment.checkoutRequestId,
@@ -513,10 +513,10 @@ export class PayheroBillingService {
           select: { amount: true },
         });
         const paidTotal = completedPayments.reduce(
-          (sum, item) => sum + item.amount,
+          (sum, item) => sum + Number(item.amount),
           0,
         );
-        const balanceAmount = payment.invoice.totalAmount - paidTotal;
+        const balanceAmount = Number(payment.invoice.totalAmount) - paidTotal;
 
         await tx.invoice.update({
           where: { id: payment.invoiceId },
@@ -524,13 +524,13 @@ export class PayheroBillingService {
             paidAmount: paidTotal,
             balanceAmount,
             statusCode:
-              balanceAmount <= 0 && payment.invoice.totalAmount > 0
+              balanceAmount <= 0 && Number(payment.invoice.totalAmount) > 0
                 ? 'CLOSED'
                 : paidTotal > 0
                   ? 'PARTIALLY_PAID'
                   : 'PENDING',
             settledAt:
-              balanceAmount <= 0 && payment.invoice.totalAmount > 0
+              balanceAmount <= 0 && Number(payment.invoice.totalAmount) > 0
                 ? (payment.invoice.settledAt ?? now)
                 : payment.invoice.settledAt,
           },

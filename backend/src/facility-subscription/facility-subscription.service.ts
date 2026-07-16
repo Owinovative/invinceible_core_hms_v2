@@ -29,7 +29,7 @@ export class FacilitySubscriptionService {
   computeStatus(facility: {
     id: number;
     createdAt: Date;
-    subscriptionMonthlyFee?: number | null;
+    subscriptionMonthlyFee?: number | { toNumber(): number } | null;
     subscriptionStartedAt?: Date | null;
     subscriptionPaidThrough?: Date | null;
     subscriptionStatus?: string | null;
