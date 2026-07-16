@@ -13,7 +13,7 @@ export function PrintToolbar({
   isDownloading?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 border border-sky-200 bg-white p-2">
+    <div className="flex flex-wrap items-center justify-end gap-2 border border-border bg-card p-2">
       {onPrint ? (
         <Button variant="outline" size="sm" onClick={onPrint}>
           <Printer className="mr-2 h-4 w-4" />

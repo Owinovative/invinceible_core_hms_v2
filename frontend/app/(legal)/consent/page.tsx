@@ -11,6 +11,22 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/providers/auth-provider";
 
+function legalText(content: string) {
+  return content
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|h[1-6]|li|blockquote)>/gi, "\n")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s+/g, "\n")
+    .trim();
+}
+
 export default function ConsentPage() {
   const router = useRouter();
   const { logout } = useAuth();
@@ -25,7 +41,7 @@ export default function ConsentPage() {
       try {
         const response = await getPublishedLegalDocuments();
         setDocuments(response);
-      } catch (_) {
+      } catch {
         toast.error("Failed to load legal documents.");
       } finally {
         setIsLoading(false);
@@ -52,7 +68,7 @@ export default function ConsentPage() {
       
       toast.success("Thank you for accepting the legal terms.");
       router.push("/dashboard");
-    } catch (_) {
+    } catch {
       toast.error("An error occurred while saving your consent.");
     } finally {
       setIsSubmitting(false);
@@ -98,7 +114,7 @@ export default function ConsentPage() {
             </div>
             <ScrollArea className="h-40 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
               {termsDoc?.content ? (
-                <div dangerouslySetInnerHTML={{ __html: termsDoc.content }} />
+                <p className="whitespace-pre-wrap">{legalText(termsDoc.content)}</p>
               ) : (
                 <p>Please review our Terms of Use using the link above.</p>
               )}
@@ -130,7 +146,7 @@ export default function ConsentPage() {
             </div>
             <ScrollArea className="h-40 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
               {privacyDoc?.content ? (
-                <div dangerouslySetInnerHTML={{ __html: privacyDoc.content }} />
+                <p className="whitespace-pre-wrap">{legalText(privacyDoc.content)}</p>
               ) : (
                 <p>Please review our Privacy Policy using the link above.</p>
               )}

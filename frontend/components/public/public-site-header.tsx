@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 export function PublicSiteHeader() {
   return (
@@ -27,12 +28,15 @@ export function PublicSiteHeader() {
             Creators
           </Link>
         </nav>
-        <Button asChild className="rounded-md bg-primary text-white hover:bg-primary">
-          <Link href="/login">
-            Enter system
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button asChild className="rounded-md bg-primary text-primary-foreground hover:bg-primary">
+            <Link href="/login">
+              Enter system
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </header>
   );

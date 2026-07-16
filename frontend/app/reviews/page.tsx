@@ -124,7 +124,7 @@ export default function ReviewsPage() {
   const canReview = myReviewQuery.data?.canReview;
 
   return (
-    <main className="min-h-screen bg-[#f6fbff] text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <PublicSiteHeader />
 
       <section className="border-b border-border bg-card">
@@ -145,7 +145,7 @@ export default function ReviewsPage() {
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="border border-border bg-[#f7fcff] p-5">
+              <div className="border border-border bg-surface-2 p-5">
                 <p className="text-4xl font-bold text-module">
                   {summary?.averageRating?.toFixed(1) ?? "0.0"}
                 </p>
@@ -153,7 +153,7 @@ export default function ReviewsPage() {
                   Average rating
                 </p>
               </div>
-              <div className="border border-border bg-[#f7fcff] p-5">
+              <div className="border border-border bg-surface-2 p-5">
                 <p className="text-4xl font-bold text-module">
                   {summary?.reviewCount ?? 0}
                 </p>
@@ -161,7 +161,7 @@ export default function ReviewsPage() {
                   Reviews
                 </p>
               </div>
-              <div className="border border-border bg-[#f7fcff] p-5">
+              <div className="border border-border bg-surface-2 p-5">
                 <p className="text-4xl font-bold text-module">
                   {summary?.minimumLoginCount ?? 5}
                 </p>
@@ -191,7 +191,7 @@ export default function ReviewsPage() {
         </div>
       </section>
 
-      <section className="bg-[#eaf7ff]">
+      <section className="bg-surface-2">
         <div className="mx-auto grid max-w-[1500px] gap-8 px-5 py-12 md:px-8 lg:grid-cols-[0.8fr_1.2fr]">
           <aside className="border border-border bg-card p-6 shadow-sm">
             <h2 className="text-2xl font-bold">Add your review</h2>

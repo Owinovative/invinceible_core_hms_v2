@@ -31,6 +31,10 @@ function InvoiceVerifyContent() {
   const code = searchParams.get("code") || "";
   const [invoice, setInvoice] = useState<InvoiceRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const displayError =
+    !invoiceNumber || !code
+      ? "Invoice verification details are missing."
+      : error;
   const items = useMemo(
     () => (invoice?.items ?? []).filter((item) => !item.isRemoved),
     [invoice],
@@ -38,7 +42,6 @@ function InvoiceVerifyContent() {
 
   useEffect(() => {
     if (!invoiceNumber || !code) {
-      setError("Invoice verification details are missing.");
       return;
     }
 
@@ -54,11 +57,11 @@ function InvoiceVerifyContent() {
   }, [invoiceNumber, code]);
 
   return (
-    <main className="min-h-screen bg-[#eef7ff] px-4 py-6 text-foreground">
+    <main className="min-h-screen bg-background px-4 py-6 text-foreground">
       <section className="mx-auto max-w-4xl bg-card p-6 shadow-xl">
-        {error ? (
+        {displayError ? (
           <div className="rounded-md border border-destructive/25 bg-destructive-soft p-4 text-sm text-destructive">
-            {error}
+            {displayError}
           </div>
         ) : !invoice ? (
           <p className="text-sm text-muted-foreground">Loading verified invoice...</p>
@@ -186,7 +189,7 @@ function InvoiceVerifyContent() {
 
 export default function InvoiceVerifyPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-[#eef7ff]" />}>
+    <Suspense fallback={<main className="min-h-screen bg-background" />}>
       <InvoiceVerifyContent />
     </Suspense>
   );

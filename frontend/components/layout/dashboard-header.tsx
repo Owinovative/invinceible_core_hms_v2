@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SyncStatusIndicator } from "@/components/shared/sync-status-indicator";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useUnresolvedCounts } from "@/hooks/use-dashboard-data";
 import { useAuth } from "@/providers/auth-provider";
 import { useScope } from "@/providers/scope-provider";
@@ -36,7 +37,7 @@ import { useSidebar } from "@/providers/sidebar-provider";
 /**
  * Meridian header: sticky glass chrome with the ⌘K launcher, branch
  * switcher, system status indicator, live notification count, and
- * account menu. Dark mode removed — single polished light theme.
+ * account menu and persistent color-theme control.
  */
 export function DashboardHeader({
   onOpenPalette,
@@ -137,6 +138,8 @@ export function DashboardHeader({
             {selectedBranchName}
           </span>
         ) : null}
+
+        <ThemeToggle />
 
         {/* Integration sync status */}
         <SyncStatusIndicator />

@@ -155,7 +155,7 @@ export default function PlatformSubscriptionsPage() {
           </div>
           <div className="max-h-[680px] overflow-auto">
             <table className="w-full min-w-[920px] text-sm">
-              <thead className="sticky top-0 bg-[#eef7ff] text-left text-foreground">
+              <thead className="sticky top-0 bg-surface-2 text-left text-foreground">
                 <tr>
                   <th className="px-4 py-3">Facility</th>
                   <th className="px-4 py-3">Status</th>

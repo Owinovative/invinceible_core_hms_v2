@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function ForgotPasswordPage() {
   return (
-    <main className="min-h-screen bg-[#f5fbff]">
+    <main className="min-h-screen bg-background">
       <div className="relative flex min-h-screen items-center justify-center px-6 py-10">
         <Card className="w-full max-w-md rounded-lg border-border bg-card text-foreground shadow-xl">
           <CardContent className="p-8 md:p-10">

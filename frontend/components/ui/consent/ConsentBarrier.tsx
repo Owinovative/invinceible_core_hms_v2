@@ -28,7 +28,7 @@ export function ConsentBarrier({ patientId, children, fallback }: ConsentBarrier
     return (
       <div className="flex items-center justify-center p-8 border rounded-lg border-dashed">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="ml-3 text-sm text-gray-500">Verifying DHA Consent status...</span>
+        <span className="ml-3 text-sm text-muted-foreground">Verifying DHA Consent status...</span>
       </div>
     );
   }

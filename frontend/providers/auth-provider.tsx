@@ -2,16 +2,13 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import {
-  clearAccessToken,
-  getAccessToken,
-  setAccessToken,
-} from "@/lib/auth-storage";
+import { clearLegacyAccessToken } from "@/lib/auth-storage";
 import { Button } from "@/components/ui/button";
 import {
   acceptOwnDeactivation,
   getMe,
   loginUser,
+  logoutUser,
 } from "@/services/auth-service";
 import {
   markUserLocationLogout,
@@ -31,7 +28,6 @@ const ACTIVITY_EVENTS = [
 
 type AuthContextValue = {
   user: AuthUser | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (payload: { username: string; password: string }) => Promise<{ requiresLegalConsent?: boolean } | void>;
@@ -44,7 +40,6 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = React.useState<AuthUser | null>(null);
-  const [token, setTokenState] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [autoLogoutWarning, setAutoLogoutWarning] = React.useState(false);
   const warningTimerRef = React.useRef<number | null>(null);
@@ -81,23 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshMe = React.useCallback(async () => {
-    const existingToken = getAccessToken();
-
-    if (!existingToken) {
-      setUser(null);
-      setTokenState(null);
-      setIsLoading(false);
-      return;
-    }
+    clearLegacyAccessToken();
 
     try {
-      setTokenState(existingToken);
       const me = await getMe();
       setUser(normalizeUser(me));
     } catch {
-      clearAccessToken();
       setUser(null);
-      setTokenState(null);
     } finally {
       setIsLoading(false);
     }
@@ -114,8 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const result = await loginUser(payload);
 
-        setAccessToken(result.accessToken);
-        setTokenState(result.accessToken);
+        clearLegacyAccessToken();
 
         const scopedUser = await getMe();
         setUser(
@@ -127,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         return { requiresLegalConsent: result.requiresLegalConsent };
       } catch (error) {
-        console.error("Login failed:", error);
+        setUser(null);
         throw error;
       } finally {
         setIsLoading(false);
@@ -139,17 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = React.useCallback(() => {
     clearAutoLogoutTimers();
     setAutoLogoutWarning(false);
-    if (getAccessToken()) {
-      void markUserLocationLogout().catch(() => undefined);
+    if (user) {
+      void markUserLocationLogout()
+        .catch(() => undefined)
+        .then(() => logoutUser())
+        .catch(() => undefined);
     }
-    clearAccessToken();
+    clearLegacyAccessToken();
     setUser(null);
-    setTokenState(null);
     router.push("/login");
-  }, [clearAutoLogoutTimers, router]);
+  }, [clearAutoLogoutTimers, router, user]);
 
   const resetInactivityTimer = React.useCallback(() => {
-    if (!token || !user) return;
+    if (!user) return;
 
     clearAutoLogoutTimers();
     setAutoLogoutWarning(false);
@@ -161,10 +147,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logoutTimerRef.current = window.setTimeout(() => {
       logout();
     }, AUTO_LOGOUT_MS);
-  }, [clearAutoLogoutTimers, logout, token, user]);
+  }, [clearAutoLogoutTimers, logout, user]);
 
   React.useEffect(() => {
-    if (!token || !user) {
+    if (!user) {
       clearAutoLogoutTimers();
       setAutoLogoutWarning(false);
       return;
@@ -184,10 +170,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       clearAutoLogoutTimers();
     };
-  }, [clearAutoLogoutTimers, resetInactivityTimer, token, user]);
+  }, [clearAutoLogoutTimers, resetInactivityTimer, user]);
 
   React.useEffect(() => {
-    if (!token || !user || !("geolocation" in navigator)) return;
+    if (!user || !("geolocation" in navigator)) return;
 
     const sendPosition = (position: GeolocationPosition) => {
       const next = {
@@ -263,19 +249,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         locationWatchRef.current = null;
       }
     };
-  }, [token, user]);
+  }, [user]);
 
   const value = React.useMemo<AuthContextValue>(
     () => ({
       user,
-      token,
       isLoading,
-      isAuthenticated: !!token && !!user,
+      isAuthenticated: !!user,
       login,
       logout,
       refreshMe,
     }),
-    [user, token, isLoading, login, logout, refreshMe],
+    [user, isLoading, login, logout, refreshMe],
   );
 
   return (
