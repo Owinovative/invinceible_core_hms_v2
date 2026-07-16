@@ -91,9 +91,41 @@ export class EtimsService implements OnModuleInit {
   onModuleInit() {
     this.worker.registerHandler(
       INTEGRATION_NAMES.ETIMS,
+      ETIMS_OPERATIONS.FISCALIZE_INVOICE,
+      (item) => this.handleFiscalizeRequest(item),
+    );
+    this.worker.registerHandler(
+      INTEGRATION_NAMES.ETIMS,
       ETIMS_OPERATIONS.SUBMIT_INVOICE,
       (item) => this.handleSubmitRequest(item),
     );
+  }
+
+  /**
+   * Transactional billing outbox handler. Billing commits this queue row in
+   * the same transaction as the payment, eliminating the crash window
+   * between recording money and requesting fiscalization.
+   */
+  private async handleFiscalizeRequest(item: OutboundQueueItem): Promise<void> {
+    const payload = (item.payload ?? {}) as {
+      invoiceId?: number;
+      trigger?: string;
+      actorUserId?: number;
+      actorStaffId?: number;
+    };
+    const invoiceId = Number(payload.invoiceId ?? item.entityId);
+    if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+      throw new Error(
+        `Invalid invoice id in eTIMS fiscalization outbox ${item.id}`,
+      );
+    }
+
+    await this.onBillingFinalized(invoiceId, {
+      trigger: payload.trigger,
+      actorUserId: payload.actorUserId,
+      actorStaffId: payload.actorStaffId,
+      correlationId: item.correlationId ?? undefined,
+    });
   }
 
   get enabled(): boolean {

@@ -46,6 +46,11 @@ import { CacheService } from '../resilience/cache.service';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
 import { serializeMaybeJsonCompact } from '../common/storage/compact-payload';
 import { EtimsService } from '../integration/etims/etims.service';
+import {
+  ETIMS_OPERATIONS,
+  INTEGRATION_NAMES,
+  OUTBOUND_STATUS,
+} from '../integration/integration.constants';
 
 type TariffCsvRow = Record<string, string>;
 type InvoiceChargeType = 'SERVICE' | 'LAB_TEST' | 'MEDICINE' | 'MANUAL';
@@ -354,6 +359,41 @@ export class BillingService {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  private async enqueueEtimsFiscalization(
+    tx: Prisma.TransactionClient,
+    params: {
+      invoiceId: number;
+      facilityId: number;
+      branchId?: number | null;
+      trigger: string;
+      user?: RequestUser;
+    },
+  ) {
+    const idempotencyKey = `etims:fiscalize:invoice:${params.invoiceId}`;
+    await tx.integrationOutboundRequest.upsert({
+      where: { idempotencyKey },
+      update: {},
+      create: {
+        integration: INTEGRATION_NAMES.ETIMS,
+        operation: ETIMS_OPERATIONS.FISCALIZE_INVOICE,
+        entityType: 'INVOICE',
+        entityId: String(params.invoiceId),
+        payload: {
+          invoiceId: params.invoiceId,
+          trigger: params.trigger,
+          actorUserId: params.user?.userId,
+          actorStaffId: params.user?.staffId,
+        },
+        status: OUTBOUND_STATUS.PENDING,
+        maxAttempts: 8,
+        nextAttemptAt: new Date(),
+        idempotencyKey,
+        facilityId: params.facilityId,
+        branchId: params.branchId ?? null,
+      },
+    });
   }
 
   private compactPaymentPayload(value: unknown) {
@@ -1196,8 +1236,12 @@ export class BillingService {
     };
   }
 
-  private async recalculateInvoiceTotalsFromItems(invoiceId: number) {
-    const invoice = await this.prisma.invoice.findUnique({
+  private async recalculateInvoiceTotalsFromItems(
+    invoiceId: number,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+    const invoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       include: {
         items: {
@@ -1246,7 +1290,7 @@ export class BillingService {
       settledAt = null;
     }
 
-    return this.prisma.invoice.update({
+    return db.invoice.update({
       where: { id: invoiceId },
       data: {
         subtotal,
@@ -3381,58 +3425,100 @@ export class BillingService {
       );
     }
 
-    const payment = await this.prisma.payment.create({
-      data: {
-        facilityId: invoice.facilityId,
-        branchId: invoice.branchId,
-        receiptNumber,
-        invoiceId: dto.invoiceId,
-        amount: dto.amount,
-        paymentMethod: 'CASH',
-        statusCode: 'COMPLETED',
-        paidAt: new Date(),
-        confirmedAt: new Date(),
-        receivedByStaffId: dto.receivedByStaffId,
-        notes: dto.notes,
-      },
-      include: {
-        facility: true,
-        branch: true,
-        invoice: true,
-        receivedBy: true,
-      },
-    });
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // This conditional update is both the authoritative balance check and
+        // an invoice-row lock. Concurrent cashiers cannot reserve the same
+        // outstanding balance.
+        const reserved = await tx.invoice.updateMany({
+          where: {
+            id: dto.invoiceId,
+            balanceAmount: { gte: dto.amount },
+          },
+          data: { balanceAmount: { decrement: dto.amount } },
+        });
+        if (reserved.count !== 1) {
+          const current = await tx.invoice.findUnique({
+            where: { id: dto.invoiceId },
+            select: { balanceAmount: true },
+          });
+          throw new BadRequestException(
+            `Payment exceeds outstanding balance of ${current?.balanceAmount ?? 0}`,
+          );
+        }
 
-    await this.recalculateInvoice(dto.invoiceId);
-    await this.triggerEtimsFiscalization(dto.invoiceId, 'CASH_PAYMENT', user);
+        const payment = await tx.payment.create({
+          data: {
+            facilityId: invoice.facilityId,
+            branchId: invoice.branchId,
+            receiptNumber,
+            invoiceId: dto.invoiceId,
+            amount: dto.amount,
+            paymentMethod: 'CASH',
+            statusCode: 'COMPLETED',
+            paidAt: new Date(),
+            confirmedAt: new Date(),
+            receivedByStaffId: dto.receivedByStaffId,
+            notes: dto.notes,
+          },
+        });
 
-    await this.auditLogService.create({
-      moduleName: 'BILLING',
-      actionName: 'CREATE_CASH_PAYMENT',
-      entityType: 'PAYMENT',
-      entityId: String(payment.id),
-      description: `Cash payment received for invoice ${dto.invoiceId}`,
-      facilityId: payment.facilityId,
-      branchId: payment.branchId ?? undefined,
-      actorUserId: user?.userId,
-      actorStaffId: dto.receivedByStaffId,
-      afterData: JSON.stringify(payment),
-    });
+        await this.recalculateInvoiceTotalsFromItems(dto.invoiceId, tx);
+        await this.enqueueEtimsFiscalization(tx, {
+          invoiceId: dto.invoiceId,
+          facilityId: invoice.facilityId,
+          branchId: invoice.branchId,
+          trigger: 'CASH_PAYMENT',
+          user,
+        });
+        await tx.auditLog.create({
+          data: {
+            moduleName: 'BILLING',
+            actionName: 'CREATE_CASH_PAYMENT',
+            entityType: 'PAYMENT',
+            entityId: String(payment.id),
+            description: `Cash payment received for invoice ${dto.invoiceId}`,
+            facilityId: payment.facilityId,
+            branchId: payment.branchId,
+            actorUserId: user?.userId,
+            actorStaffId: dto.receivedByStaffId,
+            afterData: JSON.stringify(payment),
+          },
+        });
+        await tx.notification.create({
+          data: {
+            title: 'Cash Payment Received',
+            message: `Cash payment of ${payment.amount} received for invoice ${payment.invoiceId}.`,
+            notificationType: 'PAYMENT_RECEIVED',
+            severity: 'INFO',
+            moduleName: 'BILLING',
+            entityType: 'PAYMENT',
+            entityId: String(payment.id),
+            facilityId: payment.facilityId,
+            branchId: payment.branchId,
+            targetStaffId: dto.receivedByStaffId,
+          },
+        });
 
-    await this.notificationService.create({
-      title: 'Cash Payment Received',
-      message: `Cash payment of ${payment.amount} received for invoice ${payment.invoiceId}.`,
-      notificationType: 'PAYMENT_RECEIVED',
-      severity: 'INFO',
-      moduleName: 'BILLING',
-      entityType: 'PAYMENT',
-      entityId: String(payment.id),
-      facilityId: payment.facilityId,
-      branchId: payment.branchId ?? undefined,
-      targetStaffId: dto.receivedByStaffId,
-    });
-
-    return payment;
+        return tx.payment.findUniqueOrThrow({
+          where: { id: payment.id },
+          include: {
+            facility: true,
+            branch: true,
+            invoice: true,
+            receivedBy: true,
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('Receipt number already exists');
+      }
+      throw error;
+    }
   }
 
   async applyShaCoveragePayment(params: {
@@ -3446,39 +3532,6 @@ export class BillingService {
   }) {
     const invoice = await this.getInvoiceById(params.invoiceId);
     const requestedAmount = Number(params.amount || 0);
-    const existing = await this.prisma.payment.findFirst({
-      where: {
-        shaClaimId: params.shaClaimId,
-        paymentMethod: 'SHA',
-      },
-    });
-
-    if (requestedAmount <= 0) {
-      if (existing && existing.statusCode !== 'FAILED') {
-        const failed = await this.prisma.payment.update({
-          where: { id: existing.id },
-          data: {
-            statusCode: 'FAILED',
-            notes: 'SHA coverage removed from the invoice.',
-          },
-        });
-        await this.recalculateInvoice(params.invoiceId);
-        return failed;
-      }
-
-      return existing;
-    }
-
-    const maximumAllowed =
-      Number(invoice.balanceAmount) +
-      (existing?.statusCode === 'COMPLETED' ? Number(existing.amount) : 0);
-
-    if (requestedAmount > maximumAllowed) {
-      throw new BadRequestException(
-        `SHA cover exceeds outstanding invoice balance of ${maximumAllowed}`,
-      );
-    }
-
     const cancelled = params.statusCode === 'CANCELLED';
     const now = new Date();
     const notes =
@@ -3499,52 +3552,97 @@ export class BillingService {
       notes,
     };
 
-    const payment = existing
-      ? await this.prisma.payment.update({
+    return this.prisma.$transaction(async (tx) => {
+      // A harmless timestamp write serializes all payment mutations for this
+      // invoice across cash, SHA, and provider callbacks.
+      await tx.invoice.update({
+        where: { id: params.invoiceId },
+        data: { updatedAt: new Date() },
+      });
+      const existing = await tx.payment.findFirst({
+        where: {
+          shaClaimId: params.shaClaimId,
+          paymentMethod: 'SHA',
+        },
+      });
+
+      if (requestedAmount <= 0) {
+        if (!existing || existing.statusCode === 'FAILED') return existing;
+        const failed = await tx.payment.update({
           where: { id: existing.id },
-          data,
-          include: {
-            facility: true,
-            branch: true,
-            invoice: true,
-            receivedBy: true,
-          },
-        })
-      : await this.prisma.payment.create({
           data: {
-            facilityId: invoice.facilityId,
-            branchId: invoice.branchId,
-            receiptNumber: this.generateReceiptNumber('SHA'),
-            invoiceId: params.invoiceId,
-            shaClaimId: params.shaClaimId,
-            ...data,
-          },
-          include: {
-            facility: true,
-            branch: true,
-            invoice: true,
-            receivedBy: true,
+            statusCode: 'FAILED',
+            paidAt: null,
+            confirmedAt: null,
+            notes: 'SHA coverage removed from the invoice.',
           },
         });
+        await this.recalculateInvoiceTotalsFromItems(params.invoiceId, tx);
+        return failed;
+      }
 
-    await this.recalculateInvoice(params.invoiceId);
-    if (!cancelled) {
-      await this.triggerEtimsFiscalization(params.invoiceId, 'SHA_COVERAGE');
-    }
+      const maximumAllowed =
+        Number(
+          (
+            await tx.invoice.findUniqueOrThrow({
+              where: { id: params.invoiceId },
+              select: { balanceAmount: true },
+            })
+          ).balanceAmount,
+        ) +
+        (existing?.statusCode === 'COMPLETED' ? Number(existing.amount) : 0);
+      if (requestedAmount > maximumAllowed) {
+        throw new BadRequestException(
+          `SHA cover exceeds outstanding invoice balance of ${maximumAllowed}`,
+        );
+      }
 
-    await this.auditLogService.create({
-      moduleName: 'BILLING',
-      actionName: cancelled ? 'CANCEL_SHA_PAYMENT' : 'APPLY_SHA_PAYMENT',
-      entityType: 'PAYMENT',
-      entityId: String(payment.id),
-      description: `SHA coverage ${payment.receiptNumber} linked to claim ${params.claimNumber}`,
-      facilityId: payment.facilityId,
-      branchId: payment.branchId ?? undefined,
-      actorStaffId: params.receivedByStaffId ?? undefined,
-      afterData: JSON.stringify(payment),
+      const payment = existing
+        ? await tx.payment.update({ where: { id: existing.id }, data })
+        : await tx.payment.create({
+            data: {
+              facilityId: invoice.facilityId,
+              branchId: invoice.branchId,
+              receiptNumber: this.generateReceiptNumber('SHA'),
+              invoiceId: params.invoiceId,
+              shaClaimId: params.shaClaimId,
+              ...data,
+            },
+          });
+
+      await this.recalculateInvoiceTotalsFromItems(params.invoiceId, tx);
+      if (!cancelled) {
+        await this.enqueueEtimsFiscalization(tx, {
+          invoiceId: params.invoiceId,
+          facilityId: invoice.facilityId,
+          branchId: invoice.branchId,
+          trigger: 'SHA_COVERAGE',
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          moduleName: 'BILLING',
+          actionName: cancelled ? 'CANCEL_SHA_PAYMENT' : 'APPLY_SHA_PAYMENT',
+          entityType: 'PAYMENT',
+          entityId: String(payment.id),
+          description: `SHA coverage ${payment.receiptNumber} linked to claim ${params.claimNumber}`,
+          facilityId: payment.facilityId,
+          branchId: payment.branchId,
+          actorStaffId: params.receivedByStaffId,
+          afterData: JSON.stringify(payment),
+        },
+      });
+
+      return tx.payment.findUniqueOrThrow({
+        where: { id: payment.id },
+        include: {
+          facility: true,
+          branch: true,
+          invoice: true,
+          receivedBy: true,
+        },
+      });
     });
-
-    return payment;
   }
 
   async createMpesaPaymentRequest(
@@ -3938,41 +4036,28 @@ export class BillingService {
     const resultCode = String(daraja.ResultCode ?? '');
 
     if (resultCode === '0') {
-      const updated = await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          statusCode: 'COMPLETED',
-          confirmedAt: new Date(),
-          paidAt: new Date(),
-          transactionRef: payment.transactionRef || payment.checkoutRequestId,
+      await this.confirmMpesaPayment(
+        {
+          checkoutRequestId,
+          merchantRequestId: daraja.MerchantRequestID,
+          transactionRef: payment.transactionRef || checkoutRequestId,
           callbackPayload: this.compactPaymentPayload({
             previousStatus: payment.callbackPayload ? 'stored' : 'none',
             statusQuery: daraja,
             queriedAt: new Date().toISOString(),
           }),
         },
+        user,
+        'STATUS_QUERY',
+      );
+      const updated = await this.prisma.payment.findUniqueOrThrow({
+        where: { id: payment.id },
         include: {
           facility: true,
           branch: true,
           invoice: true,
           receivedBy: true,
         },
-      });
-
-      await this.recalculateInvoice(payment.invoiceId);
-
-      await this.auditLogService.create({
-        moduleName: 'BILLING',
-        actionName: 'QUERY_MPESA_PAYMENT_CONFIRMED',
-        entityType: 'PAYMENT',
-        entityId: String(payment.id),
-        description: `M-PESA payment confirmed by Daraja status query for invoice ${payment.invoiceId}`,
-        facilityId: payment.facilityId,
-        branchId: payment.branchId ?? undefined,
-        actorUserId: user.userId,
-        actorStaffId: user.staffId ?? undefined,
-        beforeData: JSON.stringify(payment),
-        afterData: JSON.stringify(updated),
       });
 
       return {
@@ -4068,56 +4153,112 @@ export class BillingService {
 
     const beforeData = JSON.stringify(payment);
 
-    const updatedPayment = await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        statusCode: 'COMPLETED',
-        confirmedAt: new Date(),
-        paidAt: new Date(),
-        merchantRequestId: dto.merchantRequestId ?? payment.merchantRequestId,
-        mpesaReceiptNumber,
-        transactionRef: dto.transactionRef,
-        callbackPayload: this.compactPaymentPayload(dto.callbackPayload),
-      },
-    });
+    try {
+      const outcome = await this.prisma.$transaction(async (tx) => {
+        // Compare-and-set makes repeated/concurrent callbacks idempotent. Only
+        // one transaction can transition this provider payment to COMPLETED.
+        const completed = await tx.payment.updateMany({
+          where: { id: payment.id, statusCode: { not: 'COMPLETED' } },
+          data: {
+            statusCode: 'COMPLETED',
+            confirmedAt: new Date(),
+            paidAt: new Date(),
+            merchantRequestId:
+              dto.merchantRequestId ?? payment.merchantRequestId,
+            mpesaReceiptNumber,
+            transactionRef: dto.transactionRef,
+            callbackPayload: this.compactPaymentPayload(dto.callbackPayload),
+          },
+        });
+        if (completed.count !== 1) {
+          return { alreadyConfirmed: true as const };
+        }
 
-    await this.recalculateInvoice(payment.invoiceId);
-    await this.triggerEtimsFiscalization(
-      payment.invoiceId,
-      'MPESA_PAYMENT',
-      user,
-    );
+        const reserved = await tx.invoice.updateMany({
+          where: {
+            id: payment.invoiceId,
+            balanceAmount: { gte: payment.amount },
+          },
+          data: { balanceAmount: { decrement: payment.amount } },
+        });
+        if (reserved.count !== 1) {
+          const current = await tx.invoice.findUnique({
+            where: { id: payment.invoiceId },
+            select: { balanceAmount: true },
+          });
+          throw new BadRequestException(
+            `M-PESA payment exceeds outstanding balance of ${current?.balanceAmount ?? 0}`,
+          );
+        }
 
-    await this.auditLogService.create({
-      moduleName: 'BILLING',
-      actionName:
-        source === 'CALLBACK'
-          ? 'CONFIRM_MPESA_PAYMENT_CALLBACK'
-          : 'CONFIRM_MPESA_PAYMENT',
-      entityType: 'PAYMENT',
-      entityId: String(payment.id),
-      description: `M-PESA payment confirmed for invoice ${payment.invoiceId} via ${source}`,
-      facilityId: payment.facilityId,
-      branchId: payment.branchId ?? undefined,
-      actorUserId: user?.userId,
-      actorStaffId: user?.staffId ?? undefined,
-      beforeData,
-      afterData: JSON.stringify(updatedPayment),
-    });
+        await this.recalculateInvoiceTotalsFromItems(payment.invoiceId, tx);
+        const updatedPayment = await tx.payment.findUniqueOrThrow({
+          where: { id: payment.id },
+        });
+        await this.enqueueEtimsFiscalization(tx, {
+          invoiceId: payment.invoiceId,
+          facilityId: payment.facilityId,
+          branchId: payment.branchId,
+          trigger: 'MPESA_PAYMENT',
+          user,
+        });
+        await tx.auditLog.create({
+          data: {
+            moduleName: 'BILLING',
+            actionName:
+              source === 'CALLBACK'
+                ? 'CONFIRM_MPESA_PAYMENT_CALLBACK'
+                : source === 'STATUS_QUERY'
+                  ? 'QUERY_MPESA_PAYMENT_CONFIRMED'
+                  : 'CONFIRM_MPESA_PAYMENT',
+            entityType: 'PAYMENT',
+            entityId: String(payment.id),
+            description: `M-PESA payment confirmed for invoice ${payment.invoiceId} via ${source}`,
+            facilityId: payment.facilityId,
+            branchId: payment.branchId,
+            actorUserId: user?.userId,
+            actorStaffId: user?.staffId,
+            beforeData,
+            afterData: JSON.stringify(updatedPayment),
+          },
+        });
+        await tx.notification.create({
+          data: {
+            title: 'M-PESA Payment Confirmed',
+            message: `M-PESA payment confirmed for invoice ${payment.invoiceId}.`,
+            notificationType: 'PAYMENT_CONFIRMED',
+            severity: 'INFO',
+            moduleName: 'BILLING',
+            entityType: 'PAYMENT',
+            entityId: String(payment.id),
+            facilityId: payment.facilityId,
+            branchId: payment.branchId,
+          },
+        });
 
-    await this.notificationService.create({
-      title: 'M-PESA Payment Confirmed',
-      message: `M-PESA payment confirmed for invoice ${payment.invoiceId}.`,
-      notificationType: 'PAYMENT_CONFIRMED',
-      severity: 'INFO',
-      moduleName: 'BILLING',
-      entityType: 'PAYMENT',
-      entityId: String(payment.id),
-      facilityId: payment.facilityId,
-      branchId: payment.branchId ?? undefined,
-    });
+        return { alreadyConfirmed: false as const };
+      });
 
-    return this.getInvoiceById(payment.invoiceId);
+      if (outcome.alreadyConfirmed) {
+        return {
+          message: 'Payment already confirmed',
+          payment: await this.prisma.payment.findUnique({
+            where: { id: payment.id },
+          }),
+        };
+      }
+      return this.getInvoiceById(payment.invoiceId);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException(
+          'This M-PESA provider identifier is already attached to another payment',
+        );
+      }
+      throw error;
+    }
   }
 
   async failMpesaPayment(

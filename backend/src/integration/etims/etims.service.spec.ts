@@ -95,6 +95,48 @@ describe('EtimsService', () => {
       expect(queueRow.status).toBe('SUCCEEDED');
     });
 
+    it('processes a payment fiscalization outbox before submitting to eTIMS', async () => {
+      await queue.enqueue({
+        integration: 'ETIMS',
+        operation: 'FISCALIZE_INVOICE',
+        entityType: 'INVOICE',
+        entityId: String(invoiceId),
+        payload: {
+          invoiceId,
+          trigger: 'CASH_PAYMENT',
+          actorUserId: 7,
+        },
+        idempotencyKey: `etims:fiscalize:invoice:${invoiceId}`,
+      });
+
+      await worker.runOnce();
+      expect(prisma.etimsInvoice.rows).toHaveLength(1);
+      expect(prisma.integrationOutboundRequest.rows[0].status).toBe(
+        'SUCCEEDED',
+      );
+
+      await worker.runOnce();
+      expect(prisma.etimsInvoice.rows[0].statusCode).toBe('ACCEPTED');
+    });
+
+    it('dead-letters a malformed payment fiscalization outbox', async () => {
+      await queue.enqueue({
+        integration: 'ETIMS',
+        operation: 'FISCALIZE_INVOICE',
+        entityType: 'INVOICE',
+        entityId: 'invalid',
+        idempotencyKey: 'etims:fiscalize:invoice:invalid',
+        maxAttempts: 1,
+      });
+
+      await worker.runOnce();
+
+      expect(prisma.integrationOutboundRequest.rows[0]).toMatchObject({
+        status: 'DEAD_LETTER',
+        attemptCount: 1,
+      });
+    });
+
     it('does not create a second active SALE for the same invoice (duplicate guard)', async () => {
       await fiscalizeAndProcess();
       const second = await service.onBillingFinalized(invoiceId, {
