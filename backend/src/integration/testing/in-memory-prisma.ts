@@ -10,6 +10,12 @@ type Row = Record<string, any>;
 function matchesWhere(row: Row, where: Row | undefined): boolean {
   if (!where) return true;
   return Object.entries(where).every(([key, condition]) => {
+    if (key === 'OR' && Array.isArray(condition)) {
+      return condition.some((clause) => matchesWhere(row, clause));
+    }
+    if (key === 'AND' && Array.isArray(condition)) {
+      return condition.every((clause) => matchesWhere(row, clause));
+    }
     // Prisma ignores undefined filter values entirely.
     if (condition === undefined) return true;
     if (condition === null) return row[key] === null;
@@ -224,6 +230,7 @@ export class InMemoryPrisma {
   facility: InMemoryModel;
   shaClaim: InMemoryModel;
   consultation: InMemoryModel;
+  consentAuthorization: InMemoryModel;
   staff: InMemoryModel;
   invoiceItem: InMemoryModel;
 
@@ -286,6 +293,7 @@ export class InMemoryPrisma {
       facility: { store: () => this.facility, foreignKey: 'facilityId' },
       doctor: { store: () => this.staff, foreignKey: 'doctorId' },
     });
+    this.consentAuthorization = new InMemoryModel();
   }
 }
 
