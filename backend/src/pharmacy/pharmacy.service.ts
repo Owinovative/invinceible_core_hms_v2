@@ -886,8 +886,9 @@ export class PharmacyService {
           },
         });
 
-        const unitPrice =
-          updatedStock.unitPrice ?? item.medicine?.unitPrice ?? 0;
+        const unitPrice = Number(
+          updatedStock.unitPrice ?? item.medicine?.unitPrice ?? 0,
+        );
 
         await tx.dispenseItem.create({
           data: {
@@ -1186,9 +1187,10 @@ export class PharmacyService {
           medicineId: dto.medicineId,
           quantityPrescribed: dto.quantity,
           quantityDispensed: dto.quantity,
-          unitPrice: stock.unitPrice ?? stock.medicine.unitPrice ?? 0,
+          unitPrice: Number(stock.unitPrice ?? stock.medicine.unitPrice ?? 0),
           lineTotal:
-            (stock.unitPrice ?? stock.medicine.unitPrice ?? 0) * dto.quantity,
+            Number(stock.unitPrice ?? stock.medicine.unitPrice ?? 0) *
+            dto.quantity,
           notes: dto.instructions ?? dto.notes,
         },
       });
@@ -1232,7 +1234,7 @@ export class PharmacyService {
       });
     });
 
-    const unitPrice = stock.unitPrice ?? stock.medicine.unitPrice ?? 0;
+    const unitPrice = Number(stock.unitPrice ?? stock.medicine.unitPrice ?? 0);
     await this.billingService.addAutoInvoiceItem({
       patientId: consultation.patientId,
       facilityId: consultation.facilityId,

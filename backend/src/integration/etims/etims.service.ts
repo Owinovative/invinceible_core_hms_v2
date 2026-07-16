@@ -118,7 +118,7 @@ export class EtimsService implements OnModuleInit {
     }
 
     const invoice = await this.loadInvoice(invoiceId);
-    if (invoice.totalAmount <= 0) {
+    if (Number(invoice.totalAmount) <= 0) {
       return { skipped: true as const, reason: 'NON_POSITIVE_TOTAL' };
     }
 
@@ -557,10 +557,10 @@ export class EtimsService implements OnModuleInit {
       id: item.id,
       description: item.description,
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      discountPercent: item.discountPercent,
-      discountAmount: item.discountAmount,
-      lineTotal: item.lineTotal,
+      unitPrice: Number(item.unitPrice),
+      discountPercent: Number(item.discountPercent),
+      discountAmount: Number(item.discountAmount),
+      lineTotal: Number(item.lineTotal),
       sourceModule: item.sourceModule,
       billingServiceCode: item.billingService?.code ?? null,
       taxCode: null,
@@ -577,7 +577,7 @@ export class EtimsService implements OnModuleInit {
     return {
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
-      totalAmount: invoice.totalAmount,
+      totalAmount: Number(invoice.totalAmount),
       issuedAt: invoice.issuedAt,
       patientName: patientName || null,
       patientPhone: invoice.patient?.phonePrimary ?? null,

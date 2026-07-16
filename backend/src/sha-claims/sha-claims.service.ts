@@ -74,9 +74,9 @@ export class ShaClaimsService {
   }
 
   private resolveCoverageAmount(claim: {
-    claimedAmount: number;
-    approvedAmount: number;
-    paidAmount: number;
+    claimedAmount: number | Prisma.Decimal;
+    approvedAmount: number | Prisma.Decimal;
+    paidAmount: number | Prisma.Decimal;
   }) {
     return Number(
       claim.paidAmount || claim.approvedAmount || claim.claimedAmount || 0,
@@ -88,9 +88,9 @@ export class ShaClaimsService {
       id: number;
       claimNumber: string;
       invoiceId: number | null;
-      claimedAmount: number;
-      approvedAmount: number;
-      paidAmount: number;
+      claimedAmount: number | Prisma.Decimal;
+      approvedAmount: number | Prisma.Decimal;
+      paidAmount: number | Prisma.Decimal;
       statusCode: string;
       rejectionReason?: string | null;
       createdByStaffId?: number | null;
@@ -143,13 +143,13 @@ export class ShaClaimsService {
     const summary = claims.reduce(
       (acc, claim) => {
         acc.count += 1;
-        acc.claimedAmount += claim.claimedAmount;
-        acc.approvedAmount += claim.approvedAmount;
-        acc.paidAmount += claim.paidAmount;
-        acc.rejectedAmount += claim.rejectedAmount;
+        acc.claimedAmount += Number(claim.claimedAmount);
+        acc.approvedAmount += Number(claim.approvedAmount);
+        acc.paidAmount += Number(claim.paidAmount);
+        acc.rejectedAmount += Number(claim.rejectedAmount);
         acc.coveredAmount += claim.payments
           .filter((payment) => payment.statusCode === 'COMPLETED')
-          .reduce((sum, payment) => sum + payment.amount, 0);
+          .reduce((sum, payment) => sum + Number(payment.amount), 0);
         acc.byStatus[claim.statusCode] =
           (acc.byStatus[claim.statusCode] ?? 0) + 1;
         return acc;

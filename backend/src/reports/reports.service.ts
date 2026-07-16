@@ -1422,7 +1422,7 @@ export class ReportsService {
       };
 
       current.quantity += item.quantity;
-      current.revenue += item.lineTotal;
+      current.revenue += Number(item.lineTotal);
       byMedicine.set(key, current);
     }
 
@@ -1595,8 +1595,10 @@ export class ReportsService {
         ? stockByKey.get(`${branchId}:${item.medicineId}`)
         : undefined;
       const quantity = item.quantityDispensed ?? 0;
-      const revenue = item.lineTotal ?? quantity * (item.unitPrice ?? 0);
-      const cost = quantity * (stock?.buyingPrice ?? 0);
+      const revenue = Number(
+        item.lineTotal ?? quantity * Number(item.unitPrice ?? 0),
+      );
+      const cost = quantity * Number(stock?.buyingPrice ?? 0);
       const key = `${branchId ?? 'facility'}:${item.medicineId}`;
       const current = byMedicine.get(key) ?? {
         medicineId: item.medicineId,
@@ -1646,8 +1648,10 @@ export class ReportsService {
           ? stockByKey.get(`${branchId}:${item.medicineId}`)
           : undefined;
         const quantity = item.quantityDispensed ?? 0;
-        const revenue = item.lineTotal ?? quantity * (item.unitPrice ?? 0);
-        const cost = quantity * (stock?.buyingPrice ?? 0);
+        const revenue = Number(
+          item.lineTotal ?? quantity * Number(item.unitPrice ?? 0),
+        );
+        const cost = quantity * Number(stock?.buyingPrice ?? 0);
 
         return {
           id: item.id,
