@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { FacilityMpesaBillingService } from './facility-mpesa-billing.service';
 import { PayheroBillingService } from './payhero-billing.service';
+import { BillingDocumentService } from './billing-document.service';
 import {
   BillingController,
   BillingPublicController,
@@ -42,7 +43,13 @@ import { IntegrationModule } from '../integration/integration.module';
     BillingService,
     FacilityMpesaBillingService,
     PayheroBillingService,
+    BillingDocumentService,
   ],
-  exports: [BillingService, FacilityMpesaBillingService, PayheroBillingService],
+  exports: [
+    BillingService,
+    BillingDocumentService,
+    FacilityMpesaBillingService,
+    PayheroBillingService,
+  ],
 })
 export class BillingModule {}
