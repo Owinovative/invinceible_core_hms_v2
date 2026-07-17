@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import process from 'node:process';
 import bcrypt from 'bcryptjs';
@@ -9,7 +8,9 @@ if (!process.env.DATABASE_URL && existsSync('.env')) {
 }
 
 if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL is required. Add it to backend/.env or export it.');
+  console.error(
+    'DATABASE_URL is required. Add it to backend/.env or export it.',
+  );
   process.exit(1);
 }
 
@@ -28,9 +29,7 @@ const username = process.env.SUPER_ADMIN_USERNAME?.trim() || 'superadmin';
 const email = process.env.SUPER_ADMIN_EMAIL?.trim() || 'superadmin@localhost';
 const fullName =
   process.env.SUPER_ADMIN_FULL_NAME?.trim() || 'System Super Administrator';
-const suppliedPassword = process.env.SUPER_ADMIN_PASSWORD;
-const generatedPassword = `${randomBytes(18).toString('base64url')}!aA1`;
-const password = suppliedPassword || generatedPassword;
+const password = process.env.SUPER_ADMIN_PASSWORD;
 
 function validatePassword(value) {
   const failures = [];
@@ -41,22 +40,26 @@ function validatePassword(value) {
   if (!/[^A-Za-z0-9]/.test(value)) failures.push('one symbol');
 
   if (failures.length) {
-    throw new Error(`SUPER_ADMIN_PASSWORD must contain ${failures.join(', ')}.`);
+    throw new Error(
+      `SUPER_ADMIN_PASSWORD must contain ${failures.join(', ')}.`,
+    );
   }
 }
 
 async function main() {
+  if (!password) {
+    throw new Error('SUPER_ADMIN_PASSWORD is required.');
+  }
+
   validatePassword(password);
 
   const existing = await prisma.user.findFirst({
     where: { OR: [{ username }, { email }] },
-    select: { id: true, username: true, email: true },
+    select: { id: true },
   });
 
   if (existing) {
-    throw new Error(
-      `A user already exists for username "${username}" or email "${email}" (user ID ${existing.id}). No changes were made.`,
-    );
+    throw new Error('A user already exists for the supplied account details.');
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -89,23 +92,19 @@ async function main() {
         isActive: true,
         canAccessAllBranchesInFacility: true,
       },
-      select: { id: true, username: true, email: true },
+      select: { id: true },
     });
   });
 
   console.log('Super admin account created successfully.');
   console.log(`User ID: ${user.id}`);
-  console.log(`Username: ${user.username}`);
-  console.log(`Email: ${user.email}`);
-  if (!suppliedPassword) {
-    console.log(`Temporary password: ${password}`);
-    console.log('Store it securely and change it after the first login.');
-  }
 }
 
 main()
-  .catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
+  .catch(() => {
+    console.error(
+      'Super admin creation failed. Verify the configuration and database state; no sensitive details were logged.',
+    );
     process.exitCode = 1;
   })
   .finally(async () => {
