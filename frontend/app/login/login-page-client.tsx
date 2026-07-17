@@ -150,7 +150,7 @@ export default function LoginPageClient() {
 
         <div className="relative max-w-xl px-12">
           <h1 className="text-4xl leading-[1.08] font-bold tracking-tight xl:text-5xl">
-            The operating system for serious healthcare.
+            Smarter care starts with a connected hospital.
           </h1>
           <p className="mt-4 max-w-md text-base leading-7 opacity-85">
             Patient flow, billing, pharmacy, laboratory, and admissions —

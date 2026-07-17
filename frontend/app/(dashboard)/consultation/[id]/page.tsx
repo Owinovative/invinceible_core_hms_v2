@@ -56,7 +56,19 @@ import { useRouter } from "next/navigation";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
 import { downloadConsultationMedicalReportPdf } from "@/services/report-service";
 import { TerminologySearch } from "@/components/shared/terminology/TerminologySearch";
-import type { TerminologyConcept } from "@/services/terminology.service";function formatDate(value?: string | null) {
+import type { TerminologyConcept } from "@/services/terminology.service";
+import {
+  activeConsultationStock,
+  consultationBedOptions,
+  consultationStockStatus,
+  consultationWardOptions,
+  excludeCurrentConsultation,
+  excludeCurrentPrescriptions,
+  filterConsultationLabTests,
+  filterConsultationStock,
+} from "./consultation-workspace";
+
+function formatDate(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -234,7 +246,7 @@ export default function ConsultationDetailPage() {
 
   const patientHistory = React.useMemo(() => {
     const all = Array.isArray(historyData) ? historyData : [];
-    return all.filter((item) => item.id !== data?.id);
+    return excludeCurrentConsultation(all, data?.id);
   }, [historyData, data?.id]);
 
 
@@ -342,17 +354,13 @@ export default function ConsultationDetailPage() {
 
   const patientPrescriptionHistory = React.useMemo(() => {
     const all = Array.isArray(patientPrescriptions) ? patientPrescriptions : [];
-    return all.filter(
-      (item) => !consultationPrescriptionList.some((x) => x.id === item.id),
-    );
+    return excludeCurrentPrescriptions(all, consultationPrescriptionList);
   }, [patientPrescriptions, consultationPrescriptionList]);
 
 
   const branchStockItems = React.useMemo(() => {
     const items = Array.isArray(branchStockData) ? branchStockData : [];
-    return items.filter(
-      (item) => item.isActive && item.medicine?.isActive !== false,
-    );
+    return activeConsultationStock(items);
   }, [branchStockData]);
 
   const selectedMedicineIdNumber = selectedMedicineId
@@ -370,13 +378,10 @@ export default function ConsultationDetailPage() {
   }, [branchStockItems, selectedMedicineIdNumber]);
 
   const selectedStockStatus = React.useMemo(() => {
-    if (!selectedMedicineIdNumber) return null;
-    const stockQuantity = Number(selectedStockItem?.stockQuantity ?? 0);
-    const reorderLevel = Number(selectedStockItem?.reorderLevel ?? 0);
-
-    if (stockQuantity <= 0) return "OUT_OF_STOCK";
-    if (reorderLevel > 0 && stockQuantity <= reorderLevel) return "LOW_STOCK";
-    return "IN_STOCK";
+    return consultationStockStatus(
+      selectedMedicineIdNumber,
+      selectedStockItem,
+    );
   }, [selectedMedicineIdNumber, selectedStockItem]);
 
   const {
@@ -388,23 +393,7 @@ export default function ConsultationDetailPage() {
     medicineAlternativesData?.alternatives ?? [];
 
   const filteredStockItems = React.useMemo(() => {
-    const query = medicineSearch.trim().toLowerCase();
-    if (!query) return branchStockItems.slice(0, 140);
-
-    return branchStockItems
-      .filter((item) =>
-        [
-          item.medicine?.name,
-          item.medicine?.code,
-          item.medicine?.dosageForm,
-          item.medicine?.strength,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query),
-      )
-      .slice(0, 140);
+    return filterConsultationStock(branchStockItems, medicineSearch);
   }, [branchStockItems, medicineSearch]);
 
 
@@ -415,52 +404,17 @@ export default function ConsultationDetailPage() {
 
 
   const filteredLabTests = React.useMemo(() => {
-    const query = labTestSearch.trim().toLowerCase();
-    if (!query) return labTests.slice(0, 120);
-
-    return labTests
-      .filter((test) =>
-        [test.testName, test.category, test.specimenType]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query),
-      )
-      .slice(0, 120);
+    return filterConsultationLabTests(labTests, labTestSearch);
   }, [labTestSearch, labTests]);
 
 
   const availableWardOptions = React.useMemo(() => {
-    return wards
-      .filter((ward) => ward.isActive !== false)
-      .map((ward) => {
-        const freeBeds = beds.filter((bed) => {
-          const sameWard = bed.wardId === ward.id;
-          const isAvailable =
-            (bed.statusCode || "AVAILABLE").toUpperCase() === "AVAILABLE";
-          const isActive = bed.isActive !== false;
-          return sameWard && isAvailable && isActive;
-        }).length;
-
-
-        return {
-          ...ward,
-          freeBeds,
-        };
-      });
+    return consultationWardOptions(wards, beds);
   }, [wards, beds]);
 
 
   const availableBedOptions = React.useMemo(() => {
-    return beds.filter((bed) => {
-      const wardMatch = selectedWardId ? String(bed.wardId) === selectedWardId : false;
-      const isAvailable =
-        (bed.statusCode || "AVAILABLE").toUpperCase() === "AVAILABLE";
-      const isActive = bed.isActive !== false;
-
-
-      return wardMatch && isAvailable && isActive;
-    });
+    return consultationBedOptions(beds, selectedWardId);
   }, [beds, selectedWardId]);
 
 
