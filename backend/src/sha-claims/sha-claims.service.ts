@@ -243,6 +243,7 @@ export class ShaClaimsService {
           memberNumber: dto.memberNumber,
           diagnosisCode: dto.diagnosisCode,
           diagnosisText: dto.diagnosisText,
+          diagnosisConceptId: dto.diagnosisConceptId,
           servicePeriodStart: dto.servicePeriodStart
             ? new Date(dto.servicePeriodStart)
             : null,

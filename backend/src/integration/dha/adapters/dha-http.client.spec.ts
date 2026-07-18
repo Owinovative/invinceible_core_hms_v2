@@ -27,11 +27,6 @@ function makeClient(script: ScriptedResponse[]) {
       });
     }),
   } as unknown as IntegrationHttpClient;
-  const prisma = {
-    facility: {
-      findUnique: jest.fn().mockResolvedValue(null),
-    },
-  } as any;
   const logger = {
     debug: jest.fn(),
     info: jest.fn(),
@@ -42,42 +37,48 @@ function makeClient(script: ScriptedResponse[]) {
     http,
     makeConfig({ DHA_MODE: 'sandbox' }),
     logger,
-    prisma,
   );
-  return { client, calls, prisma };
+  return { client, calls };
 }
 
 const TOKEN_RESPONSE = {
-  data: { access_token: 'dha-token-1', expires_in: 3600 },
+  data: { token: 'dha-token-1', expires_in: 3600 },
+};
+const PATIENT_QUERY = {
+  nationalId: '12345678',
+  identificationType: 'national-id',
 };
 
 describe('DhaHttpClient', () => {
-  it('authenticates with client credentials, then calls versioned FHIR endpoints', async () => {
+  it('authenticates with AfyaLink Basic credentials and consumer key', async () => {
     const { client, calls } = makeClient([
       TOKEN_RESPONSE,
-      { data: { status: 'VERIFIED', reference: 'PAT-1' } },
+      { data: { message: { status: 'VERIFIED', id: 'PAT-1' } } },
     ]);
 
-    const result = await client.verifyPatient(
-      { nationalId: '12345678' },
-      { correlationId: 'corr-1' },
+    const result = await client.verifyPatient(PATIENT_QUERY, {
+      correlationId: 'corr-1',
+    });
+
+    expect(calls[0]).toMatchObject({
+      method: 'GET',
+      query: { key: 'test-consumer-key' },
+    });
+    expect(calls[0].headers.Authorization).toBe(
+      `Basic ${Buffer.from('test-user:test-password').toString('base64')}`,
     );
 
-    // First call: token endpoint with basic auth and form body.
-    expect(calls[0]).toMatchObject({
-      method: 'POST',
-      body: 'grant_type=client_credentials',
-    });
-    expect(calls[0].headers.Authorization).toMatch(/^Basic /);
-
-    // Second call: the API itself with the bearer token and version headers.
     expect(calls[1]).toMatchObject({
-      path: '/api/v1/patients/verify',
+      path: '/v3/client-registry/fetch-client',
+      method: 'GET',
+      query: {
+        dynamic_id_search: 1,
+        agent: 'TEST-AGENT',
+        id: '12345678',
+      },
       correlationId: 'corr-1',
     });
     expect(calls[1].headers.Authorization).toBe('Bearer dha-token-1');
-    expect(calls[1].headers['X-API-Version']).toBe('v1');
-    expect(calls[1].headers['X-Facility-Code']).toBe('KMHFL-001');
 
     expect(result.status).toBe('VERIFIED');
     expect(result.externalRef).toBe('PAT-1');
@@ -89,28 +90,28 @@ describe('DhaHttpClient', () => {
       { data: { status: 'VERIFIED' } },
       { data: { status: 'VERIFIED' } },
     ]);
-    await client.verifyPatient({ nationalId: '1' });
-    await client.verifyFacility({ facilityCode: 'F1' });
+    await client.verifyPatient(PATIENT_QUERY);
+    await client.verifyPatient({ ...PATIENT_QUERY, nationalId: '2' });
 
     const tokenCalls = calls.filter(
-      (call) => call.body === 'grant_type=client_credentials',
+      (call) => call.query?.key === 'test-consumer-key',
     );
     expect(tokenCalls).toHaveLength(1);
   });
 
   it('refreshes the token and retries once on 401 (invalid token)', async () => {
     const { client, calls } = makeClient([
-      { data: { access_token: 'expired-token', expires_in: 3600 } },
+      { data: { token: 'expired-token', expires_in: 3600 } },
       { error: new IntegrationHttpError('unauthorized', 'HTTP_ERROR', 401) },
-      { data: { access_token: 'fresh-token', expires_in: 3600 } },
+      { data: { token: 'fresh-token', expires_in: 3600 } },
       { data: { status: 'VERIFIED', reference: 'PAT-2' } },
     ]);
 
-    const result = await client.verifyPatient({ nationalId: '1' });
+    const result = await client.verifyPatient(PATIENT_QUERY);
 
     expect(result.status).toBe('VERIFIED');
-    const apiCalls = calls.filter((call) =>
-      String(call.path).includes('patients/verify'),
+    const apiCalls = calls.filter(
+      (call) => String(call.path) === '/v3/client-registry/fetch-client',
     );
     expect(apiCalls).toHaveLength(2);
     expect(apiCalls[0].headers.Authorization).toBe('Bearer expired-token');
@@ -124,9 +125,9 @@ describe('DhaHttpClient', () => {
       TOKEN_RESPONSE,
       { error: new IntegrationHttpError('unauthorized', 'HTTP_ERROR', 401) },
     ]);
-    await expect(
-      client.verifyPatient({ nationalId: '1' }),
-    ).rejects.toBeInstanceOf(DhaApiError);
+    await expect(client.verifyPatient(PATIENT_QUERY)).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
   });
 
   it('maps HTTP failures to DhaApiError preserving retryability', async () => {
@@ -134,82 +135,85 @@ describe('DhaHttpClient', () => {
       TOKEN_RESPONSE,
       { error: new IntegrationHttpError('bad gateway', 'HTTP_ERROR', 502) },
     ]);
-    await expect(
-      client.verifyPatient({ nationalId: '1' }),
-    ).rejects.toMatchObject({ httpStatus: 502, retryable: true });
+    await expect(client.verifyPatient(PATIENT_QUERY)).rejects.toMatchObject({
+      httpStatus: 502,
+      retryable: true,
+    });
   });
 
-  it('normalizes negative statuses from the DHA envelope', async () => {
+  it('normalizes negative patient statuses from the DHA envelope', async () => {
     const { client } = makeClient([
       TOKEN_RESPONSE,
       { data: { status: 'NOT_FOUND' } },
     ]);
-    const result = await client.verifyPractitioner({
-      registrationNumber: 'X',
-    });
+    const result = await client.verifyPatient(PATIENT_QUERY);
     expect(result.status).toBe('NOT_FOUND');
   });
 
-  it('covers the remaining FHIR submission endpoints', async () => {
+  it('uses the official eligibility query endpoint', async () => {
     const { client, calls } = makeClient([
       TOKEN_RESPONSE,
-      { data: { status: 'ACCEPTED', id: 'ref-1' } },
-      { data: { status: 'ACCEPTED' } },
-      { data: { status: 'ACCEPTED' } },
-      { data: { status: 'ACCEPTED' } },
-      { data: { status: 'ACCEPTED' } },
-      { data: { status: 'ELIGIBLE' } },
-      { data: { status: 'ACCEPTED' } },
+      { data: { message: { eligible: 1, id: 'CR-1' } } },
     ]);
-    const bundle = {
-      resourceType: 'Bundle' as const,
-      type: 'transaction' as const,
-    };
-
-    expect((await client.submitEncounter(bundle)).status).toBe('ACCEPTED');
-    expect((await client.exchangeHealthRecord(bundle)).status).toBe('ACCEPTED');
-    expect(
-      (
-        await client.submitReferral({
-          resourceType: 'ServiceRequest',
-          status: 'active',
-          intent: 'order',
-        })
-      ).status,
-    ).toBe('ACCEPTED');
-    expect(
-      (
-        await client.recordConsent({
-          resourceType: 'Consent',
-          status: 'active',
-        })
-      ).status,
-    ).toBe('ACCEPTED');
-    expect((await client.submitClaim(bundle)).status).toBe('ACCEPTED');
     expect(
       (
         await client.checkEligibility({
-          memberNumber: 'M-1',
+          identificationNumber: '12345678',
+          identificationType: 'national-id',
         })
       ).status,
     ).toBe('ELIGIBLE');
-    expect(
-      (
-        await client.submitAuditEvent({
-          resourceType: 'AuditEvent',
-        })
-      ).status,
-    ).toBe('ACCEPTED');
+    expect(calls[1]).toMatchObject({
+      path: '/v2/eligibility',
+      method: 'GET',
+      query: {
+        identification_number: '12345678',
+        identification_type: 'national-id',
+      },
+    });
+  });
 
-    const paths = calls.slice(1).map((call) => call.path);
-    expect(paths).toEqual([
-      '/api/v1/Encounter',
-      '/api/v1/Bundle',
-      '/api/v1/ServiceRequest',
-      '/api/v1/Consent',
-      '/api/v1/Claim',
-      '/api/v1/CoverageEligibilityRequest',
-      '/api/v1/AuditEvent',
+  it('submits claims to the documented SHR-med bundle endpoint', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { message: { mediator_id: 'MED-1' } } },
     ]);
+    const result = await client.submitClaim({
+      resourceType: 'Bundle',
+      type: 'message',
+    });
+    expect(calls[1]).toMatchObject({
+      path: '/v1/shr-med/bundle',
+      method: 'POST',
+    });
+    expect(result).toMatchObject({ status: 'ACCEPTED', externalRef: 'MED-1' });
+  });
+
+  it('uses the documented facility and practitioner registry routes', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { message: { id: 'FID-1' } } },
+      {
+        data: {
+          message: { registration_number: 123, found: 1, is_active: 'yes' },
+        },
+      },
+    ]);
+    await client.verifyFacility({ facilityCode: 'FID-1' });
+    await client.verifyPractitioner({
+      identificationType: 'ID',
+      identificationNumber: '12345678',
+    });
+    expect(calls[1]).toMatchObject({
+      path: '/v2/facility-search',
+      query: { 'facility-fid': 'FID-1' },
+    });
+    expect(calls[2]).toMatchObject({
+      path: '/v1/practitioner-search',
+      query: {
+        identification_type: 'ID',
+        identification_number: '12345678',
+      },
+    });
   });
 });

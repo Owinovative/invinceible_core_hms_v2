@@ -23,6 +23,9 @@ export class QueueService {
     return {
       booked: appointments.filter((a) => a.statusCode === 'BOOKED'),
       checkedIn: appointments.filter((a) => a.statusCode === 'CHECKED_IN'),
+      readyForDoctor: appointments.filter(
+        (a) => a.statusCode === 'READY_FOR_DOCTOR',
+      ),
       inConsultation: appointments.filter(
         (a) => a.statusCode === 'IN_CONSULTATION',
       ),
@@ -36,7 +39,7 @@ export class QueueService {
       where: {
         ...scope,
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
         },
       },
       include: {
@@ -68,6 +71,9 @@ export class QueueService {
           gte: start,
           lte: end,
         },
+        statusCode: {
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
+        },
       },
       include: {
         facility: true,
@@ -89,7 +95,7 @@ export class QueueService {
       where: {
         ...scope,
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR'],
         },
       },
       include: {
@@ -113,7 +119,7 @@ export class QueueService {
         ...scope,
         doctorId,
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
         },
       },
       include: {
@@ -136,7 +142,7 @@ export class QueueService {
       where: {
         ...scope,
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
         },
       },
     });
@@ -145,7 +151,7 @@ export class QueueService {
       where: {
         ...scope,
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR'],
         },
       },
     });
@@ -167,6 +173,7 @@ export class QueueService {
     return {
       total,
       waiting,
+      inProgress: inConsultation,
       inConsultation,
       completed,
     };
@@ -199,6 +206,9 @@ export class QueueService {
       date: today,
       booked: appointments.filter((a) => a.statusCode === 'BOOKED'),
       checkedIn: appointments.filter((a) => a.statusCode === 'CHECKED_IN'),
+      readyForDoctor: appointments.filter(
+        (a) => a.statusCode === 'READY_FOR_DOCTOR',
+      ),
       inConsultation: appointments.filter(
         (a) => a.statusCode === 'IN_CONSULTATION',
       ),
@@ -210,7 +220,7 @@ export class QueueService {
     return this.prisma.appointment.findMany({
       where: {
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR'],
         },
       },
       include: {
@@ -227,7 +237,7 @@ export class QueueService {
       where: {
         doctorId,
         statusCode: {
-          in: ['BOOKED', 'CHECKED_IN', 'IN_CONSULTATION'],
+          in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
         },
       },
       include: {

@@ -85,7 +85,11 @@ class InMemoryModel {
       if (spec.many) {
         output[name] = related
           .filter((r) => r[spec.foreignKey] === row.id)
-          .map((r) => ({ ...r }));
+          .map((r) =>
+            typeof include[name] === 'object' && include[name]?.include
+              ? spec.store().attachRelations(r, include[name].include)
+              : { ...r },
+          );
       } else {
         const found = related.find((r) => r.id === row[spec.foreignKey]);
         output[name] = found ? { ...found } : null;
@@ -233,6 +237,7 @@ export class InMemoryPrisma {
   consentAuthorization: InMemoryModel;
   staff: InMemoryModel;
   invoiceItem: InMemoryModel;
+  billingService: InMemoryModel;
 
   constructor() {
     this.facility = new InMemoryModel();
@@ -240,9 +245,10 @@ export class InMemoryPrisma {
       facility: { store: () => this.facility, foreignKey: 'facilityId' },
     });
     this.staff = new InMemoryModel();
+    this.billingService = new InMemoryModel(['code']);
     this.invoiceItem = new InMemoryModel([], {
       billingService: {
-        store: () => new InMemoryModel(),
+        store: () => this.billingService,
         foreignKey: 'billingServiceId',
       },
     });
@@ -254,6 +260,10 @@ export class InMemoryPrisma {
       },
       patient: { store: () => this.patient, foreignKey: 'patientId' },
       facility: { store: () => this.facility, foreignKey: 'facilityId' },
+      consultation: {
+        store: () => this.consultation,
+        foreignKey: 'consultationId',
+      },
     });
     this.etimsInvoice = new InMemoryModel(
       ['traderInvoiceNumber'],
@@ -287,6 +297,7 @@ export class InMemoryPrisma {
       patient: { store: () => this.patient, foreignKey: 'patientId' },
       facility: { store: () => this.facility, foreignKey: 'facilityId' },
       invoice: { store: () => this.invoice, foreignKey: 'invoiceId' },
+      createdBy: { store: () => this.staff, foreignKey: 'createdByStaffId' },
     });
     this.consultation = new InMemoryModel([], {
       patient: { store: () => this.patient, foreignKey: 'patientId' },

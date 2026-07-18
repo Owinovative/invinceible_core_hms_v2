@@ -193,19 +193,28 @@ export class TerminologyController {
     @Query('conceptClass') conceptClass?: string,
     @Query('limit') limit = '50',
   ) {
-    if (!query || query.length < 2) {
+    const normalizedQuery = query?.trim() ?? '';
+    if (normalizedQuery.length < 2) {
       return [];
     }
 
-    const parsedLimit = parseInt(limit, 10) || 50;
-    const qLower = query.toLowerCase();
+    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+    const qLower = normalizedQuery.toLowerCase();
+    const queryVariants = Array.from(
+      new Set([
+        normalizedQuery,
+        qLower,
+        normalizedQuery.toUpperCase(),
+        `${normalizedQuery.charAt(0).toUpperCase()}${normalizedQuery.slice(1).toLowerCase()}`,
+      ]),
+    );
 
     const whereClause: any = {
-      OR: [
-        { code: { equals: query } },
-        { display: { contains: query } },
-        { code: { startsWith: query } },
-      ],
+      OR: queryVariants.flatMap((variant) => [
+        { code: { equals: variant } },
+        { display: { contains: variant } },
+        { code: { startsWith: variant } },
+      ]),
       retired: false,
     };
 
@@ -214,7 +223,17 @@ export class TerminologyController {
     }
 
     if (conceptClass) {
-      whereClause.conceptClass = conceptClass;
+      const normalizedClass = conceptClass.trim();
+      whereClause.conceptClass = {
+        in: Array.from(
+          new Set([
+            normalizedClass,
+            normalizedClass.toLowerCase(),
+            normalizedClass.toUpperCase(),
+            `${normalizedClass.charAt(0).toUpperCase()}${normalizedClass.slice(1).toLowerCase()}`,
+          ]),
+        ),
+      };
     }
 
     const results = await this.prisma.terminologyConcept.findMany({

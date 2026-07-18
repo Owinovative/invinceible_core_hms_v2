@@ -37,9 +37,8 @@ export class CreateShaClaimDto {
   @MaxLength(255)
   diagnosisText?: string;
 
-  @IsOptional()
   @IsInt()
-  diagnosisConceptId?: number;
+  diagnosisConceptId: number;
 
   @IsOptional()
   @IsDateString()

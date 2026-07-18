@@ -151,32 +151,4 @@ export class DhaController {
   pollClaimStatus(@Param('claimId', ParseIntPipe) claimId: number) {
     return this.dhaService.pollClaimStatus(claimId);
   }
-
-  /**
-   * DHA push webhook — called by AfyaLink when a claim decision is made.
-   * Immediately updates the local ShaClaim record so the next UI poll
-   * reflects the new status without waiting for the scheduled poller.
-   */
-  @Post('callbacks/claim-status')
-  async claimStatusWebhook(
-    @Body()
-    payload: {
-      request?: { reference?: string };
-      id?: string;
-      status?: string;
-      outcome?: string;
-      claimNumber?: string;
-    },
-  ) {
-    const claimNumber =
-      payload?.claimNumber ||
-      payload?.request?.reference?.split('/')?.[1] ||
-      payload?.id;
-    const status = payload?.status || payload?.outcome;
-
-    if (claimNumber && status) {
-      await this.dhaService.handleClaimStatusCallback({ claimNumber, status });
-    }
-    return { received: true };
-  }
 }

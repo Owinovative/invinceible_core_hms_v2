@@ -70,8 +70,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           exception instanceof Error ? exception.name : typeof exception,
         errorMessage:
           exception instanceof Error ? exception.message : String(exception),
-        body: request.body,
-        query: request.query,
+        bodyFields: this.fieldNames(request.body),
+        queryFields: this.fieldNames(request.query),
       },
       isProduction || !(exception instanceof Error)
         ? undefined
@@ -79,6 +79,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     );
 
     response.status(statusCode).json(body);
+  }
+
+  private fieldNames(value: unknown) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    return Object.keys(value as Record<string, unknown>).sort();
   }
 
   private getStatusCode(exception: unknown) {
@@ -96,12 +101,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const response = normalizeHttpResponse(exception.getResponse());
       const messageValue = response.message;
       const message = Array.isArray(messageValue)
-        ? messageValue.join('; ')
-        : String(messageValue || exception.message || 'Request failed');
+        ? messageValue
+            .filter((item): item is string => typeof item === 'string')
+            .join('; ') || exception.message
+        : typeof messageValue === 'string'
+          ? messageValue
+          : exception.message || 'Request failed';
+      const error =
+        typeof response.error === 'string'
+          ? response.error
+          : exception.name || 'HTTP_ERROR';
 
       return {
         message,
-        error: String(response.error || exception.name || 'HTTP_ERROR'),
+        error,
         details: response,
       };
     }

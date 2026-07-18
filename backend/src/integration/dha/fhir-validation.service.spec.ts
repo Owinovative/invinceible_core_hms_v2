@@ -4,7 +4,7 @@ import type { FhirBundle, FhirResource } from './fhir.types';
 describe('FhirValidationService', () => {
   const validator = new FhirValidationService();
   const coding = {
-    system: 'http://id.who.int/icd/release/11/mms',
+    system: 'https://qa.example/fhir/terminology/CodeSystem/icd-11',
     code: 'CA40.0',
     display: 'Bacterial pneumonia',
   };
@@ -12,20 +12,81 @@ describe('FhirValidationService', () => {
   function bundle(resources: FhirResource[]): FhirBundle {
     return {
       resourceType: 'Bundle',
-      type: 'transaction',
-      entry: resources.map((resource) => ({ resource })),
+      id: 'bundle-1',
+      meta: {
+        profile: ['https://qa.example/fhir/StructureDefinition/bundle|1.0.0'],
+      },
+      timestamp: '2026-07-01T09:00:00Z',
+      type: resources.some((resource) => resource.resourceType === 'Claim')
+        ? 'message'
+        : 'transaction',
+      entry: resources.map((resource) => ({
+        fullUrl: `https://qa.example/fhir/${resource.resourceType}/${resource.id ?? resource.resourceType}`,
+        resource,
+      })),
     };
   }
 
   function claim(diagnosisCodeableConcept?: Record<string, unknown>) {
     return {
       resourceType: 'Claim',
+      id: 'Claim',
       diagnosis:
         diagnosisCodeableConcept === undefined
           ? []
           : [{ diagnosisCodeableConcept }],
+      patient: { reference: 'https://qa.example/fhir/Patient/Patient' },
+      provider: {
+        reference: 'https://qa.example/fhir/Organization/Organization',
+      },
+      careTeam: [
+        {
+          provider: {
+            reference: 'https://qa.example/fhir/Practitioner/Practitioner',
+          },
+        },
+      ],
+      insurance: [
+        {
+          coverage: {
+            reference: 'https://qa.example/fhir/Coverage/Coverage',
+          },
+        },
+      ],
+      billablePeriod: {
+        start: '2026-07-01T08:00:00Z',
+        end: '2026-07-01T09:00:00Z',
+      },
+      item: [
+        {
+          sequence: 1,
+          servicedPeriod: {
+            start: '2026-07-01T08:00:00Z',
+            end: '2026-07-01T09:00:00Z',
+          },
+          productOrService: {
+            coding: [
+              {
+                system: 'https://qa.example/fhir/CodeSystem/intervention-codes',
+                code: 'SHA-12-004',
+                display: 'Service',
+              },
+            ],
+          },
+          net: { value: 100 },
+        },
+      ],
+      total: { value: 100, currency: 'KES' },
     } as unknown as FhirResource;
   }
+
+  const claimResources = () =>
+    [
+      { resourceType: 'Patient', id: 'Patient' },
+      { resourceType: 'Organization', id: 'Organization' },
+      { resourceType: 'Coverage', id: 'Coverage' },
+      { resourceType: 'Practitioner', id: 'Practitioner' },
+    ] as FhirResource[];
 
   it.each([
     [{}, 'at least one coding entry'],
@@ -53,13 +114,6 @@ describe('FhirValidationService', () => {
     expect(() =>
       validator.validateBundle({
         resourceType: 'Bundle',
-        type: 'collection',
-        entry: [],
-      } as FhirBundle),
-    ).toThrow('Bundle type must be transaction');
-    expect(() =>
-      validator.validateBundle({
-        resourceType: 'Bundle',
         type: 'transaction',
         entry: [],
       }),
@@ -78,10 +132,7 @@ describe('FhirValidationService', () => {
         bundle([
           { resourceType: 'Patient' },
           { resourceType: 'Organization' },
-          {
-            resourceType: 'Encounter',
-            participant: [{}],
-          } as FhirResource,
+          { resourceType: 'Coverage' },
           claim({ coding: [coding] }),
         ]),
       ),
@@ -91,10 +142,7 @@ describe('FhirValidationService', () => {
   });
 
   it('requires a diagnosis concept or diagnosis text on claims', () => {
-    const resources = [
-      { resourceType: 'Patient' },
-      { resourceType: 'Organization' },
-    ] as FhirResource[];
+    const resources = claimResources();
     expect(() =>
       validator.validateBundle(bundle([...resources, claim()])),
     ).toThrow('Claim must have at least one diagnosis');
@@ -111,10 +159,18 @@ describe('FhirValidationService', () => {
     ).toThrow('must have a diagnosisCodeableConcept');
     expect(() =>
       validator.validateBundle(bundle([...resources, claim({})])),
-    ).toThrow('at minimum diagnosis text');
+    ).toThrow('must have an ICD-11 diagnosis code');
     expect(() =>
       validator.validateBundle(
         bundle([...resources, claim({ text: 'Pneumonia' })]),
+      ),
+    ).toThrow('must have an ICD-11 diagnosis code');
+  });
+
+  it('accepts a complete documented SHA message bundle', () => {
+    expect(() =>
+      validator.validateBundle(
+        bundle([...claimResources(), claim({ coding: [coding] })]),
       ),
     ).not.toThrow();
   });
