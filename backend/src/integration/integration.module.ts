@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { DhaHttpClient } from './dha/adapters/dha-http.client';
@@ -19,6 +20,7 @@ import { IntegrationHttpClient } from './http/integration-http.client';
 import { IntegrationAuditService } from './integration-audit.service';
 import { IntegrationConfigService } from './integration-config.service';
 import { IntegrationLoggerService } from './integration-logger.service';
+import { IntegrationStatusController } from './integration-status.controller';
 import { DHA_CLIENT, ETIMS_CLIENT } from './integration.constants';
 import { IntegrationQueueService } from './queue/integration-queue.service';
 import { IntegrationQueueWorker } from './queue/integration-queue.worker';
@@ -32,8 +34,13 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
  * requires no business-code changes.
  */
 @Module({
-  imports: [PrismaModule, AuditLogModule],
-  controllers: [EtimsController, DhaController, IntegrationQueueController],
+  imports: [PrismaModule, AuditLogModule, AuthModule],
+  controllers: [
+    EtimsController,
+    DhaController,
+    IntegrationQueueController,
+    IntegrationStatusController,
+  ],
   providers: [
     IntegrationConfigService,
     IntegrationLoggerService,

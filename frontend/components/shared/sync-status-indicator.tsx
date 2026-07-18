@@ -45,7 +45,7 @@ interface SystemSyncStatus {
 ───────────────────────────────────────────────────────────── */
 async function fetchSyncStatus(): Promise<SystemSyncStatus> {
   try {
-    return await apiFetch<SystemSyncStatus>("/integration/status", {
+    return await apiFetch<SystemSyncStatus>("/integrations/status", {
       method: "GET",
     });
   } catch {
@@ -110,9 +110,7 @@ function IntegrationRow({
           ? "text-destructive"
           : "text-muted-foreground";
 
-  const relativeTime = info.lastSync
-    ? formatRelative(info.lastSync)
-    : "Never";
+  const relativeTime = info.lastSync ? formatRelative(info.lastSync) : "Never";
 
   return (
     <div className="flex items-start gap-2.5 py-2">
@@ -144,10 +142,8 @@ function formatRelative(iso: string): string {
   try {
     const diff = Date.now() - new Date(iso).getTime();
     if (diff < 60_000) return "Just now";
-    if (diff < 3_600_000)
-      return `${Math.floor(diff / 60_000)}m ago`;
-    if (diff < 86_400_000)
-      return `${Math.floor(diff / 3_600_000)}h ago`;
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
     return new Date(iso).toLocaleDateString();
   } catch {
     return "Unknown";
@@ -156,11 +152,16 @@ function formatRelative(iso: string): string {
 
 function overallLabel(status: SystemSyncStatus["overall"]): string {
   switch (status) {
-    case "healthy": return "All systems operational";
-    case "syncing": return "Synchronising…";
-    case "warning": return "Degraded performance";
-    case "failed": return "Integration failure";
-    case "offline": return "Unable to reach server";
+    case "healthy":
+      return "All systems operational";
+    case "syncing":
+      return "Synchronising…";
+    case "warning":
+      return "Degraded performance";
+    case "failed":
+      return "Integration failure";
+    case "offline":
+      return "Unable to reach server";
   }
 }
 
