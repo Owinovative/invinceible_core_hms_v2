@@ -42,6 +42,9 @@ export interface Facility {
   showTillOnInvoice?: boolean;
   showPochiOnInvoice?: boolean;
   shaFidCode?: string | null;
+  dhaFacilityId?: string | null;
+  dhaFacilityIdType?: string | null;
+  dhaRegistryStatus?: string | null;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
   complianceStatus?: string | null;
@@ -103,8 +106,9 @@ export interface CreateFacilityPayload {
   shaFidCode?: string;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
-  shaClientId?: string;
-  shaClientSecret?: string;
+  dhaFacilityId?: string;
+  dhaFacilityIdType?: string;
+  dhaRegistryStatus?: string;
   etimsTin?: string;
   etimsBranchId?: string;
   etimsCmcKey?: string;
@@ -159,8 +163,9 @@ export interface UpdateFacilityPayload {
   shaFidCode?: string;
   shaClaimStartNumber?: number;
   shaClaimNextNumber?: number;
-  shaClientId?: string;
-  shaClientSecret?: string;
+  dhaFacilityId?: string;
+  dhaFacilityIdType?: string;
+  dhaRegistryStatus?: string;
   etimsTin?: string;
   etimsBranchId?: string;
   etimsCmcKey?: string;

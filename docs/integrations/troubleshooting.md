@@ -46,7 +46,8 @@
 
 ### DHA 401 loops
 - One automatic token refresh is attempted per call. Persistent 401 means
-  bad `DHA_CLIENT_ID`/`DHA_CLIENT_SECRET` or a wrong `DHA_TOKEN_URL`.
+  bad `DHA_USERNAME`/`DHA_PASSWORD`/`DHA_CONSUMER_KEY` or a wrong
+  `DHA_TOKEN_URL`.
 
 ### App refuses to boot after enabling an integration
 - Environment validation requires `ETIMS_BASE_URL`/`ETIMS_TIN`/

@@ -1,4 +1,9 @@
-# DHA Integration
+# DHA HIE Integration
+
+> **Production status:** not certified. `mock` is suitable for local workflow
+> development. `sandbox` exposes only routes backed by an identified DHA UAT
+> contract. Unverified legacy FHIR submissions fail closed. Production mode is
+> blocked unless formal certification evidence is configured.
 
 Connects the HMS to the Digital Health Agency's interoperability platform
 using FHIR R4 payloads. Implemented in `backend/src/integration/dha/`.
@@ -10,12 +15,13 @@ using FHIR R4 payloads. Implemented in `backend/src/integration/dha/`.
 | Patient verification | synchronous | – | `POST /integrations/dha/patients/verify` |
 | Practitioner verification | synchronous | – | `POST /integrations/dha/practitioners/verify` |
 | Facility verification | synchronous | – | `POST /integrations/dha/facilities/verify` |
-| Eligibility check | synchronous | `CoverageEligibilityRequest` | `POST /integrations/dha/eligibility` |
+| Eligibility check | synchronous | DHA query | `POST /integrations/dha/eligibility` |
 | Consent handling | synchronous | `Consent` | `POST /integrations/dha/consent` |
 | Encounter submission | queued | `Bundle` (Patient, Organization, Practitioner, Encounter) | `POST /integrations/dha/encounters/consultation/:id` |
 | Referral | queued | `ServiceRequest` | `POST /integrations/dha/referrals` |
 | Health-record exchange | adapter method | `Bundle` (document) | `DhaClientPort.exchangeHealthRecord` |
-| SHA claim submission | queued | `Bundle` (Patient, Organization, Claim) | automatic when a SHA claim first moves to `SUBMITTED` |
+| SHA claim submission | queued | FHIR message `Bundle` (Organization, Coverage, Patient, Practitioner, Claim) | automatic when a SHA claim first moves to `SUBMITTED` |
+| Claim status callback | DHA webhook | Basic-auth JSON callback | `POST /integrations/dha/callbacks/claim-status` |
 | Audit events | adapter method | `AuditEvent` | `DhaClientPort.submitAuditEvent` |
 
 Every operation writes a `dha_transactions` row with the FHIR request,
@@ -30,10 +36,11 @@ rejections mark them `FAILED` without retry (dead-lettered for review).
 ## SHA claims flow
 
 `ShaClaimsService.update()` detects the first transition to `SUBMITTED`
-and calls `DhaService.onShaClaimSubmitted(claimId)`. A FHIR transaction
-bundle (Patient + Organization + Claim with ICD-10 diagnosis coding) is
-queued for the DHA/SHA platform. Local claim handling never fails because
-of DHA issues; failures are visible in the transaction trail.
+and calls `DhaService.onShaClaimSubmitted(claimId)`. A FHIR message bundle is
+queued only after strict checks for verified registry IDs, ICD-11 coding,
+Coverage, intervention codes, service periods, reference integrity and exact
+totals. Local claim handling never fails because of DHA availability issues;
+failures are visible in the transaction trail.
 
 ## FHIR mapping
 
@@ -57,19 +64,17 @@ minimal FHIR R4 resources:
   negative-path testing. This adapter stands in until production DHA
   endpoints and credentials are available and is replaced purely by
   configuration.
-- **`DhaHttpClient`** (`sandbox`/`production`) — OAuth2 client-credentials
-  authentication with cached, single-flight token refresh; a `401`
-  invalidates the token and retries once. Endpoints are versioned
-  (`/api/{DHA_API_VERSION}/...`) and exchange `application/fhir+json`, with
-  `X-API-Version` and `X-Facility-Code` headers on every call.
+- **`DhaHttpClient`** (`sandbox`/certified production) — AfyaLink
+  `GET /v1/hie-auth` Basic authentication with a consumer key, Bearer API
+  calls, nested `message` response handling, registry searches, eligibility,
+  claim dispatch and claim-status polling. Visits, biometric authorization,
+  referrals and general SHR publication remain fail-closed until exact endpoint
+  contracts and UAT scenarios are supplied.
 
-## Assumptions (pending official API documentation)
+## Certification boundary
 
-- Endpoint paths follow FHIR REST conventions
-  (`/api/v1/Encounter`, `/api/v1/Claim`, `/api/v1/patients/verify`, …).
-  When the official DHA specification is published, only `DhaHttpClient`
-  changes — the `DhaClientPort` contract and all business logic stay
-  stable.
-- OAuth2 client credentials is assumed as the authentication scheme.
-- Identifier systems (`https://dha.go.ke/identifier/...`) are placeholders
-  until DHA publishes canonical URIs.
+Configuration cannot establish compliance. Before enabling production, obtain
+the current DHA OpenAPI artifacts, complete PHC/SHIF/ECCIF UAT scenarios,
+record the certification reference, complete the DPIA and operational security
+evidence, and receive production credentials. See
+[`dha-production-readiness.md`](./dha-production-readiness.md).

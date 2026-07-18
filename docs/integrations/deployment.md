@@ -24,9 +24,13 @@
    `ETIMS_BHF_ID`, `ETIMS_DEVICE_SERIAL`, `ETIMS_CMC_KEY` (secret store).
    Validate a full day of invoices, credit notes, and a cancellation.
 
-4. **Production**: switch `ETIMS_MODE=production` (and later
-   `DHA_MODE=sandbox/production` when DHA issues credentials). The app
-   refuses to boot if required variables are missing for a live mode.
+4. **DHA UAT**: use `DHA_MODE=sandbox` only after importing the current
+   contract and receiving UAT credentials. Unsupported workflows fail closed.
+
+5. **Production**: switch `ETIMS_MODE=production` after KRA acceptance. DHA
+   production additionally requires formal certification evidence and the
+   explicit activation gate documented in
+   [`dha-production-readiness.md`](./dha-production-readiness.md).
 
 ## Process topology
 
@@ -49,7 +53,8 @@
 
 ## Secrets checklist
 
-- `ETIMS_CMC_KEY`, `DHA_CLIENT_SECRET` (and ids/URLs) live only in the
+- `ETIMS_CMC_KEY`, `DHA_PASSWORD`, `DHA_CONSUMER_KEY` and
+  `DHA_CALLBACK_PASSWORD` (and ids/URLs) live only in the
   environment/secret manager — never in the repo or logs.
 - Rotate by updating the environment and restarting; tokens are cached in
   memory only.
