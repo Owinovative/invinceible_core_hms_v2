@@ -216,4 +216,93 @@ describe('DhaHttpClient', () => {
       },
     });
   });
+
+  it('fails closed when required registry identifiers are missing', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE]);
+
+    await expect(client.verifyPatient({})).rejects.toBeInstanceOf(DhaApiError);
+    await expect(client.verifyPractitioner({})).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
+    await expect(client.verifyFacility({})).rejects.toBeInstanceOf(DhaApiError);
+    await expect(client.checkEligibility({})).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it('maps claim status responses, including DHA claim-state extensions', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { message: { status: 'payment-completed' } } },
+      {
+        data: {
+          message: {
+            extension: [
+              { url: 'https://dha.go.ke/claim-state', valueCode: 'rejected' },
+            ],
+          },
+        },
+      },
+    ]);
+
+    await expect(client.pollClaimResponse('CLAIM-1')).resolves.toMatchObject({
+      status: 'SETTLED',
+    });
+    await expect(client.pollClaimResponse('CLAIM-2')).resolves.toMatchObject({
+      status: 'REJECTED',
+    });
+    expect(calls.slice(1).map((call) => call.query)).toEqual([
+      { claim_id: 'CLAIM-1' },
+      { claim_id: 'CLAIM-2' },
+    ]);
+  });
+
+  it('uses the consent-management routes and selects the authorization route', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { message: { status: 'SUCCESS' } } },
+      { data: { message: { status: 'SUCCESS' } } },
+      { data: { message: { status: 'SUCCESS' } } },
+      { data: { message: { status: 'SUCCESS' } } },
+      { data: { message: { status: 'SUCCESS' } } },
+    ]);
+
+    await client.getPatientContacts('PAT-1');
+    await client.sendVisitOtp({ patient_id: 'PAT-1' } as never);
+    await client.createAuthorization({ patient_id: 'PAT-1' } as never);
+    await client.createAuthorization({ otp_code: '123456' } as never);
+    await client.sendDischargeOtp({ patient_id: 'PAT-1' } as never);
+
+    expect(calls.slice(1).map((call) => call.path)).toEqual([
+      '/patients/contacts',
+      '/claims/otp',
+      '/claims/authorize',
+      '/claims/visit',
+      '/claims/otp',
+    ]);
+  });
+
+  it('keeps uncertified legacy FHIR operations disabled', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE]);
+
+    await expect(client.submitEncounter({} as never)).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
+    await expect(
+      client.exchangeHealthRecord({} as never),
+    ).rejects.toBeInstanceOf(DhaApiError);
+    await expect(client.submitReferral({} as never)).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
+    await expect(client.recordConsent({} as never)).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
+    await expect(client.submitAuditEvent({} as never)).rejects.toBeInstanceOf(
+      DhaApiError,
+    );
+
+    expect(calls).toHaveLength(0);
+  });
 });

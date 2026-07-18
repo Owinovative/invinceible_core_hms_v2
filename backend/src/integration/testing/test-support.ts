@@ -20,8 +20,7 @@ export const DEFAULT_TEST_ENV: Record<string, string> = {
   DHA_ENABLED: 'true',
   DHA_MODE: 'mock',
   DHA_BASE_URL: 'https://ilm-dev.dha.go.ke/uat-middleware/api/v1',
-  DHA_TOKEN_URL:
-    'https://ilm-dev.dha.go.ke/uat-middleware/api/v1/hie-auth',
+  DHA_TOKEN_URL: 'https://ilm-dev.dha.go.ke/uat-middleware/api/v1/hie-auth',
   DHA_USERNAME: 'test-user',
   DHA_PASSWORD: 'test-password',
   DHA_CONSUMER_KEY: 'test-consumer-key',
