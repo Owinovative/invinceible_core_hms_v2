@@ -58,57 +58,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { appSelectClass } from "@/lib/select-class";
-
-function formatDate(value?: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString();
-}
-
-function patientName(
-  patient?: {
-    firstName?: string;
-    middleName?: string | null;
-    lastName?: string;
-  } | null,
-) {
-  if (!patient) return "Unknown patient";
-  return [patient.firstName, patient.middleName, patient.lastName]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function staffName(
-  staff?: {
-    firstName?: string;
-    lastName?: string;
-    staffCode?: string;
-  } | null,
-) {
-  if (!staff) return "—";
-  const name = [staff.firstName, staff.lastName].filter(Boolean).join(" ");
-  return name || staff.staffCode || "—";
-}
-
-function statusTone(status?: string | null) {
-  switch ((status || "").toUpperCase()) {
-    case "ADMITTED":
-      return "border-cyan-500/20 bg-cyan-500/10 text-cyan-300";
-    case "DISCHARGED":
-      return "border-emerald-500/20 bg-success/10 text-emerald-300";
-    case "ADMINISTERED":
-      return "border-emerald-500/20 bg-success/10 text-emerald-300";
-    case "PLANNED":
-      return "border-amber-500/20 bg-amber-500/10 text-amber-300";
-    case "RESULTED":
-      return "border-emerald-500/20 bg-success/10 text-emerald-300";
-    case "PENDING":
-      return "border-amber-500/20 bg-amber-500/10 text-amber-300";
-    default:
-      return "border-white/10 bg-card/[0.04] text-muted-foreground";
-  }
-}
+import {
+  activeTreatmentStock,
+  availableIpdTransferBeds,
+  filterIpdLabTests,
+  filterTreatmentStock,
+  formatIpdDate as formatDate,
+  ipdPatientName as patientName,
+  ipdStaffName as staffName,
+  ipdStatusTone as statusTone,
+  treatmentStockStatus,
+} from "./ipd-workspace";
 
 export default function IpdDetailPage() {
   const params = useParams();
@@ -174,20 +134,10 @@ export default function IpdDetailPage() {
     [labTestsData],
   );
   const [labTestSearch, setLabTestSearch] = React.useState("");
-  const filteredLabTests = React.useMemo(() => {
-    const query = labTestSearch.trim().toLowerCase();
-    if (!query) return labTests.slice(0, 120);
-
-    return labTests
-      .filter((test) =>
-        [test.testName, test.category, test.specimenType]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query),
-      )
-      .slice(0, 120);
-  }, [labTests, labTestSearch]);
+  const filteredLabTests = React.useMemo(
+    () => filterIpdLabTests(labTests, labTestSearch),
+    [labTests, labTestSearch],
+  );
 
   const totalProgressNotes = progressNotes.length;
   const totalTreatments = treatmentChart.length;
@@ -277,7 +227,7 @@ export default function IpdDetailPage() {
     const items = Array.isArray(treatmentBranchStockData)
       ? treatmentBranchStockData
       : (treatmentBranchStockData?.data ?? []);
-    return items.filter((item) => item.isActive !== false && item.medicine);
+    return activeTreatmentStock(items);
   }, [treatmentBranchStockData]);
 
   const selectedTreatmentMedicineIdNumber = selectedTreatmentMedicineId
@@ -290,20 +240,11 @@ export default function IpdDetailPage() {
       )
     : undefined;
 
-  const selectedTreatmentStockStatus:
-    | "IN_STOCK"
-    | "LOW_STOCK"
-    | "OUT_OF_STOCK"
-    | null = selectedTreatmentStockItem
-    ? selectedTreatmentStockItem.stockQuantity <= 0
-      ? "OUT_OF_STOCK"
-      : selectedTreatmentStockItem.stockQuantity <=
-          selectedTreatmentStockItem.reorderLevel
-        ? "LOW_STOCK"
-        : "IN_STOCK"
-    : selectedTreatmentMedicineIdNumber && !treatmentStockLoading
-      ? "OUT_OF_STOCK"
-      : null;
+  const selectedTreatmentStockStatus = treatmentStockStatus(
+    selectedTreatmentStockItem,
+    Boolean(selectedTreatmentMedicineIdNumber),
+    treatmentStockLoading,
+  );
 
   const {
     data: treatmentAlternativesData,
@@ -318,28 +259,11 @@ export default function IpdDetailPage() {
     [treatmentAlternativesData],
   );
 
-  const filteredTreatmentStockItems = React.useMemo(() => {
-    const query = treatmentMedicineSearch.trim().toLowerCase();
-    const matches = treatmentBranchStockItems.filter((item) => {
-      if (!query) return true;
-      const medicine = item.medicine;
-      return [
-        medicine?.code,
-        medicine?.name,
-        medicine?.dosageForm,
-        medicine?.strength,
-        medicine?.manufacturer,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-
-    return matches
-      .sort((left, right) => right.stockQuantity - left.stockQuantity)
-      .slice(0, 140);
-  }, [treatmentBranchStockItems, treatmentMedicineSearch]);
+  const filteredTreatmentStockItems = React.useMemo(
+    () =>
+      filterTreatmentStock(treatmentBranchStockItems, treatmentMedicineSearch),
+    [treatmentBranchStockItems, treatmentMedicineSearch],
+  );
 
   React.useEffect(() => {
     if (!dischargeSummary) return;
@@ -351,15 +275,7 @@ export default function IpdDetailPage() {
   }, [dischargeSummary]);
 
   const availableTransferBeds = React.useMemo(() => {
-    return beds.filter((bed) => {
-      const wardMatch = transferWardId
-        ? String(bed.wardId) === transferWardId
-        : false;
-      const isAvailable =
-        (bed.statusCode || "AVAILABLE").toUpperCase() === "AVAILABLE";
-      const isActive = bed.isActive !== false;
-      return wardMatch && isAvailable && isActive;
-    });
+    return availableIpdTransferBeds(beds, transferWardId);
   }, [beds, transferWardId]);
 
   React.useEffect(() => {
@@ -581,7 +497,8 @@ export default function IpdDetailPage() {
     if (!data) return;
 
     const selectedTreatmentName =
-      selectedTreatmentStockItem?.medicine?.name?.trim() || treatmentName.trim();
+      selectedTreatmentStockItem?.medicine?.name?.trim() ||
+      treatmentName.trim();
 
     if (!selectedTreatmentName) {
       setMessage("Please enter the treatment name.");
@@ -1753,10 +1670,7 @@ export default function IpdDetailPage() {
                             : "Select stocked medicine or type below"}
                         </option>
                         {filteredTreatmentStockItems.map((item) => (
-                          <option
-                            key={item.id}
-                            value={String(item.medicineId)}
-                          >
+                          <option key={item.id} value={String(item.medicineId)}>
                             {[
                               item.medicine?.name,
                               item.medicine?.strength,
@@ -1851,13 +1765,19 @@ export default function IpdDetailPage() {
                         </p>
                         <p className="mt-1">
                           Current stock:{" "}
-                          <strong>{selectedTreatmentStockItem.stockQuantity}</strong>{" "}
+                          <strong>
+                            {selectedTreatmentStockItem.stockQuantity}
+                          </strong>{" "}
                           / reorder level:{" "}
-                          <strong>{selectedTreatmentStockItem.reorderLevel}</strong>
+                          <strong>
+                            {selectedTreatmentStockItem.reorderLevel}
+                          </strong>
                         </p>
                         <p className="mt-1">
                           Unit price: KES{" "}
-                          {Number(selectedTreatmentStockItem.unitPrice || 0).toLocaleString()}
+                          {Number(
+                            selectedTreatmentStockItem.unitPrice || 0,
+                          ).toLocaleString()}
                         </p>
                       </div>
                       <Badge
@@ -1920,7 +1840,8 @@ export default function IpdDetailPage() {
                                     </p>
                                     <p className="mt-1 text-muted-foreground">
                                       {item.stockQuantity} in stock /{" "}
-                                      {item.medicine?.strength || "strength not set"}
+                                      {item.medicine?.strength ||
+                                        "strength not set"}
                                     </p>
                                     <p className="mt-1 text-muted-foreground">
                                       {item.reasons.join(", ")}

@@ -8,6 +8,15 @@ import type {
   FhirServiceRequest,
 } from './fhir.types';
 
+export const DHA_ELIGIBILITY_IDENTIFICATION_TYPES = [
+  'National ID',
+  'Alien ID',
+  'Mandate Number',
+  'Temporary ID',
+  'SHA Number',
+  'Refugee ID',
+] as const;
+
 export interface DhaResult<T = unknown> {
   status:
     | 'VERIFIED'
@@ -26,6 +35,8 @@ export interface DhaResult<T = unknown> {
 }
 
 export interface PatientVerificationQuery {
+  identificationNumber?: string;
+  identificationType?: string;
   nationalId?: string;
   shaNumber?: string;
   patientNumber?: string;
@@ -33,7 +44,10 @@ export interface PatientVerificationQuery {
 }
 
 export interface PractitionerVerificationQuery {
-  registrationNumber: string;
+  registrationNumber?: string;
+  practitionerId?: string;
+  identificationType?: string;
+  identificationNumber?: string;
   board?: string;
 }
 
@@ -42,6 +56,8 @@ export interface FacilityVerificationQuery {
 }
 
 export interface EligibilityQuery {
+  identificationNumber?: string;
+  identificationType?: string;
   memberNumber?: string;
   nationalId?: string;
   serviceDate?: string;

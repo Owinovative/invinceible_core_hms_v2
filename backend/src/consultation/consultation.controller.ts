@@ -15,15 +15,21 @@ import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { UpdateConsultationDto } from './dto/update-consultation.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
+import { Permissions } from '../auth/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
 
 @Controller('consultations')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class ConsultationController {
   constructor(private readonly consultationService: ConsultationService) {}
 
   @Post()
-  create(@Body() createConsultationDto: CreateConsultationDto) {
-    return this.consultationService.create(createConsultationDto);
+  @Permissions('consultation.write')
+  create(
+    @Body() createConsultationDto: CreateConsultationDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.consultationService.create(createConsultationDto, user);
   }
 
   @Get()

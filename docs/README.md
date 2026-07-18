@@ -53,6 +53,7 @@ truth. Start here.
 | [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) | Setup, conventions, feature recipe, **code quality report** |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Engineering rules, workflow, quality gates |
 | [TESTING.md](TESTING.md) | Test landscape, strategy, mocks, coverage |
+| [DEMONSTRATION_TESTING_PROCEDURE.md](DEMONSTRATION_TESTING_PROCEDURE.md) | Repeatable frontend-to-backend clinical and billing demonstration runbook |
 
 ## 🎨 Product & UI
 

@@ -20,6 +20,7 @@ jobs:
         working-directory: backend
     env:
       NODE_ENV: test
+      DATABASE_PROVIDER: mysql
       DATABASE_URL: mysql://user:password@localhost:3306/invinceible_core_hms_v2
       JWT_SECRET: ci-only-secret-with-more-than-48-characters-for-tests
       FRONTEND_URL: http://localhost:3001
@@ -39,7 +40,9 @@ jobs:
       - name: Type check and build
         run: npm run build
       - name: Unit tests
-        run: npx jest src/auth/password-policy.spec.ts src/auth/permissions.spec.ts --runInBand
+        run: npm run test:unit:ci
+      - name: HTTP smoke test
+        run: npm run test:e2e
 
   integration-tests:
     name: Integration layer tests (mock DHA + eTIMS) with coverage gate
@@ -49,14 +52,15 @@ jobs:
         working-directory: backend
     env:
       NODE_ENV: test
+      DATABASE_PROVIDER: mysql
       DATABASE_URL: mysql://user:password@localhost:3306/invinceible_core_hms_v2
       JWT_SECRET: ci-only-secret-with-more-than-48-characters-for-tests
       FRONTEND_URL: http://localhost:3001
       # Exercise the full mock-adapter paths, as production would with
       # ETIMS_MODE/DHA_MODE=mock.
-      ETIMS_ENABLED: 'true'
+      ETIMS_ENABLED: "true"
       ETIMS_MODE: mock
-      DHA_ENABLED: 'true'
+      DHA_ENABLED: "true"
       DHA_MODE: mock
     steps:
       - uses: actions/checkout@v4
@@ -119,4 +123,5 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm test
       - run: npm run build

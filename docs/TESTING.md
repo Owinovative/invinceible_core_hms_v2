@@ -1,5 +1,8 @@
 # Testing
 
+For a presenter-led frontend-to-backend acceptance run, use the
+[demonstration testing procedure](DEMONSTRATION_TESTING_PROCEDURE.md).
+
 ## 1. Test landscape
 
 | Suite | Location | Status |

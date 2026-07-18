@@ -248,7 +248,10 @@ export class IntegrationQueueService {
     return result.count === 1;
   }
 
-  async getStats(integration?: string): Promise<
+  async getStats(
+    integration?: string,
+    scope: Prisma.IntegrationOutboundRequestWhereInput = {},
+  ): Promise<
     Array<{
       integration: string;
       operation: string;
@@ -259,7 +262,10 @@ export class IntegrationQueueService {
     const groups = await this.prisma.integrationOutboundRequest.groupBy({
       by: ['integration', 'operation', 'status'],
       _count: { _all: true },
-      ...(integration ? { where: { integration } } : {}),
+      where: {
+        ...scope,
+        ...(integration ? { integration } : {}),
+      },
     });
     return groups.map((group) => ({
       integration: group.integration,

@@ -19,7 +19,8 @@ A background scheduled process (using NestJS `@nestjs/schedule`) responsible for
 - **Claim Polling:** Regularly checks `/ClaimResponse` for claims in the `PENDING` state and updates the local invoice status to `ACCEPTED` or `REJECTED`.
 
 ### 3. Authentication Layer
-- Uses the `DhaAuthService` to retrieve OAuth2 tokens from `auth.dha.go.ke`.
+- Uses `DhaAuthService` to obtain an AfyaLink JWT from the configured
+  `/v1/hie-auth` endpoint using Basic credentials and a consumer key.
 - Implements an in-memory Promise mutex to prevent stampeding herd issues when refreshing tokens.
 - Tokens are aggressively cached and proactively refreshed 5 minutes before expiration.
 

@@ -3,7 +3,6 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DHA_CLIENT } from '../integration/integration.constants';
@@ -14,24 +13,44 @@ import {
   SendDischargeOtpDto,
 } from './dto/consent.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
+import { ScopeService } from '../auth/scope.service';
+import { SensitiveDataCipherService } from '../common/security/sensitive-data-cipher.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ConsentService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(DHA_CLIENT) private readonly dhaClient: DhaClientPort,
+    private readonly scope: ScopeService,
+    private readonly cipher: SensitiveDataCipherService,
   ) {}
 
-  async getContacts(patientId: string, user: RequestUser) {
-    const patient = await this.prisma.patient.findUnique({
-      where: { id: parseInt(patientId, 10) },
-    });
+  private async getScopedPatient(
+    patientIdValue: string | number,
+    user: RequestUser,
+  ) {
+    const patientId = Number(patientIdValue);
+    if (!Number.isInteger(patientId) || patientId <= 0) {
+      throw new BadRequestException('Invalid patient ID');
+    }
 
+    const patient = await this.prisma.patient.findFirst({
+      where: {
+        id: patientId,
+        ...this.scope.buildFacilityScopeWhere(user),
+      },
+    });
     if (!patient || !patient.shaMemberNumber) {
       throw new NotFoundException(
-        'Patient not found or missing SHA member number',
+        'Patient not found or missing a verified DHA registry identifier',
       );
     }
+    return { ...patient, shaMemberNumber: patient.shaMemberNumber };
+  }
+
+  async getContacts(patientId: string, user: RequestUser) {
+    const patient = await this.getScopedPatient(patientId, user);
 
     const response = await this.dhaClient.getPatientContacts(
       patient.shaMemberNumber,
@@ -40,7 +59,11 @@ export class ConsentService {
       },
     );
 
-    if (response.status !== 'VERIFIED' && response.status !== 'ACCEPTED') {
+    if (
+      response.status !== 'VERIFIED' &&
+      response.status !== 'ACCEPTED' &&
+      response.status !== 'SUCCESS'
+    ) {
       throw new BadRequestException(
         'Failed to retrieve patient contacts from DHA',
       );
@@ -50,15 +73,7 @@ export class ConsentService {
   }
 
   async sendVisitOtp(dto: SendOtpDto, user: RequestUser) {
-    const patient = await this.prisma.patient.findUnique({
-      where: { id: parseInt(dto.patientId, 10) },
-    });
-
-    if (!patient || !patient.shaMemberNumber) {
-      throw new NotFoundException(
-        'Patient not found or missing SHA member number',
-      );
-    }
+    const patient = await this.getScopedPatient(dto.patientId, user);
 
     const response = await this.dhaClient.sendVisitOtp(
       {
@@ -99,15 +114,7 @@ export class ConsentService {
   }
 
   async verifyVisitOtp(dto: VerifyOtpDto, user: RequestUser) {
-    const patient = await this.prisma.patient.findUnique({
-      where: { id: parseInt(dto.patientId, 10) },
-    });
-
-    if (!patient || !patient.shaMemberNumber) {
-      throw new NotFoundException(
-        'Patient not found or missing SHA member number',
-      );
-    }
+    const patient = await this.getScopedPatient(dto.patientId, user);
 
     // Get the latest pending request
     const pendingRequest = await this.prisma.consentRequest.findFirst({
@@ -148,8 +155,12 @@ export class ConsentService {
         data: {
           patientId: patient.id,
           consultationId: dto.consultationId,
-          consentToken: response.data.consent_token,
-          authGuid: response.data.auth_guid,
+          consentTokenCiphertext: this.cipher.encrypt(
+            response.data.consent_token,
+          ),
+          authGuidCiphertext: response.data.auth_guid
+            ? this.cipher.encrypt(response.data.auth_guid)
+            : null,
           status: response.data.status,
           expiresAt: response.data.expires_at
             ? new Date(response.data.expires_at)
@@ -168,7 +179,14 @@ export class ConsentService {
         },
       });
 
-      return authorization;
+      return {
+        id: authorization.id,
+        patientId: authorization.patientId,
+        consultationId: authorization.consultationId,
+        status: authorization.status,
+        expiresAt: authorization.expiresAt,
+        createdAt: authorization.createdAt,
+      };
     } catch (error) {
       // Audit log failure
       await this.prisma.consentAuditLog.create({
@@ -185,15 +203,7 @@ export class ConsentService {
   }
 
   async sendDischargeOtp(dto: SendDischargeOtpDto, user: RequestUser) {
-    const patient = await this.prisma.patient.findUnique({
-      where: { id: parseInt(dto.patientId, 10) },
-    });
-
-    if (!patient || !patient.shaMemberNumber) {
-      throw new NotFoundException(
-        'Patient not found or missing SHA member number',
-      );
-    }
+    const patient = await this.getScopedPatient(dto.patientId, user);
 
     const response = await this.dhaClient.sendDischargeOtp(
       {
@@ -209,10 +219,16 @@ export class ConsentService {
     return response.data;
   }
 
-  async getActiveConsent(patientId: number, consultationId?: number) {
-    const whereClause: any = {
+  async getActiveConsent(
+    patientId: number,
+    user: RequestUser,
+    consultationId?: number,
+  ) {
+    await this.getScopedPatient(patientId, user);
+    const whereClause: Prisma.ConsentAuthorizationWhereInput = {
       patientId,
       status: 'AUTHORIZED',
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     };
 
     if (consultationId) {
@@ -222,6 +238,14 @@ export class ConsentService {
     return this.prisma.consentAuthorization.findFirst({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        patientId: true,
+        consultationId: true,
+        status: true,
+        expiresAt: true,
+        createdAt: true,
+      },
     });
   }
 }

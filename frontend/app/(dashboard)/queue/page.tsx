@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Clock3, Users } from "lucide-react";
+import { Activity, AlertCircle, Clock3, RefreshCw, Users } from "lucide-react";
 import { useQueueStats, useTodayQueue } from "@/hooks/use-queue";
 import { QueueTable } from "@/components/queue/queue-table";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ function StatCard({
 }
 
 export default function QueuePage() {
-  const { data, isLoading } = useTodayQueue();
+  const { data, isLoading, isError, error, refetch } = useTodayQueue();
   const { data: stats, isLoading: statsLoading } = useQueueStats();
   const { facilityName, selectedBranchName } = useScope();
 
@@ -112,6 +112,27 @@ export default function QueuePage() {
           isLoading={statsLoading}
         />
       </section>
+
+      {isError ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-red-500/30 bg-red-500/8 p-4 text-sm text-red-300 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <span>
+              {error instanceof Error
+                ? error.message
+                : "The active queue could not be loaded."}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="inline-flex items-center gap-2 self-start rounded-xl border border-red-500/30 px-3 py-2 font-semibold sm:self-auto"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <QueueTable items={queueItems} isLoading={isLoading} />
     </div>

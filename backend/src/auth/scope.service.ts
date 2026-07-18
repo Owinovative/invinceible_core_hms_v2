@@ -256,6 +256,10 @@ export class ScopeService {
     facilityId: number,
     branchId?: number | null,
   ) {
+    if (user.roleCode === 'SUPER_ADMIN') {
+      return;
+    }
+
     this.assertFacilityAccess(user, facilityId);
 
     if (!branchId) {

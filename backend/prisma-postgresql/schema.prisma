@@ -56,6 +56,10 @@ model Facility {
   shaFidCode              String?                       @db.VarChar(120)
   shaClientId             String?                       @db.VarChar(255)
   shaClientSecret         String?                       @db.Text
+  dhaFacilityId           String?                       @unique @db.VarChar(160)
+  dhaFacilityIdType       String?                       @default("fr-code") @db.VarChar(40)
+  dhaRegistryStatus       String?                       @db.VarChar(40)
+  dhaRegistryVerifiedAt   DateTime?
   shaClaimStartNumber     Int                           @default(1)
   shaClaimNextNumber      Int                           @default(1)
   etimsTin                String?                       @db.VarChar(50)
@@ -273,30 +277,33 @@ model UserBranchAccess {
 }
 
 model Staff {
-  id                          Int      @id @default(autoincrement())
-  staffCode                   String   @unique @db.VarChar(50)
-  firstName                   String   @db.VarChar(100)
-  lastName                    String   @db.VarChar(100)
-  email                       String?  @unique @db.VarChar(255)
-  phone                       String?  @db.VarChar(30)
-  gender                      String?  @db.VarChar(20)
-  designation                 String?  @db.VarChar(150)
-  nationalIdNumber            String?  @db.VarChar(80)
-  nationalIdImageUrl          String?  @db.Text
-  passportPhotoUrl            String?  @db.Text
-  clinicianRegistrationNumber String?  @db.VarChar(120)
-  clinicianBoard              String?  @db.VarChar(160)
-  isClinician                 Boolean  @default(false)
-  isPrescriber                Boolean  @default(false)
-  canLogin                    Boolean  @default(true)
-  isActive                    Boolean  @default(true)
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
+  id                          Int       @id @default(autoincrement())
+  staffCode                   String    @unique @db.VarChar(50)
+  firstName                   String    @db.VarChar(100)
+  lastName                    String    @db.VarChar(100)
+  email                       String?   @unique @db.VarChar(255)
+  phone                       String?   @db.VarChar(30)
+  gender                      String?   @db.VarChar(20)
+  designation                 String?   @db.VarChar(150)
+  nationalIdNumber            String?   @db.VarChar(80)
+  nationalIdImageUrl          String?   @db.Text
+  passportPhotoUrl            String?   @db.Text
+  clinicianRegistrationNumber String?   @db.VarChar(120)
+  clinicianBoard              String?   @db.VarChar(160)
+  dhaPractitionerId           String?   @unique @db.VarChar(160)
+  dhaLicenseStatus            String?   @db.VarChar(40)
+  dhaRegistryVerifiedAt       DateTime?
+  isClinician                 Boolean   @default(false)
+  isPrescriber                Boolean   @default(false)
+  canLogin                    Boolean   @default(true)
+  isActive                    Boolean   @default(true)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
   facilityId                  Int
   branchId                    Int?
   departmentId                Int?
   roleId                      Int
-  userId                      Int?     @unique
+  userId                      Int?      @unique
 
   admissions            Admission[]             @relation("AdmittedByStaff")
   appointments          Appointment[]           @relation("AppointmentDoctor")
@@ -359,6 +366,12 @@ model Patient {
   shaStatus               String?                @db.VarChar(50)
   shaEligibilityUpdatedAt DateTime?
   shaMemberNumber         String?                @db.VarChar(120)
+  dhaClientRegistryId     String?                @db.VarChar(160)
+  dhaIdentificationType   String?                @db.VarChar(80)
+  dhaIdentificationNumber String?                @db.VarChar(160)
+  dhaRegistryStatus       String?                @db.VarChar(40)
+  dhaRegistryVersion      String?                @db.VarChar(80)
+  dhaRegistryVerifiedAt   DateTime?
   nationalIdNumber        String?                @db.VarChar(80)
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @updatedAt
@@ -381,6 +394,7 @@ model Patient {
   consentAuditLogs        ConsentAuditLog[]
   shrPublications         ShrPublication[]
 
+  @@unique([facilityId, dhaClientRegistryId])
   @@index([facilityId])
   @@index([phonePrimary])
   @@index([createdAt])
@@ -391,6 +405,7 @@ model Patient {
   @@index([facilityId, createdAt])
   @@index([nationalIdNumber])
   @@index([shaMemberNumber])
+  @@index([facilityId, dhaIdentificationType, dhaIdentificationNumber])
   @@map("patients")
 }
 
@@ -1157,14 +1172,14 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id              Int    @id @default(autoincrement())
-  description     String @db.VarChar(255)
-  quantity        Int    @default(1)
+  id              Int     @id @default(autoincrement())
+  description     String  @db.VarChar(255)
+  quantity        Int     @default(1)
   unitPrice       Decimal @default(0) @db.Decimal(18, 2)
   discountPercent Decimal @default(0) @db.Decimal(5, 2)
   discountAmount  Decimal @default(0) @db.Decimal(18, 2)
   lineTotal       Decimal @default(0) @db.Decimal(18, 2)
-  statusCode      String @default("BILLED") @db.VarChar(50)
+  statusCode      String  @default("BILLED") @db.VarChar(50)
 
   // Logical tracking fields for Billing Service
   isAutoGenerated  Boolean   @default(false)
@@ -1222,17 +1237,17 @@ model Payment {
   shaClaim           ShaClaim? @relation("ShaClaimPayments", fields: [shaClaimId], references: [id])
   receivedBy         Staff?    @relation("PaymentReceivedByStaff", fields: [receivedByStaffId], references: [id])
 
+  @@unique([checkoutRequestId])
+  @@unique([mpesaReceiptNumber])
+  @@unique([shaClaimId, paymentMethod])
   @@index([facilityId])
   @@index([branchId])
   @@index([invoiceId])
   @@index([receivedByStaffId])
   @@index([statusCode])
   @@index([paymentMethod])
-  @@unique([checkoutRequestId])
   @@index([merchantRequestId])
-  @@unique([mpesaReceiptNumber])
   @@index([phoneNumber])
-  @@unique([shaClaimId, paymentMethod])
   @@index([createdAt])
   @@index([updatedAt])
   @@index([requestedAt])
@@ -1273,43 +1288,50 @@ model UserReview {
 }
 
 model ShaClaim {
-  id                   Int                 @id @default(autoincrement())
-  claimNumber          String              @unique @db.VarChar(80)
-  statusCode           String              @default("DRAFT") @db.VarChar(50)
-  fidCode              String?             @db.VarChar(120)
-  memberNumber         String?             @db.VarChar(120)
-  diagnosisCode        String?             @db.VarChar(80)
-  diagnosisText        String?             @db.VarChar(255)
-  diagnosisConceptId   Int?
-  diagnosisConcept     TerminologyConcept? @relation("ShaClaimDiagnosis", fields: [diagnosisConceptId], references: [id])
-  servicePeriodStart   DateTime?
-  servicePeriodEnd     DateTime?
-  claimedAmount        Decimal             @default(0) @db.Decimal(18, 2)
-  approvedAmount       Decimal             @default(0) @db.Decimal(18, 2)
-  paidAmount           Decimal             @default(0) @db.Decimal(18, 2)
-  rejectedAmount       Decimal             @default(0) @db.Decimal(18, 2)
-  rejectionReason      String?             @db.Text
-  patientSignatureUrl  String?             @db.Text
-  facilitySignatureUrl String?             @db.Text
-  rubberStampUrl       String?             @db.Text
-  submittedAt          DateTime?
-  approvedAt           DateTime?
-  paidAt               DateTime?
-  notes                String?             @db.Text
-  metadata             Json?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  facilityId           Int
-  branchId             Int?
-  patientId            Int
-  invoiceId            Int?
-  createdByStaffId     Int?
-  facility             Facility            @relation(fields: [facilityId], references: [id])
-  branch               Branch?             @relation(fields: [branchId], references: [id])
-  patient              Patient             @relation(fields: [patientId], references: [id])
-  invoice              Invoice?            @relation(fields: [invoiceId], references: [id])
-  createdBy            Staff?              @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
-  payments             Payment[]           @relation("ShaClaimPayments")
+  id                        Int                 @id @default(autoincrement())
+  claimNumber               String              @unique @db.VarChar(80)
+  statusCode                String              @default("DRAFT") @db.VarChar(50)
+  fidCode                   String?             @db.VarChar(120)
+  memberNumber              String?             @db.VarChar(120)
+  diagnosisCode             String?             @db.VarChar(80)
+  diagnosisText             String?             @db.VarChar(255)
+  diagnosisConceptId        Int?
+  diagnosisConcept          TerminologyConcept? @relation("ShaClaimDiagnosis", fields: [diagnosisConceptId], references: [id])
+  servicePeriodStart        DateTime?
+  servicePeriodEnd          DateTime?
+  claimedAmount             Decimal             @default(0) @db.Decimal(18, 2)
+  approvedAmount            Decimal             @default(0) @db.Decimal(18, 2)
+  paidAmount                Decimal             @default(0) @db.Decimal(18, 2)
+  rejectedAmount            Decimal             @default(0) @db.Decimal(18, 2)
+  dhaVisitId                String?             @db.VarChar(160)
+  dhaExternalClaimId        String?             @db.VarChar(160)
+  preauthorizationId        String?             @db.VarChar(160)
+  preauthorizationType      String?             @db.VarChar(60)
+  preauthorizationStatus    String?             @db.VarChar(60)
+  preauthorizationExpiresAt DateTime?
+  dhaSpecVersion            String?             @db.VarChar(80)
+  rejectionReason           String?             @db.Text
+  patientSignatureUrl       String?             @db.Text
+  facilitySignatureUrl      String?             @db.Text
+  rubberStampUrl            String?             @db.Text
+  submittedAt               DateTime?
+  approvedAt                DateTime?
+  paidAt                    DateTime?
+  notes                     String?             @db.Text
+  metadata                  Json?
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+  facilityId                Int
+  branchId                  Int?
+  patientId                 Int
+  invoiceId                 Int?
+  createdByStaffId          Int?
+  facility                  Facility            @relation(fields: [facilityId], references: [id])
+  branch                    Branch?             @relation(fields: [branchId], references: [id])
+  patient                   Patient             @relation(fields: [patientId], references: [id])
+  invoice                   Invoice?            @relation(fields: [invoiceId], references: [id])
+  createdBy                 Staff?              @relation("ShaClaimCreatedBy", fields: [createdByStaffId], references: [id])
+  payments                  Payment[]           @relation("ShaClaimPayments")
 
   @@index([facilityId])
   @@index([branchId])
@@ -1319,6 +1341,9 @@ model ShaClaim {
   @@index([createdAt])
   @@index([fidCode])
   @@index([memberNumber])
+  @@index([dhaVisitId])
+  @@index([dhaExternalClaimId])
+  @@index([preauthorizationId])
   @@map("sha_claims")
 }
 
@@ -2042,15 +2067,17 @@ model ConsentRequest {
 }
 
 model ConsentAuthorization {
-  id             Int       @id @default(autoincrement())
-  patientId      Int
-  consultationId Int? // Optional initial link, but typically required once visit formally started
-  consentToken   String    @db.Text
-  authGuid       String?   @db.VarChar(120) // For biometric
-  status         String    @default("AUTHORIZED") @db.VarChar(50)
-  expiresAt      DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                     Int       @id @default(autoincrement())
+  patientId              Int
+  consultationId         Int? // Optional initial link, but typically required once visit formally started
+  consentToken           String?   @db.Text // Legacy plaintext; never write new values
+  authGuid               String?   @db.VarChar(120) // Legacy plaintext; never write new values
+  consentTokenCiphertext String?   @db.Text
+  authGuidCiphertext     String?   @db.Text
+  status                 String    @default("AUTHORIZED") @db.VarChar(50)
+  expiresAt              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   patient      Patient       @relation(fields: [patientId], references: [id])
   consultation Consultation? @relation(fields: [consultationId], references: [id])
@@ -2773,7 +2800,7 @@ model WorkflowAudit {
 model WorkflowMetric {
   id         Int      @id @default(autoincrement())
   metricName String   @db.VarChar(100)
-  value      Float  // non-monetary metric, kept as Float
+  value      Float // non-monetary metric, kept as Float
   tags       Json?
   timestamp  DateTime @default(now())
 

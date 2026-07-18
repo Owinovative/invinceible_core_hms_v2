@@ -31,6 +31,7 @@ export class IntegrationConfigService {
 
   private mode(key: string): IntegrationMode {
     const value = this.str(key, 'mock').toLowerCase();
+    if (value === 'uat') return 'sandbox';
     return value === 'sandbox' || value === 'production'
       ? (value as IntegrationMode)
       : 'mock';
@@ -111,19 +112,52 @@ export class IntegrationConfigService {
   }
 
   get dhaTokenUrl(): string {
-    return this.str('DHA_TOKEN_URL');
+    return this.str('DHA_TOKEN_URL', `${this.dhaBaseUrl}/v1/hie-auth`);
   }
 
-  get dhaClientId(): string {
-    return this.str('DHA_CLIENT_ID');
+  get dhaUsername(): string {
+    return this.str('DHA_USERNAME');
   }
 
-  get dhaClientSecret(): string {
-    return this.str('DHA_CLIENT_SECRET');
+  get dhaPassword(): string {
+    return this.str('DHA_PASSWORD');
   }
 
-  get dhaFacilityCode(): string {
-    return this.str('DHA_FACILITY_CODE');
+  get dhaConsumerKey(): string {
+    return this.str('DHA_CONSUMER_KEY');
+  }
+
+  get dhaAgentId(): string {
+    return this.str('DHA_AGENT_ID', this.str('DHA_AGENT'));
+  }
+
+  get dhaCallbackUsername(): string {
+    return this.str('DHA_CALLBACK_USERNAME');
+  }
+
+  get dhaCallbackPassword(): string {
+    return this.str('DHA_CALLBACK_PASSWORD');
+  }
+
+  get dhaFacilityId(): string {
+    return this.str('DHA_FACILITY_ID');
+  }
+
+  get dhaFacilityIdType(): string {
+    return this.str('DHA_FACILITY_ID_TYPE', 'fr-code');
+  }
+
+  get dhaSpecVersion(): string {
+    return this.str('DHA_SPEC_VERSION');
+  }
+
+  get dhaFhirBaseUrl(): string {
+    return this.str(
+      'DHA_FHIR_BASE_URL',
+      this.dhaMode === 'production'
+        ? 'https://mis.apeiro-digital.com/fhir'
+        : 'https://qa-mis.apeiro-digital.com/fhir',
+    );
   }
 
   get dhaTimeoutMs(): number {

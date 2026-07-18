@@ -55,10 +55,19 @@ Secrets must never be committed; use your platform's secret manager
 | `DHA_ENABLED` | `false` | Master switch. |
 | `DHA_MODE` | `mock` | `mock`, `sandbox`, or `production`. |
 | `DHA_BASE_URL` | – | DHA API base URL. **Required** for sandbox/production. |
-| `DHA_TOKEN_URL` | – | OAuth2 token endpoint (client credentials). |
-| `DHA_CLIENT_ID` / `DHA_CLIENT_SECRET` | – | OAuth2 client credentials. **Secret. Required** for sandbox/production. |
-| `DHA_API_VERSION` | `v1` | Version segment used in paths and `X-API-Version`. |
-| `DHA_FACILITY_CODE` | – | KMHFL facility code sent as `X-Facility-Code`. |
+| `DHA_TOKEN_URL` | `<DHA_BASE_URL>/v1/hie-auth` | Optional AfyaLink token endpoint override. |
+| `DHA_USERNAME` / `DHA_PASSWORD` | – | AfyaLink Basic-auth credentials. **Secret. Required** for sandbox/production. |
+| `DHA_CONSUMER_KEY` | – | Consumer key passed to the token endpoint. **Secret. Required** for sandbox/production. |
+| `DHA_AGENT_ID` | – | Agent identifier used by Client Registry searches. |
+| `DHA_CALLBACK_USERNAME` / `DHA_CALLBACK_PASSWORD` | – | Separate Basic-auth credentials shared with DHA for claim status callbacks. **Secret.** |
+| `DHA_API_VERSION` | `v1` | API version recorded in transaction evidence. |
+| `DHA_SPEC_VERSION` | – | Exact approved OpenAPI/contract version used by the build. |
+| `DHA_FHIR_BASE_URL` | QA/production URL by mode | Base for profiles, coding systems, resource `fullUrl`s and references in SHA bundles. |
+| `DHA_FACILITY_ID` | – | Verified Facility Registry identifier. |
+| `DHA_FACILITY_ID_TYPE` | `fr-code` | Facility identifier type sent to DHA. |
+| `DATA_ENCRYPTION_KEY` | – | Base64-encoded 32-byte key for consent credentials. **Secret.** |
+| `DHA_PRODUCTION_ACTIVATION_APPROVED` | `false` | Explicit post-certification production gate. |
+| `DHA_CERTIFICATION_REFERENCE` | – | Formal certification evidence reference. |
 | `DHA_TIMEOUT_MS` | `15000` | Per-request timeout. |
 | `DHA_MAX_ATTEMPTS` | `8` | Queue-level retry budget per submission. |
 

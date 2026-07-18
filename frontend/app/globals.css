@@ -12,10 +12,16 @@
 
 /* ---------- Core tokens: light theme ---------- */
 :root {
+  --app-font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --app-font-mono:
+    "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
   /* Brand */
-  --brand: oklch(0.52 0.11 235);            /* meridian blue */
+  --brand: oklch(0.52 0.11 235); /* meridian blue */
   --brand-strong: oklch(0.44 0.11 240);
-  --pulse: oklch(0.72 0.13 210);            /* live/active cyan */
+  --pulse: oklch(0.72 0.13 210); /* live/active cyan */
 
   /* Surfaces (layered elevation) */
   --background: oklch(0.982 0.005 230);
@@ -75,11 +81,14 @@
   /* Elevation (tinted, calm) */
   --shadow-color: 232 25% 30%;
   --shadow-xs: 0 1px 2px hsl(var(--shadow-color) / 0.06);
-  --shadow-sm: 0 1px 3px hsl(var(--shadow-color) / 0.08),
+  --shadow-sm:
+    0 1px 3px hsl(var(--shadow-color) / 0.08),
     0 1px 2px hsl(var(--shadow-color) / 0.05);
-  --shadow-md: 0 4px 12px -2px hsl(var(--shadow-color) / 0.1),
+  --shadow-md:
+    0 4px 12px -2px hsl(var(--shadow-color) / 0.1),
     0 2px 5px -2px hsl(var(--shadow-color) / 0.07);
-  --shadow-lg: 0 12px 28px -8px hsl(var(--shadow-color) / 0.16),
+  --shadow-lg:
+    0 12px 28px -8px hsl(var(--shadow-color) / 0.16),
     0 4px 10px -4px hsl(var(--shadow-color) / 0.08);
   --shadow-xl: 0 24px 56px -16px hsl(var(--shadow-color) / 0.22);
 
@@ -170,21 +179,56 @@
 /* ---------- Module accent identities ----------
    Applied via <div data-module="…"> on module pages; every module keeps
    its own hue while sharing one system. */
-[data-module="clinical"]    { --module-accent: oklch(0.55 0.11 235); --module-accent-soft: oklch(0.94 0.025 235); }
-[data-module="diagnostics"] { --module-accent: oklch(0.6 0.12 200);  --module-accent-soft: oklch(0.94 0.03 200); }
-[data-module="pharmacy"]    { --module-accent: oklch(0.58 0.13 160); --module-accent-soft: oklch(0.94 0.035 160); }
-[data-module="finance"]     { --module-accent: oklch(0.55 0.15 295); --module-accent-soft: oklch(0.945 0.03 295); }
-[data-module="inpatient"]   { --module-accent: oklch(0.56 0.14 265); --module-accent-soft: oklch(0.945 0.03 265); }
-[data-module="operations"]  { --module-accent: oklch(0.62 0.12 55);  --module-accent-soft: oklch(0.95 0.035 65); }
-[data-module="admin"]       { --module-accent: oklch(0.5 0.03 240);  --module-accent-soft: oklch(0.94 0.01 240); }
+[data-module="clinical"] {
+  --module-accent: oklch(0.55 0.11 235);
+  --module-accent-soft: oklch(0.94 0.025 235);
+}
+[data-module="diagnostics"] {
+  --module-accent: oklch(0.6 0.12 200);
+  --module-accent-soft: oklch(0.94 0.03 200);
+}
+[data-module="pharmacy"] {
+  --module-accent: oklch(0.58 0.13 160);
+  --module-accent-soft: oklch(0.94 0.035 160);
+}
+[data-module="finance"] {
+  --module-accent: oklch(0.55 0.15 295);
+  --module-accent-soft: oklch(0.945 0.03 295);
+}
+[data-module="inpatient"] {
+  --module-accent: oklch(0.56 0.14 265);
+  --module-accent-soft: oklch(0.945 0.03 265);
+}
+[data-module="operations"] {
+  --module-accent: oklch(0.62 0.12 55);
+  --module-accent-soft: oklch(0.95 0.035 65);
+}
+[data-module="admin"] {
+  --module-accent: oklch(0.5 0.03 240);
+  --module-accent-soft: oklch(0.94 0.01 240);
+}
 
-:root.dark [data-module="clinical"]    { --module-accent-soft: oklch(0.27 0.05 235); }
-:root.dark [data-module="diagnostics"] { --module-accent-soft: oklch(0.27 0.055 200); }
-:root.dark [data-module="pharmacy"]    { --module-accent-soft: oklch(0.26 0.055 160); }
-:root.dark [data-module="finance"]     { --module-accent-soft: oklch(0.27 0.055 295); }
-:root.dark [data-module="inpatient"]   { --module-accent-soft: oklch(0.27 0.055 265); }
-:root.dark [data-module="operations"]  { --module-accent-soft: oklch(0.28 0.05 65); }
-:root.dark [data-module="admin"]       { --module-accent-soft: oklch(0.28 0.02 240); }
+:root.dark [data-module="clinical"] {
+  --module-accent-soft: oklch(0.27 0.05 235);
+}
+:root.dark [data-module="diagnostics"] {
+  --module-accent-soft: oklch(0.27 0.055 200);
+}
+:root.dark [data-module="pharmacy"] {
+  --module-accent-soft: oklch(0.26 0.055 160);
+}
+:root.dark [data-module="finance"] {
+  --module-accent-soft: oklch(0.27 0.055 295);
+}
+:root.dark [data-module="inpatient"] {
+  --module-accent-soft: oklch(0.27 0.055 265);
+}
+:root.dark [data-module="operations"] {
+  --module-accent-soft: oklch(0.28 0.05 65);
+}
+:root.dark [data-module="admin"] {
+  --module-accent-soft: oklch(0.28 0.02 240);
+}
 
 /* ---------- Tailwind theme mapping ---------- */
 @theme inline {
@@ -242,8 +286,8 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
 
   --animate-shimmer: shimmer 1.8s linear infinite;
   --animate-enter: enter var(--motion-base) var(--ease-out) both;
@@ -251,20 +295,43 @@
   --animate-pulse-dot: pulse-dot 1.6s var(--ease-out) infinite;
 
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
   @keyframes enter {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @keyframes enter-scale {
-    from { opacity: 0; transform: scale(0.97); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
   @keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.55; transform: scale(0.82); }
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.55;
+      transform: scale(0.82);
+    }
   }
 }
 
@@ -289,8 +356,16 @@ body {
 /* Calm aurora wash behind the app — static, cheap, token-driven. */
 .app-canvas {
   background-image:
-    radial-gradient(52rem 30rem at 8% -10%, color-mix(in oklch, var(--brand) 9%, transparent), transparent 62%),
-    radial-gradient(46rem 28rem at 105% 8%, color-mix(in oklch, var(--pulse) 8%, transparent), transparent 60%);
+    radial-gradient(
+      52rem 30rem at 8% -10%,
+      color-mix(in oklch, var(--brand) 9%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      46rem 28rem at 105% 8%,
+      color-mix(in oklch, var(--pulse) 8%, transparent),
+      transparent 60%
+    );
   background-repeat: no-repeat;
 }
 
@@ -307,21 +382,35 @@ body {
 /* Refined scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent)
+    transparent;
 }
-::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
 ::-webkit-scrollbar-thumb {
   background: color-mix(in oklch, var(--foreground) 20%, transparent);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
-::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-code, pre, .font-mono { font-family: var(--font-mono), monospace; }
+code,
+pre,
+.font-mono {
+  font-family: var(--app-font-mono);
+}
 
 /* Data-dense numerals align vertically everywhere */
-.tabular, table td, table th { font-variant-numeric: tabular-nums; }
+.tabular,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- Signature surfaces ---------- */
 
@@ -331,7 +420,8 @@ code, pre, .font-mono { font-family: var(--font-mono), monospace; }
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--motion-base) var(--ease-out),
+  transition:
+    box-shadow var(--motion-base) var(--ease-out),
     translate var(--motion-base) var(--ease-out),
     border-color var(--motion-base) var(--ease-out);
 }
@@ -341,10 +431,12 @@ code, pre, .font-mono { font-family: var(--font-mono), monospace; }
   inset: 0 0 auto 0;
   height: 2px;
   border-radius: inherit;
-  background: linear-gradient(90deg,
+  background: linear-gradient(
+    90deg,
     color-mix(in oklch, var(--module-accent) 85%, transparent),
     color-mix(in oklch, var(--module-accent) 20%, transparent) 55%,
-    transparent);
+    transparent
+  );
   opacity: 0.9;
 }
 .surface-spotlight:hover {
@@ -404,10 +496,12 @@ code, pre, .font-mono { font-family: var(--font-mono), monospace; }
 
 /* Shimmer skeleton surface */
 .skeleton-shimmer {
-  background: linear-gradient(100deg,
+  background: linear-gradient(
+    100deg,
     var(--surface-2) 40%,
     color-mix(in oklch, var(--surface-3) 70%, var(--surface-1)) 50%,
-    var(--surface-2) 60%);
+    var(--surface-2) 60%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.8s linear infinite;
 }

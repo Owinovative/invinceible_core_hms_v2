@@ -1,6 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -61,9 +63,14 @@ import { ShrModule } from './shr/shr.module';
 import { EventBusModule } from './events/event-bus.module';
 import { WorkflowModule } from './workflows/workflow.module';
 
+const backendEnvPath = existsSync(join(process.cwd(), 'backend', '.env'))
+  ? join(process.cwd(), 'backend', '.env')
+  : join(process.cwd(), '.env');
+
 @Module({
   imports: [
     ConfigModule.forRoot({
+      envFilePath: backendEnvPath,
       isGlobal: true,
       validate: validateEnvironment,
     }),
