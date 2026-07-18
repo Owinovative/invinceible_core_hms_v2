@@ -99,6 +99,12 @@ npm run prisma:generate
 npm run start:dev
 ```
 
+Local environment files are intentionally separated by trust boundary:
+
+- `backend/.env` is the single local server configuration and contains private secrets.
+- `frontend/.env.local` contains only browser-visible `NEXT_PUBLIC_*` settings.
+- There is no active repository-root `.env`; Nest resolves `backend/.env` whether it is launched from the repository root or the backend directory.
+
 Frontend:
 
 ```bash

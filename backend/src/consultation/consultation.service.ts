@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppointmentService } from '../appointment/appointment.service';
 import { PatientService } from '../patient/patient.service';
@@ -34,83 +35,27 @@ export class ConsultationService {
     private readonly safeLogger: SafeLoggerService,
     private readonly practitionerRegistry: PractitionerRegistryService,
     private readonly facilityRegistry: FacilityRegistryService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async create(createConsultationDto: CreateConsultationDto) {
-    const existingByNumber = await this.prisma.consultation.findFirst({
-      where: {
-        consultationNumber: createConsultationDto.consultationNumber,
-      },
-    });
+  private shouldValidateAgainstLiveDhaRegistries() {
+    const enabled =
+      String(this.configService.get('DHA_ENABLED')).toLowerCase() === 'true';
+    const configuredMode = String(
+      this.configService.get('DHA_MODE') ?? 'mock',
+    ).toLowerCase();
+    const mode = configuredMode === 'uat' ? 'sandbox' : configuredMode;
 
-    if (existingByNumber) {
-      throw new BadRequestException('Consultation number already exists');
-    }
+    return enabled && (mode === 'sandbox' || mode === 'production');
+  }
 
-    const existingByAppointment = await this.prisma.consultation.findFirst({
+  async create(
+    createConsultationDto: CreateConsultationDto,
+    user: RequestUser,
+  ) {
+    const existingByAppointment = await this.prisma.consultation.findUnique({
       where: {
         appointmentId: createConsultationDto.appointmentId,
-      },
-    });
-
-    if (existingByAppointment) {
-      throw new BadRequestException(
-        'This appointment already has a consultation',
-      );
-    }
-
-    const appointment = await this.appointmentService.findOne(
-      createConsultationDto.appointmentId,
-    );
-
-    await this.facilityService.assertOperational(appointment.facilityId);
-
-    const facilityDb = await this.prisma.facility.findUnique({
-      where: { id: appointment.facilityId },
-    });
-    if (facilityDb?.code) {
-      const facilityValid = await this.facilityRegistry.validateFacilityCode(
-        facilityDb.code,
-      );
-      if (!facilityValid) {
-        throw new BadRequestException(
-          'Facility is not active or verified with DHA',
-        );
-      }
-    }
-
-    await this.patientService.findOne(createConsultationDto.patientId);
-    const doctor = await this.staffService.findOne(
-      createConsultationDto.doctorId,
-    );
-
-    if (doctor.clinicianRegistrationNumber) {
-      const license = await this.practitionerRegistry.validateLicense(
-        doctor.clinicianRegistrationNumber,
-      );
-      if (!license.valid) {
-        throw new BadRequestException(
-          `Doctor license is invalid or expired (Status: ${license.status})`,
-        );
-      }
-    }
-
-    const consultation = await this.prisma.consultation.create({
-      data: {
-        facilityId: appointment.facilityId,
-        branchId: appointment.branchId,
-        consultationNumber: createConsultationDto.consultationNumber,
-        appointmentId: createConsultationDto.appointmentId,
-        patientId: createConsultationDto.patientId,
-        doctorId: createConsultationDto.doctorId,
-        chiefComplaint: createConsultationDto.chiefComplaint,
-        historyOfPresenting: createConsultationDto.historyOfPresenting,
-        examinationFindings: createConsultationDto.examinationFindings,
-        diagnosis: createConsultationDto.diagnosis,
-        primaryDiagnosisId: createConsultationDto.primaryDiagnosisId,
-        treatmentPlan: createConsultationDto.treatmentPlan,
-        notes: createConsultationDto.notes,
-        statusCode: createConsultationDto.statusCode ?? 'IN_PROGRESS',
       },
       include: {
         facility: true,
@@ -121,15 +66,147 @@ export class ConsultationService {
       },
     });
 
-    await this.prisma.appointment.update({
-      where: { id: createConsultationDto.appointmentId },
-      data: {
-        statusCode: 'IN_CONSULTATION',
-        startedAt: new Date(),
+    const appointment = await this.appointmentService.findOne(
+      createConsultationDto.appointmentId,
+    );
+
+    this.scopeService.assertBranchAccess(
+      user,
+      appointment.facilityId,
+      appointment.branchId,
+    );
+
+    if (appointment.patientId !== createConsultationDto.patientId) {
+      throw new BadRequestException(
+        'The selected patient does not belong to this appointment',
+      );
+    }
+
+    if (
+      appointment.doctorId &&
+      appointment.doctorId !== createConsultationDto.doctorId
+    ) {
+      throw new BadRequestException(
+        'The selected doctor does not match the doctor assigned at triage',
+      );
+    }
+
+    if (existingByAppointment) {
+      if (appointment.statusCode !== 'IN_CONSULTATION') {
+        await this.prisma.appointment.update({
+          where: { id: appointment.id },
+          data: {
+            statusCode: 'IN_CONSULTATION',
+            startedAt: appointment.startedAt ?? new Date(),
+          },
+        });
+      }
+
+      return existingByAppointment;
+    }
+
+    const existingByNumber = await this.prisma.consultation.findFirst({
+      where: {
+        consultationNumber: createConsultationDto.consultationNumber,
       },
     });
 
-    return consultation;
+    if (existingByNumber) {
+      throw new BadRequestException('Consultation number already exists');
+    }
+
+    await this.facilityService.assertOperational(appointment.facilityId);
+
+    const patient = await this.patientService.findOne(
+      createConsultationDto.patientId,
+    );
+    const doctor = await this.staffService.findOne(
+      createConsultationDto.doctorId,
+    );
+
+    if (
+      patient.facilityId !== appointment.facilityId ||
+      doctor.facilityId !== appointment.facilityId
+    ) {
+      throw new BadRequestException(
+        'The appointment, patient, and doctor must belong to the same facility',
+      );
+    }
+
+    if (
+      appointment.branchId &&
+      doctor.branchId &&
+      appointment.branchId !== doctor.branchId
+    ) {
+      throw new BadRequestException(
+        'The assigned doctor does not belong to the appointment branch',
+      );
+    }
+
+    if (this.shouldValidateAgainstLiveDhaRegistries()) {
+      const facilityDb = await this.prisma.facility.findUnique({
+        where: { id: appointment.facilityId },
+      });
+      if (facilityDb?.code) {
+        const facilityValid = await this.facilityRegistry.validateFacilityCode(
+          facilityDb.code,
+        );
+        if (!facilityValid) {
+          throw new BadRequestException(
+            'Facility is not active or verified with DHA',
+          );
+        }
+      }
+
+      if (doctor.clinicianRegistrationNumber) {
+        const license = await this.practitionerRegistry.validateLicense(
+          doctor.clinicianRegistrationNumber,
+        );
+        if (!license.valid) {
+          throw new BadRequestException(
+            `Doctor license is invalid or expired (Status: ${license.status})`,
+          );
+        }
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const consultation = await tx.consultation.create({
+        data: {
+          facilityId: appointment.facilityId,
+          branchId: appointment.branchId,
+          consultationNumber: createConsultationDto.consultationNumber,
+          appointmentId: createConsultationDto.appointmentId,
+          patientId: createConsultationDto.patientId,
+          doctorId: createConsultationDto.doctorId,
+          chiefComplaint: createConsultationDto.chiefComplaint,
+          historyOfPresenting: createConsultationDto.historyOfPresenting,
+          examinationFindings: createConsultationDto.examinationFindings,
+          diagnosis: createConsultationDto.diagnosis,
+          primaryDiagnosisId: createConsultationDto.primaryDiagnosisId,
+          treatmentPlan: createConsultationDto.treatmentPlan,
+          notes: createConsultationDto.notes,
+          statusCode: createConsultationDto.statusCode ?? 'IN_PROGRESS',
+        },
+        include: {
+          facility: true,
+          branch: true,
+          appointment: true,
+          patient: true,
+          doctor: true,
+        },
+      });
+
+      await tx.appointment.update({
+        where: { id: createConsultationDto.appointmentId },
+        data: {
+          statusCode: 'IN_CONSULTATION',
+          startedAt: new Date(),
+        },
+      });
+
+      return consultation;
+    });
   }
 
   findAll() {
@@ -210,7 +287,13 @@ export class ConsultationService {
         diagnosis: true,
         primaryDiagnosisId: true,
         primaryDiagnosis: {
-          select: { id: true, code: true, display: true, system: true },
+          select: {
+            id: true,
+            uuid: true,
+            code: true,
+            display: true,
+            system: true,
+          },
         },
         treatmentPlan: true,
         notes: true,

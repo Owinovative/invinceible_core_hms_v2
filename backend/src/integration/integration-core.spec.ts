@@ -23,6 +23,7 @@ describe('IntegrationConfigService', () => {
       'production',
     );
     expect(makeConfig({ ETIMS_MODE: 'weird' }).etimsMode).toBe('mock');
+    expect(makeConfig({ DHA_MODE: 'uat' }).dhaMode).toBe('sandbox');
   });
 
   it('applies numeric fallbacks for invalid values', () => {
@@ -42,7 +43,8 @@ describe('IntegrationConfigService', () => {
     expect(config.etimsVatRatePercent).toBe(16);
     expect(config.etimsReceiptBaseUrl).toContain('etims-sbx.kra.go.ke');
     expect(config.dhaApiVersion).toBe('v1');
-    expect(config.dhaFacilityCode).toBe('KMHFL-001');
+    expect(config.dhaFacilityId).toBe('FID-TEST-001');
+    expect(config.dhaFacilityIdType).toBe('fr-code');
     expect(config.retryBaseDelayMs).toBe(1000);
     expect(config.stuckRequestMs).toBe(600_000);
     expect(config.workerBatchSize).toBe(10);

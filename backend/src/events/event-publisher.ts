@@ -47,18 +47,22 @@ export class EventPublisher {
    * Clinical modules should call this first, then pass the result to publish().
    */
   create<TPayload extends Record<string, unknown>>(
-    partial: Omit<BaseClinicalEvent<TPayload>, 'eventId' | 'checksum' | 'signature'>,
+    partial: Omit<
+      BaseClinicalEvent<TPayload>,
+      'eventId' | 'checksum' | 'signature'
+    >,
   ): BaseClinicalEvent<TPayload> {
+    const eventId = uuidv4();
     const checksum = this.serializer.computeChecksum(partial.payload);
     const signature = this.serializer.computeSignature(
-      partial.correlationId,  // use correlationId as the event ID seed
+      eventId,
       partial.eventType,
       partial.timestamp,
       checksum,
     );
 
     const event: BaseClinicalEvent<TPayload> = Object.freeze({
-      eventId: uuidv4(),
+      eventId,
       checksum,
       signature,
       ...partial,
@@ -85,7 +89,7 @@ export class EventPublisher {
     if (!this.serializer.verifyIntegrity(event)) {
       throw new Error(
         `EventPublisher: Integrity check failed for event "${event.eventType}" (${event.eventId}). ` +
-        `Event will NOT be published.`,
+          `Event will NOT be published.`,
       );
     }
 
@@ -96,35 +100,35 @@ export class EventPublisher {
     // Step 3: Write to outbox (same transaction as caller)
     await (client as PrismaService).clinicalEventOutbox.create({
       data: {
-        uuid:           event.eventId,
-        correlationId:  event.correlationId,
-        aggregateId:    event.aggregateId,
-        aggregateType:  event.aggregateType,
-        eventType:      event.eventType,
-        eventCategory:  event.eventCategory,
-        eventVersion:   event.eventVersion,
-        patientId:      event.patientId,
-        encounterId:    event.encounterId,
-        facilityId:     event.facilityId,
-        branchId:       event.branchId,
-        tenantId:       event.tenantId,
-        userId:         event.userId,
-        sourceModule:   event.sourceModule,
-        priority:       event.priority,
+        uuid: event.eventId,
+        correlationId: event.correlationId,
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        eventType: event.eventType,
+        eventCategory: event.eventCategory,
+        eventVersion: event.eventVersion,
+        patientId: event.patientId,
+        encounterId: event.encounterId,
+        facilityId: event.facilityId,
+        branchId: event.branchId,
+        tenantId: event.tenantId,
+        userId: event.userId,
+        sourceModule: event.sourceModule,
+        priority: event.priority,
         priorityOrder,
-        slaSeconds:     entry.slaSeconds ?? null,
-        payload:        event.payload as object,
-        checksum:       event.checksum,
-        signature:      event.signature,
-        metadata:       (event.metadata ?? {}) as object,
-        occurredAt:     event.timestamp,
-        status:         'PENDING',
+        slaSeconds: entry.slaSeconds ?? null,
+        payload: event.payload as object,
+        checksum: event.checksum,
+        signature: event.signature,
+        metadata: (event.metadata ?? {}) as object,
+        occurredAt: event.timestamp,
+        status: 'PENDING',
       },
     });
 
     this.logger.log(
       `EventPublisher: Enqueued "${event.eventType}" (${event.eventId}) ` +
-      `priority=${event.priority} patient=${event.patientId} facility=${event.facilityId}`,
+        `priority=${event.priority} patient=${event.patientId} facility=${event.facilityId}`,
     );
   }
 }

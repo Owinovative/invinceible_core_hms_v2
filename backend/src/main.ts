@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { isCookieMutationOriginAllowed } from './auth/cookie-csrf';
@@ -38,6 +39,63 @@ function buildAllowedOrigins(configService: ConfigService) {
 function getPort(configService: ConfigService) {
   const port = Number(configService.get<string>('PORT') ?? 3000);
   return Number.isInteger(port) && port > 0 ? port : 3000;
+}
+
+function setupApiDocumentation(
+  app: Awaited<ReturnType<typeof NestFactory.create>>,
+  configService: ConfigService,
+) {
+  const nodeEnv = configService.get<string>('NODE_ENV') ?? 'development';
+  const configuredValue = configService.get<string>('API_DOCS_ENABLED');
+  const enabled =
+    configuredValue === undefined
+      ? nodeEnv !== 'production'
+      : configuredValue.toLowerCase() === 'true';
+
+  if (!enabled) {
+    return;
+  }
+
+  const config = new DocumentBuilder()
+    .setTitle('Invinceible Core HMS API')
+    .setDescription(
+      'Interactive API documentation for the Invinceible Core Hospital Management System.',
+    )
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Paste a JWT access token when testing protected routes.',
+      },
+      'bearer',
+    )
+    .addCookieAuth(
+      'hms_session',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        description: 'HttpOnly session cookie created by POST /auth/login.',
+      },
+      'session',
+    )
+    .build();
+
+  SwaggerModule.setup(
+    'api/docs',
+    app,
+    () => SwaggerModule.createDocument(app, config),
+    {
+      jsonDocumentUrl: 'api/docs/openapi.json',
+      yamlDocumentUrl: 'api/docs/openapi.yaml',
+      customSiteTitle: 'Invinceible Core HMS API',
+      swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+      },
+    },
+  );
 }
 
 async function bootstrap() {
@@ -127,6 +185,8 @@ async function bootstrap() {
       stopAtFirstError: true,
     }),
   );
+
+  setupApiDocumentation(app, configService);
 
   await app.listen(getPort(configService));
 }

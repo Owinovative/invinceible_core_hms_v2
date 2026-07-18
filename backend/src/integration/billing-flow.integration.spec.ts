@@ -69,6 +69,7 @@ describe('Billing -> eTIMS -> DHA end-to-end flow', () => {
       logger,
       systems,
       fhirValidator,
+      { decrypt: (value: string) => value } as never,
       new DhaMockClient(),
     );
     etims.onModuleInit();
@@ -86,6 +87,27 @@ describe('Billing -> eTIMS -> DHA end-to-end flow', () => {
     expect(fiscal.skipped).toBe(false);
 
     // 2. SHA workflow applies: claim submitted -> DHA integration triggered.
+    prisma.facility.rows[0].dhaFacilityId = 'FID-01-000001-1';
+    prisma.patient.rows[0].dhaClientRegistryId = 'CR7000000000001-1';
+    const practitioner = await prisma.staff.create({
+      data: {
+        staffCode: 'ST-SHA-001',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        clinicianRegistrationNumber: 'KMPDC-001',
+        dhaPractitionerId: 'PUID-2026-000001-1',
+        facilityId,
+      },
+    });
+    const consultationService = await prisma.billingService.create({
+      data: { code: 'SHA-12-001', name: 'Outpatient consultation' },
+    });
+    const laboratoryService = await prisma.billingService.create({
+      data: { code: 'SHA-12-002', name: 'Laboratory investigation' },
+    });
+    prisma.invoiceItem.rows[0].billingServiceId = consultationService.id;
+    prisma.invoiceItem.rows[1].billingServiceId = laboratoryService.id;
+
     const claim = await prisma.shaClaim.create({
       data: {
         claimNumber: 'SHA-000009',
@@ -96,6 +118,15 @@ describe('Billing -> eTIMS -> DHA end-to-end flow', () => {
         patientId,
         facilityId,
         invoiceId,
+        createdByStaffId: practitioner.id,
+        servicePeriodStart: new Date('2026-07-01T08:00:00Z'),
+        servicePeriodEnd: new Date('2026-07-01T12:00:00Z'),
+        diagnosisConcept: {
+          system:
+            'https://qa-mis.apeiro-digital.com/fhir/terminology/CodeSystem/icd-11',
+          code: 'CA40.0',
+          display: 'Bacterial pneumonia',
+        },
         branchId: null,
       },
     });

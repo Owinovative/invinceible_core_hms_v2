@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { AuthModule } from '../auth/auth.module';
+import { SensitiveDataCipherService } from '../common/security/sensitive-data-cipher.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { DhaHttpClient } from './dha/adapters/dha-http.client';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
+import { DhaCallbackAuthGuard } from './dha/dha-callback-auth.guard';
+import { DhaCallbackController } from './dha/dha-callback.controller';
 import { DhaService } from './dha/dha.service';
 import { IntegrationQueueController } from './queue/integration-queue.controller';
 import { FhirMapperService } from './dha/fhir-mapper';
@@ -38,12 +41,14 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
   controllers: [
     EtimsController,
     DhaController,
+    DhaCallbackController,
     IntegrationQueueController,
     IntegrationStatusController,
   ],
   providers: [
     IntegrationConfigService,
     IntegrationLoggerService,
+    SensitiveDataCipherService,
     IntegrationAuditService,
     IntegrationHttpClient,
     IntegrationQueueService,
@@ -52,6 +57,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     FhirMapperService,
     FhirSystemsService,
     FhirValidationService,
+    DhaCallbackAuthGuard,
     {
       provide: ETIMS_CLIENT,
       useFactory: (
@@ -70,16 +76,14 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
         config: IntegrationConfigService,
         http: IntegrationHttpClient,
         logger: IntegrationLoggerService,
-        prisma: PrismaService,
       ) =>
         config.dhaMode === 'mock'
           ? new DhaMockClient()
-          : new DhaHttpClient(http, config, logger, prisma),
+          : new DhaHttpClient(http, config, logger),
       inject: [
         IntegrationConfigService,
         IntegrationHttpClient,
         IntegrationLoggerService,
-        PrismaService,
       ],
     },
     EtimsService,
@@ -93,6 +97,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     IntegrationConfigService,
     IntegrationLoggerService,
     IntegrationHttpClient,
+    SensitiveDataCipherService,
     FhirSystemsService,
     FhirMapperService,
     DHA_CLIENT,

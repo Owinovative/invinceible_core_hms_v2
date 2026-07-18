@@ -15,6 +15,14 @@ function hasValue(config: Record<string, unknown>, key: string): boolean {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function stringValue(
+  config: Record<string, unknown>,
+  key: string,
+  fallback: string,
+): string {
+  return typeof config[key] === 'string' ? config[key] : fallback;
+}
+
 export function validateEnvironment(
   config: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -60,8 +68,8 @@ export function validateEnvironment(
     );
   }
 
-  const etimsEnabled = String(config.ETIMS_ENABLED ?? 'false') === 'true';
-  const etimsMode = String(config.ETIMS_MODE ?? 'mock').toLowerCase();
+  const etimsEnabled = stringValue(config, 'ETIMS_ENABLED', 'false') === 'true';
+  const etimsMode = stringValue(config, 'ETIMS_MODE', 'mock').toLowerCase();
   if (etimsEnabled && (etimsMode === 'sandbox' || etimsMode === 'production')) {
     for (const key of ['ETIMS_BASE_URL', 'ETIMS_TIN', 'ETIMS_CMC_KEY']) {
       if (!hasValue(config, key)) {
@@ -72,15 +80,24 @@ export function validateEnvironment(
     }
   }
 
-  const dhaEnabled = String(config.DHA_ENABLED ?? 'false') === 'true';
-  const dhaMode = String(config.DHA_MODE ?? 'mock').toLowerCase();
+  const dhaEnabled = stringValue(config, 'DHA_ENABLED', 'false') === 'true';
+  const configuredDhaMode = stringValue(
+    config,
+    'DHA_MODE',
+    'mock',
+  ).toLowerCase();
+  const dhaMode = configuredDhaMode === 'uat' ? 'sandbox' : configuredDhaMode;
   if (dhaEnabled && (dhaMode === 'sandbox' || dhaMode === 'production')) {
     const requiredKeys = [
       'DHA_BASE_URL',
-      'DHA_CLIENT_ID',
-      'DHA_CLIENT_SECRET',
-      'DHA_TOKEN_URL',
-      'DHA_FACILITY_CODE',
+      'DHA_USERNAME',
+      'DHA_PASSWORD',
+      'DHA_CONSUMER_KEY',
+      'DHA_CALLBACK_USERNAME',
+      'DHA_CALLBACK_PASSWORD',
+      'DHA_FACILITY_ID',
+      'DHA_SPEC_VERSION',
+      'DATA_ENCRYPTION_KEY',
     ];
     for (const key of requiredKeys) {
       if (!hasValue(config, key)) {
@@ -88,6 +105,52 @@ export function validateEnvironment(
           `${key} is required when DHA_ENABLED=true and DHA_MODE=${dhaMode}`,
         );
       }
+    }
+
+    if (!hasValue(config, 'DHA_AGENT_ID') && !hasValue(config, 'DHA_AGENT')) {
+      throw new Error(
+        'DHA_AGENT_ID (or legacy DHA_AGENT) is required when DHA is enabled in sandbox/production',
+      );
+    }
+
+    if (
+      stringValue(config, 'DHA_FACILITY_ID_TYPE', '').toLowerCase() !==
+      'fr-code'
+    ) {
+      throw new Error(
+        'DHA_FACILITY_ID_TYPE must be fr-code for DHA sandbox/production',
+      );
+    }
+
+    if (
+      Buffer.from(String(config.DATA_ENCRYPTION_KEY), 'base64').length !== 32
+    ) {
+      throw new Error(
+        'DATA_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
+      );
+    }
+
+    for (const key of ['DHA_BASE_URL']) {
+      let url: URL;
+      try {
+        url = new URL(String(config[key]));
+      } catch {
+        throw new Error(`${key} must be a valid HTTPS URL`);
+      }
+      if (url.protocol !== 'https:') {
+        throw new Error(`${key} must use HTTPS`);
+      }
+    }
+
+    if (
+      dhaMode === 'production' &&
+      (stringValue(config, 'DHA_PRODUCTION_ACTIVATION_APPROVED', 'false') !==
+        'true' ||
+        !hasValue(config, 'DHA_CERTIFICATION_REFERENCE'))
+    ) {
+      throw new Error(
+        'DHA production requires DHA_PRODUCTION_ACTIVATION_APPROVED=true and DHA_CERTIFICATION_REFERENCE after formal DHA certification',
+      );
     }
   }
 
@@ -120,6 +183,8 @@ export function validateEnvironment(
     LOG_LEVEL: config.LOG_LEVEL ?? 'info',
     REQUEST_TIMEOUT_MS: config.REQUEST_TIMEOUT_MS ?? '30000',
     BODY_LIMIT: config.BODY_LIMIT ?? '4mb',
+    API_DOCS_ENABLED:
+      config.API_DOCS_ENABLED ?? (nodeEnv === production ? 'false' : 'true'),
     PATIENT_PORTAL_ENABLED: config.PATIENT_PORTAL_ENABLED ?? 'false',
     AI_ENABLED: config.AI_ENABLED ?? 'false',
     SMS_ENABLED: config.SMS_ENABLED ?? 'false',
@@ -148,8 +213,15 @@ export function validateEnvironment(
     ETIMS_DEFAULT_TAX_CODE: config.ETIMS_DEFAULT_TAX_CODE ?? 'A',
     ETIMS_VAT_RATE: config.ETIMS_VAT_RATE ?? '16',
     DHA_ENABLED: config.DHA_ENABLED ?? 'false',
-    DHA_MODE: config.DHA_MODE ?? 'mock',
+    DHA_MODE: dhaMode,
     DHA_API_VERSION: config.DHA_API_VERSION ?? 'v1',
+    DHA_AGENT_ID: config.DHA_AGENT_ID ?? config.DHA_AGENT,
+    DHA_TOKEN_URL:
+      config.DHA_TOKEN_URL ??
+      `${stringValue(config, 'DHA_BASE_URL', '')}/v1/hie-auth`,
+    DHA_FACILITY_ID_TYPE: config.DHA_FACILITY_ID_TYPE ?? 'fr-code',
+    DHA_PRODUCTION_ACTIVATION_APPROVED:
+      config.DHA_PRODUCTION_ACTIVATION_APPROVED ?? 'false',
     DHA_TIMEOUT_MS: config.DHA_TIMEOUT_MS ?? '15000',
     DHA_MAX_ATTEMPTS: config.DHA_MAX_ATTEMPTS ?? '8',
     INTEGRATION_WORKER_ENABLED: config.INTEGRATION_WORKER_ENABLED ?? 'true',
