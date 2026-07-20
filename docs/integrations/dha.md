@@ -16,31 +16,29 @@ using FHIR R4 payloads. Implemented in `backend/src/integration/dha/`.
 | Practitioner verification | synchronous | – | `POST /integrations/dha/practitioners/verify` |
 | Facility verification | synchronous | – | `POST /integrations/dha/facilities/verify` |
 | Eligibility check | synchronous | DHA query | `POST /integrations/dha/eligibility` |
-| Consent handling | synchronous | `Consent` | `POST /integrations/dha/consent` |
-| Encounter submission | queued | `Bundle` (Patient, Organization, Practitioner, Encounter) | `POST /integrations/dha/encounters/consultation/:id` |
-| Referral | queued | `ServiceRequest` | `POST /integrations/dha/referrals` |
-| Health-record exchange | adapter method | `Bundle` (document) | `DhaClientPort.exchangeHealthRecord` |
-| SHA claim submission | queued | FHIR message `Bundle` (Organization, Coverage, Patient, Practitioner, Claim) | automatic when a SHA claim first moves to `SUBMITTED` |
+| OTP/biometric consent | synchronous | DHA eClaims JSON | `/consent/*` clinical endpoints |
+| Current eClaims lifecycle | synchronous, audited | DHA eClaims JSON | `POST /integrations/dha/operations/:operation` |
+| SHR publication | durable queue | FHIR R4 transaction `Bundle` | clinical event timeline |
 | Claim status callback | DHA webhook | Basic-auth JSON callback | `POST /integrations/dha/callbacks/claim-status` |
-| Audit events | adapter method | `AuditEvent` | `DhaClientPort.submitAuditEvent` |
 
-Every operation writes a `dha_transactions` row with the FHIR request,
-the DHA response, the DHA-side reference, correlation id, and API version —
-a complete interoperability audit trail.
+Every synchronous operation writes a `dha_transactions` row with redacted
+request/response evidence, the DHA-side reference, correlation id, and API
+version. OTPs, biometric GUIDs and consent tokens are excluded. SHR uses its
+own immutable snapshot/attempt/acknowledgement records and the durable
+integration queue.
 
 Synchronous operations call the adapter inline and record
 `COMPLETED`/`FAILED`. Queued operations ride the durable retry queue: DHA
 downtime leaves them `QUEUED` with automatic backoff retries, and DHA
 rejections mark them `FAILED` without retry (dead-lettered for review).
 
-## SHA claims flow
+## eClaims security boundary
 
-`ShaClaimsService.update()` detects the first transition to `SUBMITTED`
-and calls `DhaService.onShaClaimSubmitted(claimId)`. A FHIR message bundle is
-queued only after strict checks for verified registry IDs, ICD-11 coding,
-Coverage, intervention codes, service periods, reference integrity and exact
-totals. Local claim handling never fails because of DHA availability issues;
-failures are visible in the transaction trail.
+The operation endpoint accepts a local `patientId` and optional
+`consentAuthorizationId`; it does not accept browser-supplied consent tokens.
+The service verifies facility ownership, loads an active authorization and
+decrypts its token only for the outbound request. Routes are selected from a
+closed allowlist. The retired `/v1/shr-med/*` claim endpoints are disabled.
 
 ## FHIR mapping
 
@@ -64,12 +62,11 @@ minimal FHIR R4 resources:
   negative-path testing. This adapter stands in until production DHA
   endpoints and credentials are available and is replaced purely by
   configuration.
-- **`DhaHttpClient`** (`sandbox`/certified production) — AfyaLink
-  `GET /v1/hie-auth` Basic authentication with a consumer key, Bearer API
-  calls, nested `message` response handling, registry searches, eligibility,
-  claim dispatch and claim-status polling. Visits, biometric authorization,
-  referrals and general SHR publication remain fail-closed until exact endpoint
-  contracts and UAT scenarios are supplied.
+- **`DhaHttpClient`** (`sandbox`/certified production) — OAuth token exchange
+  at `/api/v1/tenants/token`, Bearer API calls, registry and eligibility
+  lookup, OTP/biometric visits, preauthorization, claims, emergency workflows,
+  and `/clinical/fhir/bundle` SHR publication. Undocumented legacy methods
+  fail closed.
 
 ## Certification boundary
 

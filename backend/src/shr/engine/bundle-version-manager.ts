@@ -3,12 +3,11 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class BundleVersionManager {
-  
   /**
    * Generates a deterministic SHA-256 hash of a FHIR Bundle to detect changes.
    */
   generateBundleHash(bundlePayload: any): string {
-    // Stringify with deterministic sorting if necessary, but standard JSON.stringify 
+    // Stringify with deterministic sorting if necessary, but standard JSON.stringify
     // is usually sufficient if the builders are deterministic.
     const normalizedPayload = JSON.stringify(bundlePayload);
     return crypto.createHash('sha256').update(normalizedPayload).digest('hex');

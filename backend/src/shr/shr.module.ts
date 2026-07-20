@@ -11,7 +11,10 @@ import { IntegrationModule } from '../integration/integration.module';
 // Engine
 import { ShrPublicationPolicyEngine } from './engine/shr-publication.policy';
 import { ShrTimelineService } from './engine/shr-timeline.service';
-import { BundleVersionManager, BundleComparator } from './engine/bundle-version-manager';
+import {
+  BundleVersionManager,
+  BundleComparator,
+} from './engine/bundle-version-manager';
 
 // FHIR
 import { ShrResourceCapabilityRegistry } from './fhir/shr-resource-registry';
@@ -45,15 +48,8 @@ import { DeadLetterRecoveryService } from './workers/dead-letter.service';
 import { ShrEventSubscriber } from './shr-event-subscriber';
 
 @Module({
-  imports: [
-    TerminologyModule,
-    ConsentModule,
-    IntegrationModule,
-  ],
-  controllers: [
-    ShrController,
-    ShrWebhookController,
-  ],
+  imports: [TerminologyModule, ConsentModule, IntegrationModule],
+  controllers: [ShrController, ShrWebhookController],
   providers: [
     // Core Services
     ShrService,

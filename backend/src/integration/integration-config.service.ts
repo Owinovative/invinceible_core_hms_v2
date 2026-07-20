@@ -107,12 +107,33 @@ export class IntegrationConfigService {
     return this.str('DHA_BASE_URL');
   }
 
+  get dhaClinicalBaseUrl(): string {
+    return this.str(
+      'DHA_CLINICAL_BASE_URL',
+      this.dhaBaseUrl.replace(/\/api\/v1\/?$/i, ''),
+    );
+  }
+
   get dhaApiVersion(): string {
     return this.str('DHA_API_VERSION', 'v1');
   }
 
   get dhaTokenUrl(): string {
-    return this.str('DHA_TOKEN_URL', `${this.dhaBaseUrl}/v1/hie-auth`);
+    return this.str('DHA_TOKEN_URL', `${this.dhaBaseUrl}/tenants/token`);
+  }
+
+  get dhaClientId(): string {
+    return this.str('DHA_CLIENT_ID');
+  }
+
+  get dhaClientSecret(): string {
+    return this.str('DHA_CLIENT_SECRET');
+  }
+
+  get dhaAuthStrategy(): 'oauth2' | 'legacy-basic' {
+    return this.str('DHA_AUTH_STRATEGY', 'oauth2') === 'legacy-basic'
+      ? 'legacy-basic'
+      : 'oauth2';
   }
 
   get dhaUsername(): string {
@@ -166,6 +187,10 @@ export class IntegrationConfigService {
 
   get dhaMaxAttempts(): number {
     return this.num('DHA_MAX_ATTEMPTS', 8);
+  }
+
+  get shrEnabled(): boolean {
+    return this.bool('SHR_ENABLED', false);
   }
 
   // --- DHA Terminology -----------------------------------------------------

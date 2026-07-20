@@ -11,6 +11,9 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export interface IntegrationCallContext {
   correlationId?: string;
   facilityId?: number;
+  /** Verified external Facility Registry identity for this local facility. */
+  facilityRegistryId?: string;
+  facilityRegistryIdType?: 'fr-code';
   branchId?: number;
   consentToken?: string;
 }

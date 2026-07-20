@@ -26,10 +26,10 @@ describe('ConsentService production safety', () => {
     },
     consentAuditLog: { create: jest.fn() },
   };
-  const dhaClient = {
+  const dhaService = {
     getPatientContacts: jest.fn(),
     sendVisitOtp: jest.fn(),
-    createAuthorization: jest.fn(),
+    authorizeVisit: jest.fn(),
     sendDischargeOtp: jest.fn(),
   };
   const scope = {
@@ -40,7 +40,7 @@ describe('ConsentService production safety', () => {
   };
   const service = new ConsentService(
     prisma as never,
-    dhaClient as never,
+    dhaService as never,
     scope as never,
     cipher as never,
   );
@@ -52,7 +52,7 @@ describe('ConsentService production safety', () => {
   });
 
   it('scopes patient lookup and accepts the adapter SUCCESS response', async () => {
-    dhaClient.getPatientContacts.mockResolvedValue({
+    dhaService.getPatientContacts.mockResolvedValue({
       status: 'SUCCESS',
       data: [{ contact_id: 1, contact_value: '+254700000000' }],
     });
@@ -69,7 +69,7 @@ describe('ConsentService production safety', () => {
     await expect(service.getContacts('99', user)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(dhaClient.getPatientContacts).not.toHaveBeenCalled();
+    expect(dhaService.getPatientContacts).not.toHaveBeenCalled();
   });
 
   it('stores authorization credentials only in encrypted columns', async () => {
@@ -79,7 +79,7 @@ describe('ConsentService production safety', () => {
       status: 'PENDING',
       dhaConsentRequestId: 'REQ-1',
     });
-    dhaClient.createAuthorization.mockResolvedValue({
+    dhaService.authorizeVisit.mockResolvedValue({
       status: 'SUCCESS',
       data: {
         consent_token: 'token-secret',

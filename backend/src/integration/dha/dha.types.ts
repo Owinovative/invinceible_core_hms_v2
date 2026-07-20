@@ -7,6 +7,7 @@ import type {
   FhirEncounter,
   FhirServiceRequest,
 } from './fhir.types';
+import type { DhaApiOperation, DhaApiPayload } from './dha-api-contract';
 
 export const DHA_ELIGIBILITY_IDENTIFICATION_TYPES = [
   'National ID',
@@ -39,7 +40,6 @@ export interface PatientVerificationQuery {
   identificationType?: string;
   nationalId?: string;
   shaNumber?: string;
-  patientNumber?: string;
   phoneNumber?: string;
 }
 
@@ -114,6 +114,12 @@ export interface SendDischargeOtpRequest {
  * replace mocks without touching business logic.
  */
 export interface DhaClientPort {
+  executeApiOperation<T = unknown>(
+    operation: DhaApiOperation,
+    payload: DhaApiPayload,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<T>>;
+
   verifyPatient(
     query: PatientVerificationQuery,
     ctx?: IntegrationCallContext,

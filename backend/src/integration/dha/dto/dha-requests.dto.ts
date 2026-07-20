@@ -4,6 +4,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsOptional,
+  IsObject,
   IsString,
   MaxLength,
   ValidateIf,
@@ -18,12 +19,12 @@ export class VerifyPatientDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(DHA_ELIGIBILITY_IDENTIFICATION_TYPES)
   @MaxLength(80)
   identificationType?: string;
 
   @ValidateIf(
-    (dto: VerifyPatientDto) =>
-      !dto.identificationNumber && !dto.shaNumber && !dto.patientNumber,
+    (dto: VerifyPatientDto) => !dto.identificationNumber && !dto.shaNumber,
   )
   @IsString()
   @IsNotEmpty()
@@ -34,11 +35,6 @@ export class VerifyPatientDto {
   @IsString()
   @MaxLength(60)
   shaNumber?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  patientNumber?: string;
 
   @IsOptional()
   @IsString()
@@ -155,4 +151,16 @@ export class SubmitReferralDto {
   @IsString()
   @MaxLength(50)
   targetFacilityCode?: string;
+}
+
+export class ExecuteDhaOperationDto {
+  @IsInt()
+  patientId: number;
+
+  @IsOptional()
+  @IsInt()
+  consentAuthorizationId?: number;
+
+  @IsObject()
+  payload: Record<string, unknown>;
 }

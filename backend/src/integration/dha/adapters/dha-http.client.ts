@@ -7,7 +7,13 @@ import type {
   HttpMethod,
   IntegrationCallContext,
 } from '../../integration.types';
-import { TokenManager } from '../../token/token-manager';
+import { DhaAccessTokenService } from '../dha-access-token.service';
+import {
+  DHA_API_OPERATIONS,
+  type DhaApiOperation,
+  type DhaApiPayload,
+  validateDhaApiPayload,
+} from '../dha-api-contract';
 import {
   DhaApiError,
   type DhaClientPort,
@@ -52,20 +58,20 @@ function responseString(value: unknown): string {
     : '';
 }
 
-function claimState(data: Record<string, unknown>): string {
-  const direct = responseString(data.status ?? data.state ?? data.outcome);
-  if (direct) return direct.toLowerCase();
-  const extensions = Array.isArray(data.extension) ? data.extension : [];
-  for (const extension of extensions) {
-    if (!extension || typeof extension !== 'object') continue;
-    const record = extension as Record<string, unknown>;
-    if (!responseString(record.url).toLowerCase().includes('claim-state')) {
-      continue;
-    }
-    const value = responseString(record.valueString ?? record.valueCode);
-    if (value) return value.toLowerCase();
+function transportScalar(value: unknown): string {
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value);
   }
-  return '';
+  throw new DhaApiError(
+    'DHA query and path parameters must be scalar values',
+    undefined,
+    false,
+  );
 }
 
 /**
@@ -74,45 +80,16 @@ function claimState(data: Record<string, unknown>): string {
  * FHIR routes fail closed until their current OpenAPI contracts are imported.
  */
 export class DhaHttpClient implements DhaClientPort {
-  private readonly tokenManager: TokenManager;
+  private readonly tokens: DhaAccessTokenService;
 
   constructor(
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
     private readonly logger: IntegrationLoggerService,
+    tokens?: DhaAccessTokenService,
   ) {
-    this.tokenManager = new TokenManager(
-      () => this.fetchToken(),
-      60,
-      this.logger,
-    );
-  }
-
-  private async fetchToken() {
-    const credentials = Buffer.from(
-      `${this.config.dhaUsername}:${this.config.dhaPassword}`,
-      'utf8',
-    ).toString('base64');
-    const response = await this.http.request<{
-      token?: string;
-      access_token?: string;
-      expires_in?: number;
-    }>({
-      integration: INTEGRATION_NAMES.DHA,
-      baseUrl: this.config.dhaTokenUrl,
-      path: '',
-      method: 'GET',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        Accept: 'application/json',
-      },
-      query: { key: this.config.dhaConsumerKey },
-      timeoutMs: this.config.dhaTimeoutMs,
-    });
-    return {
-      accessToken: response.data?.token ?? response.data?.access_token ?? '',
-      expiresInSeconds: response.data?.expires_in ?? 300,
-    };
+    this.tokens =
+      tokens ?? new DhaAccessTokenService(this.http, this.config, this.logger);
   }
 
   private path(resource: string): string {
@@ -125,20 +102,27 @@ export class DhaHttpClient implements DhaClientPort {
     body: unknown,
     ctx?: IntegrationCallContext,
     query?: Record<string, string | number | undefined>,
+    baseUrl = this.config.dhaBaseUrl,
   ): Promise<DhaEnvelope> {
-    let token = await this.tokenManager.getToken();
+    let token = await this.tokens.getToken();
 
     for (let attempt = 1; ; attempt += 1) {
       try {
         const response = await this.http.request<DhaEnvelope>({
           integration: INTEGRATION_NAMES.DHA,
-          baseUrl: this.config.dhaBaseUrl,
+          baseUrl,
           path: this.path(resource),
           method,
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
-            'Content-Type': 'application/json',
+            ...(body instanceof FormData
+              ? {}
+              : { 'Content-Type': 'application/json' }),
+            'X-Facility-Id':
+              ctx?.facilityRegistryId ?? this.config.dhaFacilityId,
+            'X-Facility-Id-Type':
+              ctx?.facilityRegistryIdType ?? this.config.dhaFacilityIdType,
             ...(ctx?.consentToken
               ? { 'Authorization-Consent': `Bearer ${ctx.consentToken}` }
               : {}),
@@ -161,8 +145,8 @@ export class DhaHttpClient implements DhaClientPort {
           this.logger.warn(
             'DHA API returned 401, invalidating token and retrying',
           );
-          this.tokenManager.invalidate();
-          token = await this.tokenManager.getToken();
+          this.tokens.invalidate();
+          token = await this.tokens.getToken();
           continue;
         }
         if (error instanceof IntegrationHttpError) {
@@ -181,6 +165,76 @@ export class DhaHttpClient implements DhaClientPort {
         throw error;
       }
     }
+  }
+
+  async executeApiOperation<T = unknown>(
+    operation: DhaApiOperation,
+    payload: DhaApiPayload,
+    ctx?: IntegrationCallContext,
+  ): Promise<DhaResult<T>> {
+    validateDhaApiPayload(operation, payload);
+    const contract = DHA_API_OPERATIONS[operation];
+    const pathFields = new Set<string>();
+    const operationPath = contract.path.replace(
+      /\{([a-zA-Z0-9_]+)\}/g,
+      (_placeholder, field: string) => {
+        pathFields.add(field);
+        const value = payload[field];
+        if (value === undefined || value === null || value === '') {
+          throw new DhaApiError(
+            `${operation} requires path parameter ${field}`,
+            undefined,
+            false,
+          );
+        }
+        return encodeURIComponent(transportScalar(value));
+      },
+    );
+    const query =
+      contract.transport === 'query'
+        ? Object.fromEntries(
+            Object.entries(payload)
+              .filter(
+                ([key, value]) =>
+                  !pathFields.has(key) && value !== undefined && value !== null,
+              )
+              .map(([key, value]) => [
+                key,
+                Array.isArray(value)
+                  ? value.map(transportScalar).join(',')
+                  : transportScalar(value),
+              ]),
+          )
+        : undefined;
+    let body: unknown;
+    if (contract.transport === 'json') body = payload;
+    if (contract.transport === 'multipart') {
+      const form = new FormData();
+      for (const [key, value] of Object.entries(payload)) {
+        if (pathFields.has(key)) continue;
+        if (value === undefined || value === null) continue;
+        if (value instanceof Blob) {
+          form.append(key, value);
+        } else if (Array.isArray(value) || typeof value === 'object') {
+          form.append(key, JSON.stringify(value));
+        } else {
+          form.append(key, transportScalar(value));
+        }
+      }
+      body = form;
+    }
+    const envelope = await this.call(
+      contract.method,
+      operationPath,
+      body,
+      ctx,
+      query,
+      operation === 'PUBLISH_SHR_BUNDLE'
+        ? this.config.dhaClinicalBaseUrl
+        : this.config.dhaBaseUrl,
+    );
+    const result = this.toResult(envelope, 'SUCCESS', 'FAILED');
+    return result as DhaResult<T>;
   }
 
   private toResult(
@@ -221,8 +275,7 @@ export class DhaHttpClient implements DhaClientPort {
     const identificationNumber =
       queryParams.identificationNumber ??
       queryParams.nationalId ??
-      queryParams.shaNumber ??
-      queryParams.patientNumber;
+      queryParams.shaNumber;
     if (!identificationNumber) {
       throw new DhaApiError(
         'Patient search requires a Client Registry or approved identification number',
@@ -230,17 +283,12 @@ export class DhaHttpClient implements DhaClientPort {
         false,
       );
     }
-    const envelope = await this.call(
-      'GET',
-      '/v3/client-registry/fetch-client',
-      undefined,
-      ctx,
-      {
-        dynamic_id_search: 1,
-        agent: this.config.dhaAgentId,
-        id: identificationNumber,
-      },
-    );
+    const envelope = await this.call('GET', '/patients', undefined, ctx, {
+      identification_number: identificationNumber,
+      identification_type:
+        queryParams.identificationType ??
+        (queryParams.shaNumber ? 'SHA Number' : 'National ID'),
+    });
     const result = this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
     const data = result.data as Record<string, unknown>;
     if (data.found === 0 || data.found === false) {
@@ -253,31 +301,24 @@ export class DhaHttpClient implements DhaClientPort {
     queryParams: PractitionerVerificationQuery,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const practitionerId =
-      queryParams.practitionerId ?? queryParams.registrationNumber;
-    const query = practitionerId
-      ? { id: practitionerId }
-      : {
-          identification_type: queryParams.identificationType,
-          identification_number: queryParams.identificationNumber,
-        };
-    if (
-      !practitionerId &&
-      (!queryParams.identificationType || !queryParams.identificationNumber)
-    ) {
+    const identificationNumber =
+      queryParams.practitionerId ??
+      queryParams.registrationNumber ??
+      queryParams.identificationNumber;
+    const identificationType =
+      queryParams.identificationType ??
+      (queryParams.registrationNumber ? 'registration_number' : undefined);
+    if (!identificationNumber || !identificationType) {
       throw new DhaApiError(
         'Practitioner search requires a practitioner ID or both identificationType and identificationNumber',
         undefined,
         false,
       );
     }
-    const envelope = await this.call(
-      'GET',
-      '/v1/practitioner-search',
-      undefined,
-      ctx,
-      query,
-    );
+    const envelope = await this.call('GET', '/professionals', undefined, ctx, {
+      identification_number: identificationNumber,
+      identification_type: identificationType,
+    });
     const result = this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
     const data = result.data as Record<string, unknown>;
     if (
@@ -303,12 +344,24 @@ export class DhaHttpClient implements DhaClientPort {
     }
     const envelope = await this.call(
       'GET',
-      '/v2/facility-search',
+      '/facilities/search',
       undefined,
       ctx,
-      { 'facility-fid': queryParams.facilityCode },
+      {
+        identifier: queryParams.facilityCode,
+        'identifier-type': 'fr-code',
+      },
     );
-    return this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
+    const result = this.toResult(envelope, 'VERIFIED', 'NOT_FOUND');
+    const data = result.data as Record<string, unknown>;
+    if (
+      data.found === 0 ||
+      data.found === false ||
+      (Array.isArray(data.results) && data.results.length === 0)
+    ) {
+      result.status = 'NOT_FOUND';
+    }
+    return result;
   }
 
   async checkEligibility(
@@ -325,10 +378,16 @@ export class DhaHttpClient implements DhaClientPort {
         false,
       );
     }
-    const envelope = await this.call('GET', '/v2/eligibility', undefined, ctx, {
-      identification_number: identificationNumber,
-      identification_type: query.identificationType,
-    });
+    const envelope = await this.call(
+      'GET',
+      '/patients/eligibility',
+      undefined,
+      ctx,
+      {
+        identification_number: identificationNumber,
+        identification_type: query.identificationType,
+      },
+    );
     const result = this.toResult(envelope, 'ELIGIBLE', 'NOT_ELIGIBLE');
     const data = result.data as Record<string, unknown>;
     if (Number(data.eligible) !== 1) result.status = 'NOT_ELIGIBLE';
@@ -375,8 +434,11 @@ export class DhaHttpClient implements DhaClientPort {
     bundle: FhirBundle,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult> {
-    const envelope = await this.call('POST', '/v1/shr-med/bundle', bundle, ctx);
-    return this.toResult(envelope, 'ACCEPTED', 'REJECTED');
+    void bundle;
+    void ctx;
+    return this.unsupported(
+      'Legacy FHIR claim submission; use the current eClaims lifecycle operations',
+    );
   }
 
   async submitAuditEvent(
@@ -395,20 +457,10 @@ export class DhaHttpClient implements DhaClientPort {
     if (!claimNumber) {
       throw new DhaApiError('Claim ID is required', undefined, false);
     }
-    const envelope = await this.call(
-      'GET',
-      '/v1/shr-med/claim-status',
-      undefined,
-      ctx,
-      { claim_id: claimNumber },
+    void ctx;
+    return this.unsupported(
+      'Legacy claim polling; use the current claim and remittance operations',
     );
-    const result = this.toResult(envelope, 'ACCEPTED', 'REJECTED');
-    const status = claimState(result.data as Record<string, unknown>);
-    if (status === 'payment-completed') result.status = 'SETTLED';
-    if (status === 'rejected' || status === 'payment-declined') {
-      result.status = 'REJECTED';
-    }
-    return result;
   }
 
   // --- Consent Management ---
@@ -463,7 +515,12 @@ export class DhaHttpClient implements DhaClientPort {
     request: SendDischargeOtpRequest,
     ctx?: IntegrationCallContext,
   ): Promise<DhaResult<SendOtpResponse>> {
-    const envelope = await this.call('POST', 'claims/otp', request, ctx);
+    const envelope = await this.call(
+      'POST',
+      'claims/otp/discharge',
+      request,
+      ctx,
+    );
     return this.toResult(
       envelope,
       'SUCCESS',

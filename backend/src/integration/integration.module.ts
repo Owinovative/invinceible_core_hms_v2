@@ -8,8 +8,11 @@ import { DhaHttpClient } from './dha/adapters/dha-http.client';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
 import { DhaCallbackAuthGuard } from './dha/dha-callback-auth.guard';
+import { DhaAccessTokenService } from './dha/dha-access-token.service';
 import { DhaCallbackController } from './dha/dha-callback.controller';
 import { DhaService } from './dha/dha.service';
+import { DhaEclaimsController } from './dha/dha-eclaims.controller';
+import { DhaEclaimsService } from './dha/dha-eclaims.service';
 import { IntegrationQueueController } from './queue/integration-queue.controller';
 import { FhirMapperService } from './dha/fhir-mapper';
 import { FhirSystemsService } from './dha/fhir-systems';
@@ -41,6 +44,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
   controllers: [
     EtimsController,
     DhaController,
+    DhaEclaimsController,
     DhaCallbackController,
     IntegrationQueueController,
     IntegrationStatusController,
@@ -58,6 +62,7 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     FhirSystemsService,
     FhirValidationService,
     DhaCallbackAuthGuard,
+    DhaAccessTokenService,
     {
       provide: ETIMS_CLIENT,
       useFactory: (
@@ -76,22 +81,26 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
         config: IntegrationConfigService,
         http: IntegrationHttpClient,
         logger: IntegrationLoggerService,
+        tokens: DhaAccessTokenService,
       ) =>
         config.dhaMode === 'mock'
           ? new DhaMockClient()
-          : new DhaHttpClient(http, config, logger),
+          : new DhaHttpClient(http, config, logger, tokens),
       inject: [
         IntegrationConfigService,
         IntegrationHttpClient,
         IntegrationLoggerService,
+        DhaAccessTokenService,
       ],
     },
     EtimsService,
     DhaService,
+    DhaEclaimsService,
   ],
   exports: [
     EtimsService,
     DhaService,
+    DhaEclaimsService,
     IntegrationQueueService,
     IntegrationQueueWorker,
     IntegrationConfigService,
@@ -101,6 +110,8 @@ import { IntegrationQueueWorker } from './queue/integration-queue.worker';
     FhirSystemsService,
     FhirMapperService,
     DHA_CLIENT,
+    DhaCallbackAuthGuard,
+    DhaAccessTokenService,
   ],
 })
 export class IntegrationModule {}

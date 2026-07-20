@@ -1,5 +1,6 @@
 import { makeConfig } from '../../integration/testing/test-support';
 import { TerminologyHttpClient } from './terminology-http.client';
+import { DhaAccessTokenService } from '../../integration/dha/dha-access-token.service';
 
 describe('TerminologyHttpClient DHA contract', () => {
   it('uses AfyaLink authentication for terminology calls', async () => {
@@ -16,26 +17,28 @@ describe('TerminologyHttpClient DHA contract', () => {
         });
       }),
     };
+    const config = makeConfig({ DHA_MODE: 'sandbox' });
+    const logger = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as never;
+    const tokens = new DhaAccessTokenService(http as never, config, logger);
     const client = new TerminologyHttpClient(
       http as never,
-      makeConfig({ DHA_MODE: 'sandbox' }),
-      {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-      } as never,
+      config,
+      logger,
+      tokens,
     );
 
     await client.searchConcepts({ search: 'malaria' });
 
     expect(calls[0]).toMatchObject({
-      method: 'GET',
-      query: { key: 'test-consumer-key' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'client_id=test-client-id&client_secret=test-client-secret',
     });
-    expect(calls[0].headers.Authorization).toBe(
-      `Basic ${Buffer.from('test-user:test-password').toString('base64')}`,
-    );
     expect(calls[1]).toMatchObject({
       method: 'GET',
       path: '/concepts',

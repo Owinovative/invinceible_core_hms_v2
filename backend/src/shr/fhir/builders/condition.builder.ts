@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class ConditionBuilder implements FhirBuilder {
   readonly resourceType = 'Condition';
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     if (!context.encounterId) return [];
@@ -20,14 +20,18 @@ export class ConditionBuilder implements FhirBuilder {
       include: {
         primaryDiagnosis: true,
         secondaryDiagnoses: true,
-      }
+      },
     });
 
     if (!consultation) return [];
 
     const conditions: any[] = [];
-    const patientRef = context.resolvedReferences.get(`Patient/${context.patientId}`) || `Patient/${context.patientId}`;
-    const encounterRef = context.resolvedReferences.get(`Encounter/${context.encounterId}`) || `Encounter/${context.encounterId}`;
+    const patientRef =
+      context.resolvedReferences.get(`Patient/${context.patientId}`) ||
+      `Patient/${context.patientId}`;
+    const encounterRef =
+      context.resolvedReferences.get(`Encounter/${context.encounterId}`) ||
+      `Encounter/${context.encounterId}`;
 
     // Primary Diagnosis
     if (consultation.primaryDiagnosis) {
@@ -36,27 +40,52 @@ export class ConditionBuilder implements FhirBuilder {
         resourceType: 'Condition',
         id: fullUrl.replace('urn:uuid:', ''),
         clinicalStatus: {
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active' }]
+          coding: [
+            {
+              system:
+                'http://terminology.hl7.org/CodeSystem/condition-clinical',
+              code: 'active',
+            },
+          ],
         },
         verificationStatus: {
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: 'confirmed' }]
+          coding: [
+            {
+              system:
+                'http://terminology.hl7.org/CodeSystem/condition-ver-status',
+              code: 'confirmed',
+            },
+          ],
         },
-        category: [{
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'encounter-diagnosis' }]
-        }],
+        category: [
+          {
+            coding: [
+              {
+                system:
+                  'http://terminology.hl7.org/CodeSystem/condition-category',
+                code: 'encounter-diagnosis',
+              },
+            ],
+          },
+        ],
         code: {
-          coding: [{
-            system: consultation.primaryDiagnosis.system,
-            code: consultation.primaryDiagnosis.code,
-            display: consultation.primaryDiagnosis.display,
-          }],
+          coding: [
+            {
+              system: consultation.primaryDiagnosis.system,
+              code: consultation.primaryDiagnosis.code,
+              display: consultation.primaryDiagnosis.display,
+            },
+          ],
           text: consultation.primaryDiagnosis.display,
         },
         subject: { reference: patientRef },
         encounter: { reference: encounterRef },
         recordedDate: consultation.startedAt?.toISOString(),
       });
-      context.resolvedReferences.set(`Condition/primary-${consultation.id}`, fullUrl);
+      context.resolvedReferences.set(
+        `Condition/primary-${consultation.id}`,
+        fullUrl,
+      );
     }
 
     // Secondary Diagnoses
@@ -66,20 +95,42 @@ export class ConditionBuilder implements FhirBuilder {
         resourceType: 'Condition',
         id: fullUrl.replace('urn:uuid:', ''),
         clinicalStatus: {
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active' }]
+          coding: [
+            {
+              system:
+                'http://terminology.hl7.org/CodeSystem/condition-clinical',
+              code: 'active',
+            },
+          ],
         },
         verificationStatus: {
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-ver-status', code: 'confirmed' }]
+          coding: [
+            {
+              system:
+                'http://terminology.hl7.org/CodeSystem/condition-ver-status',
+              code: 'confirmed',
+            },
+          ],
         },
-        category: [{
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'encounter-diagnosis' }]
-        }],
+        category: [
+          {
+            coding: [
+              {
+                system:
+                  'http://terminology.hl7.org/CodeSystem/condition-category',
+                code: 'encounter-diagnosis',
+              },
+            ],
+          },
+        ],
         code: {
-          coding: [{
-            system: dx.system,
-            code: dx.code,
-            display: dx.display,
-          }],
+          coding: [
+            {
+              system: dx.system,
+              code: dx.code,
+              display: dx.display,
+            },
+          ],
           text: dx.display,
         },
         subject: { reference: patientRef },

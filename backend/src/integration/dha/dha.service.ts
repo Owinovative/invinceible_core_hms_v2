@@ -34,6 +34,12 @@ import type {
   FacilityVerificationQuery,
   PatientVerificationQuery,
   PractitionerVerificationQuery,
+  PatientContact,
+  SendOtpRequest,
+  SendOtpResponse,
+  AuthorizeConsentRequest,
+  AuthorizeConsentResponse,
+  SendDischargeOtpRequest,
 } from './dha.types';
 import { FhirMapperService } from './fhir-mapper';
 import type { TerminologyConceptRef } from './fhir-mapper';
@@ -41,14 +47,23 @@ import type { FhirBundle, FhirResource } from './fhir.types';
 import { FhirSystemsService } from './fhir-systems';
 import { FhirValidationService } from './fhir-validation.service';
 import { SensitiveDataCipherService } from '../../common/security/sensitive-data-cipher.service';
+import {
+  type DhaApiOperation,
+  type DhaApiPayload,
+  dhaOperationRequires,
+  redactDhaPayload,
+} from './dha-api-contract';
 
-interface DhaOperationOptions {
+export interface DhaOperationOptions {
   correlationId?: string;
   actorUserId?: number;
   actorStaffId?: number;
   facilityId?: number;
   branchId?: number;
   patientId?: number;
+  consentAuthorizationId?: number;
+  facilityRegistryId?: string;
+  facilityRegistryIdType?: 'fr-code';
 }
 
 /**
@@ -111,11 +126,12 @@ export class DhaService implements OnModuleInit {
     options: DhaOperationOptions = {},
   ) {
     this.assertEnabled();
+    const context = await this.withFacilityIdentity(options);
     return this.runSyncTransaction(
       DHA_TRANSACTION_TYPE.PATIENT_VERIFICATION,
       'Patient',
       query,
-      () => this.client.verifyPatient(query, this.ctx(options)),
+      () => this.client.verifyPatient(query, context),
       options,
     );
   }
@@ -125,11 +141,12 @@ export class DhaService implements OnModuleInit {
     options: DhaOperationOptions = {},
   ) {
     this.assertEnabled();
+    const context = await this.withFacilityIdentity(options);
     return this.runSyncTransaction(
       DHA_TRANSACTION_TYPE.PRACTITIONER_VERIFICATION,
       'Practitioner',
       query,
-      () => this.client.verifyPractitioner(query, this.ctx(options)),
+      () => this.client.verifyPractitioner(query, context),
       options,
     );
   }
@@ -139,13 +156,26 @@ export class DhaService implements OnModuleInit {
     options: DhaOperationOptions = {},
   ) {
     this.assertEnabled();
-    return this.runSyncTransaction(
+    const context = await this.withFacilityIdentity(options, false);
+    const outcome = await this.runSyncTransaction(
       DHA_TRANSACTION_TYPE.FACILITY_VERIFICATION,
       'Organization',
       query,
-      () => this.client.verifyFacility(query, this.ctx(options)),
+      () => this.client.verifyFacility(query, context),
       options,
     );
+    if (options.facilityId && outcome.result.status === 'VERIFIED') {
+      await this.prisma.facility.update({
+        where: { id: options.facilityId },
+        data: {
+          dhaFacilityId: query.facilityCode,
+          dhaFacilityIdType: 'fr-code',
+          dhaRegistryStatus: 'VERIFIED',
+          dhaRegistryVerifiedAt: new Date(),
+        },
+      });
+    }
+    return outcome;
   }
 
   async checkEligibility(
@@ -153,6 +183,7 @@ export class DhaService implements OnModuleInit {
     options: DhaOperationOptions = {},
   ) {
     this.assertEnabled();
+    const context = await this.withFacilityIdentity(options);
     const normalizedQuery: EligibilityQuery = {
       ...query,
       identificationNumber:
@@ -169,9 +200,194 @@ export class DhaService implements OnModuleInit {
       DHA_TRANSACTION_TYPE.ELIGIBILITY_CHECK,
       'EligibilityQuery',
       normalizedQuery,
-      () => this.client.checkEligibility(normalizedQuery, this.ctx(options)),
+      () => this.client.checkEligibility(normalizedQuery, context),
       options,
     );
+  }
+
+  /**
+   * Executes one operation from the closed July 2026 DHA API catalog. Secrets
+   * such as OTPs, consent tokens, biometric GUIDs, and file bodies are never
+   * written to the transaction evidence table.
+   */
+  async executeApiOperation(
+    operation: DhaApiOperation,
+    payload: DhaApiPayload,
+    options: DhaOperationOptions = {},
+  ) {
+    this.assertEnabled();
+    if (!options.facilityId) {
+      throw new BadRequestException(
+        'A facility-scoped user is required for DHA operations',
+      );
+    }
+    if (!options.patientId) {
+      throw new BadRequestException(
+        'A local patient reference is required for DHA operations',
+      );
+    }
+    const patient = await this.prisma.patient.findFirst({
+      where: { id: options.patientId, facilityId: options.facilityId },
+      select: {
+        id: true,
+        shaMemberNumber: true,
+        dhaClientRegistryId: true,
+      },
+    });
+    if (!patient) {
+      throw new NotFoundException('Patient not found in the active facility');
+    }
+    const facilityContext = await this.withFacilityIdentity(options);
+    const operationOptions: DhaOperationOptions = {
+      ...options,
+      facilityRegistryId: facilityContext.facilityRegistryId,
+      facilityRegistryIdType: facilityContext.facilityRegistryIdType,
+    };
+
+    const outboundPayload = { ...payload };
+    const allowedExternalIds = [
+      patient.dhaClientRegistryId,
+      patient.shaMemberNumber,
+    ].filter((value): value is string => Boolean(value));
+    if ('patient_id' in outboundPayload) {
+      if (
+        typeof outboundPayload.patient_id !== 'string' ||
+        !allowedExternalIds.includes(outboundPayload.patient_id)
+      ) {
+        throw new BadRequestException(
+          'payload.patient_id does not belong to the selected local patient',
+        );
+      }
+    }
+
+    if ('consent_token' in outboundPayload) {
+      throw new BadRequestException(
+        'Do not send consent_token from the client; use consentAuthorizationId',
+      );
+    }
+    const requiresConsentToken = dhaOperationRequires(
+      operation,
+      'consent_token',
+    );
+    if (options.consentAuthorizationId && !requiresConsentToken) {
+      throw new BadRequestException(
+        `${operation} does not accept a consent authorization`,
+      );
+    }
+    if (requiresConsentToken && !options.consentAuthorizationId) {
+      throw new BadRequestException(
+        `${operation} requires consentAuthorizationId`,
+      );
+    }
+    if (options.consentAuthorizationId) {
+      const authorization = await this.prisma.consentAuthorization.findFirst({
+        where: {
+          id: options.consentAuthorizationId,
+          patientId: patient.id,
+          status: 'AUTHORIZED',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        select: {
+          consentTokenCiphertext: true,
+          consentToken: true,
+        },
+      });
+      if (!authorization) {
+        throw new BadRequestException(
+          'The selected DHA consent authorization is invalid or expired',
+        );
+      }
+      const consentToken = authorization.consentTokenCiphertext
+        ? this.sensitiveData.decrypt(authorization.consentTokenCiphertext)
+        : authorization.consentToken;
+      if (!consentToken) {
+        throw new BadRequestException(
+          'The selected DHA consent authorization has no usable token',
+        );
+      }
+      outboundPayload.consent_token = consentToken;
+    }
+    return this.runSyncTransaction(
+      DHA_TRANSACTION_TYPE.API_OPERATION,
+      operation,
+      redactDhaPayload(outboundPayload),
+      () =>
+        this.client.executeApiOperation(
+          operation,
+          outboundPayload,
+          this.ctx(operationOptions),
+        ),
+      options,
+      true,
+    );
+  }
+
+  async getPatientContacts(
+    patientRegistryId: string,
+    options: DhaOperationOptions,
+  ): Promise<DhaResult<PatientContact[]>> {
+    this.assertLiveFacilityScope(options);
+    const context = await this.withFacilityIdentity(options);
+    const outcome = await this.runSyncTransaction(
+      DHA_TRANSACTION_TYPE.API_OPERATION,
+      'GET_PATIENT_CONTACTS',
+      { patient_id: patientRegistryId },
+      () => this.client.getPatientContacts(patientRegistryId, context),
+      options,
+      true,
+    );
+    return outcome.result as DhaResult<PatientContact[]>;
+  }
+
+  async sendVisitOtp(
+    request: SendOtpRequest,
+    options: DhaOperationOptions,
+  ): Promise<DhaResult<SendOtpResponse>> {
+    this.assertLiveFacilityScope(options);
+    const context = await this.withFacilityIdentity(options);
+    const outcome = await this.runSyncTransaction(
+      DHA_TRANSACTION_TYPE.API_OPERATION,
+      'SEND_VISIT_OTP',
+      request,
+      () => this.client.sendVisitOtp(request, context),
+      options,
+      true,
+    );
+    return outcome.result as DhaResult<SendOtpResponse>;
+  }
+
+  async authorizeVisit(
+    request: AuthorizeConsentRequest,
+    options: DhaOperationOptions,
+  ): Promise<DhaResult<AuthorizeConsentResponse>> {
+    this.assertLiveFacilityScope(options);
+    const context = await this.withFacilityIdentity(options);
+    const outcome = await this.runSyncTransaction(
+      DHA_TRANSACTION_TYPE.API_OPERATION,
+      'AUTHORIZE_VISIT',
+      redactDhaPayload(request),
+      () => this.client.createAuthorization(request, context),
+      options,
+      true,
+    );
+    return outcome.result as DhaResult<AuthorizeConsentResponse>;
+  }
+
+  async sendDischargeOtp(
+    request: SendDischargeOtpRequest,
+    options: DhaOperationOptions,
+  ): Promise<DhaResult<SendOtpResponse>> {
+    this.assertLiveFacilityScope(options);
+    const context = await this.withFacilityIdentity(options);
+    const outcome = await this.runSyncTransaction(
+      DHA_TRANSACTION_TYPE.API_OPERATION,
+      'SEND_DISCHARGE_OTP',
+      request,
+      () => this.client.sendDischargeOtp(request, context),
+      options,
+      true,
+    );
+    return outcome.result as DhaResult<SendOtpResponse>;
   }
 
   async recordConsent(
@@ -843,7 +1059,50 @@ export class DhaService implements OnModuleInit {
     return {
       correlationId: options.correlationId,
       facilityId: options.facilityId,
+      facilityRegistryId: options.facilityRegistryId,
+      facilityRegistryIdType: options.facilityRegistryIdType,
     };
+  }
+
+  private async withFacilityIdentity(
+    options: DhaOperationOptions,
+    requireVerified = true,
+  ): Promise<IntegrationCallContext> {
+    if (!options.facilityId) return this.ctx(options);
+    const facility = await this.prisma.facility.findUnique({
+      where: { id: options.facilityId },
+      select: {
+        dhaFacilityId: true,
+        dhaFacilityIdType: true,
+        dhaRegistryStatus: true,
+      },
+    });
+    if (!facility) throw new NotFoundException('Facility not found');
+    if (
+      requireVerified &&
+      this.config.dhaMode !== 'mock' &&
+      (!facility.dhaFacilityId ||
+        facility.dhaFacilityIdType !== 'fr-code' ||
+        facility.dhaRegistryStatus !== 'VERIFIED')
+    ) {
+      throw new BadRequestException(
+        'The active facility must have a verified DHA Facility Registry fr-code',
+      );
+    }
+    return this.ctx({
+      ...options,
+      facilityRegistryId: facility.dhaFacilityId ?? undefined,
+      facilityRegistryIdType: 'fr-code',
+    });
+  }
+
+  private assertLiveFacilityScope(options: DhaOperationOptions) {
+    this.assertEnabled();
+    if (!options.facilityId || !options.patientId) {
+      throw new BadRequestException(
+        'A facility-scoped local patient is required for DHA operations',
+      );
+    }
   }
 
   private async runSyncTransaction(
@@ -852,6 +1111,7 @@ export class DhaService implements OnModuleInit {
     requestPayload: unknown,
     call: () => Promise<DhaResult>,
     options: DhaOperationOptions,
+    redactResponse = false,
   ) {
     const transaction = await this.createTransaction({
       transactionType,
@@ -871,7 +1131,9 @@ export class DhaService implements OnModuleInit {
         data: {
           statusCode: DHA_TRANSACTION_STATUS.COMPLETED,
           externalRef: result.externalRef ?? null,
-          responsePayload: (result.raw ?? {}) as Prisma.InputJsonValue,
+          responsePayload: (redactResponse
+            ? redactDhaPayload(result.raw ?? {})
+            : (result.raw ?? {})) as Prisma.InputJsonValue,
           submittedAt: new Date(),
           completedAt: new Date(),
           apiVersion: this.config.dhaApiVersion,
@@ -897,10 +1159,13 @@ export class DhaService implements OnModuleInit {
     }
   }
 
-  async pollClaimStatus(claimId: number) {
+  async pollClaimStatus(claimId: number, facilityId?: number) {
     this.assertEnabled();
-    const claim = await this.prisma.shaClaim.findUnique({
-      where: { id: claimId },
+    if (!facilityId) {
+      throw new BadRequestException('A facility-scoped account is required');
+    }
+    const claim = await this.prisma.shaClaim.findFirst({
+      where: { id: claimId, facilityId },
     });
 
     if (!claim) {

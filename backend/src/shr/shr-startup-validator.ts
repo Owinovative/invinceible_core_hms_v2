@@ -1,72 +1,66 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { IntegrationConfigService } from '../integration/integration-config.service';
 
-/**
- * Validates all critical SHR configuration at application startup.
- * Fails fast with clear diagnostics if any requirement is missing.
- */
+/** Fails startup when SHR is enabled with an unsafe or incomplete setup. */
 @Injectable()
 export class ShrStartupValidator implements OnModuleInit {
   private readonly logger = new Logger(ShrStartupValidator.name);
 
+  constructor(
+    private readonly config: ConfigService,
+    private readonly integrationConfig: IntegrationConfigService,
+  ) {}
+
   onModuleInit() {
-    this.logger.log('Running SHR Startup Configuration Validation...');
+    if (!this.bool('SHR_ENABLED', false)) {
+      this.logger.log('SHR publication is disabled');
+      return;
+    }
 
     const errors: string[] = [];
-
-    // Feature Flags
-    const shrEnabled = process.env.SHR_ENABLED;
-    if (!shrEnabled || shrEnabled !== 'true') {
-      this.logger.warn(
-        'SHR_ENABLED is not set to true. SHR module will be inactive.',
-      );
-      return; // If SHR is disabled, skip validation
+    if (!this.integrationConfig.dhaEnabled) {
+      errors.push('DHA_ENABLED must be true when SHR_ENABLED=true');
     }
 
-    // AfyaLink HIE credentials
-    for (const key of ['DHA_USERNAME', 'DHA_PASSWORD', 'DHA_CONSUMER_KEY']) {
-      if (!process.env[key]) {
-        errors.push(`Missing DHA credential: ${key}`);
+    if (this.integrationConfig.dhaMode !== 'mock') {
+      if (!this.integrationConfig.dhaFacilityId) {
+        errors.push('DHA_FACILITY_ID is required for live SHR publication');
+      }
+      if (!this.integrationConfig.dhaSpecVersion) {
+        errors.push('DHA_SPEC_VERSION is required for live SHR publication');
       }
     }
-    if (!process.env.DHA_AGENT_ID && !process.env.DHA_AGENT) {
-      errors.push('Missing DHA credential: DHA_AGENT_ID (or DHA_AGENT)');
-    }
 
-    // DHA API URLs
-    if (!process.env.SHA_BASE_URL && !process.env.DHA_BASE_URL) {
-      errors.push('Missing DHA Base URL (SHA_BASE_URL or DHA_BASE_URL)');
-    }
+    this.validateInteger('SHR_TIMEOUT_MS', 30_000, 1_000, errors);
+    this.validateInteger('SHR_RETRY_LIMIT', 5, 0, errors);
 
-    // Queue configuration
-    if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
-      errors.push('Missing Redis configuration (REDIS_URL or REDIS_HOST)');
-    }
-
-    // SHR-specific configuration defaults
-    const shrTimeout = parseInt(process.env.SHR_TIMEOUT_MS || '30000', 10);
-    if (isNaN(shrTimeout) || shrTimeout < 1000) {
-      errors.push('SHR_TIMEOUT_MS must be a valid number >= 1000');
-    }
-
-    const shrRetryLimit = parseInt(process.env.SHR_RETRY_LIMIT || '5', 10);
-    if (isNaN(shrRetryLimit) || shrRetryLimit < 0) {
-      errors.push('SHR_RETRY_LIMIT must be a valid non-negative number');
-    }
-
-    // Report results
     if (errors.length > 0) {
-      const errorMessage = [
-        '======== SHR STARTUP VALIDATION FAILED ========',
-        ...errors.map((e, i) => `  ${i + 1}. ${e}`),
-        '================================================',
-        'Fix the above configuration issues before starting the SHR module.',
-      ].join('\n');
+      throw new Error(`SHR startup validation failed: ${errors.join('; ')}`);
+    }
+    this.logger.log(
+      `SHR startup validation passed (${this.integrationConfig.dhaMode} mode)`,
+    );
+  }
 
-      this.logger.error(errorMessage);
-      // In production, you would throw here to prevent startup:
-      // throw new Error('SHR Startup Validation Failed');
-    } else {
-      this.logger.log('SHR Startup Configuration Validation PASSED ✓');
+  private bool(key: string, fallback: boolean): boolean {
+    const value = this.config.get<string>(key);
+    if (value === undefined || value === '') return fallback;
+    return value.toLowerCase() === 'true';
+  }
+
+  private validateInteger(
+    key: string,
+    fallback: number,
+    minimum: number,
+    errors: string[],
+  ) {
+    const raw = this.config.get<string>(key);
+    const value = raw === undefined || raw === '' ? fallback : Number(raw);
+    if (!Number.isInteger(value) || value < minimum) {
+      errors.push(
+        `${key} must be an integer greater than or equal to ${minimum}`,
+      );
     }
   }
 }

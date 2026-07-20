@@ -252,6 +252,61 @@ describe('DhaService', () => {
     });
   });
 
+  describe('governed DHA API operations', () => {
+    it('binds an external patient identifier to the local facility scope', async () => {
+      const outcome = await service.executeApiOperation(
+        'SUB_BENEFITS',
+        { patient_id: 'CR7000000000001-1' },
+        { facilityId, patientId },
+      );
+      expect(outcome.result.status).toBe('SUCCESS');
+      expect(outcome.transaction.patientId).toBe(patientId);
+
+      await expect(
+        service.executeApiOperation(
+          'SUB_BENEFITS',
+          { patient_id: 'CR-OTHER-FACILITY' },
+          { facilityId, patientId },
+        ),
+      ).rejects.toThrow('does not belong');
+    });
+
+    it('loads consent server-side and persists only a redacted token', async () => {
+      const authorization = await prisma.consentAuthorization.create({
+        data: {
+          patientId,
+          status: 'AUTHORIZED',
+          consentTokenCiphertext: 'server-only-token',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+
+      const outcome = await service.executeApiOperation(
+        'SUBMIT_OUTPATIENT_CLAIM',
+        {},
+        {
+          facilityId,
+          patientId,
+          consentAuthorizationId: authorization.id,
+        },
+      );
+      expect(outcome.result.status).toBe('SUCCESS');
+      expect(outcome.transaction.requestPayload).toEqual({
+        consent_token: '[REDACTED]',
+      });
+    });
+
+    it('rejects browser-supplied consent tokens', async () => {
+      await expect(
+        service.executeApiOperation(
+          'SUBMIT_OUTPATIENT_CLAIM',
+          { consent_token: 'browser-secret' },
+          { facilityId, patientId },
+        ),
+      ).rejects.toThrow('Do not send consent_token');
+    });
+  });
+
   describe('queued claim submission', () => {
     it('maps a structured terminology diagnosis into the claim bundle', async () => {
       prisma.shaClaim.rows[0].diagnosisConcept = {
@@ -474,14 +529,14 @@ describe('DhaService', () => {
         });
         buildService({}, client);
 
-        await service.pollClaimStatus(shaClaimId);
+        await service.pollClaimStatus(shaClaimId, facilityId);
 
         expect(prisma.shaClaim.rows[0].statusCode).toBe(expectedStatus);
       },
     );
 
     it('rejects polling for an unknown claim', async () => {
-      await expect(service.pollClaimStatus(999)).rejects.toThrow(
+      await expect(service.pollClaimStatus(999, facilityId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -493,9 +548,9 @@ describe('DhaService', () => {
         .mockRejectedValue(new Error('polling unavailable'));
       buildService({}, client);
 
-      await expect(service.pollClaimStatus(shaClaimId)).rejects.toThrow(
-        'polling unavailable',
-      );
+      await expect(
+        service.pollClaimStatus(shaClaimId, facilityId),
+      ).rejects.toThrow('polling unavailable');
       expect(prisma.shaClaim.rows[0].statusCode).toBe('SUBMITTED');
     });
 

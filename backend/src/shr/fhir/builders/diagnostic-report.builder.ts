@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class DiagnosticReportBuilder implements FhirBuilder {
   readonly resourceType = 'DiagnosticReport';
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     // Find lab orders for this patient (optionally scoped to encounter)
@@ -19,8 +19,10 @@ export class DiagnosticReportBuilder implements FhirBuilder {
       where: whereClause,
       include: {
         items: {
-          include: { test: true }
-        }
+          include: {
+            test: { include: { terminologyConcept: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 10, // Limit to recent orders
@@ -29,7 +31,9 @@ export class DiagnosticReportBuilder implements FhirBuilder {
     if (labOrders.length === 0) return [];
 
     const reports: any[] = [];
-    const patientRef = context.resolvedReferences.get(`Patient/${context.patientId}`) || `Patient/${context.patientId}`;
+    const patientRef =
+      context.resolvedReferences.get(`Patient/${context.patientId}`) ||
+      `Patient/${context.patientId}`;
     const encounterRef = context.encounterId
       ? context.resolvedReferences.get(`Encounter/${context.encounterId}`)
       : undefined;
@@ -41,15 +45,35 @@ export class DiagnosticReportBuilder implements FhirBuilder {
         resourceType: 'DiagnosticReport',
         id: fullUrl.replace('urn:uuid:', ''),
         status: order.status === 'COMPLETED' ? 'final' : 'preliminary',
-        category: [{
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/v2-0074', code: 'LAB', display: 'Laboratory' }]
-        }],
+        category: [
+          {
+            coding: [
+              {
+                system: 'http://terminology.hl7.org/CodeSystem/v2-0074',
+                code: 'LAB',
+                display: 'Laboratory',
+              },
+            ],
+          },
+        ],
         code: {
-          text: order.items?.map((i: any) => i.test?.name || i.test?.code || 'Test').join(', ') || 'Lab Tests',
+          coding: order.items
+            ?.map((item: any) => item.test?.terminologyConcept)
+            .filter(Boolean)
+            .map((concept: any) => ({
+              system: concept.system,
+              code: concept.code,
+              display: concept.display,
+            })),
+          text:
+            order.items
+              ?.map((i: any) => i.test?.name || i.test?.code || 'Test')
+              .join(', ') || 'Lab Tests',
         },
         subject: { reference: patientRef },
         encounter: encounterRef ? { reference: encounterRef } : undefined,
-        effectiveDateTime: order.updatedAt?.toISOString() || order.createdAt?.toISOString(),
+        effectiveDateTime:
+          order.updatedAt?.toISOString() || order.createdAt?.toISOString(),
         issued: order.updatedAt?.toISOString(),
       });
 

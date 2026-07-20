@@ -56,29 +56,29 @@ export async function checkShaEligibility(
   // Try eligibility endpoint first (member number / SHA number path)
   const identifier = payload.memberNumber || payload.shaNumber;
   if (identifier) {
-    const result = await apiFetch<{ result: EligibilityResult; transaction: unknown }>(
-      "/integrations/dha/eligibility",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          memberNumber: identifier,
-          serviceDate: payload.serviceDate,
-          interventionCode: payload.interventionCode,
-        }),
-      },
-    );
+    const result = await apiFetch<{
+      result: EligibilityResult;
+      transaction: unknown;
+    }>("/integrations/dha/eligibility", {
+      method: "POST",
+      body: JSON.stringify({
+        memberNumber: identifier,
+        serviceDate: payload.serviceDate,
+        interventionCode: payload.interventionCode,
+      }),
+    });
     return result.result;
   }
 
   // National ID path — use patient verification
   if (payload.nationalId) {
-    const result = await apiFetch<{ result: EligibilityResult; transaction: unknown }>(
-      "/integrations/dha/patients/verify",
-      {
-        method: "POST",
-        body: JSON.stringify({ nationalId: payload.nationalId }),
-      },
-    );
+    const result = await apiFetch<{
+      result: EligibilityResult;
+      transaction: unknown;
+    }>("/integrations/dha/patients/verify", {
+      method: "POST",
+      body: JSON.stringify({ nationalId: payload.nationalId }),
+    });
     return result.result;
   }
 
@@ -102,15 +102,14 @@ export interface PatientVerificationResult {
 export async function verifyPatientWithDha(params: {
   nationalId?: string;
   shaNumber?: string;
-  patientNumber?: string;
 }): Promise<PatientVerificationResult> {
-  const result = await apiFetch<{ result: PatientVerificationResult; transaction: unknown }>(
-    "/integrations/dha/patients/verify",
-    {
-      method: "POST",
-      body: JSON.stringify(params),
-    },
-  );
+  const result = await apiFetch<{
+    result: PatientVerificationResult;
+    transaction: unknown;
+  }>("/integrations/dha/patients/verify", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
   return result.result;
 }
 
@@ -167,12 +166,16 @@ export function getDhaTransactions(params?: {
 }): Promise<DhaTransaction[]> {
   const query = new URLSearchParams();
   if (params?.patientId) query.set("patientId", String(params.patientId));
-  if (params?.transactionType) query.set("transactionType", params.transactionType);
+  if (params?.transactionType)
+    query.set("transactionType", params.transactionType);
   if (params?.limit) query.set("limit", String(params.limit));
   const qs = query.toString();
-  return apiFetch<DhaTransaction[]>(`/integrations/dha/transactions${qs ? `?${qs}` : ""}`, {
-    method: "GET",
-  });
+  return apiFetch<DhaTransaction[]>(
+    `/integrations/dha/transactions${qs ? `?${qs}` : ""}`,
+    {
+      method: "GET",
+    },
+  );
 }
 
 // ─── Claim Status Poll ───────────────────────────────────────────────────────
@@ -182,14 +185,9 @@ export async function pollShaClaimStatus(claimId: number): Promise<{
   externalRef?: string;
   raw?: unknown;
 }> {
-  return apiFetch(`/integrations/dha/claims/${claimId}/status`, { method: "GET" });
-}
-
-// ─── Manual DHA Submission ────────────────────────────────────────────────────
-
-/** Manually trigger DHA submission for a DRAFT or previously-failed claim. */
-export async function submitClaimToDha(claimId: number): Promise<unknown> {
-  return apiFetch(`/sha-claims/${claimId}/submit-to-dha`, { method: "POST" });
+  return apiFetch(`/integrations/dha/claims/${claimId}/status`, {
+    method: "GET",
+  });
 }
 
 /** Update claim status (accessible to billing staff without ADMIN role). */

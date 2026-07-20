@@ -1,7 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { PrismaService } from '../../prisma/prisma.service';
 import { ShrResourceCapabilityRegistry } from './shr-resource-registry';
-// import { PatientBuilder } from './builders/patient.builder';
-// etc...
+import type {
+  BuilderContext,
+  FhirBuilder,
+} from './builders/fhir-builder.interface';
+import {
+  ConditionBuilder,
+  DiagnosticReportBuilder,
+  EncounterBuilder,
+  MedicationRequestBuilder,
+  ObservationBuilder,
+  OrganizationBuilder,
+  PatientBuilder,
+  PractitionerBuilder,
+  ProcedureBuilder,
+  ProvenanceBuilder,
+} from './builders';
 
 @Injectable()
 export class ShrBundleAssembler {
@@ -9,43 +25,96 @@ export class ShrBundleAssembler {
 
   constructor(
     private readonly capabilityRegistry: ShrResourceCapabilityRegistry,
-    // Inject all individual builders here
-  ) {}
+    private readonly prisma: PrismaService,
+    patient: PatientBuilder,
+    organization: OrganizationBuilder,
+    practitioner: PractitionerBuilder,
+    encounter: EncounterBuilder,
+    condition: ConditionBuilder,
+    observation: ObservationBuilder,
+    procedure: ProcedureBuilder,
+    medicationRequest: MedicationRequestBuilder,
+    diagnosticReport: DiagnosticReportBuilder,
+    provenance: ProvenanceBuilder,
+  ) {
+    this.builders = new Map(
+      [
+        patient,
+        organization,
+        practitioner,
+        encounter,
+        condition,
+        observation,
+        procedure,
+        medicationRequest,
+        diagnosticReport,
+        provenance,
+      ].map((builder) => [builder.resourceType, builder]),
+    );
+  }
 
-  async assemble(patientId: number, encounterId: number | undefined, requiredResources: string[]): Promise<any> {
+  private readonly builders: Map<string, FhirBuilder>;
+
+  async assemble(
+    patientId: number,
+    encounterId: number | undefined,
+    requiredResources: string[],
+  ): Promise<any> {
     this.logger.log(`Assembling bundle for Patient ${patientId}`);
-    
+
     // 1. Get the strict deterministic build order
     const buildOrder = this.capabilityRegistry.getBuildOrder(requiredResources);
     this.logger.log(`Build order: ${buildOrder.join(' -> ')}`);
 
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { facilityId: true },
+    });
+    if (!patient) throw new Error(`Patient ${patientId} not found`);
+
     const bundle = {
       resourceType: 'Bundle',
+      id: randomUUID(),
       type: 'transaction',
+      timestamp: new Date().toISOString(),
       entry: [] as any[],
     };
 
-    const context = { patientId, encounterId, resolvedReferences: new Map<string, string>() };
+    const context: BuilderContext = {
+      patientId,
+      encounterId,
+      facilityId: patient.facilityId,
+      resolvedReferences: new Map<string, string>(),
+    };
 
     // 2. Execute builders in order
     for (const resourceType of buildOrder) {
       this.logger.debug(`Building ${resourceType}...`);
-      
+
       try {
-        const resources = await this.executeBuilder(resourceType, context);
+        const builder = this.builders.get(resourceType);
+        if (!builder) {
+          throw new Error(
+            `No SHR builder registered for required ${resourceType}`,
+          );
+        }
+        const resources = await builder.build(context);
         if (resources && resources.length > 0) {
           for (const res of resources) {
             // Track the UUID reference for downstream builders (e.g. Practitioner -> Encounter)
-            const fullUrl = `urn:uuid:${res.id || 'generated-uuid'}`;
-            context.resolvedReferences.set(`${resourceType}/${res.id}`, fullUrl);
+            const fullUrl = `urn:uuid:${res.id || randomUUID()}`;
+            context.resolvedReferences.set(
+              `${resourceType}/${res.id}`,
+              fullUrl,
+            );
 
             bundle.entry.push({
               fullUrl,
               resource: res,
               request: {
-                method: 'PUT', // Idempotent updates
-                url: `${resourceType}?identifier=${res.identifier?.[0]?.value || res.id}`
-              }
+                method: 'PUT',
+                url: `${resourceType}/${res.id}`,
+              },
             });
           }
         }
@@ -56,13 +125,5 @@ export class ShrBundleAssembler {
     }
 
     return bundle;
-  }
-
-  private async executeBuilder(resourceType: string, context: any): Promise<any[]> {
-    // In a real implementation, this delegates to the specific builder (e.g., PatientBuilder)
-    // using a Strategy pattern or Dependency Injection lookup.
-    
-    // return this.builderFactory.getBuilder(resourceType).build(context);
-    return []; // Mock return for architecture scaffolding
   }
 }

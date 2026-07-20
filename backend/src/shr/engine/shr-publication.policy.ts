@@ -8,7 +8,7 @@ export enum ShrPublicationTrigger {
   CONSULTATION_CLOSED = 'CONSULTATION_CLOSED',
   CLAIM_SUBMITTED = 'CLAIM_SUBMITTED',
   RECORD_CORRECTED = 'RECORD_CORRECTED',
-  RECORD_VOIDED = 'RECORD_VOIDED'
+  RECORD_VOIDED = 'RECORD_VOIDED',
 }
 
 export enum ShrPublicationPolicy {
@@ -17,44 +17,47 @@ export enum ShrPublicationPolicy {
   LABORATORY_INCREMENTAL = 'LABORATORY_INCREMENTAL',
   MEDICATION_INCREMENTAL = 'MEDICATION_INCREMENTAL',
   FULL_CLINICAL_RECORD = 'FULL_CLINICAL_RECORD',
-  CLAIM_ENCOUNTER = 'CLAIM_ENCOUNTER' // Encounter + Claim
+  CLAIM_ENCOUNTER = 'CLAIM_ENCOUNTER', // Encounter + Claim
 }
 
 export class ShrPublicationPolicyEngine {
-  
   /**
    * Evaluates the trigger context and determines the correct publication policy
    * according to configured rules (e.g. environment variable defaults).
    */
-  determinePolicy(trigger: ShrPublicationTrigger, context: any = {}): ShrPublicationPolicy {
+  determinePolicy(
+    trigger: ShrPublicationTrigger,
+    context: any = {},
+  ): ShrPublicationPolicy {
+    void context;
     // In an enterprise setup, this would be highly configurable.
     // For now, we map the trigger directly to a canonical policy.
-    
+
     switch (trigger) {
       case ShrPublicationTrigger.PATIENT_REGISTERED:
       case ShrPublicationTrigger.TRIAGE_COMPLETED:
         return ShrPublicationPolicy.ENCOUNTER_ONLY;
-        
+
       case ShrPublicationTrigger.DIAGNOSIS_ADDED:
         return ShrPublicationPolicy.ENCOUNTER_WITH_DIAGNOSIS;
-        
+
       case ShrPublicationTrigger.LABORATORY_FINALIZED:
         return ShrPublicationPolicy.LABORATORY_INCREMENTAL;
-        
+
       case ShrPublicationTrigger.MEDICATION_DISPENSED:
         return ShrPublicationPolicy.MEDICATION_INCREMENTAL;
-        
+
       case ShrPublicationTrigger.CONSULTATION_CLOSED:
       case ShrPublicationTrigger.RECORD_CORRECTED:
         return ShrPublicationPolicy.FULL_CLINICAL_RECORD;
-        
+
       case ShrPublicationTrigger.CLAIM_SUBMITTED:
         return ShrPublicationPolicy.CLAIM_ENCOUNTER;
-        
+
       case ShrPublicationTrigger.RECORD_VOIDED:
         // A cancellation might just be an update to the encounter status
-        return ShrPublicationPolicy.ENCOUNTER_ONLY; 
-        
+        return ShrPublicationPolicy.ENCOUNTER_ONLY;
+
       default:
         return ShrPublicationPolicy.FULL_CLINICAL_RECORD;
     }
@@ -65,44 +68,38 @@ export class ShrPublicationPolicyEngine {
    * for a given policy.
    */
   getRequiredResourcesForPolicy(policy: ShrPublicationPolicy): string[] {
-    const base = ['Patient', 'Organization', 'Location', 'Practitioner', 'Encounter', 'Consent', 'Coverage'];
-    
+    const demographics = ['Organization', 'Patient'];
+    const encounter = [...demographics, 'Practitioner', 'Encounter'];
+
     switch (policy) {
       case ShrPublicationPolicy.ENCOUNTER_ONLY:
-        return [...base];
-        
+        return [...demographics];
+
       case ShrPublicationPolicy.ENCOUNTER_WITH_DIAGNOSIS:
-        return [...base, 'Condition'];
-        
+        return [...encounter, 'Condition'];
+
       case ShrPublicationPolicy.LABORATORY_INCREMENTAL:
-        return [...base, 'ServiceRequest', 'Specimen', 'Observation', 'DiagnosticReport'];
-        
+        return [...encounter, 'Observation', 'DiagnosticReport'];
+
       case ShrPublicationPolicy.MEDICATION_INCREMENTAL:
-        return [...base, 'Medication', 'MedicationRequest', 'MedicationDispense'];
-        
+        return [...encounter, 'MedicationRequest'];
+
       case ShrPublicationPolicy.CLAIM_ENCOUNTER:
-        return [...base, 'Condition', 'Claim'];
-        
+        return [...encounter, 'Condition', 'DiagnosticReport', 'Provenance'];
+
       case ShrPublicationPolicy.FULL_CLINICAL_RECORD:
         return [
-          ...base,
+          ...encounter,
           'Condition',
           'Observation',
           'Procedure',
-          'ServiceRequest',
           'DiagnosticReport',
-          'Specimen',
-          'Medication',
           'MedicationRequest',
-          'MedicationDispense',
-          'AllergyIntolerance',
-          'CarePlan',
-          'Immunization',
-          'Device'
+          'Provenance',
         ];
-        
+
       default:
-        return base;
+        return demographics;
     }
   }
 }

@@ -11,10 +11,11 @@ const liveDha = {
   DHA_ENABLED: 'true',
   DHA_MODE: 'sandbox',
   DHA_BASE_URL: 'https://ilm-dev.dha.go.ke/uat-middleware/api/v1',
-  DHA_TOKEN_URL: 'https://ilm-dev.dha.go.ke/uat-middleware/api/v1/hie-auth',
-  DHA_USERNAME: 'uat-user',
-  DHA_PASSWORD: 'uat-password',
-  DHA_CONSUMER_KEY: 'uat-consumer-key',
+  DHA_TOKEN_URL:
+    'https://ilm-dev.dha.go.ke/uat-middleware/api/v1/tenants/token',
+  DHA_AUTH_STRATEGY: 'oauth2',
+  DHA_CLIENT_ID: 'uat-client',
+  DHA_CLIENT_SECRET: 'uat-client-secret',
   DHA_AGENT_ID: 'uat-agent',
   DHA_CALLBACK_USERNAME: 'callback-user',
   DHA_CALLBACK_PASSWORD: 'callback-password',
@@ -48,12 +49,13 @@ describe('validateEnvironment DHA production gates', () => {
     );
   });
 
-  it('rejects the legacy facility code configuration', () => {
-    const legacy: Record<string, unknown> = { ...liveDha };
-    delete legacy.DHA_FACILITY_ID;
-    expect(() =>
-      validateEnvironment({ ...legacy, DHA_FACILITY_CODE: 'KMHFL-1' }),
-    ).toThrow('DHA_FACILITY_ID');
+  it('uses database-backed facility identities without requiring a global ID', () => {
+    const perFacility: Record<string, unknown> = { ...liveDha };
+    delete perFacility.DHA_FACILITY_ID;
+    delete perFacility.DHA_FACILITY_ID_TYPE;
+    expect(validateEnvironment(perFacility)).toEqual(
+      expect.objectContaining({ DHA_FACILITY_ID_TYPE: 'fr-code' }),
+    );
   });
 
   it('rejects non-HTTPS live endpoints', () => {

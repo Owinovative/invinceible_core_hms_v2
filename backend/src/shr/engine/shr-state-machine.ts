@@ -21,7 +21,7 @@ export enum ShrState {
   DEAD_LETTER = 'DEAD_LETTER', // Max retries exceeded
   CANCELLED = 'CANCELLED',
   DUPLICATE = 'DUPLICATE',
-  SUPERSEDED = 'SUPERSEDED'
+  SUPERSEDED = 'SUPERSEDED',
 }
 
 export class ShrStateMachine {
@@ -38,19 +38,48 @@ export class ShrStateMachine {
   transitionTo(newState: ShrState): boolean {
     const validTransitions: Record<ShrState, ShrState[]> = {
       [ShrState.CREATED]: [ShrState.ASSEMBLING, ShrState.CANCELLED],
-      [ShrState.ASSEMBLING]: [ShrState.VALIDATED, ShrState.FAILED_VALIDATION, ShrState.CANCELLED],
-      [ShrState.VALIDATED]: [ShrState.COMPLIANT, ShrState.FAILED_COMPLIANCE, ShrState.CANCELLED],
-      [ShrState.COMPLIANT]: [ShrState.STORED_IN_REPO, ShrState.DUPLICATE, ShrState.CANCELLED],
-      [ShrState.STORED_IN_REPO]: [ShrState.QUEUED, ShrState.SUPERSEDED, ShrState.CANCELLED],
+      [ShrState.ASSEMBLING]: [
+        ShrState.VALIDATED,
+        ShrState.FAILED_VALIDATION,
+        ShrState.CANCELLED,
+      ],
+      [ShrState.VALIDATED]: [
+        ShrState.COMPLIANT,
+        ShrState.FAILED_COMPLIANCE,
+        ShrState.CANCELLED,
+      ],
+      [ShrState.COMPLIANT]: [
+        ShrState.STORED_IN_REPO,
+        ShrState.DUPLICATE,
+        ShrState.CANCELLED,
+      ],
+      [ShrState.STORED_IN_REPO]: [
+        ShrState.QUEUED,
+        ShrState.SUPERSEDED,
+        ShrState.CANCELLED,
+      ],
       [ShrState.QUEUED]: [ShrState.PUBLISHING, ShrState.CANCELLED],
-      [ShrState.PUBLISHING]: [ShrState.ACKNOWLEDGED, ShrState.ACCEPTED, ShrState.REJECTED, ShrState.RETRY_PENDING],
-      [ShrState.RETRY_PENDING]: [ShrState.QUEUED, ShrState.DEAD_LETTER, ShrState.CANCELLED],
+      [ShrState.PUBLISHING]: [
+        ShrState.ACKNOWLEDGED,
+        ShrState.ACCEPTED,
+        ShrState.REJECTED,
+        ShrState.RETRY_PENDING,
+      ],
+      [ShrState.RETRY_PENDING]: [
+        ShrState.QUEUED,
+        ShrState.DEAD_LETTER,
+        ShrState.CANCELLED,
+      ],
       [ShrState.ACKNOWLEDGED]: [ShrState.COMPLETED],
       [ShrState.ACCEPTED]: [ShrState.AWAITING_CALLBACK],
-      [ShrState.AWAITING_CALLBACK]: [ShrState.CALLBACK_RECEIVED, ShrState.RETRY_PENDING, ShrState.DEAD_LETTER],
+      [ShrState.AWAITING_CALLBACK]: [
+        ShrState.CALLBACK_RECEIVED,
+        ShrState.RETRY_PENDING,
+        ShrState.DEAD_LETTER,
+      ],
       [ShrState.CALLBACK_RECEIVED]: [ShrState.COMPLETED, ShrState.REJECTED],
       [ShrState.COMPLETED]: [ShrState.ARCHIVED],
-      
+
       // Terminal states have no valid transitions out, except perhaps manual retry (Dead letter to Queued)
       [ShrState.ARCHIVED]: [],
       [ShrState.FAILED_VALIDATION]: [],
@@ -63,12 +92,14 @@ export class ShrStateMachine {
     };
 
     const allowed = validTransitions[this.currentState] || [];
-    
+
     if (allowed.includes(newState)) {
       this.currentState = newState;
       return true;
     }
-    
-    throw new Error(`Invalid state transition from ${this.currentState} to ${newState}`);
+
+    throw new Error(
+      `Invalid state transition from ${this.currentState} to ${newState}`,
+    );
   }
 }

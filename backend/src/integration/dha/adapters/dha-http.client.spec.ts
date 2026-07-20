@@ -46,11 +46,11 @@ const TOKEN_RESPONSE = {
 };
 const PATIENT_QUERY = {
   nationalId: '12345678',
-  identificationType: 'national-id',
+  identificationType: 'National ID',
 };
 
 describe('DhaHttpClient', () => {
-  it('authenticates with AfyaLink Basic credentials and consumer key', async () => {
+  it('authenticates with the current OAuth client credentials contract', async () => {
     const { client, calls } = makeClient([
       TOKEN_RESPONSE,
       { data: { message: { status: 'VERIFIED', id: 'PAT-1' } } },
@@ -61,20 +61,19 @@ describe('DhaHttpClient', () => {
     });
 
     expect(calls[0]).toMatchObject({
-      method: 'GET',
-      query: { key: 'test-consumer-key' },
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'client_id=test-client-id&client_secret=test-client-secret',
     });
-    expect(calls[0].headers.Authorization).toBe(
-      `Basic ${Buffer.from('test-user:test-password').toString('base64')}`,
-    );
 
     expect(calls[1]).toMatchObject({
-      path: '/v3/client-registry/fetch-client',
+      path: '/patients',
       method: 'GET',
       query: {
-        dynamic_id_search: 1,
-        agent: 'TEST-AGENT',
-        id: '12345678',
+        identification_number: '12345678',
+        identification_type: 'National ID',
       },
       correlationId: 'corr-1',
     });
@@ -93,9 +92,7 @@ describe('DhaHttpClient', () => {
     await client.verifyPatient(PATIENT_QUERY);
     await client.verifyPatient({ ...PATIENT_QUERY, nationalId: '2' });
 
-    const tokenCalls = calls.filter(
-      (call) => call.query?.key === 'test-consumer-key',
-    );
+    const tokenCalls = calls.filter((call) => call.path === '');
     expect(tokenCalls).toHaveLength(1);
   });
 
@@ -110,9 +107,7 @@ describe('DhaHttpClient', () => {
     const result = await client.verifyPatient(PATIENT_QUERY);
 
     expect(result.status).toBe('VERIFIED');
-    const apiCalls = calls.filter(
-      (call) => String(call.path) === '/v3/client-registry/fetch-client',
-    );
+    const apiCalls = calls.filter((call) => String(call.path) === '/patients');
     expect(apiCalls).toHaveLength(2);
     expect(apiCalls[0].headers.Authorization).toBe('Bearer expired-token');
     expect(apiCalls[1].headers.Authorization).toBe('Bearer fresh-token');
@@ -164,7 +159,7 @@ describe('DhaHttpClient', () => {
       ).status,
     ).toBe('ELIGIBLE');
     expect(calls[1]).toMatchObject({
-      path: '/v2/eligibility',
+      path: '/patients/eligibility',
       method: 'GET',
       query: {
         identification_number: '12345678',
@@ -173,20 +168,12 @@ describe('DhaHttpClient', () => {
     });
   });
 
-  it('submits claims to the documented SHR-med bundle endpoint', async () => {
-    const { client, calls } = makeClient([
-      TOKEN_RESPONSE,
-      { data: { message: { mediator_id: 'MED-1' } } },
-    ]);
-    const result = await client.submitClaim({
-      resourceType: 'Bundle',
-      type: 'message',
-    });
-    expect(calls[1]).toMatchObject({
-      path: '/v1/shr-med/bundle',
-      method: 'POST',
-    });
-    expect(result).toMatchObject({ status: 'ACCEPTED', externalRef: 'MED-1' });
+  it('fails closed for the retired legacy FHIR claim route', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE]);
+    await expect(
+      client.submitClaim({ resourceType: 'Bundle', type: 'message' }),
+    ).rejects.toThrow('current eClaims lifecycle');
+    expect(calls).toHaveLength(0);
   });
 
   it('uses the documented facility and practitioner registry routes', async () => {
@@ -205,16 +192,36 @@ describe('DhaHttpClient', () => {
       identificationNumber: '12345678',
     });
     expect(calls[1]).toMatchObject({
-      path: '/v2/facility-search',
-      query: { 'facility-fid': 'FID-1' },
+      path: '/facilities/search',
+      query: { identifier: 'FID-1', 'identifier-type': 'fr-code' },
     });
     expect(calls[2]).toMatchObject({
-      path: '/v1/practitioner-search',
+      path: '/professionals',
       query: {
         identification_type: 'ID',
         identification_number: '12345678',
       },
     });
+  });
+
+  it('expands documented path parameters without leaking them into the query', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { status: 'SUCCESS' } },
+    ]);
+
+    await client.executeApiOperation(
+      'REMOVE_PREAUTH_DIAGNOSIS',
+      { icd_code: '1A00/1', consent_token: 'secret' },
+      { facilityRegistryId: 'FID-LOCAL' },
+    );
+
+    expect(calls[1]).toMatchObject({
+      path: '/preauths/diagnoses/1A00%2F1',
+      method: 'DELETE',
+      query: { consent_token: 'secret' },
+    });
+    expect(calls[1].headers['X-Facility-Id']).toBe('FID-LOCAL');
   });
 
   it('fails closed when required registry identifiers are missing', async () => {
@@ -232,31 +239,12 @@ describe('DhaHttpClient', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('maps claim status responses, including DHA claim-state extensions', async () => {
-    const { client, calls } = makeClient([
-      TOKEN_RESPONSE,
-      { data: { message: { status: 'payment-completed' } } },
-      {
-        data: {
-          message: {
-            extension: [
-              { url: 'https://dha.go.ke/claim-state', valueCode: 'rejected' },
-            ],
-          },
-        },
-      },
-    ]);
-
-    await expect(client.pollClaimResponse('CLAIM-1')).resolves.toMatchObject({
-      status: 'SETTLED',
-    });
-    await expect(client.pollClaimResponse('CLAIM-2')).resolves.toMatchObject({
-      status: 'REJECTED',
-    });
-    expect(calls.slice(1).map((call) => call.query)).toEqual([
-      { claim_id: 'CLAIM-1' },
-      { claim_id: 'CLAIM-2' },
-    ]);
+  it('fails closed for the retired legacy claim polling route', async () => {
+    const { client, calls } = makeClient([TOKEN_RESPONSE]);
+    await expect(client.pollClaimResponse('CLAIM-1')).rejects.toThrow(
+      'current claim and remittance operations',
+    );
+    expect(calls).toHaveLength(0);
   });
 
   it('uses the consent-management routes and selects the authorization route', async () => {
@@ -280,7 +268,7 @@ describe('DhaHttpClient', () => {
       '/claims/otp',
       '/claims/authorize',
       '/claims/visit',
-      '/claims/otp',
+      '/claims/otp/discharge',
     ]);
   });
 
@@ -304,5 +292,45 @@ describe('DhaHttpClient', () => {
     );
 
     expect(calls).toHaveLength(0);
+  });
+
+  it('executes only allowlisted catalog operations with facility headers', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { results: [{ intervention_code: 'SHA-12-001' }] } },
+    ]);
+
+    await client.executeApiOperation('INTERVENTION_COVERAGE', {
+      patient_id: 'CR-1',
+      sub_benefit_code: 'SHIF-IP',
+    });
+
+    expect(calls[1]).toMatchObject({
+      method: 'GET',
+      path: '/patients/benefits/interventions',
+      query: { patient_id: 'CR-1', sub_benefit_code: 'SHIF-IP' },
+    });
+    expect(calls[1].headers).toMatchObject({
+      'X-Facility-Id': 'FID-TEST-001',
+      'X-Facility-Id-Type': 'fr-code',
+    });
+  });
+
+  it('routes SHR bundles through the clinical API base', async () => {
+    const { client, calls } = makeClient([
+      TOKEN_RESPONSE,
+      { data: { status: 'ACCEPTED' } },
+    ]);
+
+    await client.executeApiOperation('PUBLISH_SHR_BUNDLE', {
+      resourceType: 'Bundle',
+      type: 'transaction',
+      entry: [],
+    });
+
+    expect(calls[1]).toMatchObject({
+      baseUrl: 'https://ilm-dev.dha.go.ke/uat-middleware',
+      path: '/clinical/fhir/bundle',
+    });
   });
 });

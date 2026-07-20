@@ -33,7 +33,7 @@ export interface PatientRegistryRecord {
   middleName?: string;
   lastName: string;
   gender: string;
-  dateOfBirth: Date;
+  dateOfBirth?: Date;
   phone?: string;
   eligibility?: PatientEligibility;
 }

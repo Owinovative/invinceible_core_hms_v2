@@ -2,29 +2,24 @@
 
 import * as React from "react";
 import {
-  AlertCircle,
   AlertTriangle,
   BadgeCheck,
   CheckCircle2,
   ChevronRight,
-  Clock,
   Download,
   FileCheck2,
   FileText,
   Loader2,
-  RefreshCw,
   Search,
   Send,
   Shield,
   ShieldAlert,
   ShieldCheck,
-  TriangleAlert,
   X,
   XCircle,
   Zap,
   Eye,
   PlusCircle,
-  ArrowUpRight,
 } from "lucide-react";
 import { useCreateShaClaim } from "@/hooks/use-create-sha-claim";
 import { useInvoices } from "@/hooks/use-invoices";
@@ -43,6 +38,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { EligibilityResult } from "@/services/dha-service";
+import {
+  submitDhaClaim,
+  type DhaServiceType,
+} from "@/services/dha-eclaims-service";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -74,13 +73,24 @@ function relativeTime(iso?: string | null) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function patientName(p?: { firstName?: string | null; middleName?: string | null; lastName?: string | null } | null) {
-  return [p?.firstName, p?.middleName, p?.lastName].filter(Boolean).join(" ") || "—";
+function patientName(
+  p?: {
+    firstName?: string | null;
+    middleName?: string | null;
+    lastName?: string | null;
+  } | null,
+) {
+  return (
+    [p?.firstName, p?.middleName, p?.lastName].filter(Boolean).join(" ") || "—"
+  );
 }
 
 function readImageAsDataUrl(file?: File | null): Promise<string> {
   return new Promise((resolve, reject) => {
-    if (!file) { resolve(""); return; }
+    if (!file) {
+      resolve("");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(reader.error);
@@ -90,22 +100,106 @@ function readImageAsDataUrl(file?: File | null): Promise<string> {
 
 // ─── Claim status config ──────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; text: string; border: string }> = {
-  DRAFT:     { label: "Draft",     dot: "bg-gray-400",    bg: "bg-gray-500/10",    text: "text-gray-400",    border: "border-gray-500/20" },
-  VALIDATED: { label: "Validated", dot: "bg-blue-400",    bg: "bg-blue-500/10",    text: "text-blue-400",    border: "border-blue-500/20" },
-  SUBMITTED: { label: "Submitted", dot: "bg-cyan-400",    bg: "bg-cyan-500/10",    text: "text-cyan-400",    border: "border-cyan-500/20" },
-  ACCEPTED:  { label: "Accepted",  dot: "bg-emerald-400", bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
-  APPROVED:  { label: "Approved",  dot: "bg-emerald-400", bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
-  PAID:      { label: "Paid",      dot: "bg-green-400",   bg: "bg-green-500/10",   text: "text-green-400",   border: "border-green-500/20" },
-  REJECTED:  { label: "Rejected",  dot: "bg-red-400",     bg: "bg-red-500/10",     text: "text-red-400",     border: "border-red-500/20" },
-  CANCELLED: { label: "Cancelled", dot: "bg-gray-500",    bg: "bg-gray-600/10",    text: "text-gray-500",    border: "border-gray-500/20" },
-  PENDING:   { label: "Pending",   dot: "bg-amber-400",   bg: "bg-amber-500/10",   text: "text-amber-400",   border: "border-amber-500/20" },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; dot: string; bg: string; text: string; border: string }
+> = {
+  DRAFT: {
+    label: "Draft",
+    dot: "bg-gray-400",
+    bg: "bg-gray-500/10",
+    text: "text-gray-400",
+    border: "border-gray-500/20",
+  },
+  VALIDATED: {
+    label: "Validated",
+    dot: "bg-blue-400",
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
+    border: "border-blue-500/20",
+  },
+  SUBMITTED: {
+    label: "Submitted",
+    dot: "bg-cyan-400",
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-400",
+    border: "border-cyan-500/20",
+  },
+  ACCEPTED: {
+    label: "Accepted",
+    dot: "bg-emerald-400",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+  },
+  APPROVED: {
+    label: "Approved",
+    dot: "bg-emerald-400",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+  },
+  PAID: {
+    label: "Paid",
+    dot: "bg-green-400",
+    bg: "bg-green-500/10",
+    text: "text-green-400",
+    border: "border-green-500/20",
+  },
+  REJECTED: {
+    label: "Rejected",
+    dot: "bg-red-400",
+    bg: "bg-red-500/10",
+    text: "text-red-400",
+    border: "border-red-500/20",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    dot: "bg-gray-500",
+    bg: "bg-gray-600/10",
+    text: "text-gray-500",
+    border: "border-gray-500/20",
+  },
+  PENDING: {
+    label: "Pending",
+    dot: "bg-amber-400",
+    bg: "bg-amber-500/10",
+    text: "text-amber-400",
+    border: "border-amber-500/20",
+  },
+  SUBMITTING: {
+    label: "Submitting",
+    dot: "bg-cyan-400",
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-400",
+    border: "border-cyan-500/20",
+  },
+  DHA_SUBMISSION_FAILED: {
+    label: "DHA submission failed",
+    dot: "bg-red-400",
+    bg: "bg-red-500/10",
+    text: "text-red-400",
+    border: "border-red-500/20",
+  },
 };
 
 function ClaimStatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, dot: "bg-muted-foreground", bg: "bg-muted/10", text: "text-muted-foreground", border: "border-border" };
+  const cfg = STATUS_CONFIG[status] ?? {
+    label: status,
+    dot: "bg-muted-foreground",
+    bg: "bg-muted/10",
+    text: "text-muted-foreground",
+    border: "border-border",
+  };
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", cfg.bg, cfg.text, cfg.border)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+        cfg.bg,
+        cfg.text,
+        cfg.border,
+      )}
+    >
       <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
       {cfg.label}
     </span>
@@ -132,19 +226,28 @@ function WorkflowBanner({ currentStep }: { currentStep: string }) {
     <div className="flex items-center gap-1 overflow-x-auto pb-1">
       {WORKFLOW_STEPS.map((step, i) => (
         <React.Fragment key={step.id}>
-          <div className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all",
-            i < currentIdx
-              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-              : i === currentIdx
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "bg-white/[0.03] text-muted-foreground border border-white/10"
-          )}>
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all",
+              i < currentIdx
+                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                : i === currentIdx
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "bg-white/[0.03] text-muted-foreground border border-white/10",
+            )}
+          >
             {i < currentIdx && <CheckCircle2 className="h-3 w-3" />}
             {step.label}
           </div>
           {i < WORKFLOW_STEPS.length - 1 && (
-            <ChevronRight className={cn("h-3 w-3 shrink-0", i < currentIdx ? "text-emerald-400" : "text-muted-foreground/40")} />
+            <ChevronRight
+              className={cn(
+                "h-3 w-3 shrink-0",
+                i < currentIdx
+                  ? "text-emerald-400"
+                  : "text-muted-foreground/40",
+              )}
+            />
           )}
         </React.Fragment>
       ))}
@@ -175,7 +278,14 @@ type ClaimRecord = {
   submittedAt?: string | null;
   approvedAt?: string | null;
   paidAt?: string | null;
-  patient?: { id: number; patientNumber?: string | null; firstName?: string | null; middleName?: string | null; lastName?: string | null; phonePrimary?: string | null } | null;
+  patient?: {
+    id: number;
+    patientNumber?: string | null;
+    firstName?: string | null;
+    middleName?: string | null;
+    lastName?: string | null;
+    phonePrimary?: string | null;
+  } | null;
   facility?: { name?: string; shaFidCode?: string | null } | null;
   invoice?: { invoiceNumber?: string; totalAmount?: number } | null;
 };
@@ -185,21 +295,68 @@ function ClaimDetailDrawer({
   onClose,
   onStatusChange,
   onAmountSave,
+  onDhaSubmitted,
   isUpdating,
 }: {
   claim: ClaimRecord;
   onClose: () => void;
   onStatusChange: (id: number, status: string) => void;
   onAmountSave: (id: number, amounts: Record<string, number>) => void;
+  onDhaSubmitted: (claimId: number) => void;
   isUpdating: boolean;
 }) {
-  const [claimedAmt, setClaimedAmt] = React.useState(String(claim.claimedAmount || 0));
-  const [approvedAmt, setApprovedAmt] = React.useState(String(claim.approvedAmount || 0));
+  const [claimedAmt, setClaimedAmt] = React.useState(
+    String(claim.claimedAmount || 0),
+  );
+  const [approvedAmt, setApprovedAmt] = React.useState(
+    String(claim.approvedAmount || 0),
+  );
   const [paidAmt, setPaidAmt] = React.useState(String(claim.paidAmount || 0));
-  const [rejectedAmt, setRejectedAmt] = React.useState(String(claim.rejectedAmount || 0));
+  const [rejectedAmt, setRejectedAmt] = React.useState(
+    String(claim.rejectedAmount || 0),
+  );
+  const [consentAuthorizationId, setConsentAuthorizationId] =
+    React.useState("");
+  const [interventionCode, setInterventionCode] = React.useState("");
+  const [serviceType, setServiceType] =
+    React.useState<DhaServiceType>("OUTPATIENT");
+  const [visitOtp, setVisitOtp] = React.useState("");
+  const [dischargeOtp, setDischargeOtp] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState("");
+
+  const submitToDha = async () => {
+    setSubmissionError("");
+    if (!consentAuthorizationId || !interventionCode.trim()) {
+      setSubmissionError(
+        "Consent authorization and intervention code are required.",
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await submitDhaClaim(claim.id, {
+        consentAuthorizationId: Number(consentAuthorizationId),
+        interventionCode: interventionCode.trim(),
+        serviceType,
+        visitOtp: visitOtp.trim() || undefined,
+        dischargeOtp: dischargeOtp.trim() || undefined,
+      });
+      onDhaSubmitted(claim.id);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error ? error.message : "DHA submission failed.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -215,7 +372,11 @@ function ClaimDetailDrawer({
               {patientName(claim.patient)} · {claim.patient?.patientNumber}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-2 hover:bg-accent transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 hover:bg-accent transition-colors"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -224,14 +385,35 @@ function ClaimDetailDrawer({
           {/* Timeline */}
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { label: "Created", value: formatDate(claim.createdAt), sub: relativeTime(claim.createdAt) },
-              { label: "Submitted", value: claim.submittedAt ? formatDate(claim.submittedAt) : "Not yet", sub: "" },
-              { label: "Paid", value: claim.paidAt ? formatDate(claim.paidAt) : "Awaiting", sub: "" },
+              {
+                label: "Created",
+                value: formatDate(claim.createdAt),
+                sub: relativeTime(claim.createdAt),
+              },
+              {
+                label: "Submitted",
+                value: claim.submittedAt
+                  ? formatDate(claim.submittedAt)
+                  : "Not yet",
+                sub: "",
+              },
+              {
+                label: "Paid",
+                value: claim.paidAt ? formatDate(claim.paidAt) : "Awaiting",
+                sub: "",
+              },
             ].map(({ label, value, sub }) => (
-              <div key={label} className="rounded-xl border border-border/50 bg-white/[0.02] p-3">
-                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+              <div
+                key={label}
+                className="rounded-xl border border-border/50 bg-white/[0.02] p-3"
+              >
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  {label}
+                </p>
                 <p className="mt-1 text-sm font-semibold">{value}</p>
-                {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+                {sub && (
+                  <p className="text-[10px] text-muted-foreground">{sub}</p>
+                )}
               </div>
             ))}
           </div>
@@ -239,20 +421,38 @@ function ClaimDetailDrawer({
           {/* Claim info */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-border/50 bg-white/[0.02] p-3">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">FID Code</p>
-              <p className="mt-1 font-mono text-sm">{claim.fidCode ?? claim.facility?.shaFidCode ?? "—"}</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                FID Code
+              </p>
+              <p className="mt-1 font-mono text-sm">
+                {claim.fidCode ?? claim.facility?.shaFidCode ?? "—"}
+              </p>
             </div>
             <div className="rounded-xl border border-border/50 bg-white/[0.02] p-3">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">SHA Member No.</p>
-              <p className="mt-1 font-mono text-sm">{claim.memberNumber ?? "—"}</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                SHA Member No.
+              </p>
+              <p className="mt-1 font-mono text-sm">
+                {claim.memberNumber ?? "—"}
+              </p>
             </div>
             <div className="rounded-xl border border-border/50 bg-white/[0.02] p-3">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Diagnosis</p>
-              <p className="mt-1 text-sm font-semibold">{claim.diagnosisCode ?? "—"}</p>
-              {claim.diagnosisText && <p className="text-xs text-muted-foreground">{claim.diagnosisText}</p>}
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                Diagnosis
+              </p>
+              <p className="mt-1 text-sm font-semibold">
+                {claim.diagnosisCode ?? "—"}
+              </p>
+              {claim.diagnosisText && (
+                <p className="text-xs text-muted-foreground">
+                  {claim.diagnosisText}
+                </p>
+              )}
             </div>
             <div className="rounded-xl border border-border/50 bg-white/[0.02] p-3">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Service Period</p>
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                Service Period
+              </p>
               <p className="mt-1 text-sm">
                 {claim.servicePeriodStart && claim.servicePeriodEnd
                   ? `${formatDate(claim.servicePeriodStart)} → ${formatDate(claim.servicePeriodEnd)}`
@@ -261,8 +461,13 @@ function ClaimDetailDrawer({
             </div>
             {claim.invoice && (
               <div className="sm:col-span-2 rounded-xl border border-border/50 bg-white/[0.02] p-3">
-                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Linked Invoice</p>
-                <p className="mt-1 text-sm font-semibold">{claim.invoice.invoiceNumber} · {formatMoney(claim.invoice.totalAmount)}</p>
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  Linked Invoice
+                </p>
+                <p className="mt-1 text-sm font-semibold">
+                  {claim.invoice.invoiceNumber} ·{" "}
+                  {formatMoney(claim.invoice.totalAmount)}
+                </p>
               </div>
             )}
           </div>
@@ -274,13 +479,37 @@ function ClaimDetailDrawer({
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {[
-                { label: "Claimed (KES)", value: claimedAmt, setter: setClaimedAmt, color: "text-foreground" },
-                { label: "Approved (KES)", value: approvedAmt, setter: setApprovedAmt, color: "text-emerald-400" },
-                { label: "Paid (KES)", value: paidAmt, setter: setPaidAmt, color: "text-green-400" },
-                { label: "Rejected (KES)", value: rejectedAmt, setter: setRejectedAmt, color: "text-red-400" },
+                {
+                  label: "Claimed (KES)",
+                  value: claimedAmt,
+                  setter: setClaimedAmt,
+                  color: "text-foreground",
+                },
+                {
+                  label: "Approved (KES)",
+                  value: approvedAmt,
+                  setter: setApprovedAmt,
+                  color: "text-emerald-400",
+                },
+                {
+                  label: "Paid (KES)",
+                  value: paidAmt,
+                  setter: setPaidAmt,
+                  color: "text-green-400",
+                },
+                {
+                  label: "Rejected (KES)",
+                  value: rejectedAmt,
+                  setter: setRejectedAmt,
+                  color: "text-red-400",
+                },
               ].map(({ label, value, setter, color }) => (
                 <div key={label}>
-                  <label className={cn("mb-1 block text-xs font-medium", color)}>{label}</label>
+                  <label
+                    className={cn("mb-1 block text-xs font-medium", color)}
+                  >
+                    {label}
+                  </label>
                   <Input
                     type="number"
                     value={value}
@@ -294,15 +523,21 @@ function ClaimDetailDrawer({
               type="button"
               size="sm"
               disabled={isUpdating}
-              onClick={() => onAmountSave(claim.id, {
-                claimedAmount: Number(claimedAmt),
-                approvedAmount: Number(approvedAmt),
-                paidAmount: Number(paidAmt),
-                rejectedAmount: Number(rejectedAmt),
-              })}
+              onClick={() =>
+                onAmountSave(claim.id, {
+                  claimedAmount: Number(claimedAmt),
+                  approvedAmount: Number(approvedAmt),
+                  paidAmount: Number(paidAmt),
+                  rejectedAmount: Number(rejectedAmt),
+                })
+              }
               className="mt-3 rounded-xl gap-2"
             >
-              {isUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
+              {isUpdating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <BadgeCheck className="h-3.5 w-3.5" />
+              )}
               Save Amounts
             </Button>
           </div>
@@ -320,23 +555,139 @@ function ClaimDetailDrawer({
           {/* Notes */}
           {claim.notes && (
             <div className="rounded-xl border border-border/50 bg-white/[0.02] p-4">
-              <p className="text-xs font-medium text-muted-foreground mb-1">Notes</p>
+              <p className="text-xs font-medium text-muted-foreground mb-1">
+                Notes
+              </p>
               <p className="text-sm">{claim.notes}</p>
             </div>
           )}
 
+          <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <Send className="h-4 w-4 text-primary" /> DHA eClaims submission
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Starts the visit, sends invoice lines and diagnosis, previews
+                the claim, then dispatches it.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium">
+                  Consent authorization ID *
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={consentAuthorizationId}
+                  onChange={(event) =>
+                    setConsentAuthorizationId(event.target.value)
+                  }
+                  className="h-10 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">
+                  Intervention code *
+                </label>
+                <Input
+                  value={interventionCode}
+                  onChange={(event) => setInterventionCode(event.target.value)}
+                  className="h-10 rounded-xl font-mono"
+                  placeholder="DHA intervention code"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">
+                  Service type *
+                </label>
+                <select
+                  value={serviceType}
+                  onChange={(event) =>
+                    setServiceType(event.target.value as DhaServiceType)
+                  }
+                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                >
+                  <option value="CAPITATION">PHC capitation</option>
+                  <option value="OUTPATIENT">SHIF outpatient</option>
+                  <option value="INPATIENT">SHIF inpatient</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">
+                  Visit OTP (when required)
+                </label>
+                <Input
+                  value={visitOtp}
+                  onChange={(event) => setVisitOtp(event.target.value)}
+                  className="h-10 rounded-xl"
+                  autoComplete="one-time-code"
+                />
+              </div>
+              {serviceType === "INPATIENT" && (
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium">
+                    Discharge OTP *
+                  </label>
+                  <Input
+                    value={dischargeOtp}
+                    onChange={(event) => setDischargeOtp(event.target.value)}
+                    className="h-10 rounded-xl"
+                    autoComplete="one-time-code"
+                  />
+                </div>
+              )}
+            </div>
+            {submissionError && (
+              <p role="alert" className="text-xs text-red-400">
+                {submissionError}
+              </p>
+            )}
+            <Button
+              type="button"
+              onClick={submitToDha}
+              disabled={
+                submitting ||
+                claim.statusCode === "PAID" ||
+                claim.statusCode === "CANCELLED"
+              }
+              className="w-full rounded-xl gap-2"
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Validate and submit to DHA
+            </Button>
+          </div>
+
           {/* Status change + Download */}
           <div className="flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
             <div className="flex-1 min-w-[160px]">
-              <label className="mb-1 block text-xs text-muted-foreground">Change Status</label>
+              <label className="mb-1 block text-xs text-muted-foreground">
+                Change Status
+              </label>
               <select
                 value={claim.statusCode}
                 onChange={(e) => onStatusChange(claim.id, e.target.value)}
                 className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
               >
-                {Object.keys(STATUS_CONFIG).map((s) => (
-                  <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                ))}
+                {Object.keys(STATUS_CONFIG)
+                  .filter(
+                    (status) =>
+                      ![
+                        "SUBMITTED",
+                        "SUBMITTING",
+                        "DHA_SUBMISSION_FAILED",
+                      ].includes(status) || claim.statusCode === status,
+                  )
+                  .map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_CONFIG[s].label}
+                    </option>
+                  ))}
               </select>
             </div>
             <Button
@@ -358,7 +709,11 @@ function ClaimDetailDrawer({
 
 // ─── Inline eligibility panel for claim creation ──────────────────────────────
 
-function InlineEligibilityCheck({ onVerified }: { onVerified: (r: EligibilityResult) => void }) {
+function InlineEligibilityCheck({
+  onVerified,
+}: {
+  onVerified: (r: EligibilityResult) => void;
+}) {
   const [identifier, setIdentifier] = React.useState("");
   const mutation = useCheckShaEligibility();
 
@@ -366,8 +721,14 @@ function InlineEligibilityCheck({ onVerified }: { onVerified: (r: EligibilityRes
     if (!identifier.trim()) return;
     const isNationalId = /^\d{5,8}$/.test(identifier.trim());
     mutation.mutate(
-      isNationalId ? { nationalId: identifier.trim() } : { memberNumber: identifier.trim() },
-      { onSuccess: (r) => { if (r.status === "ELIGIBLE") onVerified(r); } }
+      isNationalId
+        ? { nationalId: identifier.trim() }
+        : { memberNumber: identifier.trim() },
+      {
+        onSuccess: (r) => {
+          if (r.status === "ELIGIBLE") onVerified(r);
+        },
+      },
     );
   };
 
@@ -376,7 +737,8 @@ function InlineEligibilityCheck({ onVerified }: { onVerified: (r: EligibilityRes
   return (
     <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
       <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
-        <Shield className="h-3.5 w-3.5" /> Verify SHA Eligibility Before Submitting
+        <Shield className="h-3.5 w-3.5" /> Verify SHA Eligibility Before
+        Submitting
       </p>
       <div className="flex gap-2">
         <Input
@@ -386,19 +748,43 @@ function InlineEligibilityCheck({ onVerified }: { onVerified: (r: EligibilityRes
           placeholder="SHA number or National ID"
           className="h-9 rounded-xl font-mono text-sm flex-1"
         />
-        <Button type="button" size="sm" onClick={verify} disabled={mutation.isPending || !identifier.trim()}
-          className="h-9 rounded-xl shrink-0">
-          {mutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+        <Button
+          type="button"
+          size="sm"
+          onClick={verify}
+          disabled={mutation.isPending || !identifier.trim()}
+          className="h-9 rounded-xl shrink-0"
+        >
+          {mutation.isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Search className="h-3.5 w-3.5" />
+          )}
         </Button>
       </div>
       {r && (
-        <div className={cn("rounded-xl px-3 py-2 text-sm font-medium flex items-center gap-2",
-          r.status === "ELIGIBLE" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
-        )}>
-          {r.status === "ELIGIBLE" ? <ShieldCheck className="h-4 w-4 shrink-0" /> : <ShieldAlert className="h-4 w-4 shrink-0" />}
+        <div
+          className={cn(
+            "rounded-xl px-3 py-2 text-sm font-medium flex items-center gap-2",
+            r.status === "ELIGIBLE"
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "bg-red-500/15 text-red-400",
+          )}
+        >
+          {r.status === "ELIGIBLE" ? (
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+          ) : (
+            <ShieldAlert className="h-4 w-4 shrink-0" />
+          )}
           <div>
-            <span>{r.memberName ?? "—"} — {r.status.replace("_", " ")}</span>
-            {r.memberNumber && <span className="ml-2 font-mono text-xs opacity-70">({r.memberNumber})</span>}
+            <span>
+              {r.memberName ?? "—"} — {r.status.replace("_", " ")}
+            </span>
+            {r.memberNumber && (
+              <span className="ml-2 font-mono text-xs opacity-70">
+                ({r.memberNumber})
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -416,107 +802,170 @@ export default function ShaClaimsPage() {
   const createMutation = useCreateShaClaim();
   const updateMutation = useUpdateShaClaim();
 
-  const patients = Array.isArray(patientsData) ? patientsData : [];
+  const patients = React.useMemo(
+    () => (Array.isArray(patientsData) ? patientsData : []),
+    [patientsData],
+  );
   const invoices = Array.isArray(invoicesData) ? invoicesData : [];
-  const claims = (Array.isArray(claimsData) ? claimsData : []) as ClaimRecord[];
+  const claims = React.useMemo(
+    () => (Array.isArray(claimsData) ? claimsData : []) as ClaimRecord[],
+    [claimsData],
+  );
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [patientQuery, setPatientQuery] = React.useState("");
   const [selectedPatientId, setSelectedPatientId] = React.useState("");
   const [selectedInvoiceId, setSelectedInvoiceId] = React.useState("");
   const [memberNumber, setMemberNumber] = React.useState("");
-  const [primaryDiagnosis, setPrimaryDiagnosis] = React.useState<TerminologyConcept | null>(null);
+  const [primaryDiagnosis, setPrimaryDiagnosis] =
+    React.useState<TerminologyConcept | null>(null);
   const [claimedAmount, setClaimedAmount] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [patientSignatureUrl, setPatientSignatureUrl] = React.useState("");
   const [facilitySignatureUrl, setFacilitySignatureUrl] = React.useState("");
   const [rubberStampUrl, setRubberStampUrl] = React.useState("");
-  const [message, setMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = React.useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // ── List state ─────────────────────────────────────────────────────────────
   const [searchClaims, setSearchClaims] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("ALL");
-  const [detailClaim, setDetailClaim] = React.useState<ClaimRecord | null>(null);
+  const [detailClaim, setDetailClaim] = React.useState<ClaimRecord | null>(
+    null,
+  );
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const patientMatches = React.useMemo(() => {
     const q = patientQuery.trim().toLowerCase();
     if (!q) return patients.slice(0, 12);
-    return patients.filter((p) =>
-      [p.patientNumber, p.firstName, p.middleName, p.lastName, p.phonePrimary]
-        .filter(Boolean).join(" ").toLowerCase().includes(q)
-    ).slice(0, 12);
+    return patients
+      .filter((p) =>
+        [p.patientNumber, p.firstName, p.middleName, p.lastName, p.phonePrimary]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
+      )
+      .slice(0, 12);
   }, [patientQuery, patients]);
 
-  const selectedPatient = patients.find((p) => String(p.id) === selectedPatientId);
-  const patientInvoices = invoices.filter((inv) => String(inv.patientId) === selectedPatientId);
-  const selectedInvoice = invoices.find((inv) => String(inv.id) === selectedInvoiceId);
+  const selectedPatient = patients.find(
+    (p) => String(p.id) === selectedPatientId,
+  );
+  const patientInvoices = invoices.filter(
+    (inv) => String(inv.patientId) === selectedPatientId,
+  );
+  const selectedInvoice = invoices.find(
+    (inv) => String(inv.id) === selectedInvoiceId,
+  );
 
   const filteredClaims = React.useMemo(() => {
     let list = claims;
-    if (statusFilter !== "ALL") list = list.filter((c) => c.statusCode === statusFilter);
+    if (statusFilter !== "ALL")
+      list = list.filter((c) => c.statusCode === statusFilter);
     if (searchClaims.trim()) {
       const q = searchClaims.trim().toLowerCase();
       list = list.filter((c) =>
-        [c.claimNumber, patientName(c.patient), c.patient?.patientNumber, c.diagnosisCode, c.memberNumber]
-          .filter(Boolean).join(" ").toLowerCase().includes(q)
+        [
+          c.claimNumber,
+          patientName(c.patient),
+          c.patient?.patientNumber,
+          c.diagnosisCode,
+          c.memberNumber,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
       );
     }
     return list;
   }, [claims, statusFilter, searchClaims]);
 
   // Status count breakdown
-  const statusCounts = React.useMemo(() =>
-    claims.reduce((acc, c) => { acc[c.statusCode] = (acc[c.statusCode] ?? 0) + 1; return acc; }, {} as Record<string, number>),
-    [claims]
+  const statusCounts = React.useMemo(
+    () =>
+      claims.reduce(
+        (acc, c) => {
+          acc[c.statusCode] = (acc[c.statusCode] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    [claims],
   );
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleCreateClaim = async () => {
-    const patient = selectedPatient as typeof patients[0] & { facilityId: number; branchId?: number };
+    const patient = selectedPatient;
     if (!patient?.facilityId) {
-      setMessage({ type: "error", text: "Choose a patient before creating a claim." });
+      setMessage({
+        type: "error",
+        text: "Choose a patient before creating a claim.",
+      });
       return;
     }
     if (!primaryDiagnosis) {
-      setMessage({ type: "error", text: "A standardized diagnosis concept is required to create a SHA claim." });
+      setMessage({
+        type: "error",
+        text: "A standardized diagnosis concept is required to create a SHA claim.",
+      });
       return;
     }
 
     try {
       const created = await createMutation.mutateAsync({
-        facilityId: (selectedInvoice as any)?.facilityId ?? patient.facilityId,
-        branchId: (selectedInvoice as any)?.branchId ?? (patient as any)?.branchId ?? undefined,
+        facilityId: selectedInvoice?.facilityId ?? patient.facilityId,
+        branchId: selectedInvoice?.branchId ?? patient.branchId ?? undefined,
         patientId: patient.id,
         invoiceId: selectedInvoice?.id,
         memberNumber: memberNumber || undefined,
         diagnosisCode: primaryDiagnosis?.code || undefined,
         diagnosisText: primaryDiagnosis?.display || undefined,
         diagnosisConceptId: primaryDiagnosis?.id || undefined,
-        claimedAmount: claimedAmount ? parseFloat(claimedAmount) : (selectedInvoice as any)?.totalAmount,
+        claimedAmount: claimedAmount
+          ? parseFloat(claimedAmount)
+          : selectedInvoice?.totalAmount,
         notes: notes.trim() || undefined,
         patientSignatureUrl: patientSignatureUrl || undefined,
         facilitySignatureUrl: facilitySignatureUrl || undefined,
         rubberStampUrl: rubberStampUrl || undefined,
       });
-      setMessage({ type: "success", text: `SHA Claim ${created.claimNumber} created successfully.` });
-      setSelectedInvoiceId(""); setClaimedAmount(""); setNotes("");
-      setPatientSignatureUrl(""); setFacilitySignatureUrl(""); setRubberStampUrl("");
-      setPrimaryDiagnosis(null); setMemberNumber("");
-    } catch (e: any) {
-      setMessage({ type: "error", text: e?.message ?? "Failed to create claim." });
+      setMessage({
+        type: "success",
+        text: `SHA Claim ${created.claimNumber} created successfully.`,
+      });
+      setSelectedInvoiceId("");
+      setClaimedAmount("");
+      setNotes("");
+      setPatientSignatureUrl("");
+      setFacilitySignatureUrl("");
+      setRubberStampUrl("");
+      setPrimaryDiagnosis(null);
+      setMemberNumber("");
+    } catch (error: unknown) {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof Error ? error.message : "Failed to create claim.",
+      });
     }
   };
 
   const handleStatusChange = async (id: number, statusCode: string) => {
     await updateMutation.mutateAsync({ id, payload: { statusCode } });
     if (detailClaim?.id === id) {
-      setDetailClaim((c) => c ? { ...c, statusCode } : null);
+      setDetailClaim((c) => (c ? { ...c, statusCode } : null));
     }
   };
 
-  const handleAmountSave = async (id: number, amounts: Record<string, number>) => {
+  const handleAmountSave = async (
+    id: number,
+    amounts: Record<string, number>,
+  ) => {
     await updateMutation.mutateAsync({ id, payload: amounts });
     setMessage({ type: "success", text: "Claim amounts updated." });
   };
@@ -527,7 +976,6 @@ export default function ShaClaimsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-[2rem] border surface-spotlight shadow-md p-6 md:p-8">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-800/10 via-indigo-700/5 to-transparent" />
@@ -539,9 +987,12 @@ export default function ShaClaimsPage() {
               <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-xs font-semibold">
                 Social Health Authority — Kenya
               </Badge>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight">SHA Claims Management</h1>
+              <h1 className="mt-3 text-3xl font-bold tracking-tight">
+                SHA Claims Management
+              </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Generate · Validate · Submit · Track · Reconcile — Full SHA/DHA claim lifecycle
+                Generate · Validate · Submit · Track · Reconcile — Full SHA/DHA
+                claim lifecycle
               </p>
             </div>
             <a href="/templates/claim-form-shif.docx" download>
@@ -558,14 +1009,20 @@ export default function ShaClaimsPage() {
 
       {/* ── Notification banner ─────────────────────────────────────────────── */}
       {message && (
-        <div className={cn(
-          "flex items-center justify-between rounded-2xl border px-5 py-4",
-          message.type === "success"
-            ? "border-emerald-500/25 bg-emerald-500/8 text-emerald-300"
-            : "border-red-500/25 bg-red-500/8 text-red-300"
-        )}>
+        <div
+          className={cn(
+            "flex items-center justify-between rounded-2xl border px-5 py-4",
+            message.type === "success"
+              ? "border-emerald-500/25 bg-emerald-500/8 text-emerald-300"
+              : "border-red-500/25 bg-red-500/8 text-red-300",
+          )}
+        >
           <div className="flex items-center gap-2 text-sm">
-            {message.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <XCircle className="h-4 w-4 shrink-0" />}
+            {message.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            ) : (
+              <XCircle className="h-4 w-4 shrink-0" />
+            )}
             {message.text}
           </div>
           <button type="button" onClick={() => setMessage(null)}>
@@ -577,20 +1034,60 @@ export default function ShaClaimsPage() {
       {/* ── Summary KPIs ─────────────────────────────────────────────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         {[
-          { label: "Total Claims", value: String(summary?.count ?? 0), accent: false },
-          { label: "Claimed", value: formatMoney(summary?.claimedAmount), accent: false },
-          { label: "Covered", value: formatMoney(summary?.coveredAmount), accent: false },
-          { label: "Approved", value: formatMoney(summary?.approvedAmount), accent: true },
-          { label: "Paid", value: formatMoney(summary?.paidAmount), accent: true },
-          { label: "Rejected", value: formatMoney(summary?.rejectedAmount), accent: false },
-          { label: "Outstanding", value: formatMoney(summary?.outstandingAmount), accent: false },
+          {
+            label: "Total Claims",
+            value: String(summary?.count ?? 0),
+            accent: false,
+          },
+          {
+            label: "Claimed",
+            value: formatMoney(summary?.claimedAmount),
+            accent: false,
+          },
+          {
+            label: "Covered",
+            value: formatMoney(summary?.coveredAmount),
+            accent: false,
+          },
+          {
+            label: "Approved",
+            value: formatMoney(summary?.approvedAmount),
+            accent: true,
+          },
+          {
+            label: "Paid",
+            value: formatMoney(summary?.paidAmount),
+            accent: true,
+          },
+          {
+            label: "Rejected",
+            value: formatMoney(summary?.rejectedAmount),
+            accent: false,
+          },
+          {
+            label: "Outstanding",
+            value: formatMoney(summary?.outstandingAmount),
+            accent: false,
+          },
         ].map(({ label, value, accent }) => (
-          <div key={label} className={cn(
-            "rounded-2xl border p-4",
-            accent ? "border-emerald-500/20 bg-emerald-500/5" : "border-white/10 bg-white/[0.03]"
-          )}>
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
-            <p className={cn("mt-1.5 text-lg font-bold", accent ? "text-emerald-400" : "text-foreground")}>
+          <div
+            key={label}
+            className={cn(
+              "rounded-2xl border p-4",
+              accent
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : "border-white/10 bg-white/[0.03]",
+            )}
+          >
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              {label}
+            </p>
+            <p
+              className={cn(
+                "mt-1.5 text-lg font-bold",
+                accent ? "text-emerald-400" : "text-foreground",
+              )}
+            >
               {value}
             </p>
           </div>
@@ -599,7 +1096,6 @@ export default function ShaClaimsPage() {
 
       {/* ── Main 2-col layout ────────────────────────────────────────────────── */}
       <div className="grid gap-6 xl:grid-cols-[400px_1fr]">
-
         {/* Left: Create new claim */}
         <Card className="relative overflow-hidden rounded-[1.8rem] surface-spotlight shadow-md">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-indigo-500" />
@@ -609,13 +1105,14 @@ export default function ShaClaimsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-
             {/* Eligibility check */}
             <InlineEligibilityCheck onVerified={handleEligibilityVerified} />
 
             {/* Patient search */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Patient *</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                Patient *
+              </label>
               <div className="relative mb-2">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -627,7 +1124,10 @@ export default function ShaClaimsPage() {
               </div>
               <select
                 value={selectedPatientId}
-                onChange={(e) => { setSelectedPatientId(e.target.value); setSelectedInvoiceId(""); }}
+                onChange={(e) => {
+                  setSelectedPatientId(e.target.value);
+                  setSelectedInvoiceId("");
+                }}
                 className="h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm"
               >
                 <option value="">— Choose patient —</option>
@@ -641,13 +1141,17 @@ export default function ShaClaimsPage() {
 
             {/* Invoice */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Linked Invoice</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                Linked Invoice
+              </label>
               <select
                 value={selectedInvoiceId}
                 onChange={(e) => {
-                  const inv = invoices.find((i) => String(i.id) === e.target.value);
+                  const inv = invoices.find(
+                    (i) => String(i.id) === e.target.value,
+                  );
                   setSelectedInvoiceId(e.target.value);
-                  if (inv) setClaimedAmount(String((inv as any).totalAmount || 0));
+                  if (inv) setClaimedAmount(String(inv.totalAmount || 0));
                 }}
                 disabled={!selectedPatientId}
                 className="h-10 w-full rounded-2xl border border-input bg-background px-3 text-sm disabled:opacity-50"
@@ -655,7 +1159,7 @@ export default function ShaClaimsPage() {
                 <option value="">— Optional —</option>
                 {patientInvoices.map((inv) => (
                   <option key={inv.id} value={String(inv.id)}>
-                    {(inv as any).invoiceNumber} / {formatMoney((inv as any).totalAmount)}
+                    {inv.invoiceNumber} / {formatMoney(inv.totalAmount)}
                   </option>
                 ))}
               </select>
@@ -675,7 +1179,9 @@ export default function ShaClaimsPage() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium">Claimed Amount (KES)</label>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Claimed Amount (KES)
+                </label>
                 <Input
                   type="number"
                   value={claimedAmount}
@@ -688,7 +1194,9 @@ export default function ShaClaimsPage() {
 
             {/* Diagnosis */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Diagnosis (ICD-11)</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                Diagnosis (ICD-11)
+              </label>
               <TerminologySearch
                 value={primaryDiagnosis}
                 onChange={setPrimaryDiagnosis}
@@ -700,7 +1208,9 @@ export default function ShaClaimsPage() {
 
             {/* Notes */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Notes / Authorization Ref</label>
+              <label className="mb-1.5 block text-sm font-medium">
+                Notes / Authorization Ref
+              </label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -711,13 +1221,29 @@ export default function ShaClaimsPage() {
 
             {/* Signatures */}
             <div className="grid gap-3 sm:grid-cols-3">
-              {([
-                ["Patient Signature", patientSignatureUrl, setPatientSignatureUrl],
-                ["Facility Signature", facilitySignatureUrl, setFacilitySignatureUrl],
-                ["Rubber Stamp", rubberStampUrl, setRubberStampUrl],
-              ] as [string, string, React.Dispatch<React.SetStateAction<string>>][]).map(([label, value, setter]) => (
+              {(
+                [
+                  [
+                    "Patient Signature",
+                    patientSignatureUrl,
+                    setPatientSignatureUrl,
+                  ],
+                  [
+                    "Facility Signature",
+                    facilitySignatureUrl,
+                    setFacilitySignatureUrl,
+                  ],
+                  ["Rubber Stamp", rubberStampUrl, setRubberStampUrl],
+                ] as [
+                  string,
+                  string,
+                  React.Dispatch<React.SetStateAction<string>>,
+                ][]
+              ).map(([label, value, setter]) => (
                 <label key={label} className="space-y-1 text-xs">
-                  <span className="font-medium text-muted-foreground">{label}</span>
+                  <span className="font-medium text-muted-foreground">
+                    {label}
+                  </span>
                   <Input
                     type="file"
                     accept="image/*"
@@ -729,7 +1255,11 @@ export default function ShaClaimsPage() {
                   />
                   {value && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={value} alt="" className="h-12 w-full rounded-xl border border-border object-contain" />
+                    <img
+                      src={value}
+                      alt=""
+                      className="h-12 w-full rounded-xl border border-border object-contain"
+                    />
                   )}
                 </label>
               ))}
@@ -758,7 +1288,9 @@ export default function ShaClaimsPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="h-5 w-5 text-amber-400" /> Claim Tracker
-                <span className="text-xs font-normal text-muted-foreground">({filteredClaims.length} claims)</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({filteredClaims.length} claims)
+                </span>
               </CardTitle>
               <div className="flex gap-2">
                 <div className="relative">
@@ -779,7 +1311,10 @@ export default function ShaClaimsPage() {
                 { id: "ALL", label: `All (${claims.length})` },
                 ...Object.keys(STATUS_CONFIG)
                   .filter((s) => (statusCounts[s] ?? 0) > 0)
-                  .map((s) => ({ id: s, label: `${STATUS_CONFIG[s].label} (${statusCounts[s]})` })),
+                  .map((s) => ({
+                    id: s,
+                    label: `${STATUS_CONFIG[s].label} (${statusCounts[s]})`,
+                  })),
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -789,7 +1324,7 @@ export default function ShaClaimsPage() {
                     "shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-all",
                     statusFilter === tab.id
                       ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-white/[0.03] text-muted-foreground border border-white/10 hover:text-foreground"
+                      : "bg-white/[0.03] text-muted-foreground border border-white/10 hover:text-foreground",
                   )}
                 >
                   {tab.label}
@@ -816,19 +1351,27 @@ export default function ShaClaimsPage() {
             ) : (
               <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
                 {filteredClaims.map((claim) => {
-                  const cfg = STATUS_CONFIG[claim.statusCode] ?? STATUS_CONFIG["DRAFT"];
+                  const cfg =
+                    STATUS_CONFIG[claim.statusCode] ?? STATUS_CONFIG["DRAFT"];
                   return (
                     <div
                       key={claim.id}
                       className="group flex items-center gap-4 rounded-2xl border border-border/50 bg-background/40 px-4 py-3 transition-all hover:border-primary/30 hover:bg-background/60"
                     >
                       {/* Status dot */}
-                      <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", cfg.dot)} />
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 rounded-full",
+                          cfg.dot,
+                        )}
+                      />
 
                       {/* Core info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-sm font-semibold">{claim.claimNumber}</span>
+                          <span className="font-mono text-sm font-semibold">
+                            {claim.claimNumber}
+                          </span>
                           <ClaimStatusBadge status={claim.statusCode} />
                           {claim.fidCode && (
                             <span className="text-[10px] text-muted-foreground font-mono border border-border/40 rounded px-1.5 py-0.5 bg-background/60">
@@ -839,7 +1382,9 @@ export default function ShaClaimsPage() {
                         <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                           <span>{patientName(claim.patient)}</span>
                           {claim.diagnosisCode && (
-                            <span className="font-mono">{claim.diagnosisCode}</span>
+                            <span className="font-mono">
+                              {claim.diagnosisCode}
+                            </span>
                           )}
                           <span>{relativeTime(claim.createdAt)}</span>
                         </div>
@@ -847,12 +1392,18 @@ export default function ShaClaimsPage() {
 
                       {/* Amounts */}
                       <div className="hidden md:flex flex-col items-end gap-0.5 shrink-0 min-w-[100px]">
-                        <span className="text-sm font-semibold">{formatMoney(claim.claimedAmount)}</span>
+                        <span className="text-sm font-semibold">
+                          {formatMoney(claim.claimedAmount)}
+                        </span>
                         {claim.paidAmount > 0 && (
-                          <span className="text-xs text-emerald-400">{formatMoney(claim.paidAmount)} paid</span>
+                          <span className="text-xs text-emerald-400">
+                            {formatMoney(claim.paidAmount)} paid
+                          </span>
                         )}
                         {claim.rejectedAmount > 0 && (
-                          <span className="text-xs text-red-400">{formatMoney(claim.rejectedAmount)} rejected</span>
+                          <span className="text-xs text-red-400">
+                            {formatMoney(claim.rejectedAmount)} rejected
+                          </span>
                         )}
                       </div>
 
@@ -864,7 +1415,9 @@ export default function ShaClaimsPage() {
                             size="sm"
                             variant="outline"
                             className="h-8 rounded-xl gap-1.5 text-xs"
-                            onClick={() => handleStatusChange(claim.id, "SUBMITTED")}
+                            onClick={() =>
+                              handleStatusChange(claim.id, "SUBMITTED")
+                            }
                             disabled={updateMutation.isPending}
                           >
                             <Send className="h-3 w-3" /> Submit
@@ -880,7 +1433,9 @@ export default function ShaClaimsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => downloadShaClaimPdf(claim.id, claim.claimNumber)}
+                          onClick={() =>
+                            downloadShaClaimPdf(claim.id, claim.claimNumber)
+                          }
                           className="rounded-xl border border-border/50 p-2 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
                           title="Download PDF"
                         >
@@ -903,6 +1458,17 @@ export default function ShaClaimsPage() {
           onClose={() => setDetailClaim(null)}
           onStatusChange={handleStatusChange}
           onAmountSave={handleAmountSave}
+          onDhaSubmitted={(claimId) => {
+            setDetailClaim((current) =>
+              current?.id === claimId
+                ? { ...current, statusCode: "SUBMITTED" }
+                : current,
+            );
+            setMessage({
+              type: "success",
+              text: "The claim was accepted by the DHA submission workflow.",
+            });
+          }}
           isUpdating={updateMutation.isPending}
         />
       )}

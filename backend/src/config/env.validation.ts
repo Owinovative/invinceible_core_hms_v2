@@ -88,14 +88,15 @@ export function validateEnvironment(
   ).toLowerCase();
   const dhaMode = configuredDhaMode === 'uat' ? 'sandbox' : configuredDhaMode;
   if (dhaEnabled && (dhaMode === 'sandbox' || dhaMode === 'production')) {
+    const dhaAuthStrategy = stringValue(
+      config,
+      'DHA_AUTH_STRATEGY',
+      'oauth2',
+    ).toLowerCase();
     const requiredKeys = [
       'DHA_BASE_URL',
-      'DHA_USERNAME',
-      'DHA_PASSWORD',
-      'DHA_CONSUMER_KEY',
       'DHA_CALLBACK_USERNAME',
       'DHA_CALLBACK_PASSWORD',
-      'DHA_FACILITY_ID',
       'DHA_SPEC_VERSION',
       'DATA_ENCRYPTION_KEY',
     ];
@@ -107,14 +108,26 @@ export function validateEnvironment(
       }
     }
 
-    if (!hasValue(config, 'DHA_AGENT_ID') && !hasValue(config, 'DHA_AGENT')) {
-      throw new Error(
-        'DHA_AGENT_ID (or legacy DHA_AGENT) is required when DHA is enabled in sandbox/production',
-      );
+    if (!['oauth2', 'legacy-basic'].includes(dhaAuthStrategy)) {
+      throw new Error('DHA_AUTH_STRATEGY must be oauth2 or legacy-basic');
+    }
+    const authKeys =
+      dhaAuthStrategy === 'oauth2'
+        ? ['DHA_CLIENT_ID', 'DHA_CLIENT_SECRET']
+        : ['DHA_USERNAME', 'DHA_PASSWORD', 'DHA_CONSUMER_KEY'];
+    for (const key of authKeys) {
+      if (!hasValue(config, key)) {
+        throw new Error(
+          `${key} is required for DHA_AUTH_STRATEGY=${dhaAuthStrategy}`,
+        );
+      }
+    }
+    if (dhaMode === 'production' && dhaAuthStrategy !== 'oauth2') {
+      throw new Error('DHA production requires DHA_AUTH_STRATEGY=oauth2');
     }
 
     if (
-      stringValue(config, 'DHA_FACILITY_ID_TYPE', '').toLowerCase() !==
+      stringValue(config, 'DHA_FACILITY_ID_TYPE', 'fr-code').toLowerCase() !==
       'fr-code'
     ) {
       throw new Error(
@@ -215,10 +228,11 @@ export function validateEnvironment(
     DHA_ENABLED: config.DHA_ENABLED ?? 'false',
     DHA_MODE: dhaMode,
     DHA_API_VERSION: config.DHA_API_VERSION ?? 'v1',
+    DHA_AUTH_STRATEGY: config.DHA_AUTH_STRATEGY ?? 'oauth2',
     DHA_AGENT_ID: config.DHA_AGENT_ID ?? config.DHA_AGENT,
     DHA_TOKEN_URL:
       config.DHA_TOKEN_URL ??
-      `${stringValue(config, 'DHA_BASE_URL', '')}/v1/hie-auth`,
+      `${stringValue(config, 'DHA_BASE_URL', '')}/tenants/token`,
     DHA_FACILITY_ID_TYPE: config.DHA_FACILITY_ID_TYPE ?? 'fr-code',
     DHA_PRODUCTION_ACTIVATION_APPROVED:
       config.DHA_PRODUCTION_ACTIVATION_APPROVED ?? 'false',

@@ -108,7 +108,6 @@ export interface CreateFacilityPayload {
   shaClaimNextNumber?: number;
   dhaFacilityId?: string;
   dhaFacilityIdType?: string;
-  dhaRegistryStatus?: string;
   etimsTin?: string;
   etimsBranchId?: string;
   etimsCmcKey?: string;
@@ -165,7 +164,6 @@ export interface UpdateFacilityPayload {
   shaClaimNextNumber?: number;
   dhaFacilityId?: string;
   dhaFacilityIdType?: string;
-  dhaRegistryStatus?: string;
   etimsTin?: string;
   etimsBranchId?: string;
   etimsCmcKey?: string;
@@ -198,4 +196,17 @@ export async function updateFacility(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function verifyDhaFacilityIdentity(
+  facilityId: number,
+  facilityCode: string,
+) {
+  return apiFetch<unknown>(
+    `/integrations/dha/facilities/${facilityId}/verify`,
+    {
+      method: "POST",
+      body: JSON.stringify({ facilityCode }),
+    },
+  );
 }
