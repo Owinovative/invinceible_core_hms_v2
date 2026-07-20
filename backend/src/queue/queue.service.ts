@@ -32,8 +32,8 @@ export class QueueService {
       completed: appointments.filter((a) => a.statusCode === 'COMPLETED'),
     };
   }
-  async getFullQueueScoped(user: RequestUser) {
-    const scope = this.scopeService.buildReadScope(user);
+  async getFullQueueScoped(user: RequestUser, branchId?: number) {
+    const scope = this.buildQueueScope(user, branchId);
 
     const appointments = await this.prisma.appointment.findMany({
       where: {
@@ -135,8 +135,8 @@ export class QueueService {
     return this.sortAppointmentsByClinicalPriority(appointments);
   }
 
-  async getQueueStatsScoped(user: RequestUser) {
-    const scope = this.scopeService.buildReadScope(user);
+  async getQueueStatsScoped(user: RequestUser, branchId?: number) {
+    const scope = this.buildQueueScope(user, branchId);
 
     const total = await this.prisma.appointment.count({
       where: {
@@ -313,5 +313,16 @@ export class QueueService {
   private dateValue(value?: Date | string | null) {
     const date = value ? new Date(value) : new Date(0);
     return Number.isFinite(date.getTime()) ? date.getTime() : 0;
+  }
+
+  private buildQueueScope(user: RequestUser, branchId?: number) {
+    const scope = this.scopeService.buildReadScope(user);
+    if (!branchId) return scope;
+
+    if (user.roleCode !== 'SUPER_ADMIN') {
+      this.scopeService.assertBranchAccess(user, user.homeFacilityId!, branchId);
+    }
+
+    return { ...scope, branchId };
   }
 }

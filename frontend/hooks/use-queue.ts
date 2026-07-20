@@ -2,10 +2,19 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  getActiveQueue,
   getQueueStats,
   getTodayQueue,
   getWaitingQueue,
 } from "@/services/queue-service";
+
+export function useActiveQueue(branchId?: number) {
+  return useQuery({
+    queryKey: ["queue", "active", branchId ?? "all"],
+    queryFn: () => getActiveQueue(branchId),
+    refetchInterval: 10_000,
+  });
+}
 
 export function useTodayQueue() {
   return useQuery({
@@ -23,10 +32,10 @@ export function useWaitingQueue() {
   });
 }
 
-export function useQueueStats() {
+export function useQueueStats(branchId?: number) {
   return useQuery({
-    queryKey: ["queue", "stats"],
-    queryFn: getQueueStats,
+    queryKey: ["queue", "stats", branchId ?? "all"],
+    queryFn: () => getQueueStats(branchId),
     refetchInterval: 10_000,
   });
 }
