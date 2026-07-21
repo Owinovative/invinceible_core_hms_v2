@@ -28,9 +28,14 @@ function storedPreference(): ThemePreference {
 }
 
 function systemTheme(): ResolvedTheme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
+  return typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
+}
+
+function resolveTheme(preference: ThemePreference): ResolvedTheme {
+  return preference === "system" ? systemTheme() : preference;
 }
 
 function applyTheme(theme: ResolvedTheme) {
@@ -40,27 +45,49 @@ function applyTheme(theme: ResolvedTheme) {
   root.style.colorScheme = theme;
 }
 
+function initialResolvedTheme(): ResolvedTheme {
+  if (typeof document === "undefined") return "light";
+  const applied = document.documentElement.dataset.theme;
+  if (applied === "light" || applied === "dark") return applied;
+  return resolveTheme(storedPreference());
+}
+
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [preference, setPreferenceState] =
     React.useState<ThemePreference>(storedPreference);
-  const [resolved, setResolved] = React.useState<ResolvedTheme>("light");
+  const [resolved, setResolved] =
+    React.useState<ResolvedTheme>(initialResolvedTheme);
 
   React.useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const media =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
     const update = () => {
-      const next = preference === "system" ? systemTheme() : preference;
+      const next = resolveTheme(preference);
       applyTheme(next);
       setResolved(next);
     };
 
     update();
-    if (preference === "system") media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
+    if (preference !== "system" || !media) return;
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", update);
+      return () => media.removeEventListener("change", update);
+    }
+
+    // Safari versions before MediaQueryListEventTarget support.
+    media.addListener(update);
+    return () => media.removeListener(update);
   }, [preference]);
 
   const setPreference = React.useCallback((next: ThemePreference) => {
+    const nextResolved = resolveTheme(next);
+    applyTheme(nextResolved);
+    setResolved(nextResolved);
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
@@ -68,6 +95,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     setPreferenceState(next);
   }, []);
+
+  React.useEffect(() => {
+    const syncStoredPreference = (event: StorageEvent) => {
+      if (event.key !== THEME_STORAGE_KEY || !isThemePreference(event.newValue)) {
+        return;
+      }
+      setPreference(event.newValue);
+    };
+    window.addEventListener("storage", syncStoredPreference);
+    return () => window.removeEventListener("storage", syncStoredPreference);
+  }, [setPreference]);
 
   const toggle = React.useCallback(() => {
     setPreference(resolved === "dark" ? "light" : "dark");

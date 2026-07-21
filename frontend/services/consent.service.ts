@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from "@/lib/api";
 
 export interface PatientContact {
   contact_id: number;
@@ -9,8 +9,11 @@ export interface ConsentStatus {
   hasActiveConsent: boolean;
   consent?: {
     id: number;
-    consentToken: string;
+    patientId: number;
+    consultationId?: number | null;
+    status: string;
     expiresAt?: string;
+    createdAt: string;
   };
 }
 
@@ -18,7 +21,7 @@ export interface VerifyOtpPayload {
   patientId: string;
   otpCode: string;
   interventionCodes: string[];
-  serviceType: 'INPATIENT' | 'OUTPATIENT';
+  serviceType: "INPATIENT" | "OUTPATIENT";
   consultationId?: number;
 }
 
@@ -27,9 +30,13 @@ export const ConsentService = {
     return apiFetch<PatientContact[]>(`/consent/contacts/${patientId}`);
   },
 
-  async sendVisitOtp(patientId: string, contactId: number, interventionCodes: string[]) {
-    return apiFetch<unknown>('/consent/otp/request', {
-      method: 'POST',
+  async sendVisitOtp(
+    patientId: string,
+    contactId: number,
+    interventionCodes: string[],
+  ) {
+    return apiFetch<unknown>("/consent/otp/request", {
+      method: "POST",
       body: JSON.stringify({
         patientId,
         contactId,
@@ -39,8 +46,8 @@ export const ConsentService = {
   },
 
   async verifyVisitOtp(payload: VerifyOtpPayload) {
-    return apiFetch<unknown>('/consent/otp/verify', {
-      method: 'POST',
+    return apiFetch<unknown>("/consent/otp/verify", {
+      method: "POST",
       body: JSON.stringify(payload),
     });
   },

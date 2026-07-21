@@ -8,7 +8,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 export class ShrStartupValidator implements OnModuleInit {
   private readonly logger = new Logger(ShrStartupValidator.name);
 
-  async onModuleInit() {
+  onModuleInit() {
     this.logger.log('Running SHR Startup Configuration Validation...');
 
     const errors: string[] = [];
@@ -16,16 +16,20 @@ export class ShrStartupValidator implements OnModuleInit {
     // Feature Flags
     const shrEnabled = process.env.SHR_ENABLED;
     if (!shrEnabled || shrEnabled !== 'true') {
-      this.logger.warn('SHR_ENABLED is not set to true. SHR module will be inactive.');
+      this.logger.warn(
+        'SHR_ENABLED is not set to true. SHR module will be inactive.',
+      );
       return; // If SHR is disabled, skip validation
     }
 
-    // DHA OAuth credentials
-    if (!process.env.SHA_CLIENT_ID && !process.env.DHA_CLIENT_ID) {
-      errors.push('Missing DHA OAuth Client ID (SHA_CLIENT_ID or DHA_CLIENT_ID)');
+    // AfyaLink HIE credentials
+    for (const key of ['DHA_USERNAME', 'DHA_PASSWORD', 'DHA_CONSUMER_KEY']) {
+      if (!process.env[key]) {
+        errors.push(`Missing DHA credential: ${key}`);
+      }
     }
-    if (!process.env.SHA_CLIENT_SECRET && !process.env.DHA_CLIENT_SECRET) {
-      errors.push('Missing DHA OAuth Client Secret (SHA_CLIENT_SECRET or DHA_CLIENT_SECRET)');
+    if (!process.env.DHA_AGENT_ID && !process.env.DHA_AGENT) {
+      errors.push('Missing DHA credential: DHA_AGENT_ID (or DHA_AGENT)');
     }
 
     // DHA API URLs

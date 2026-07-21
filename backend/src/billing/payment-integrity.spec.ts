@@ -85,6 +85,9 @@ function setup(
     {} as never,
     { error: jest.fn() } as never,
     {} as never,
+    {
+      buildVerificationCode: jest.fn().mockReturnValue('VAR-000001-TEST'),
+    } as never,
   );
 
   return { service, prisma, tx, scopeService, createdPayment };

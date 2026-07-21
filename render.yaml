@@ -52,6 +52,9 @@ services:
         value: "true"
       - key: BODY_LIMIT
         value: 4mb
+      # Set to true only when the production OpenAPI documentation should be public.
+      - key: API_DOCS_ENABLED
+        value: "false"
       - key: REQUEST_TIMEOUT_MS
         value: "30000"
       - key: CACHE_PREFIX

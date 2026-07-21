@@ -38,7 +38,7 @@ flowchart TD
         EMOCK[EtimsMockClient]
         EHTTP[EtimsHttpClient - OSCU]
         DMOCK[DhaMockClient]
-        DHTTP[DhaHttpClient - OAuth2 + FHIR]
+        DHTTP[DhaHttpClient - AfyaLink JWT + FHIR]
     end
 
     BILL -->|onBillingFinalized| ETIMS
@@ -132,7 +132,7 @@ request -> validate -> queue -> send -> success? -> store response -> complete
 | `integration-logger.service.ts` / `integration-audit.service.ts` | Structured logs + persisted audit trail |
 | `http/` | Resilient HTTP client + retry/backoff policy |
 | `queue/` | Durable outbound queue + background worker |
-| `token/` | Cached single-flight OAuth token manager |
+| `token/` | Cached single-flight AfyaLink JWT token manager |
 | `etims/` | eTIMS service, invoice builder, tax utils, controller, adapters |
 | `dha/` | DHA service, FHIR types + mapper, controller, adapters |
 | `testing/` | In-memory Prisma stub and shared test fakes |

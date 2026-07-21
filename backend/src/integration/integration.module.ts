@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AuthModule } from '../auth/auth.module';
+import { SensitiveDataCipherService } from '../common/security/sensitive-data-cipher.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { DhaHttpClient } from './dha/adapters/dha-http.client';
 import { DhaMockClient } from './dha/adapters/dha-mock.client';
 import { DhaController } from './dha/dha.controller';
+import { DhaCallbackAuthGuard } from './dha/dha-callback-auth.guard';
+import { DhaCallbackController } from './dha/dha-callback.controller';
 import { DhaService } from './dha/dha.service';
 import { IntegrationQueueController } from './queue/integration-queue.controller';
 import { FhirMapperService } from './dha/fhir-mapper';
@@ -19,6 +23,7 @@ import { IntegrationHttpClient } from './http/integration-http.client';
 import { IntegrationAuditService } from './integration-audit.service';
 import { IntegrationConfigService } from './integration-config.service';
 import { IntegrationLoggerService } from './integration-logger.service';
+import { IntegrationStatusController } from './integration-status.controller';
 import { DHA_CLIENT, ETIMS_CLIENT } from './integration.constants';
 import { IntegrationQueueService } from './queue/integration-queue.service';
 import { IntegrationQueueWorker } from './queue/integration-queue.worker';
@@ -34,10 +39,17 @@ import { AuthModule } from '../auth/auth.module';
  */
 @Module({
   imports: [PrismaModule, AuditLogModule, AuthModule],
-  controllers: [EtimsController, DhaController, IntegrationQueueController],
+  controllers: [
+    EtimsController,
+    DhaController,
+    DhaCallbackController,
+    IntegrationQueueController,
+    IntegrationStatusController,
+  ],
   providers: [
     IntegrationConfigService,
     IntegrationLoggerService,
+    SensitiveDataCipherService,
     IntegrationAuditService,
     IntegrationHttpClient,
     IntegrationQueueService,
@@ -46,6 +58,7 @@ import { AuthModule } from '../auth/auth.module';
     FhirMapperService,
     FhirSystemsService,
     FhirValidationService,
+    DhaCallbackAuthGuard,
     {
       provide: ETIMS_CLIENT,
       useFactory: (
@@ -64,16 +77,14 @@ import { AuthModule } from '../auth/auth.module';
         config: IntegrationConfigService,
         http: IntegrationHttpClient,
         logger: IntegrationLoggerService,
-        prisma: PrismaService,
       ) =>
         config.dhaMode === 'mock'
           ? new DhaMockClient()
-          : new DhaHttpClient(http, config, logger, prisma),
+          : new DhaHttpClient(http, config, logger),
       inject: [
         IntegrationConfigService,
         IntegrationHttpClient,
         IntegrationLoggerService,
-        PrismaService,
       ],
     },
     EtimsService,
@@ -87,6 +98,7 @@ import { AuthModule } from '../auth/auth.module';
     IntegrationConfigService,
     IntegrationLoggerService,
     IntegrationHttpClient,
+    SensitiveDataCipherService,
     FhirSystemsService,
     FhirMapperService,
     DHA_CLIENT,

@@ -42,6 +42,7 @@ describe('DhaService', () => {
       logger,
       systems,
       fhirValidator,
+      { decrypt: (value: string) => value } as never,
       clientOverride ?? new DhaMockClient(),
     );
     service.onModuleInit();
@@ -54,6 +55,7 @@ describe('DhaService', () => {
       data: {
         code: 'FAC001',
         name: 'Mock Hospital',
+        dhaFacilityId: 'FID-01-000001-1',
         facilityType: 'HOSPITAL',
         county: 'Nairobi',
       },
@@ -67,6 +69,7 @@ describe('DhaService', () => {
         gender: 'MALE',
         dateOfBirth: new Date('1985-01-15'),
         phonePrimary: '+254711000000',
+        dhaClientRegistryId: 'CR7000000000001-1',
         facilityId,
       },
     });
@@ -92,6 +95,7 @@ describe('DhaService', () => {
         lastName: 'Odhiambo',
         designation: 'Medical Officer',
         clinicianRegistrationNumber: 'KMPDC-12345',
+        dhaPractitionerId: 'PUID-2026-000001-1',
         facilityId,
       },
     });
@@ -109,6 +113,48 @@ describe('DhaService', () => {
       },
     });
     consultationId = consultation.id;
+    const billingService = await prisma.billingService.create({
+      data: {
+        code: 'SHA-12-004',
+        name: 'Prescription, drug administration and dispensing',
+      },
+    });
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber: 'INV-SHA-000001',
+        statusCode: 'PENDING',
+        subtotal: 12_000,
+        totalAmount: 12_000,
+        facilityId,
+        patientId,
+        consultationId,
+      },
+    });
+    await prisma.invoiceItem.create({
+      data: {
+        description: billingService.name,
+        quantity: 1,
+        unitPrice: 12_000,
+        lineTotal: 12_000,
+        statusCode: 'BILLED',
+        isRemoved: false,
+        invoiceId: invoice.id,
+        billingServiceId: billingService.id,
+      },
+    });
+    prisma.shaClaim.rows[0] = {
+      ...prisma.shaClaim.rows[0],
+      invoiceId: invoice.id,
+      createdByStaffId: doctor.id,
+      servicePeriodStart: new Date('2026-07-01T08:00:00Z'),
+      servicePeriodEnd: new Date('2026-07-01T09:00:00Z'),
+      diagnosisConcept: {
+        system:
+          'https://qa-mis.apeiro-digital.com/fhir/terminology/CodeSystem/icd-11',
+        code: 'CA40.0',
+        display: 'Bacterial pneumonia',
+      },
+    };
     buildService();
   });
 
@@ -165,12 +211,12 @@ describe('DhaService', () => {
       expect(facility.result.status).toBe('VERIFIED');
     });
 
-    it('checks SHA eligibility through a FHIR CoverageEligibilityRequest', async () => {
+    it('checks SHA eligibility through the documented eligibility query', async () => {
       const { result, transaction } = await service.checkEligibility({
         memberNumber: 'SHA-MEM-001',
       });
       expect(result.status).toBe('ELIGIBLE');
-      expect(transaction.fhirResourceType).toBe('CoverageEligibilityRequest');
+      expect(transaction.fhirResourceType).toBe('EligibilityQuery');
     });
 
     it('records consent for a known patient', async () => {
@@ -224,10 +270,10 @@ describe('DhaService', () => {
         (entry) => entry.resource.resourceType === 'Claim',
       )?.resource;
       expect(claim?.diagnosis[0].diagnosisCodeableConcept.coding[0]).toEqual({
-        system: 'http://id.who.int/icd/release/11/mms',
+        system:
+          'https://qa-mis.apeiro-digital.com/fhir/terminology/CodeSystem/icd-11',
         code: 'CA40.0',
         display: 'Bacterial pneumonia',
-        version: '2026-01',
       });
     });
 

@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { terminologyService, TerminologyConcept } from '@/services/terminology.service';
-import { Search, Loader2, X } from 'lucide-react';
-import { useDebounce } from '@/hooks/use-debounce';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  terminologyService,
+  TerminologyConcept,
+} from "@/services/terminology.service";
+import { Search, Loader2, X } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export interface TerminologySearchProps {
   value?: TerminologyConcept | null;
@@ -20,15 +23,16 @@ export function TerminologySearch({
   onChange,
   system,
   conceptClass,
-  placeholder = 'Search clinical concepts...',
-  className = '',
+  placeholder = "Search clinical concepts...",
+  className = "",
   disabled = false,
 }: TerminologySearchProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<TerminologyConcept[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [searchError, setSearchError] = useState<string | null>(null);
+
   const debouncedQuery = useDebounce(query, 300);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -36,9 +40,11 @@ export function TerminologySearch({
     const fetchResults = async () => {
       if (!debouncedQuery || debouncedQuery.length < 2) {
         setResults([]);
+        setSearchError(null);
         return;
       }
       setIsLoading(true);
+      setSearchError(null);
       try {
         const data = await terminologyService.searchLocalConcepts({
           q: debouncedQuery,
@@ -48,7 +54,13 @@ export function TerminologySearch({
         });
         setResults(data || []);
       } catch (error) {
-        console.error('Failed to search terminology concepts', error);
+        console.error("Failed to search terminology concepts", error);
+        setResults([]);
+        setSearchError(
+          error instanceof Error
+            ? error.message
+            : "The diagnosis catalogue could not be searched.",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -59,42 +71,47 @@ export function TerminologySearch({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSelect = (concept: TerminologyConcept) => {
     onChange(concept);
-    setQuery('');
+    setQuery("");
     setIsOpen(false);
   };
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     onChange(null);
-    setQuery('');
+    setQuery("");
   };
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
       {value ? (
-        <div 
+        <div
           className="flex cursor-pointer items-center justify-between rounded-md border bg-surface-2 p-2"
           onClick={() => !disabled && setIsOpen(true)}
         >
           <div className="flex flex-col flex-1 truncate mr-2">
-            <span className="text-sm font-medium truncate">{value.display}</span>
+            <span className="text-sm font-medium truncate">
+              {value.display}
+            </span>
             <div className="flex gap-2 text-xs text-muted-foreground">
               <span className="font-mono">{value.code}</span>
               <span className="truncate">{value.system}</span>
             </div>
           </div>
           {!disabled && (
-            <button 
+            <button
               type="button"
               onClick={handleClear}
               className="p-1 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
@@ -130,7 +147,11 @@ export function TerminologySearch({
 
       {isOpen && !value && (query.length >= 2 || results.length > 0) && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-lg">
-          {results.length > 0 ? (
+          {searchError ? (
+            <div className="px-3 py-4 text-center text-sm text-destructive">
+              {searchError}
+            </div>
+          ) : results.length > 0 ? (
             <ul className="py-1">
               {results.map((concept) => (
                 <li
@@ -151,7 +172,8 @@ export function TerminologySearch({
               ))}
             </ul>
           ) : (
-            !isLoading && query.length >= 2 && (
+            !isLoading &&
+            query.length >= 2 && (
               <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                 No concepts found for &quot;{query}&quot;
               </div>

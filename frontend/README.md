@@ -17,7 +17,7 @@ palette, and structural skeleton loading across all 90+ screens.
 
 ```bash
 npm ci
-# .env.local: NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+# Local browser-safe settings are stored in frontend/.env.local.
 npm run dev        # http://localhost:3001
 ```
 

@@ -5,6 +5,7 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationAuditService } from '../integration-audit.service';
@@ -39,6 +40,7 @@ import type { TerminologyConceptRef } from './fhir-mapper';
 import type { FhirBundle, FhirResource } from './fhir.types';
 import { FhirSystemsService } from './fhir-systems';
 import { FhirValidationService } from './fhir-validation.service';
+import { SensitiveDataCipherService } from '../../common/security/sensitive-data-cipher.service';
 
 interface DhaOperationOptions {
   correlationId?: string;
@@ -68,6 +70,7 @@ export class DhaService implements OnModuleInit {
     private readonly logger: IntegrationLoggerService,
     private readonly systems: FhirSystemsService,
     private readonly fhirValidator: FhirValidationService,
+    private readonly sensitiveData: SensitiveDataCipherService,
     @Inject(DHA_CLIENT) private readonly client: DhaClientPort,
   ) {}
 
@@ -150,16 +153,23 @@ export class DhaService implements OnModuleInit {
     options: DhaOperationOptions = {},
   ) {
     this.assertEnabled();
-    const request = this.mapper.toEligibilityRequest({
-      memberNumber: query.memberNumber,
-      nationalId: query.nationalId,
-      serviceDate: query.serviceDate,
-    });
+    const normalizedQuery: EligibilityQuery = {
+      ...query,
+      identificationNumber:
+        query.identificationNumber ?? query.nationalId ?? query.memberNumber,
+      identificationType:
+        query.identificationType ??
+        (query.nationalId
+          ? 'National ID'
+          : query.memberNumber
+            ? 'SHA Number'
+            : undefined),
+    };
     return this.runSyncTransaction(
       DHA_TRANSACTION_TYPE.ELIGIBILITY_CHECK,
-      'CoverageEligibilityRequest',
-      request,
-      () => this.client.checkEligibility(request, this.ctx(options)),
+      'EligibilityQuery',
+      normalizedQuery,
+      () => this.client.checkEligibility(normalizedQuery, this.ctx(options)),
       options,
     );
   }
@@ -213,8 +223,11 @@ export class DhaService implements OnModuleInit {
       include: {
         patient: true,
         facility: true,
+        diagnosisConcept: true,
+        createdBy: true,
         invoice: {
           include: {
+            items: { include: { billingService: true } },
             consultation: {
               include: { doctor: true },
             },
@@ -226,119 +239,290 @@ export class DhaService implements OnModuleInit {
       throw new NotFoundException(`SHA claim ${shaClaimId} not found`);
     }
 
-    const resources: FhirResource[] = [
-      this.mapper.toFhirPatient(claim.patient),
-      this.mapper.toFhirOrganization(claim.facility),
-    ];
-
-    let encounterRef: string | undefined = undefined;
-    if (claim.invoice?.consultation) {
-      const consultation = claim.invoice.consultation;
-      if (consultation.doctor) {
-        resources.push(
-          this.mapper.toFhirPractitioner({
-            id: consultation.doctor.id,
-            firstName: consultation.doctor.firstName,
-            lastName: consultation.doctor.lastName,
-            registrationNumber: consultation.doctor.clinicianRegistrationNumber,
-            cadre: consultation.doctor.designation,
-          }),
-        );
-      }
-
-      const encounter = this.mapper.toFhirEncounter(
-        {
-          id: consultation.id,
-          patientId: consultation.patientId,
-          encounterClass: 'AMB',
-          endedAt: consultation.completedAt ?? consultation.startedAt,
-          startedAt: consultation.startedAt,
-          practitionerRef: consultation.doctor
-            ? `Practitioner/${consultation.doctor.staffCode ?? consultation.doctor.id}`
-            : undefined,
-          // Prefer structured TerminologyConcept; fall back to legacy free-text strings
-          primaryDiagnosis:
-            (claim as unknown as { diagnosisConcept: TerminologyConceptRef })
-              .diagnosisConcept ?? null,
-          diagnosisCode: claim.diagnosisCode ?? undefined,
-          diagnosisText: claim.diagnosisText ?? undefined,
-        },
-        `Patient/${claim.patient.patientNumber}`,
-        `Organization/${claim.facility.code}`,
+    const facilityRegistryId =
+      claim.facility.dhaFacilityId ?? claim.facility.shaFidCode;
+    const patientRegistryId =
+      claim.patient.dhaClientRegistryId ??
+      claim.memberNumber ??
+      claim.patient.shaMemberNumber;
+    const practitioner = claim.invoice?.consultation?.doctor ?? claim.createdBy;
+    const practitionerRegistryId = practitioner?.dhaPractitionerId;
+    if (!facilityRegistryId) {
+      throw new BadRequestException(
+        'A verified DHA Facility Registry ID is required before claim submission',
       );
-      encounter.id = `enc-${consultation.id}`;
-      resources.push(encounter);
-      encounterRef = `Encounter/enc-${consultation.id}`;
+    }
+    if (!patientRegistryId) {
+      throw new BadRequestException(
+        'A verified DHA Client Registry ID is required before claim submission',
+      );
+    }
+    if (!practitioner || !practitionerRegistryId) {
+      throw new BadRequestException(
+        'A verified DHA Practitioner Registry ID is required before claim submission',
+      );
+    }
+    if (!claim.servicePeriodStart || !claim.servicePeriodEnd) {
+      throw new BadRequestException(
+        'SHA claim servicePeriodStart and servicePeriodEnd are required',
+      );
+    }
+    if (!claim.diagnosisConcept?.code || !claim.diagnosisConcept.display) {
+      throw new BadRequestException(
+        'A validated ICD-11 diagnosis concept is required before claim submission',
+      );
     }
 
-    resources.push({
-      resourceType: 'Claim',
-      status: 'active',
-      use: 'claim',
-      patient: { reference: `Patient/${claim.patient.patientNumber}` },
-      provider: { reference: `Organization/${claim.facility.code}` },
-      identifier: [{ system: 'urn:hms:sha-claim', value: claim.claimNumber }],
-      total: { value: claim.claimedAmount, currency: 'KES' },
-      ...(encounterRef ? { encounter: [{ reference: encounterRef }] } : {}),
-      ...(() => {
-        const concept = (
-          claim as unknown as {
-            diagnosisConcept?: {
-              system: string;
-              code: string;
-              display: string;
-              version?: string;
-            };
-          }
-        ).diagnosisConcept;
-        if (concept) {
-          // Preferred path: structured TerminologyConcept → full FHIR CodeableConcept
-          return {
-            diagnosis: [
-              {
-                sequence: 1,
-                diagnosisCodeableConcept: {
-                  coding: [
-                    {
-                      system: concept.system,
-                      code: concept.code,
-                      display: concept.display,
-                      ...(concept.version ? { version: concept.version } : {}),
-                    },
-                  ],
-                  text: concept.display,
-                },
-              },
-            ],
-          };
-        }
-        // Legacy fallback path
-        if (claim.diagnosisCode || claim.diagnosisText) {
-          return {
-            diagnosis: [
-              {
-                sequence: 1,
-                diagnosisCodeableConcept: {
-                  coding: claim.diagnosisCode
-                    ? [
-                        {
-                          system: this.systems.icd11,
-                          code: claim.diagnosisCode,
-                          display: claim.diagnosisText ?? claim.diagnosisCode,
-                        },
-                      ]
-                    : undefined,
-                  text: claim.diagnosisText ?? undefined,
-                },
-              },
-            ],
-          };
-        }
-        return {};
-      })(),
-    } as FhirResource);
+    const invoiceItems = (claim.invoice?.items ?? []).filter(
+      (item) => !item.isRemoved && item.statusCode !== 'CANCELLED',
+    );
+    if (invoiceItems.length === 0) {
+      throw new BadRequestException(
+        'At least one invoice service item is required for a SHA claim',
+      );
+    }
+    const unsupportedItem = invoiceItems.find(
+      (item) =>
+        !item.billingService?.code ||
+        !/^(SHA|PFMS|POMF)-/i.test(item.billingService.code),
+    );
+    if (unsupportedItem) {
+      throw new BadRequestException(
+        `Invoice item ${unsupportedItem.id} is not mapped to an official SHA/PFMS intervention code`,
+      );
+    }
 
-    const bundle = this.mapper.toTransactionBundle(resources);
+    const externalClaimId = claim.dhaExternalClaimId ?? randomUUID();
+    if (!claim.dhaExternalClaimId) {
+      await this.prisma.shaClaim.update({
+        where: { id: claim.id },
+        data: {
+          dhaExternalClaimId: externalClaimId,
+          dhaSpecVersion: this.config.dhaSpecVersion,
+        },
+      });
+    }
+
+    const fhirBase = this.config.dhaFhirBaseUrl.replace(/\/+$/, '');
+    const organizationUrl = `${fhirBase}/Organization/${facilityRegistryId}`;
+    const patientUrl = `${fhirBase}/Patient/${patientRegistryId}`;
+    const practitionerUrl = `${fhirBase}/Practitioner/${practitionerRegistryId}`;
+    const coverageId = `${patientRegistryId}-sha-coverage`;
+    const coverageUrl = `${fhirBase}/Coverage/${coverageId}`;
+    const claimUrl = `${fhirBase}/Claim/${externalClaimId}`;
+    const claimItems = invoiceItems.map((item, index) => ({
+      sequence: index + 1,
+      productOrService: {
+        coding: [
+          {
+            system: `${fhirBase}/CodeSystem/intervention-codes`,
+            code: item.billingService!.code,
+            display: item.billingService!.name,
+          },
+        ],
+      },
+      servicedPeriod: {
+        start: claim.servicePeriodStart!.toISOString(),
+        end: claim.servicePeriodEnd!.toISOString(),
+      },
+      quantity: { value: item.quantity },
+      unitPrice: { value: Number(item.unitPrice), currency: 'KES' },
+      factor: 1,
+      net: { value: Number(item.lineTotal), currency: 'KES' },
+      category: {
+        coding: [
+          {
+            system: `${fhirBase}/CodeSystem/category-codes`,
+            code: 'procedure',
+            display: 'Procedure',
+          },
+        ],
+      },
+    }));
+    const calculatedTotal = claimItems.reduce(
+      (sum, item) => sum + item.net.value,
+      0,
+    );
+    if (Math.abs(calculatedTotal - Number(claim.claimedAmount)) > 0.01) {
+      throw new BadRequestException(
+        'Claim total must equal the sum of all intervention net amounts',
+      );
+    }
+
+    const resources: FhirResource[] = [
+      {
+        resourceType: 'Organization',
+        id: facilityRegistryId,
+        meta: {
+          profile: [
+            `${fhirBase}/StructureDefinition/provider-organization|1.0.0`,
+          ],
+        },
+        name: claim.facility.name,
+        active: true,
+        identifier: [
+          {
+            use: 'official',
+            type: {
+              coding: [
+                {
+                  system: `${fhirBase}/terminology/CodeSystem/facility-identifier-types`,
+                  code: 'fr-code',
+                  display: 'Code',
+                },
+              ],
+            },
+            value: facilityRegistryId,
+          },
+        ],
+        type: [
+          {
+            coding: [
+              {
+                system: `${fhirBase}/terminology/CodeSystem/organization-type`,
+                code: 'prov',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        resourceType: 'Coverage',
+        id: coverageId,
+        identifier: [{ use: 'official', value: coverageId }],
+        status: 'active',
+        beneficiary: { reference: patientUrl, type: 'Patient' },
+        extension: [
+          {
+            url: `${fhirBase}/StructureDefinition/schemeCategoryCode`,
+            valueString: 'CAT-SHA-001',
+          },
+          {
+            url: `${fhirBase}/StructureDefinition/schemeCategoryName`,
+            valueString: 'SOCIAL HEALTH AUTHORITY',
+          },
+        ],
+      },
+      {
+        ...this.mapper.toFhirPatient(claim.patient),
+        id: patientRegistryId,
+        meta: { profile: [`${fhirBase}/StructureDefinition/patient|1.0.0`] },
+        identifier: [
+          {
+            use: 'official',
+            system: `${fhirBase}/identifier/shanumber`,
+            value: patientRegistryId,
+          },
+        ],
+      },
+      {
+        ...this.mapper.toFhirPractitioner({
+          id: practitioner.id,
+          firstName: practitioner.firstName,
+          lastName: practitioner.lastName,
+          registrationNumber: practitioner.clinicianRegistrationNumber,
+          cadre: practitioner.designation,
+        }),
+        id: practitionerRegistryId,
+        meta: {
+          profile: [`${fhirBase}/StructureDefinition/practitioner|1.0.0`],
+        },
+      },
+      {
+        resourceType: 'Claim',
+        id: externalClaimId,
+        identifier: [{ system: `${fhirBase}/claim`, value: externalClaimId }],
+        status: 'active',
+        type: {
+          coding: [
+            {
+              system: 'http://terminology.hl7.org/CodeSystem/claim-type',
+              code: 'institutional',
+            },
+          ],
+        },
+        subType: {
+          coding: [
+            {
+              system: 'http://terminology.hl7.org/CodeSystem/ex-claimsubtype',
+              code: claim.invoice?.admissionId ? 'ip' : 'op',
+            },
+          ],
+        },
+        use: 'claim',
+        patient: { reference: patientUrl, type: 'Patient' },
+        billablePeriod: {
+          start: claim.servicePeriodStart.toISOString(),
+          end: claim.servicePeriodEnd.toISOString(),
+        },
+        created: new Date().toISOString(),
+        provider: { reference: organizationUrl, type: 'Organization' },
+        priority: {
+          coding: [
+            {
+              system: 'http://terminology.hl7.org/CodeSystem/processpriority',
+              code: 'normal',
+            },
+          ],
+        },
+        careTeam: [
+          {
+            sequence: 1,
+            provider: {
+              reference: practitionerUrl,
+              type: 'Practitioner',
+              display: [practitioner.firstName, practitioner.lastName]
+                .filter(Boolean)
+                .join(' '),
+            },
+          },
+        ],
+        diagnosis: [
+          {
+            sequence: 1,
+            diagnosisCodeableConcept: {
+              coding: [
+                {
+                  system: `${fhirBase}/terminology/CodeSystem/icd-11`,
+                  code: claim.diagnosisConcept.code,
+                  display: claim.diagnosisConcept.display,
+                },
+              ],
+            },
+          },
+        ],
+        insurance: [
+          {
+            sequence: 1,
+            focal: true,
+            coverage: { reference: coverageUrl },
+          },
+        ],
+        item: claimItems,
+        total: { value: calculatedTotal, currency: 'KES' },
+      },
+    ];
+
+    const fullUrls = [
+      organizationUrl,
+      coverageUrl,
+      patientUrl,
+      practitionerUrl,
+      claimUrl,
+    ];
+    const bundle: FhirBundle = {
+      resourceType: 'Bundle',
+      id: externalClaimId,
+      meta: {
+        profile: [`${fhirBase}/StructureDefinition/bundle|1.0.0`],
+      },
+      timestamp: new Date().toISOString(),
+      type: 'message',
+      entry: resources.map((resource, index) => ({
+        fullUrl: fullUrls[index],
+        resource,
+      })),
+    };
     this.fhirValidator.validateBundle(bundle);
 
     const transaction = await this.createTransaction({
@@ -558,9 +742,11 @@ export class DhaService implements OnModuleInit {
       });
 
       if (activeConsent) {
-        ctx.consentToken = (
-          activeConsent as unknown as { consentToken: string }
-        ).consentToken;
+        const storedToken =
+          activeConsent.consentTokenCiphertext ?? activeConsent.consentToken;
+        if (storedToken) {
+          ctx.consentToken = this.sensitiveData.decrypt(storedToken);
+        }
       }
     }
 
@@ -772,8 +958,15 @@ export class DhaService implements OnModuleInit {
     }
 
     const statusMap: Record<string, string> = {
+      QUEUED: 'PENDING',
       ACCEPTED: 'ACCEPTED',
       APPROVED: 'ACCEPTED',
+      'IN-REVIEW': 'PENDING',
+      'CLINICAL-REVIEW': 'PENDING',
+      'SENT-FOR-PAYMENT-PROCESSING': 'ACCEPTED',
+      'SENT-TO-SURVEILLANCE': 'PENDING',
+      'PAYMENT-COMPLETED': 'PAID',
+      'PAYMENT-DECLINED': 'REJECTED',
       SETTLED: 'PAID',
       PAID: 'PAID',
       REJECTED: 'REJECTED',

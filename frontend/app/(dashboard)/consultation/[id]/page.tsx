@@ -1,6 +1,5 @@
 "use client";
 
-
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -20,7 +19,6 @@ import {
   X,
 } from "lucide-react";
 
-
 import { useConsultationWorkspace } from "@/hooks/use-consultation-workspace";
 import { useUpdateConsultation } from "@/hooks/use-update-consultation";
 import { useCompleteConsultation } from "@/hooks/use-complete-consultation";
@@ -31,21 +29,17 @@ import type {
   PrescriptionRecord,
 } from "@/services/prescription-service";
 
-
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { useCreateLabOrder } from "@/hooks/use-create-lab-order";
-
 
 import { useBranchMedicineSearch } from "@/hooks/use-branch-medicine-search";
 import { useMedicineStockAlternatives } from "@/hooks/use-medicine-stock-alternatives";
 import { useCreatePrescription } from "@/hooks/use-create-prescription";
 import { useDirectMedicineAdministration } from "@/hooks/use-direct-medicine-administration";
 
-
 import { useWards } from "@/hooks/use-wards";
 import { useBeds } from "@/hooks/use-beds";
 import { useCreateAdmission } from "@/hooks/use-create-admission";
-
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +50,19 @@ import { useRouter } from "next/navigation";
 import { ClinicalAiAssistant } from "@/components/ai/clinical-ai-assistant";
 import { downloadConsultationMedicalReportPdf } from "@/services/report-service";
 import { TerminologySearch } from "@/components/shared/terminology/TerminologySearch";
-import type { TerminologyConcept } from "@/services/terminology.service";function formatDate(value?: string | null) {
+import type { TerminologyConcept } from "@/services/terminology.service";
+import {
+  activeConsultationStock,
+  consultationBedOptions,
+  consultationStockStatus,
+  consultationWardOptions,
+  excludeCurrentConsultation,
+  excludeCurrentPrescriptions,
+  filterConsultationLabTests,
+  filterConsultationStock,
+} from "./consultation-workspace";
+
+function formatDate(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -81,50 +87,41 @@ type DraftPrescriptionItem = {
   acceptedAlternativeForMedicineId?: number;
 };
 
-
 export default function ConsultationDetailPage() {
   const params = useParams();
   const id = Number(params.id);
   const router = useRouter();
 
-
   const { selectedBranchId } = useScope();
   const { user } = useAuth();
-
 
   const { data: workspace, isLoading } = useConsultationWorkspace(id);
   const data = workspace?.consultation;
   const patientId = data?.patientId;
   const appointmentId = data?.appointmentId;
 
-
   const triageData = workspace?.latestTriage ?? null;
   const historyData = workspace?.recentConsultations ?? [];
   const historyLoading = isLoading;
 
-
   const updateMutation = useUpdateConsultation();
   const completeMutation = useCompleteConsultation();
-
 
   const { data: wardsData, isLoading: wardsLoading } = useWards();
   const { data: bedsData, isLoading: bedsLoading } = useBeds();
   const createAdmissionMutation = useCreateAdmission();
-
 
   const branchIdForStock = data?.branchId ?? selectedBranchId;
   const [medicineSearch, setMedicineSearch] = React.useState("");
   const { data: branchStockData, isLoading: stockLoading } =
     useBranchMedicineSearch(branchIdForStock, medicineSearch);
 
-
   const createPrescriptionMutation = useCreatePrescription();
-  const directMedicineAdministrationMutation = useDirectMedicineAdministration();
-  const consultationPrescriptions =
-    workspace?.consultationPrescriptions ?? [];
+  const directMedicineAdministrationMutation =
+    useDirectMedicineAdministration();
+  const consultationPrescriptions = workspace?.consultationPrescriptions ?? [];
   const patientPrescriptions = workspace?.patientPrescriptions ?? [];
   const patientPrescriptionsLoading = isLoading;
-
 
   const { data: labTestsData, isLoading: labTestsLoading } = useLabTests();
   const createLabOrderMutation = useCreateLabOrder();
@@ -136,51 +133,48 @@ export default function ConsultationDetailPage() {
     return Array.isArray(workspace?.labOrders) ? workspace.labOrders : [];
   }, [workspace?.labOrders]);
 
-
   const latestConsultationLabOrder =
     consultationLabOrders.length > 0 ? consultationLabOrders[0] : null;
 
-
   const latestLabResultsList = React.useMemo(
     () =>
-      (latestConsultationLabOrder as { items?: Array<{ results?: Array<Record<string, unknown>> }> } | null)?.items?.flatMap(
-        (item) => item.results ?? [],
-      ) ?? [],
+      (
+        latestConsultationLabOrder as {
+          items?: Array<{ results?: Array<Record<string, unknown>> }>;
+        } | null
+      )?.items?.flatMap((item) => item.results ?? []) ?? [],
     [latestConsultationLabOrder],
   );
-
 
   const existingAdmission = React.useMemo(() => {
     return workspace?.activeAdmission ?? null;
   }, [workspace?.activeAdmission]);
-
 
   const wards = React.useMemo(
     () => (Array.isArray(wardsData) ? wardsData : []),
     [wardsData],
   );
 
-
   const beds = React.useMemo(
     () => (Array.isArray(bedsData) ? bedsData : []),
     [bedsData],
   );
 
-
   const [chiefComplaint, setChiefComplaint] = React.useState("");
   const [historyOfPresenting, setHistoryOfPresenting] = React.useState("");
   const [examinationFindings, setExaminationFindings] = React.useState("");
   const [diagnosis, setDiagnosis] = React.useState("");
-  const [primaryDiagnosis, setPrimaryDiagnosis] = React.useState<TerminologyConcept | null>(null);
+  const [primaryDiagnosis, setPrimaryDiagnosis] =
+    React.useState<TerminologyConcept | null>(null);
   const [treatmentPlan, setTreatmentPlan] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
   const [reportDownloading, setReportDownloading] = React.useState(false);
 
-
   const [prescriptionNotes, setPrescriptionNotes] = React.useState("");
-  const [selectedPrescriptionId, setSelectedPrescriptionId] = React.useState<number | null>(null);
-
+  const [selectedPrescriptionId, setSelectedPrescriptionId] = React.useState<
+    number | null
+  >(null);
 
   const [selectedWardId, setSelectedWardId] = React.useState("");
   const [selectedBedId, setSelectedBedId] = React.useState("");
@@ -189,7 +183,6 @@ export default function ConsultationDetailPage() {
   const [expectedDischargeAt, setExpectedDischargeAt] = React.useState("");
   const [admissionNotes, setAdmissionNotes] = React.useState("");
 
-
   const [selectedMedicineId, setSelectedMedicineId] = React.useState("");
   const [itemDosage, setItemDosage] = React.useState("");
   const [itemRoute, setItemRoute] = React.useState("");
@@ -197,8 +190,10 @@ export default function ConsultationDetailPage() {
   const [itemDuration, setItemDuration] = React.useState("");
   const [itemQuantity, setItemQuantity] = React.useState("1");
   const [itemInstructions, setItemInstructions] = React.useState("");
-  const [acceptedAlternativeForMedicineId, setAcceptedAlternativeForMedicineId] =
-    React.useState<number | null>(null);
+  const [
+    acceptedAlternativeForMedicineId,
+    setAcceptedAlternativeForMedicineId,
+  ] = React.useState<number | null>(null);
   const [draftPrescriptionItems, setDraftPrescriptionItems] = React.useState<
     DraftPrescriptionItem[]
   >([]);
@@ -206,7 +201,6 @@ export default function ConsultationDetailPage() {
     React.useState(false);
   const [directAdministrationMode, setDirectAdministrationMode] =
     React.useState<"DIRECT_DISPENSE" | "INJECTION">("DIRECT_DISPENSE");
-
 
   const [selectedTestId, setSelectedTestId] = React.useState("");
   const [labTestSearch, setLabTestSearch] = React.useState("");
@@ -217,35 +211,32 @@ export default function ConsultationDetailPage() {
     Array<{ testId: number; testName: string; instructions?: string }>
   >([]);
 
-
   React.useEffect(() => {
     if (!data) return;
     setChiefComplaint(data.chiefComplaint ?? "");
     setHistoryOfPresenting(data.historyOfPresenting ?? "");
     setExaminationFindings(data.examinationFindings ?? "");
     setDiagnosis(data.diagnosis ?? "");
-    if ((data as any).primaryDiagnosis) {
-      setPrimaryDiagnosis((data as any).primaryDiagnosis);
-    }
+    setPrimaryDiagnosis(data.primaryDiagnosis ?? null);
     setTreatmentPlan(data.treatmentPlan ?? "");
     setNotes(data.notes ?? "");
   }, [data]);
 
-
   const patientHistory = React.useMemo(() => {
     const all = Array.isArray(historyData) ? historyData : [];
-    return all.filter((item) => item.id !== data?.id);
+    return excludeCurrentConsultation(all, data?.id);
   }, [historyData, data?.id]);
 
-
   const consultationPrescriptionList = React.useMemo<PrescriptionRecord[]>(
-    () => (Array.isArray(consultationPrescriptions) ? consultationPrescriptions : []),
+    () =>
+      Array.isArray(consultationPrescriptions) ? consultationPrescriptions : [],
     [consultationPrescriptions],
   );
 
-
   const activePrescription =
-    consultationPrescriptionList.find((item) => item.id === selectedPrescriptionId) ??
+    consultationPrescriptionList.find(
+      (item) => item.id === selectedPrescriptionId,
+    ) ??
     consultationPrescriptionList[0] ??
     null;
 
@@ -255,11 +246,10 @@ export default function ConsultationDetailPage() {
         consultationNumber: data?.consultationNumber,
         statusCode: data?.statusCode,
         chiefComplaint: chiefComplaint || data?.chiefComplaint,
-        historyOfPresenting:
-          historyOfPresenting || data?.historyOfPresenting,
+        historyOfPresenting: historyOfPresenting || data?.historyOfPresenting,
         examinationFindings: examinationFindings || data?.examinationFindings,
         diagnosis: diagnosis || data?.diagnosis,
-        primaryDiagnosisId: primaryDiagnosis?.id || (data as any)?.primaryDiagnosisId,
+        primaryDiagnosisId: primaryDiagnosis?.id || data?.primaryDiagnosisId,
         treatmentPlan: treatmentPlan || data?.treatmentPlan,
         notes: notes || data?.notes,
       },
@@ -287,7 +277,9 @@ export default function ConsultationDetailPage() {
             urgency: (latestConsultationLabOrder as any).urgency,
             status: (latestConsultationLabOrder as any).status,
             clinicalNotes: (latestConsultationLabOrder as any).clinicalNotes,
-            tests: (latestConsultationLabOrder as { items?: any[] })?.items?.map((item: any) => ({
+            tests: (
+              latestConsultationLabOrder as { items?: any[] }
+            )?.items?.map((item: any) => ({
               testName: item.test?.testName,
               status: item.status,
               instructions: item.instructions,
@@ -339,20 +331,14 @@ export default function ConsultationDetailPage() {
     ],
   );
 
-
   const patientPrescriptionHistory = React.useMemo(() => {
     const all = Array.isArray(patientPrescriptions) ? patientPrescriptions : [];
-    return all.filter(
-      (item) => !consultationPrescriptionList.some((x) => x.id === item.id),
-    );
+    return excludeCurrentPrescriptions(all, consultationPrescriptionList);
   }, [patientPrescriptions, consultationPrescriptionList]);
-
 
   const branchStockItems = React.useMemo(() => {
     const items = Array.isArray(branchStockData) ? branchStockData : [];
-    return items.filter(
-      (item) => item.isActive && item.medicine?.isActive !== false,
-    );
+    return activeConsultationStock(items);
   }, [branchStockData]);
 
   const selectedMedicineIdNumber = selectedMedicineId
@@ -370,99 +356,34 @@ export default function ConsultationDetailPage() {
   }, [branchStockItems, selectedMedicineIdNumber]);
 
   const selectedStockStatus = React.useMemo(() => {
-    if (!selectedMedicineIdNumber) return null;
-    const stockQuantity = Number(selectedStockItem?.stockQuantity ?? 0);
-    const reorderLevel = Number(selectedStockItem?.reorderLevel ?? 0);
-
-    if (stockQuantity <= 0) return "OUT_OF_STOCK";
-    if (reorderLevel > 0 && stockQuantity <= reorderLevel) return "LOW_STOCK";
-    return "IN_STOCK";
+    return consultationStockStatus(selectedMedicineIdNumber, selectedStockItem);
   }, [selectedMedicineIdNumber, selectedStockItem]);
 
-  const {
-    data: medicineAlternativesData,
-    isLoading: alternativesLoading,
-  } = useMedicineStockAlternatives(branchIdForStock, selectedMedicineIdNumber);
+  const { data: medicineAlternativesData, isLoading: alternativesLoading } =
+    useMedicineStockAlternatives(branchIdForStock, selectedMedicineIdNumber);
 
-  const medicineAlternatives =
-    medicineAlternativesData?.alternatives ?? [];
+  const medicineAlternatives = medicineAlternativesData?.alternatives ?? [];
 
   const filteredStockItems = React.useMemo(() => {
-    const query = medicineSearch.trim().toLowerCase();
-    if (!query) return branchStockItems.slice(0, 140);
-
-    return branchStockItems
-      .filter((item) =>
-        [
-          item.medicine?.name,
-          item.medicine?.code,
-          item.medicine?.dosageForm,
-          item.medicine?.strength,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query),
-      )
-      .slice(0, 140);
+    return filterConsultationStock(branchStockItems, medicineSearch);
   }, [branchStockItems, medicineSearch]);
-
 
   const labTests = React.useMemo(
     () => (Array.isArray(labTestsData) ? labTestsData : []),
     [labTestsData],
   );
 
-
   const filteredLabTests = React.useMemo(() => {
-    const query = labTestSearch.trim().toLowerCase();
-    if (!query) return labTests.slice(0, 120);
-
-    return labTests
-      .filter((test) =>
-        [test.testName, test.category, test.specimenType]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query),
-      )
-      .slice(0, 120);
+    return filterConsultationLabTests(labTests, labTestSearch);
   }, [labTestSearch, labTests]);
 
-
   const availableWardOptions = React.useMemo(() => {
-    return wards
-      .filter((ward) => ward.isActive !== false)
-      .map((ward) => {
-        const freeBeds = beds.filter((bed) => {
-          const sameWard = bed.wardId === ward.id;
-          const isAvailable =
-            (bed.statusCode || "AVAILABLE").toUpperCase() === "AVAILABLE";
-          const isActive = bed.isActive !== false;
-          return sameWard && isAvailable && isActive;
-        }).length;
-
-
-        return {
-          ...ward,
-          freeBeds,
-        };
-      });
+    return consultationWardOptions(wards, beds);
   }, [wards, beds]);
 
-
   const availableBedOptions = React.useMemo(() => {
-    return beds.filter((bed) => {
-      const wardMatch = selectedWardId ? String(bed.wardId) === selectedWardId : false;
-      const isAvailable =
-        (bed.statusCode || "AVAILABLE").toUpperCase() === "AVAILABLE";
-      const isActive = bed.isActive !== false;
-
-
-      return wardMatch && isAvailable && isActive;
-    });
+    return consultationBedOptions(beds, selectedWardId);
   }, [beds, selectedWardId]);
-
 
   React.useEffect(() => {
     if (!selectedPrescriptionId && consultationPrescriptionList.length > 0) {
@@ -470,35 +391,29 @@ export default function ConsultationDetailPage() {
     }
   }, [consultationPrescriptionList, selectedPrescriptionId]);
 
-
   React.useEffect(() => {
     if (!selectedWardId) {
       setSelectedBedId("");
       return;
     }
 
-
     if (availableBedOptions.length === 0) {
       setSelectedBedId("");
       return;
     }
 
-
     const currentStillValid = availableBedOptions.some(
       (bed) => String(bed.id) === selectedBedId,
     );
-
 
     if (!currentStillValid) {
       setSelectedBedId(String(availableBedOptions[0].id));
     }
   }, [selectedWardId, availableBedOptions, selectedBedId]);
 
-
   const handleSave = async () => {
     if (!data) return;
     setMessage(null);
-
 
     await updateMutation.mutateAsync({
       id: data.id,
@@ -507,17 +422,16 @@ export default function ConsultationDetailPage() {
         historyOfPresenting: historyOfPresenting || undefined,
         examinationFindings: examinationFindings || undefined,
         diagnosis: diagnosis || undefined,
-        primaryDiagnosisId: primaryDiagnosis?.id || undefined,
+        primaryDiagnosisId:
+          primaryDiagnosis?.id || data.primaryDiagnosisId || undefined,
         treatmentPlan: treatmentPlan || undefined,
         notes: notes || undefined,
         statusCode: "IN_PROGRESS",
       },
     });
 
-
     setMessage("Consultation saved.");
   };
-
 
   const handleComplete = async () => {
     if (!data) return;
@@ -526,15 +440,16 @@ export default function ConsultationDetailPage() {
     // Save any pending changes first
     await handleSave();
 
-    if (!primaryDiagnosis && !diagnosis) {
-      setMessage("Error: A standardized primary diagnosis is required before completing the consultation.");
+    if (!primaryDiagnosis && !data.primaryDiagnosisId) {
+      setMessage(
+        "Error: A standardized primary diagnosis is required before completing the consultation.",
+      );
       return;
     }
 
     await completeMutation.mutateAsync(data.id);
     setMessage("Consultation completed successfully.");
   };
-
 
   const resetPrescriptionItemForm = () => {
     setSelectedMedicineId("");
@@ -548,7 +463,6 @@ export default function ConsultationDetailPage() {
     setAllowOutOfStockPrescribing(false);
   };
 
-
   const handleCreatePrescription = async () => {
     if (!data) return;
     setMessage(null);
@@ -559,7 +473,9 @@ export default function ConsultationDetailPage() {
     }
 
     if (draftPrescriptionItems.length === 0) {
-      setMessage("Add at least one structured medicine item before sending to pharmacy.");
+      setMessage(
+        "Add at least one structured medicine item before sending to pharmacy.",
+      );
       return;
     }
 
@@ -576,8 +492,7 @@ export default function ConsultationDetailPage() {
         duration: item.duration || undefined,
         quantity: item.quantity,
         instructions: item.instructions || undefined,
-        acceptedAlternativeForMedicineId:
-          item.acceptedAlternativeForMedicineId,
+        acceptedAlternativeForMedicineId: item.acceptedAlternativeForMedicineId,
       })),
     });
 
@@ -588,7 +503,6 @@ export default function ConsultationDetailPage() {
     setMessage(`Prescription ${created.prescriptionNumber} sent to pharmacy.`);
   };
 
-
   const handleAddPrescriptionItem = () => {
     if (!selectedMedicineId) {
       setMessage("Please select a medicine.");
@@ -596,7 +510,9 @@ export default function ConsultationDetailPage() {
     }
 
     if (!selectedStockItem || !selectedStockStatus) {
-      setMessage("Branch stock details are still loading. Try again in a moment.");
+      setMessage(
+        "Branch stock details are still loading. Try again in a moment.",
+      );
       return;
     }
 
@@ -625,7 +541,6 @@ export default function ConsultationDetailPage() {
       return;
     }
 
-
     setMessage(null);
 
     setDraftPrescriptionItems((current) => [
@@ -639,7 +554,8 @@ export default function ConsultationDetailPage() {
         dosageForm: selectedStockItem.medicine?.dosageForm,
         stockQuantity: Number(selectedStockItem.stockQuantity ?? 0),
         reorderLevel: Number(selectedStockItem.reorderLevel ?? 0),
-        stockStatus: selectedStockStatus as DraftPrescriptionItem["stockStatus"],
+        stockStatus:
+          selectedStockStatus as DraftPrescriptionItem["stockStatus"],
         dosage: itemDosage || undefined,
         route: itemRoute || undefined,
         frequency: itemFrequency || undefined,
@@ -652,7 +568,9 @@ export default function ConsultationDetailPage() {
     ]);
 
     resetPrescriptionItemForm();
-    setMessage("Prescription item added to draft. Send it to pharmacy when complete.");
+    setMessage(
+      "Prescription item added to draft. Send it to pharmacy when complete.",
+    );
   };
 
   const handleDirectMedicineAdministration = async () => {
@@ -694,25 +612,21 @@ export default function ConsultationDetailPage() {
     );
   };
 
-
   const handleRemoveDraftPrescriptionItem = (index: number) => {
     setDraftPrescriptionItems((current) =>
       current.filter((_, itemIndex) => itemIndex !== index),
     );
   };
 
-
   const handleAddLabTest = () => {
     const test = labTests.find((item) => item.id === Number(selectedTestId));
     if (!test) return;
-
 
     const exists = selectedLabItems.some((item) => item.testId === test.id);
     if (exists) {
       setMessage("That lab test is already selected.");
       return;
     }
-
 
     setSelectedLabItems((prev) => [
       ...prev,
@@ -723,30 +637,25 @@ export default function ConsultationDetailPage() {
       },
     ]);
 
-
     setSelectedTestId("");
     setLabInstruction("");
   };
 
-
   const handleRemoveLabTest = (testId: number) => {
-    setSelectedLabItems((prev) => prev.filter((item) => item.testId !== testId));
+    setSelectedLabItems((prev) =>
+      prev.filter((item) => item.testId !== testId),
+    );
   };
-
 
   const handleCreateLabOrder = async () => {
     if (!data) return;
-
 
     if (selectedLabItems.length === 0) {
       setMessage("Please select at least one lab test.");
       return;
     }
 
-
-    
     setMessage(null);
-
 
     await createLabOrderMutation.mutateAsync({
       patientId: data.patientId,
@@ -761,7 +670,6 @@ export default function ConsultationDetailPage() {
       })),
     });
 
-
     setSelectedLabItems([]);
     setLabClinicalNotes("");
     setLabInstruction("");
@@ -770,40 +678,43 @@ export default function ConsultationDetailPage() {
   };
 
   const handleAdmitToIpd = async () => {
-  if (!data) return;
-  if (createAdmissionMutation.isPending) return;
+    if (!data) return;
+    if (createAdmissionMutation.isPending) return;
 
-  if (existingAdmission) {
-    setMessage("This consultation already has an active admission.");
-    return;
-  }
+    if (existingAdmission) {
+      setMessage("This consultation already has an active admission.");
+      return;
+    }
 
-  if (!selectedWardId) {
-    setMessage("Please select a ward.");
-    return;
-  }
+    if (!selectedWardId) {
+      setMessage("Please select a ward.");
+      return;
+    }
 
-  const year = new Date().getFullYear();
-  const admissionNumber = `ADM-${year}-${data.id}-${Date.now().toString().slice(-4)}`;
+    const year = new Date().getFullYear();
+    const admissionNumber = `ADM-${year}-${data.id}-${Date.now().toString().slice(-4)}`;
 
-  setMessage(null);
+    setMessage(null);
 
-  const createdAdmission = await createAdmissionMutation.mutateAsync({
-    admissionNumber,
-    patientId: data.patientId,
-    appointmentId: data.appointmentId || undefined,
-    consultationId: data.id,
-    admittedByStaffId: user?.staffId ? Number(user.staffId) : data.doctorId || undefined,
-    wardId: Number(selectedWardId),
-    bedId: selectedBedId ? Number(selectedBedId) : undefined,
-    admissionReason: admissionReason || diagnosis || chiefComplaint || undefined,
-    admissionSource: admissionSource || "CONSULTATION",
-    expectedDischargeAt: expectedDischargeAt || undefined,
-    notes: admissionNotes || undefined,
-  });
+    const createdAdmission = await createAdmissionMutation.mutateAsync({
+      admissionNumber,
+      patientId: data.patientId,
+      appointmentId: data.appointmentId || undefined,
+      consultationId: data.id,
+      admittedByStaffId: user?.staffId
+        ? Number(user.staffId)
+        : data.doctorId || undefined,
+      wardId: Number(selectedWardId),
+      bedId: selectedBedId ? Number(selectedBedId) : undefined,
+      admissionReason:
+        admissionReason || diagnosis || chiefComplaint || undefined,
+      admissionSource: admissionSource || "CONSULTATION",
+      expectedDischargeAt: expectedDischargeAt || undefined,
+      notes: admissionNotes || undefined,
+    });
 
-  router.push(`/ipd/${createdAdmission.id}`);
-};
+    router.push(`/ipd/${createdAdmission.id}`);
+  };
 
   const handleDownloadMedicalReport = async () => {
     if (!data) return;
@@ -852,14 +763,15 @@ export default function ConsultationDetailPage() {
             </div>
           </div>
 
-
           {data ? (
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Consultation No
                 </p>
-                <p className="mt-2 text-sm font-semibold">{data.consultationNumber}</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {data.consultationNumber}
+                </p>
               </div>
               <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
@@ -888,13 +800,11 @@ export default function ConsultationDetailPage() {
         </div>
       </section>
 
-
       {message ? (
         <div className="rounded-[1.4rem] border border-cyan-500/20 bg-cyan-500/8 px-4 py-4 text-sm text-cyan-300">
           {message}
         </div>
       ) : null}
-
 
       {isLoading || !data ? (
         <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
@@ -919,11 +829,14 @@ export default function ConsultationDetailPage() {
                 <CardTitle>Patient Snapshot</CardTitle>
               </CardHeader>
 
-
               <CardContent className="space-y-4">
                 <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-lg font-bold">
-                    {[data.patient?.firstName, data.patient?.middleName, data.patient?.lastName]
+                    {[
+                      data.patient?.firstName,
+                      data.patient?.middleName,
+                      data.patient?.lastName,
+                    ]
                       .filter(Boolean)
                       .join(" ")}
                   </p>
@@ -932,11 +845,12 @@ export default function ConsultationDetailPage() {
                   </p>
                 </div>
 
-
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Gender</p>
-                    <p className="mt-1 text-sm font-medium">{data.patient?.gender || "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {data.patient?.gender || "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Phone</p>
@@ -953,53 +867,75 @@ export default function ConsultationDetailPage() {
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Priority</p>
                     <p className="mt-1 text-sm font-medium">
-                      {triageData?.triagePriority || data.appointment?.triagePriority || "NORMAL"}
+                      {triageData?.triagePriority ||
+                        data.appointment?.triagePriority ||
+                        "NORMAL"}
                     </p>
                   </div>
                 </div>
 
-
                 <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
-                  <p className="text-xs text-muted-foreground">Chief Complaint</p>
+                  <p className="text-xs text-muted-foreground">
+                    Chief Complaint
+                  </p>
                   <p className="mt-1 text-sm font-medium">
                     {triageData?.chiefComplaint || data.chiefComplaint || "—"}
                   </p>
                 </div>
 
-
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Arrival Type</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.arrivalType || "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Arrival Type
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.arrivalType || "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Clinic</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.clinic?.name || "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.clinic?.name || "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Routed Doctor</p>
+                    <p className="text-xs text-muted-foreground">
+                      Routed Doctor
+                    </p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.routedDoctor
-                        ? [triageData.routedDoctor.firstName, triageData.routedDoctor.lastName]
+                        ? [
+                            triageData.routedDoctor.firstName,
+                            triageData.routedDoctor.lastName,
+                          ]
                             .filter(Boolean)
                             .join(" ")
                         : "—"}
                     </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Triage Status</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.statusCode || "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Triage Status
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.statusCode || "—"}
+                    </p>
                   </div>
                 </div>
 
-
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Temperature °C</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.temperatureC ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Temperature °C
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.temperatureC ?? "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Blood Pressure</p>
+                    <p className="text-xs text-muted-foreground">
+                      Blood Pressure
+                    </p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.systolicBp || triageData?.diastolicBp
                         ? `${triageData?.systolicBp ?? "—"}/${triageData?.diastolicBp ?? "—"}`
@@ -1008,56 +944,78 @@ export default function ConsultationDetailPage() {
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Pulse Rate</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.pulseRate ?? "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.pulseRate ?? "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Respiratory Rate</p>
+                    <p className="text-xs text-muted-foreground">
+                      Respiratory Rate
+                    </p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.respiratoryRate ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Oxygen Saturation</p>
+                    <p className="text-xs text-muted-foreground">
+                      Oxygen Saturation
+                    </p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.oxygenSaturation ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Weight (kg)</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.weightKg ?? "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.weightKg ?? "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Height (cm)</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.heightCm ?? "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.heightCm ?? "—"}
+                    </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">BMI</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.bmi ?? "—"}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.bmi ?? "—"}
+                    </p>
                   </div>
                 </div>
-
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                     <p className="text-xs text-muted-foreground">Pain Score</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.painScore ?? "—"}</p>
-                  </div>
-                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Triage Number</p>
-                    <p className="mt-1 text-sm font-medium">{triageData?.triageNumber || "—"}</p>
-                  </div>
-                </div>
-
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Triage Started</p>
                     <p className="mt-1 text-sm font-medium">
-                      {triageData?.startedAt ? new Date(triageData.startedAt).toLocaleString() : "—"}
+                      {triageData?.painScore ?? "—"}
                     </p>
                   </div>
                   <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                    <p className="text-xs text-muted-foreground">Triage Completed</p>
+                    <p className="text-xs text-muted-foreground">
+                      Triage Number
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.triageNumber || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Triage Started
+                    </p>
+                    <p className="mt-1 text-sm font-medium">
+                      {triageData?.startedAt
+                        ? new Date(triageData.startedAt).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Triage Completed
+                    </p>
                     <p className="mt-1 text-sm font-medium">
                       {triageData?.completedAt
                         ? new Date(triageData.completedAt).toLocaleString()
@@ -1065,7 +1023,6 @@ export default function ConsultationDetailPage() {
                     </p>
                   </div>
                 </div>
-
 
                 <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                   <p className="text-xs text-muted-foreground">Triage Notes</p>
@@ -1076,23 +1033,22 @@ export default function ConsultationDetailPage() {
               </CardContent>
             </Card>
 
-
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Doctor Notes</CardTitle>
               </CardHeader>
 
-
               <CardContent className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Chief Complaint</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Chief Complaint
+                  </label>
                   <Textarea
                     value={chiefComplaint}
                     onChange={(e) => setChiefComplaint(e.target.value)}
                     className="min-h-[90px] rounded-2xl"
                   />
                 </div>
-
 
                 <div>
                   <label className="mb-2 block text-sm font-medium">
@@ -1105,9 +1061,10 @@ export default function ConsultationDetailPage() {
                   />
                 </div>
 
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Examination Findings</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Examination Findings
+                  </label>
                   <Textarea
                     value={examinationFindings}
                     onChange={(e) => setExaminationFindings(e.target.value)}
@@ -1115,29 +1072,33 @@ export default function ConsultationDetailPage() {
                   />
                 </div>
 
-
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Primary Diagnosis (Standardized)</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Primary Diagnosis (Standardized)
+                    </label>
                     <TerminologySearch
                       value={primaryDiagnosis}
                       onChange={setPrimaryDiagnosis}
                       conceptClass="diagnosis"
-                      placeholder="Search DHA ICD-11 diagnosis concepts..."
+                      placeholder="Search the standardized diagnosis catalogue..."
                       className="mb-4"
                     />
 
                     {diagnosis && (
                       <div className="mb-4 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning-foreground">
-                        <p className="font-semibold mb-1">Legacy Free-Text Diagnosis (Read-Only)</p>
+                        <p className="font-semibold mb-1">
+                          Legacy Free-Text Diagnosis (Read-Only)
+                        </p>
                         <p className="whitespace-pre-wrap">{diagnosis}</p>
                       </div>
                     )}
                   </div>
 
-
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Treatment Plan</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Treatment Plan
+                    </label>
                     <Textarea
                       value={treatmentPlan}
                       onChange={(e) => setTreatmentPlan(e.target.value)}
@@ -1146,16 +1107,16 @@ export default function ConsultationDetailPage() {
                   </div>
                 </div>
 
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Additional Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Additional Notes
+                  </label>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="min-h-[110px] rounded-2xl"
                   />
                 </div>
-
 
                 <div className="flex flex-wrap gap-3">
                   <Button
@@ -1171,7 +1132,6 @@ export default function ConsultationDetailPage() {
                     )}
                     Save Consultation
                   </Button>
-
 
                   <Button
                     type="button"
@@ -1192,7 +1152,6 @@ export default function ConsultationDetailPage() {
             </Card>
           </section>
 
-
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
@@ -1202,70 +1161,71 @@ export default function ConsultationDetailPage() {
                 </CardTitle>
               </CardHeader>
 
-
               <CardContent className="space-y-5">
                 {existingAdmission ? (
-               <>
-                <div className="rounded-[1.2rem] border border-emerald-500/20 bg-success/10 p-5">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="space-y-2">
-                      <p className="text-base font-semibold text-emerald-300">
-                        Patient already admitted to IPD
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Admission No: {existingAdmission.admissionNumber}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Ward: {existingAdmission.ward?.name || "—"} • Bed:{" "}
-                        {existingAdmission.bed?.bedNumber || "Not assigned"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Admitted At: {formatDate(existingAdmission.admittedAt)}
-                      </p>
+                  <>
+                    <div className="rounded-[1.2rem] border border-emerald-500/20 bg-success/10 p-5">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                          <p className="text-base font-semibold text-emerald-300">
+                            Patient already admitted to IPD
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Admission No: {existingAdmission.admissionNumber}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Ward: {existingAdmission.ward?.name || "—"} • Bed:{" "}
+                            {existingAdmission.bed?.bedNumber || "Not assigned"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Admitted At:{" "}
+                            {formatDate(existingAdmission.admittedAt)}
+                          </p>
+                        </div>
+
+                        <Badge className="w-fit rounded-full border border-emerald-500/20 bg-success/10 px-3 py-1 text-emerald-300">
+                          ADMITTED
+                        </Badge>
+                      </div>
                     </div>
 
-                    <Badge className="w-fit rounded-full border border-emerald-500/20 bg-success/10 px-3 py-1 text-emerald-300">
-                      ADMITTED
-                    </Badge>
-                  </div>
-                </div>
+                    <div className="flex flex-wrap gap-3">
+                      <Link href={`/ipd/${existingAdmission.id}`}>
+                        <Button type="button" className="h-12 rounded-2xl">
+                          <BedDouble className="mr-2 h-4 w-4" />
+                          Open IPD Admission
+                        </Button>
+                      </Link>
 
-                <div className="flex flex-wrap gap-3">
-                  <Link href={`/ipd/${existingAdmission.id}`}>
-                    <Button type="button" className="h-12 rounded-2xl">
-                      <BedDouble className="mr-2 h-4 w-4" />
-                      Open IPD Admission
-                    </Button>
-                  </Link>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-12 rounded-2xl"
-                    onClick={() =>
-                      setMessage(
-                        `Patient already has active admission ${existingAdmission.admissionNumber}.`,
-                      )
-                    }
-                  >
-                    View Admission Status
-                  </Button>
-                </div>
-              </>
-
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-12 rounded-2xl"
+                        onClick={() =>
+                          setMessage(
+                            `Patient already has active admission ${existingAdmission.admissionNumber}.`,
+                          )
+                        }
+                      >
+                        View Admission Status
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
                       <p className="text-sm font-medium">Admission Decision</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Admit this patient directly from the consultation into inpatient care.
+                        Admit this patient directly from the consultation into
+                        inpatient care.
                       </p>
                     </div>
 
-
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Ward</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Ward
+                        </label>
                         <select
                           value={selectedWardId}
                           onChange={(e) => {
@@ -1288,13 +1248,16 @@ export default function ConsultationDetailPage() {
                           ))}
                         </select>
                         {wardsLoading ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Loading wards...</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Loading wards...
+                          </p>
                         ) : null}
                       </div>
 
-
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Bed</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Bed
+                        </label>
                         <select
                           value={selectedBedId}
                           onChange={(e) => setSelectedBedId(e.target.value)}
@@ -1302,7 +1265,9 @@ export default function ConsultationDetailPage() {
                           className="flex h-12 w-full rounded-2xl border border-white/10 bg-background px-4 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <option value="">
-                            {selectedWardId ? "Select bed (optional)" : "Select ward first"}
+                            {selectedWardId
+                              ? "Select bed (optional)"
+                              : "Select ward first"}
                           </option>
                           {availableBedOptions.map((bed) => (
                             <option key={bed.id} value={String(bed.id)}>
@@ -1312,7 +1277,9 @@ export default function ConsultationDetailPage() {
                           ))}
                         </select>
                         {bedsLoading ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Loading beds...</p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Loading beds...
+                          </p>
                         ) : !selectedWardId ? (
                           <p className="mt-2 text-xs text-muted-foreground">
                             Choose a ward first to see available beds.
@@ -1324,9 +1291,10 @@ export default function ConsultationDetailPage() {
                         ) : null}
                       </div>
 
-
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Admission Source</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Admission Source
+                        </label>
                         <select
                           value={admissionSource}
                           onChange={(e) => setAdmissionSource(e.target.value)}
@@ -1340,9 +1308,10 @@ export default function ConsultationDetailPage() {
                       </div>
                     </div>
 
-
                     <div>
-                      <label className="mb-2 block text-sm font-medium">Admission Reason</label>
+                      <label className="mb-2 block text-sm font-medium">
+                        Admission Reason
+                      </label>
                       <Textarea
                         value={admissionReason}
                         onChange={(e) => setAdmissionReason(e.target.value)}
@@ -1350,7 +1319,6 @@ export default function ConsultationDetailPage() {
                         placeholder="Why the patient should be admitted"
                       />
                     </div>
-
 
                     <div className="grid gap-4 md:grid-cols-[260px_1fr]">
                       <div>
@@ -1360,14 +1328,17 @@ export default function ConsultationDetailPage() {
                         <Input
                           type="datetime-local"
                           value={expectedDischargeAt}
-                          onChange={(e) => setExpectedDischargeAt(e.target.value)}
+                          onChange={(e) =>
+                            setExpectedDischargeAt(e.target.value)
+                          }
                           className="h-12 rounded-2xl"
                         />
                       </div>
 
-
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Admission Notes</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Admission Notes
+                        </label>
                         <Textarea
                           value={admissionNotes}
                           onChange={(e) => setAdmissionNotes(e.target.value)}
@@ -1380,7 +1351,9 @@ export default function ConsultationDetailPage() {
                       type="button"
                       className="h-12 rounded-2xl"
                       onClick={handleAdmitToIpd}
-                      disabled={createAdmissionMutation.isPending || !!existingAdmission}
+                      disabled={
+                        createAdmissionMutation.isPending || !!existingAdmission
+                      }
                     >
                       {createAdmissionMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1395,7 +1368,6 @@ export default function ConsultationDetailPage() {
             </Card>
           </section>
 
-
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
@@ -1405,10 +1377,11 @@ export default function ConsultationDetailPage() {
                 </CardTitle>
               </CardHeader>
 
-
               <CardContent className="space-y-5">
                 <div className="rounded-[1.2rem] border border-white/10 bg-card/[0.03] p-4">
-                  <p className="text-sm font-medium">Current Consultation Prescription</p>
+                  <p className="text-sm font-medium">
+                    Current Consultation Prescription
+                  </p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {activePrescription
                       ? `${activePrescription.prescriptionNumber} • ${activePrescription.statusCode}`
@@ -1416,9 +1389,10 @@ export default function ConsultationDetailPage() {
                   </p>
                 </div>
 
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Prescription Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Prescription Notes
+                  </label>
                   <Textarea
                     value={prescriptionNotes}
                     onChange={(e) => setPrescriptionNotes(e.target.value)}
@@ -1427,7 +1401,7 @@ export default function ConsultationDetailPage() {
                   />
                 </div>
 
-                {(
+                {
                   <>
                     <div>
                       <label className="mb-2 block text-sm font-medium">
@@ -1452,7 +1426,10 @@ export default function ConsultationDetailPage() {
                         {filteredStockItems.map((item) => (
                           <option key={item.id} value={String(item.medicineId)}>
                             {item.medicine?.name}
-                            {item.medicine?.strength ? ` - ${item.medicine.strength}` : ""} (
+                            {item.medicine?.strength
+                              ? ` - ${item.medicine.strength}`
+                              : ""}{" "}
+                            (
                             {item.stockQuantity > 0
                               ? `${item.stockQuantity} in stock`
                               : "out of stock"}
@@ -1484,13 +1461,13 @@ export default function ConsultationDetailPage() {
                                 "Selected medicine"}
                             </p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              Stock: {selectedStockItem?.stockQuantity ?? 0} / Reorder:{" "}
-                              {selectedStockItem?.reorderLevel ?? 0} / Unit price:{" "}
-                              {selectedStockItem?.unitPrice ?? 0}
+                              Stock: {selectedStockItem?.stockQuantity ?? 0} /
+                              Reorder: {selectedStockItem?.reorderLevel ?? 0} /
+                              Unit price: {selectedStockItem?.unitPrice ?? 0}
                             </p>
                             <p className="mt-2 text-xs text-muted-foreground">
-                              Stock assistant checks this branch only. Final substitution
-                              remains a clinician decision.
+                              Stock assistant checks this branch only. Final
+                              substitution remains a clinician decision.
                             </p>
                           </div>
                           <Badge
@@ -1518,47 +1495,53 @@ export default function ConsultationDetailPage() {
                               </p>
                             ) : medicineAlternatives.length ? (
                               <div className="grid gap-2 md:grid-cols-2">
-                                {medicineAlternatives.slice(0, 4).map((item) => (
-                                  <button
-                                    key={item.id}
-                                    type="button"
-                                    className="rounded-xl border border-white/10 bg-card/[0.04] p-3 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
-                                    onClick={() => {
-                                      setAcceptedAlternativeForMedicineId(
-                                        selectedMedicineIdNumber,
-                                      );
-                                      setSelectedMedicineId(String(item.medicineId));
-                                      setMedicineSearch(item.medicine?.name || "");
-                                      setAllowOutOfStockPrescribing(false);
-                                      setMessage(
-                                        `Selected in-stock alternative: ${item.medicine?.name}. Confirm dose and indication before saving.`,
-                                      );
-                                    }}
-                                  >
-                                    <p className="text-sm font-semibold">
-                                      {item.medicine?.name}
-                                    </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                      {[
-                                        item.medicine?.strength,
-                                        item.medicine?.dosageForm,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(" / ") || "No form details"}
-                                    </p>
-                                    <p className="mt-2 text-xs text-emerald-300">
-                                      {item.stockQuantity} in stock
-                                    </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                      {item.reasons.join(" | ")}
-                                    </p>
-                                  </button>
-                                ))}
+                                {medicineAlternatives
+                                  .slice(0, 4)
+                                  .map((item) => (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      className="rounded-xl border border-white/10 bg-card/[0.04] p-3 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
+                                      onClick={() => {
+                                        setAcceptedAlternativeForMedicineId(
+                                          selectedMedicineIdNumber,
+                                        );
+                                        setSelectedMedicineId(
+                                          String(item.medicineId),
+                                        );
+                                        setMedicineSearch(
+                                          item.medicine?.name || "",
+                                        );
+                                        setAllowOutOfStockPrescribing(false);
+                                        setMessage(
+                                          `Selected in-stock alternative: ${item.medicine?.name}. Confirm dose and indication before saving.`,
+                                        );
+                                      }}
+                                    >
+                                      <p className="text-sm font-semibold">
+                                        {item.medicine?.name}
+                                      </p>
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        {[
+                                          item.medicine?.strength,
+                                          item.medicine?.dosageForm,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" / ") || "No form details"}
+                                      </p>
+                                      <p className="mt-2 text-xs text-emerald-300">
+                                        {item.stockQuantity} in stock
+                                      </p>
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        {item.reasons.join(" | ")}
+                                      </p>
+                                    </button>
+                                  ))}
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground">
-                                No safe in-stock shortlist could be built from the
-                                available catalogue fields.
+                                No safe in-stock shortlist could be built from
+                                the available catalogue fields.
                               </p>
                             )}
                           </div>
@@ -1585,10 +1568,11 @@ export default function ConsultationDetailPage() {
                       </div>
                     ) : null}
 
-
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Dosage</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Dosage
+                        </label>
                         <Input
                           value={itemDosage}
                           onChange={(e) => setItemDosage(e.target.value)}
@@ -1597,7 +1581,9 @@ export default function ConsultationDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Route</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Route
+                        </label>
                         <Input
                           value={itemRoute}
                           onChange={(e) => setItemRoute(e.target.value)}
@@ -1606,7 +1592,9 @@ export default function ConsultationDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Frequency</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Frequency
+                        </label>
                         <Input
                           value={itemFrequency}
                           onChange={(e) => setItemFrequency(e.target.value)}
@@ -1615,7 +1603,9 @@ export default function ConsultationDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Duration</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Duration
+                        </label>
                         <Input
                           value={itemDuration}
                           onChange={(e) => setItemDuration(e.target.value)}
@@ -1624,7 +1614,9 @@ export default function ConsultationDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium">Quantity</label>
+                        <label className="mb-2 block text-sm font-medium">
+                          Quantity
+                        </label>
                         <Input
                           type="number"
                           value={itemQuantity}
@@ -1635,9 +1627,10 @@ export default function ConsultationDetailPage() {
                       </div>
                     </div>
 
-
                     <div>
-                      <label className="mb-2 block text-sm font-medium">Instructions</label>
+                      <label className="mb-2 block text-sm font-medium">
+                        Instructions
+                      </label>
                       <Textarea
                         value={itemInstructions}
                         onChange={(e) => setItemInstructions(e.target.value)}
@@ -1645,7 +1638,6 @@ export default function ConsultationDetailPage() {
                         placeholder="Take after meals"
                       />
                     </div>
-
 
                     <Button
                       type="button"
@@ -1665,7 +1657,8 @@ export default function ConsultationDetailPage() {
                           </p>
                           <p className="mt-1 text-sm text-muted-foreground">
                             Use this only when medicine is given or dispensed in
-                            the consultation room. Stock is deducted immediately.
+                            the consultation room. Stock is deducted
+                            immediately.
                           </p>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
@@ -1673,13 +1666,19 @@ export default function ConsultationDetailPage() {
                             value={directAdministrationMode}
                             onChange={(event) =>
                               setDirectAdministrationMode(
-                                event.target.value as "DIRECT_DISPENSE" | "INJECTION",
+                                event.target.value as
+                                  | "DIRECT_DISPENSE"
+                                  | "INJECTION",
                               )
                             }
                             className="h-11 rounded-xl border border-white/10 bg-background px-3 text-sm"
                           >
-                            <option value="DIRECT_DISPENSE">Direct dispense</option>
-                            <option value="INJECTION">Injection/administer</option>
+                            <option value="DIRECT_DISPENSE">
+                              Direct dispense
+                            </option>
+                            <option value="INJECTION">
+                              Injection/administer
+                            </option>
                           </select>
                           <Button
                             type="button"
@@ -1708,7 +1707,8 @@ export default function ConsultationDetailPage() {
                         <div>
                           <p className="font-semibold">Draft medicine items</p>
                           <p className="text-sm text-muted-foreground">
-                            Stock is checked now. Stock reduces only when pharmacy dispenses.
+                            Stock is checked now. Stock reduces only when
+                            pharmacy dispenses.
                           </p>
                         </div>
                         <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-300">
@@ -1717,7 +1717,8 @@ export default function ConsultationDetailPage() {
                       </div>
                       {draftPrescriptionItems.length === 0 ? (
                         <div className="rounded-[1rem] border border-dashed border-white/10 bg-card/[0.02] p-4 text-sm text-muted-foreground">
-                          Search and add at least one medicine before sending to pharmacy.
+                          Search and add at least one medicine before sending to
+                          pharmacy.
                         </div>
                       ) : (
                         <div className="max-h-[280px] overflow-auto">
@@ -1725,7 +1726,9 @@ export default function ConsultationDetailPage() {
                             <thead className="sticky top-0 bg-background text-xs uppercase text-muted-foreground">
                               <tr>
                                 <th className="px-3 py-2">Medicine</th>
-                                <th className="px-3 py-2">Dose / route / frequency</th>
+                                <th className="px-3 py-2">
+                                  Dose / route / frequency
+                                </th>
                                 <th className="px-3 py-2">Duration</th>
                                 <th className="px-3 py-2">Qty</th>
                                 <th className="px-3 py-2">Stock</th>
@@ -1739,9 +1742,15 @@ export default function ConsultationDetailPage() {
                                   className="border-t border-white/10"
                                 >
                                   <td className="px-3 py-2">
-                                    <p className="font-medium">{item.medicineName}</p>
+                                    <p className="font-medium">
+                                      {item.medicineName}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                      {[item.strength, item.dosageForm, item.medicineCode]
+                                      {[
+                                        item.strength,
+                                        item.dosageForm,
+                                        item.medicineCode,
+                                      ]
                                         .filter(Boolean)
                                         .join(" / ") || "Catalog medicine"}
                                     </p>
@@ -1797,18 +1806,16 @@ export default function ConsultationDetailPage() {
                       Send Prescription to Pharmacy
                     </Button>
                   </>
-                )}
+                }
               </CardContent>
             </Card>
           </section>
-
 
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader>
                 <CardTitle>Current Consultation Prescriptions</CardTitle>
               </CardHeader>
-
 
               <CardContent className="space-y-4">
                 {consultationPrescriptionList.length === 0 ? (
@@ -1827,23 +1834,26 @@ export default function ConsultationDetailPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-semibold">{prescription.prescriptionNumber}</p>
+                          <p className="font-semibold">
+                            {prescription.prescriptionNumber}
+                          </p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            {prescription.statusCode} • {formatDate(prescription.prescribedAt)}
+                            {prescription.statusCode} •{" "}
+                            {formatDate(prescription.prescribedAt)}
                           </p>
                         </div>
-
 
                         <Button
                           type="button"
                           variant="outline"
                           className="rounded-2xl"
-                          onClick={() => setSelectedPrescriptionId(prescription.id)}
+                          onClick={() =>
+                            setSelectedPrescriptionId(prescription.id)
+                          }
                         >
                           View
                         </Button>
                       </div>
-
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         {(prescription.items ?? []).length === 0 ? (
@@ -1851,38 +1861,40 @@ export default function ConsultationDetailPage() {
                             No items yet.
                           </div>
                         ) : (
-                          prescription.items?.map((item: PrescriptionItemSummary) => (
-                            <div
-                              key={item.id}
-                              className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3"
-                            >
-                              <p className="font-medium">
-                                {item.medicineNameSnapshot ||
-                                  item.medicine?.name ||
-                                  `Medicine #${item.medicineId}`}
-                              </p>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {[
-                                  item.medicine?.strength,
-                                  item.dosage,
-                                  item.route,
-                                  item.frequency,
-                                  item.duration,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" / ") || "-"}
-                              </p>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                Qty: {item.quantity} / {item.statusCode}
-                                {item.stockStatusAtPrescribing
-                                  ? ` / ${item.stockStatusAtPrescribing}`
-                                  : ""}
-                              </p>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {item.instructions || "No instructions"}
-                              </p>
-                            </div>
-                          ))
+                          prescription.items?.map(
+                            (item: PrescriptionItemSummary) => (
+                              <div
+                                key={item.id}
+                                className="rounded-[1rem] border border-white/10 bg-card/[0.03] p-3"
+                              >
+                                <p className="font-medium">
+                                  {item.medicineNameSnapshot ||
+                                    item.medicine?.name ||
+                                    `Medicine #${item.medicineId}`}
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {[
+                                    item.medicine?.strength,
+                                    item.dosage,
+                                    item.route,
+                                    item.frequency,
+                                    item.duration,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" / ") || "-"}
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  Qty: {item.quantity} / {item.statusCode}
+                                  {item.stockStatusAtPrescribing
+                                    ? ` / ${item.stockStatusAtPrescribing}`
+                                    : ""}
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {item.instructions || "No instructions"}
+                                </p>
+                              </div>
+                            ),
+                          )
                         )}
                       </div>
                     </div>
@@ -1891,7 +1903,6 @@ export default function ConsultationDetailPage() {
               </CardContent>
             </Card>
           </section>
-
 
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
@@ -1902,10 +1913,11 @@ export default function ConsultationDetailPage() {
                 </CardTitle>
               </CardHeader>
 
-
               <CardContent className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Search Test</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Search Test
+                  </label>
                   <Input
                     value={labTestSearch}
                     onChange={(e) => setLabTestSearch(e.target.value)}
@@ -1925,13 +1937,16 @@ export default function ConsultationDetailPage() {
                     ))}
                   </select>
                   {labTestsLoading ? (
-                    <p className="mt-2 text-xs text-muted-foreground">Loading tests...</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Loading tests...
+                    </p>
                   ) : null}
                 </div>
 
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Item Instruction</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Item Instruction
+                  </label>
                   <Input
                     value={labInstruction}
                     onChange={(e) => setLabInstruction(e.target.value)}
@@ -1939,7 +1954,6 @@ export default function ConsultationDetailPage() {
                     placeholder="Special instructions for this test"
                   />
                 </div>
-
 
                 <Button
                   type="button"
@@ -1950,7 +1964,6 @@ export default function ConsultationDetailPage() {
                   <Plus className="mr-2 h-4 w-4" />
                   Add Test
                 </Button>
-
 
                 <div className="space-y-3">
                   {selectedLabItems.length === 0 ? (
@@ -1970,7 +1983,6 @@ export default function ConsultationDetailPage() {
                           </p>
                         </div>
 
-
                         <Button
                           type="button"
                           variant="ghost"
@@ -1985,9 +1997,10 @@ export default function ConsultationDetailPage() {
                   )}
                 </div>
 
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Urgency</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Urgency
+                  </label>
                   <select
                     value={labUrgency}
                     onChange={(e) => setLabUrgency(e.target.value)}
@@ -1999,9 +2012,10 @@ export default function ConsultationDetailPage() {
                   </select>
                 </div>
 
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Clinical Notes</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Clinical Notes
+                  </label>
                   <Textarea
                     value={labClinicalNotes}
                     onChange={(e) => setLabClinicalNotes(e.target.value)}
@@ -2009,7 +2023,6 @@ export default function ConsultationDetailPage() {
                     placeholder="Clinical context for the lab"
                   />
                 </div>
-
 
                 <Button
                   type="button"
@@ -2028,7 +2041,6 @@ export default function ConsultationDetailPage() {
             </Card>
           </section>
 
-
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -2045,10 +2057,11 @@ export default function ConsultationDetailPage() {
                 </Badge>
               </CardHeader>
 
-
               <CardContent className="space-y-4">
                 {labOrdersLoading ? (
-                  <div className="text-sm text-muted-foreground">Loading lab orders...</div>
+                  <div className="text-sm text-muted-foreground">
+                    Loading lab orders...
+                  </div>
                 ) : consultationLabOrders.length === 0 ? (
                   <div className="rounded-[1.2rem] border border-dashed border-white/10 bg-card/[0.02] p-5 text-sm text-muted-foreground">
                     No lab orders found for this consultation yet.
@@ -2073,15 +2086,15 @@ export default function ConsultationDetailPage() {
                           </p>
                         </div>
 
-
                         <div className="min-w-[260px] rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                          <p className="text-xs text-muted-foreground">Clinical Notes</p>
+                          <p className="text-xs text-muted-foreground">
+                            Clinical Notes
+                          </p>
                           <p className="mt-1 text-sm font-medium">
                             {order.clinicalNotes || "—"}
                           </p>
                         </div>
                       </div>
-
 
                       <div className="mt-4 space-y-3">
                         {(order.items ?? []).length === 0 ? (
@@ -2110,7 +2123,6 @@ export default function ConsultationDetailPage() {
                                 "image/",
                               );
 
-
                             return (
                               <div
                                 key={item.id}
@@ -2119,7 +2131,8 @@ export default function ConsultationDetailPage() {
                                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                   <div className="space-y-2">
                                     <p className="font-medium">
-                                      {item.test?.testName || `Test #${item.testId}`}
+                                      {item.test?.testName ||
+                                        `Test #${item.testId}`}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                       Item Status: {item.status}
@@ -2129,7 +2142,6 @@ export default function ConsultationDetailPage() {
                                     </p>
                                   </div>
 
-
                                   <Badge
                                     className={`rounded-full border px-3 py-1 ${
                                       item.status === "RESULTED"
@@ -2137,23 +2149,27 @@ export default function ConsultationDetailPage() {
                                         : "border-amber-500/20 bg-amber-500/10 text-amber-300"
                                     }`}
                                   >
-                                    {item.status === "RESULTED" ? "Resulted" : "Pending"}
+                                    {item.status === "RESULTED"
+                                      ? "Resulted"
+                                      : "Pending"}
                                   </Badge>
                                 </div>
 
-
                                 <div className="mt-4 rounded-[1rem] border border-white/10 bg-black/10 p-3">
-                                  <p className="text-xs text-muted-foreground">Result Value</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Result Value
+                                  </p>
                                   <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
-                                    {itemResult?.resultValue || "No result recorded yet."}
+                                    {itemResult?.resultValue ||
+                                      "No result recorded yet."}
                                   </p>
 
-
-                                  <p className="mt-3 text-xs text-muted-foreground">Remarks</p>
+                                  <p className="mt-3 text-xs text-muted-foreground">
+                                    Remarks
+                                  </p>
                                   <p className="mt-1 whitespace-pre-wrap text-sm font-medium">
                                     {itemResult?.remarks || "—"}
                                   </p>
-
 
                                   <p className="mt-3 text-xs text-muted-foreground">
                                     Recorded At
@@ -2201,7 +2217,8 @@ export default function ConsultationDetailPage() {
                                           className="max-h-[520px] w-full rounded-xl border border-white/10 object-contain"
                                         />
                                       ) : null}
-                                      {!isPdfAttachment && !isImageAttachment ? (
+                                      {!isPdfAttachment &&
+                                      !isImageAttachment ? (
                                         <p className="text-sm text-muted-foreground">
                                           This file type opens in a new tab.
                                         </p>
@@ -2221,7 +2238,6 @@ export default function ConsultationDetailPage() {
             </Card>
           </section>
 
-
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -2230,10 +2246,11 @@ export default function ConsultationDetailPage() {
                   Past Patient Consultations
                 </CardTitle>
                 <Badge className="rounded-full border-0 bg-cyan-600/10 px-3 py-1 text-cyan-300">
-                  {historyLoading ? "Loading..." : `${patientHistory.length} previous`}
+                  {historyLoading
+                    ? "Loading..."
+                    : `${patientHistory.length} previous`}
                 </Badge>
               </CardHeader>
-
 
               <CardContent className="space-y-4">
                 {historyLoading ? (
@@ -2252,9 +2269,15 @@ export default function ConsultationDetailPage() {
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
-                          <p className="font-semibold">{item.consultationNumber}</p>
+                          <p className="font-semibold">
+                            {item.consultationNumber}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            Date: {formatDate(item.completedAt || item.appointment?.appointmentDate)}
+                            Date:{" "}
+                            {formatDate(
+                              item.completedAt ||
+                                item.appointment?.appointmentDate,
+                            )}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Doctor:{" "}
@@ -2267,11 +2290,16 @@ export default function ConsultationDetailPage() {
                           </p>
                         </div>
 
-
                         <div className="min-w-[220px] rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
-                          <p className="text-xs text-muted-foreground">Diagnosis</p>
-                          <p className="mt-1 text-sm font-medium">{item.diagnosis || "—"}</p>
-                          <p className="mt-3 text-xs text-muted-foreground">Treatment Plan</p>
+                          <p className="text-xs text-muted-foreground">
+                            Diagnosis
+                          </p>
+                          <p className="mt-1 text-sm font-medium">
+                            {item.diagnosis || "—"}
+                          </p>
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            Treatment Plan
+                          </p>
                           <p className="mt-1 text-sm font-medium">
                             {item.treatmentPlan || "—"}
                           </p>
@@ -2283,7 +2311,6 @@ export default function ConsultationDetailPage() {
               </CardContent>
             </Card>
           </section>
-
 
           <section>
             <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
@@ -2298,7 +2325,6 @@ export default function ConsultationDetailPage() {
                     : `${patientPrescriptionHistory.length} previous`}
                 </Badge>
               </CardHeader>
-
 
               <CardContent className="space-y-4">
                 {patientPrescriptionsLoading ? (
@@ -2317,13 +2343,18 @@ export default function ConsultationDetailPage() {
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="space-y-2">
-                          <p className="font-semibold">{prescription.prescriptionNumber}</p>
+                          <p className="font-semibold">
+                            {prescription.prescriptionNumber}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             Date: {formatDate(prescription.prescribedAt)}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Prescriber:{" "}
-                            {[prescription.prescribedBy?.firstName, prescription.prescribedBy?.lastName]
+                            {[
+                              prescription.prescribedBy?.firstName,
+                              prescription.prescribedBy?.lastName,
+                            ]
                               .filter(Boolean)
                               .join(" ") || "—"}
                           </p>
@@ -2332,23 +2363,32 @@ export default function ConsultationDetailPage() {
                           </p>
                         </div>
 
-
                         <div className="min-w-[260px] space-y-2 rounded-[1rem] border border-white/10 bg-card/[0.03] p-3">
                           {(prescription.items ?? []).length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No items</p>
+                            <p className="text-sm text-muted-foreground">
+                              No items
+                            </p>
                           ) : (
-                            prescription.items?.map((item: PrescriptionItemSummary) => (
-                              <div key={item.id}>
-                                <p className="text-sm font-medium">
-                                  {item.medicine?.name || `Medicine #${item.medicineId}`}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {[item.medicine?.strength, item.dosage, item.frequency, item.duration]
-                                    .filter(Boolean)
-                                    .join(" • ") || "—"}
-                                </p>
-                              </div>
-                            ))
+                            prescription.items?.map(
+                              (item: PrescriptionItemSummary) => (
+                                <div key={item.id}>
+                                  <p className="text-sm font-medium">
+                                    {item.medicine?.name ||
+                                      `Medicine #${item.medicineId}`}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {[
+                                      item.medicine?.strength,
+                                      item.dosage,
+                                      item.frequency,
+                                      item.duration,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" • ") || "—"}
+                                  </p>
+                                </div>
+                              ),
+                            )
                           )}
                         </div>
                       </div>

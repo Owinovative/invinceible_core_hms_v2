@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   CheckCircle2,
   Filter,
   Loader2,
   PlayCircle,
+  RefreshCw,
   Stethoscope,
   UserRound,
 } from "lucide-react";
@@ -62,9 +64,16 @@ function priorityTone(priority?: string | null) {
 }
 
 export default function DoctorQueuePage() {
+  const router = useRouter();
   const { facilityName, selectedBranchName } = useScope();
   const { user } = useAuth();
-  const { data: triageData, isLoading } = useReadyForDoctorTriage();
+  const {
+    data: triageData,
+    isLoading,
+    isError: isTriageError,
+    error: triageError,
+    refetch: refetchTriage,
+  } = useReadyForDoctorTriage();
   const { data: consultationData } = useConsultations();
   const { data: staffData } = useStaff();
   const createConsultationMutation = useCreateConsultation();
@@ -93,6 +102,7 @@ export default function DoctorQueuePage() {
   const [myPatientsOnly, setMyPatientsOnly] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState<string | null>(null);
   const [createdConsultationId, setCreatedConsultationId] = React.useState<
     number | null
   >(null);
@@ -190,25 +200,27 @@ export default function DoctorQueuePage() {
   React.useEffect(() => {
     setCreatedConsultationId(null);
     setMessage(null);
+    setActionError(null);
   }, [selectedCase?.id]);
 
   const handleStartConsultation = async () => {
     if (!selectedCase) return;
 
     if (!selectedCase.appointmentId) {
-      setMessage("This triage case has no appointment yet.");
+      setActionError("This triage case has no appointment yet.");
       return;
     }
 
     const doctorId = selectedCase.routedDoctorId;
     if (!doctorId) {
-      setMessage(
+      setActionError(
         "This patient has not been routed to a doctor yet from triage.",
       );
       return;
     }
 
     setMessage(null);
+    setActionError(null);
     setCreatedConsultationId(null);
 
     const year = new Date().getFullYear();
@@ -216,19 +228,28 @@ export default function DoctorQueuePage() {
       .toString()
       .slice(-4)}`;
 
-    const created = await createConsultationMutation.mutateAsync({
-      consultationNumber,
-      appointmentId: selectedCase.appointmentId,
-      patientId: selectedCase.patientId,
-      doctorId,
-      chiefComplaint: selectedCase.chiefComplaint || undefined,
-      statusCode: "IN_PROGRESS",
-    });
+    try {
+      const created = await createConsultationMutation.mutateAsync({
+        consultationNumber,
+        appointmentId: selectedCase.appointmentId,
+        patientId: selectedCase.patientId,
+        doctorId,
+        chiefComplaint: selectedCase.chiefComplaint || undefined,
+        statusCode: "IN_PROGRESS",
+      });
 
-    setCreatedConsultationId(created.id);
-    setMessage(
-      `Consultation started successfully. Consultation No: ${created.consultationNumber}`,
-    );
+      setCreatedConsultationId(created.id);
+      setMessage(
+        `Consultation started successfully. Consultation No: ${created.consultationNumber}`,
+      );
+      router.push(`/consultation/${created.id}`);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "The consultation could not be started.",
+      );
+    }
   };
 
   return (
@@ -301,6 +322,33 @@ export default function DoctorQueuePage() {
       {message ? (
         <div className="rounded-[1.4rem] border border-cyan-500/20 bg-cyan-500/8 px-4 py-4 text-sm text-cyan-300">
           {message}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="rounded-[1.4rem] border border-red-500/30 bg-red-500/8 px-4 py-4 text-sm text-red-300">
+          {actionError}
+        </div>
+      ) : null}
+
+      {isTriageError ? (
+        <div className="flex flex-col gap-3 rounded-[1.4rem] border border-red-500/30 bg-red-500/8 px-4 py-4 text-sm text-red-300 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+            <span>
+              {triageError instanceof Error
+                ? triageError.message
+                : "The doctor queue could not be loaded."}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void refetchTriage()}
+            className="inline-flex items-center gap-2 self-start rounded-xl border border-red-500/30 px-3 py-2 font-semibold sm:self-auto"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
         </div>
       ) : null}
 

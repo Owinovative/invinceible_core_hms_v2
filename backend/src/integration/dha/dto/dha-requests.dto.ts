@@ -1,15 +1,30 @@
 import {
   IsBoolean,
   IsInt,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+import { DHA_ELIGIBILITY_IDENTIFICATION_TYPES } from '../dha.types';
 
 export class VerifyPatientDto {
-  @ValidateIf((dto: VerifyPatientDto) => !dto.shaNumber && !dto.patientNumber)
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  identificationNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  identificationType?: string;
+
+  @ValidateIf(
+    (dto: VerifyPatientDto) =>
+      !dto.identificationNumber && !dto.shaNumber && !dto.patientNumber,
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)
@@ -32,10 +47,29 @@ export class VerifyPatientDto {
 }
 
 export class VerifyPractitionerDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  registrationNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  practitionerId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  identificationType?: string;
+
+  @ValidateIf(
+    (dto: VerifyPractitionerDto) =>
+      !dto.registrationNumber && !dto.practitionerId,
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
-  registrationNumber: string;
+  identificationNumber?: string;
 
   @IsOptional()
   @IsString()
@@ -51,13 +85,29 @@ export class VerifyFacilityDto {
 }
 
 export class CheckEligibilityDto {
-  @ValidateIf((dto: CheckEligibilityDto) => !dto.nationalId)
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  identificationNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(DHA_ELIGIBILITY_IDENTIFICATION_TYPES)
+  @MaxLength(80)
+  identificationType?: string;
+
+  @ValidateIf(
+    (dto: CheckEligibilityDto) => !dto.identificationNumber && !dto.nationalId,
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)
   memberNumber?: string;
 
-  @ValidateIf((dto: CheckEligibilityDto) => !dto.memberNumber)
+  @ValidateIf(
+    (dto: CheckEligibilityDto) =>
+      !dto.identificationNumber && !dto.memberNumber,
+  )
   @IsString()
   @IsNotEmpty()
   @MaxLength(30)

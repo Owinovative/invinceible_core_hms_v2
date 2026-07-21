@@ -38,6 +38,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           className={className}
@@ -53,7 +54,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         {options.map((option) => (
           <DropdownMenuItem
             key={option.value}
-            onClick={() => setPreference(option.value)}
+            onSelect={() => setPreference(option.value)}
           >
             <option.icon aria-hidden />
             {option.label}

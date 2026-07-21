@@ -59,8 +59,7 @@ const facilitySchema = z.object({
   showPochiOnInvoice: z.boolean().optional(),
   shaFidCode: z.string().optional(),
   shaClaimStartNumber: z.string().optional(),
-  shaClientId: z.string().optional(),
-  shaClientSecret: z.string().optional(),
+  dhaFacilityId: z.string().optional(),
   etimsTin: z.string().optional(),
   etimsBranchId: z.string().optional(),
   etimsCmcKey: z.string().optional(),
@@ -71,7 +70,9 @@ type FacilityFormValues = z.infer<typeof facilitySchema>;
 
 export function CreateFacilityForm() {
   const createFacilityMutation = useCreateFacility();
-  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(
+    null,
+  );
   const [createdCode, setCreatedCode] = React.useState<string | null>(null);
 
   const form = useForm<FacilityFormValues>({
@@ -116,8 +117,7 @@ export function CreateFacilityForm() {
       showPochiOnInvoice: true,
       shaFidCode: "",
       shaClaimStartNumber: "1",
-      shaClientId: "",
-      shaClientSecret: "",
+      dhaFacilityId: "",
       etimsTin: "",
       etimsBranchId: "00",
       etimsCmcKey: "",
@@ -173,8 +173,8 @@ export function CreateFacilityForm() {
         shaFidCode: values.shaFidCode || undefined,
         shaClaimStartNumber: Number(values.shaClaimStartNumber || 1),
         shaClaimNextNumber: Number(values.shaClaimStartNumber || 1),
-        shaClientId: values.shaClientId || undefined,
-        shaClientSecret: values.shaClientSecret || undefined,
+        dhaFacilityId: values.dhaFacilityId || undefined,
+        dhaFacilityIdType: values.dhaFacilityId ? "fr-code" : undefined,
         etimsTin: values.etimsTin || undefined,
         etimsBranchId: values.etimsBranchId || undefined,
         etimsCmcKey: values.etimsCmcKey || undefined,
@@ -227,8 +227,7 @@ export function CreateFacilityForm() {
         showPochiOnInvoice: true,
         shaFidCode: "",
         shaClaimStartNumber: "1",
-        shaClientId: "",
-        shaClientSecret: "",
+        dhaFacilityId: "",
         etimsTin: "",
         etimsBranchId: "00",
         etimsCmcKey: "",
@@ -246,11 +245,21 @@ export function CreateFacilityForm() {
     navigator.geolocation.getCurrentPosition((position) => {
       const latitude = String(Number(position.coords.latitude.toFixed(7)));
       const longitude = String(Number(position.coords.longitude.toFixed(7)));
-      form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true });
-      form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true });
-      form.setValue("googleMapsUrl", `https://www.google.com/maps?q=${latitude},${longitude}`, {
+      form.setValue("latitude", latitude, {
         shouldDirty: true,
+        shouldValidate: true,
       });
+      form.setValue("longitude", longitude, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      form.setValue(
+        "googleMapsUrl",
+        `https://www.google.com/maps?q=${latitude},${longitude}`,
+        {
+          shouldDirty: true,
+        },
+      );
     });
   };
 
@@ -291,7 +300,10 @@ export function CreateFacilityForm() {
 
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 md:grid-cols-2">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="grid gap-5 md:grid-cols-2"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -299,7 +311,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Facility Name</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Invinceible Core Hospital" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Invinceible Core Hospital"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -313,7 +329,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Facility Type</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Hospital, Clinic, Medical Centre..." {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Hospital, Clinic, Medical Centre..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -327,7 +347,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>County</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Nairobi" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Nairobi"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -341,7 +365,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Town</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Westlands" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Westlands"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -369,7 +397,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Primary Phone</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="+254..." {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="+254..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -383,7 +415,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Alternative Phone</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="+254..." {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="+254..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -397,7 +433,12 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" type="email" placeholder="info@example.com" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      type="email"
+                      placeholder="info@example.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -411,7 +452,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Website</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="https://example.com" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="https://example.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -425,7 +470,11 @@ export function CreateFacilityForm() {
                 <FormItem className="md:col-span-2">
                   <FormLabel>Physical Address</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Street, building, area..." {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Street, building, area..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -542,7 +591,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Currency</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="KES" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="KES"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -584,7 +637,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>M-PESA Account Number</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Account shown on invoice" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Account shown on invoice"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -631,7 +688,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Latitude</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="-1.2921" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="-1.2921"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -645,7 +706,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Longitude</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="36.8219" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="36.8219"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -659,7 +724,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Location Label</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="Building, estate, landmark" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="Building, estate, landmark"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -673,7 +742,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Google Maps URL</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="https://www.google.com/maps?q=..." {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="https://www.google.com/maps?q=..."
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -703,7 +776,11 @@ export function CreateFacilityForm() {
                 <FormItem>
                   <FormLabel>Pochi La Biashara</FormLabel>
                   <FormControl>
-                    <Input className="h-11 rounded-xl" placeholder="Optional Pochi number" {...field} />
+                    <Input
+                      className="h-11 rounded-xl"
+                      placeholder="Optional Pochi number"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -714,7 +791,8 @@ export function CreateFacilityForm() {
               <p className="font-semibold">Facility Daraja setup</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Use these only when this facility has its own Safaricom app.
-                Empty credential fields fall back to backend environment variables.
+                Empty credential fields fall back to backend environment
+                variables.
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField
@@ -725,7 +803,9 @@ export function CreateFacilityForm() {
                       <input
                         type="checkbox"
                         checked={Boolean(field.value)}
-                        onChange={(event) => field.onChange(event.target.checked)}
+                        onChange={(event) =>
+                          field.onChange(event.target.checked)
+                        }
                       />
                       Enable Daraja for this facility
                     </label>
@@ -738,7 +818,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Environment</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="sandbox or production" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="sandbox or production"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -751,7 +835,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Consumer Key</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" autoComplete="off" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          autoComplete="off"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -764,7 +852,12 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Consumer Secret</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          type="password"
+                          autoComplete="new-password"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -777,7 +870,12 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Lipa na M-PESA Passkey</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          type="password"
+                          autoComplete="new-password"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -790,7 +888,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Transaction Type</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="CustomerPayBillOnline" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="CustomerPayBillOnline"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -803,7 +905,11 @@ export function CreateFacilityForm() {
                     <FormItem className="md:col-span-2">
                       <FormLabel>Callback URL</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="https://your-backend.example.com/billing/payments/mpesa/callback" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="https://your-backend.example.com/billing/payments/mpesa/callback"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -859,7 +965,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>SHA FID Code</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="FID..." {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="FID..."
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -872,7 +982,12 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Starting Claim Number</FormLabel>
                       <FormControl>
-                        <Input type="number" min="1" className="h-11 rounded-xl" {...field} />
+                        <Input
+                          type="number"
+                          min="1"
+                          className="h-11 rounded-xl"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -881,40 +996,44 @@ export function CreateFacilityForm() {
               </div>
             </div>
 
-            {/* SHA / DHA API Credentials */}
+            {/* DHA Facility Registry identity */}
             <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
-              <p className="font-semibold">SHA / DHA API credentials</p>
+              <p className="font-semibold">DHA Facility Registry identity</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                OAuth2 client credentials issued by the Digital Health Agency for this facility.
-                Leave empty to fall back to the global DHA credentials.
+                Enter the verified Facility Registry ID issued by DHA. OAuth
+                credentials are managed only through the deployment secret
+                manager and are never stored in facility records.
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="shaClientId"
+                  name="dhaFacilityId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>DHA Client ID</FormLabel>
+                      <FormLabel>Facility Registry ID</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" autoComplete="off" placeholder="client_id issued by DHA" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          autoComplete="off"
+                          placeholder="FID-xx-xxxxxx-x"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="shaClientSecret"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>DHA Client Secret</FormLabel>
-                      <FormControl>
-                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" placeholder="client_secret issued by DHA" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormItem>
+                  <FormLabel>Identifier Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      className="h-11 rounded-xl"
+                      value="fr-code"
+                      disabled
+                      readOnly
+                    />
+                  </FormControl>
+                </FormItem>
               </div>
             </div>
 
@@ -922,8 +1041,8 @@ export function CreateFacilityForm() {
             <div className="rounded-xl border bg-background/65 p-4 md:col-span-2">
               <p className="font-semibold">KRA eTIMS credentials</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                OSCU device credentials issued by KRA for this facility.
-                Leave empty to fall back to the global eTIMS credentials.
+                OSCU device credentials issued by KRA for this facility. Leave
+                empty to fall back to the global eTIMS credentials.
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField
@@ -933,7 +1052,12 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>KRA Tax PIN (TIN)</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" autoComplete="off" placeholder="P0012345678A" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          autoComplete="off"
+                          placeholder="P0012345678A"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -946,7 +1070,11 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Branch ID (BHF ID)</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" placeholder="00" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          placeholder="00"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -959,7 +1087,12 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>Device Serial Number</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" autoComplete="off" placeholder="Serial from KRA OSCU device" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          autoComplete="off"
+                          placeholder="Serial from KRA OSCU device"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -972,7 +1105,13 @@ export function CreateFacilityForm() {
                     <FormItem>
                       <FormLabel>CMC Key</FormLabel>
                       <FormControl>
-                        <Input className="h-11 rounded-xl" type="password" autoComplete="new-password" placeholder="Issued during OSCU initialization" {...field} />
+                        <Input
+                          className="h-11 rounded-xl"
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder="Issued during OSCU initialization"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1005,7 +1144,9 @@ export function CreateFacilityForm() {
                 disabled={createFacilityMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {createFacilityMutation.isPending ? "Saving..." : "Create Facility"}
+                {createFacilityMutation.isPending
+                  ? "Saving..."
+                  : "Create Facility"}
               </Button>
             </div>
           </form>

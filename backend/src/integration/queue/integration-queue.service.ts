@@ -251,24 +251,10 @@ export class IntegrationQueueService {
     return result.count === 1;
   }
 
-  async requeueDeadLetterScoped(
-    id: number,
-    user: RequestUser,
-  ): Promise<boolean> {
-    const scope = this.getScope(user);
-    const result = await this.prisma.integrationOutboundRequest.updateMany({
-      where: { id, status: OUTBOUND_STATUS.DEAD_LETTER, ...scope },
-      data: {
-        status: OUTBOUND_STATUS.PENDING,
-        attemptCount: 0,
-        nextAttemptAt: new Date(),
-        lastError: null,
-      },
-    });
-    return result.count === 1;
-  }
-
-  async getStats(integration?: string): Promise<
+  async getStats(
+    integration?: string,
+    scope: Prisma.IntegrationOutboundRequestWhereInput = {},
+  ): Promise<
     Array<{
       integration: string;
       operation: string;
@@ -279,7 +265,10 @@ export class IntegrationQueueService {
     const groups = await this.prisma.integrationOutboundRequest.groupBy({
       by: ['integration', 'operation', 'status'],
       _count: { _all: true },
-      ...(integration ? { where: { integration } } : {}),
+      where: {
+        ...scope,
+        ...(integration ? { integration } : {}),
+      },
     });
     return groups.map((group) => ({
       integration: group.integration,

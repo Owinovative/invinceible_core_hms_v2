@@ -195,21 +195,27 @@ export class CreateFacilityDto {
   shaFidCode?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  dhaFacilityId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  dhaFacilityIdType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  dhaRegistryStatus?: string;
+
+  @IsOptional()
   @IsNumber()
   shaClaimStartNumber?: number;
 
   @IsOptional()
   @IsNumber()
   shaClaimNextNumber?: number;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  shaClientId?: string;
-
-  @IsOptional()
-  @IsString()
-  shaClientSecret?: string;
 
   @IsOptional()
   @IsString()

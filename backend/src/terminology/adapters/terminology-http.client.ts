@@ -6,7 +6,6 @@ import { INTEGRATION_NAMES } from '../../integration/integration.constants';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
 import { TokenManager } from '../../integration/token/token-manager';
 import { DhaApiError } from '../../integration/dha/dha.types';
-import { PrismaService } from '../../prisma/prisma.service';
 import type {
   TerminologyConceptQuery,
   TerminologyPaginatedResponse,
@@ -21,7 +20,6 @@ export class TerminologyHttpClient {
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
     private readonly logger: IntegrationLoggerService,
-    private readonly prisma: PrismaService,
   ) {
     this.tokenManager = new TokenManager(
       () => this.fetchToken(),
@@ -31,27 +29,29 @@ export class TerminologyHttpClient {
   }
 
   private async fetchToken() {
-    const clientId = this.config.dhaClientId;
-    const clientSecret = this.config.dhaClientSecret;
-
+    const credentials = Buffer.from(
+      `${this.config.dhaUsername}:${this.config.dhaPassword}`,
+      'utf8',
+    ).toString('base64');
     const response = await this.http.request<{
+      token?: string;
       access_token?: string;
       expires_in?: number;
     }>({
       integration: INTEGRATION_NAMES.DHA,
-      baseUrl: this.config.dhaTokenUrl || this.config.dhaBaseUrl,
-      path: this.config.dhaTokenUrl ? '' : '/oauth2/token',
-      method: 'POST',
+      baseUrl: this.config.dhaTokenUrl,
+      path: '',
+      method: 'GET',
       headers: {
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${credentials}`,
+        Accept: 'application/json',
       },
-      body: 'grant_type=client_credentials',
+      query: { key: this.config.dhaConsumerKey },
       timeoutMs: this.config.dhaTimeoutMs,
     });
 
     return {
-      accessToken: response.data?.access_token ?? '',
+      accessToken: response.data?.token ?? response.data?.access_token ?? '',
       expiresInSeconds: response.data?.expires_in ?? 300,
     };
   }

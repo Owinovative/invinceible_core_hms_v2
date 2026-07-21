@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -33,11 +34,20 @@ function getDoctorName(item: QueueItem) {
 function getStatusClass(status?: string | null) {
   const value = (status || "").toUpperCase();
 
-  if (["WAITING", "SCHEDULED", "BOOKED", "PENDING", "CHECKED_IN"].includes(value)) {
+  if (
+    [
+      "WAITING",
+      "SCHEDULED",
+      "BOOKED",
+      "PENDING",
+      "CHECKED_IN",
+      "READY_FOR_DOCTOR",
+    ].includes(value)
+  ) {
     return "bg-info-soft text-info";
   }
 
-  if (["IN_PROGRESS", "STARTED"].includes(value)) {
+  if (["IN_PROGRESS", "IN_CONSULTATION", "STARTED"].includes(value)) {
     return "bg-warning-soft text-warning";
   }
 
@@ -55,7 +65,8 @@ function getStatusClass(status?: string | null) {
 function getPriorityClass(priority?: string | null) {
   const value = (priority || "").toUpperCase();
 
-  if (["URGENT", "HIGH"].includes(value)) return "bg-destructive-soft text-destructive";
+  if (["URGENT", "HIGH"].includes(value))
+    return "bg-destructive-soft text-destructive";
   if (["MEDIUM"].includes(value)) return "bg-warning-soft text-warning";
   if (["LOW", "NORMAL"].includes(value)) return "bg-success-soft text-success";
   return "bg-info-soft text-info";
@@ -135,7 +146,7 @@ export function QueueTable({
 
       <div className="overflow-hidden rounded-[1.6rem] border surface-spotlight shadow-md">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1150px]">
+          <table className="w-full min-w-[1350px]">
             <thead className="bg-muted/40">
               <tr className="text-left">
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -158,6 +169,9 @@ export function QueueTable({
                 </th>
                 <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Priority
+                </th>
+                <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Next Step
                 </th>
               </tr>
             </thead>
@@ -193,6 +207,9 @@ export function QueueTable({
                       <td className="px-5 py-4">
                         <Skeleton className="h-6 w-20 rounded-full" />
                       </td>
+                      <td className="px-5 py-4">
+                        <Skeleton className="h-9 w-36 rounded-xl" />
+                      </td>
                     </tr>
                   ))
                 : pagedItems.map((item) => (
@@ -203,7 +220,9 @@ export function QueueTable({
                       <td className="px-5 py-4">
                         <div>
                           <p className="font-semibold">
-                            {item.queueNumber || item.appointmentNumber || `#${item.id}`}
+                            {item.queueNumber ||
+                              item.appointmentNumber ||
+                              `#${item.id}`}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {item.visitReason || "General visit"}
@@ -217,7 +236,9 @@ export function QueueTable({
                             <UserRound className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-semibold">{getPatientName(item)}</p>
+                            <p className="font-semibold">
+                              {getPatientName(item)}
+                            </p>
                             <p className="text-sm text-muted-foreground">
                               {item.patient?.patientNumber || "—"}
                             </p>
@@ -266,6 +287,26 @@ export function QueueTable({
                         >
                           {item.triagePriority || "Normal"}
                         </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        {(item.statusCode || "").toUpperCase() ===
+                        "READY_FOR_DOCTOR" ? (
+                          <Button asChild size="sm" className="rounded-xl">
+                            <Link href="/doctor-queue">
+                              Continue in Doctor Queue
+                            </Link>
+                          </Button>
+                        ) : (item.statusCode || "").toUpperCase() ===
+                          "IN_CONSULTATION" ? (
+                          <span className="text-sm font-medium text-warning">
+                            Consultation in progress
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            Waiting for next station
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

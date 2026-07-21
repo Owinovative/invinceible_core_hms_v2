@@ -16,6 +16,7 @@ export function useCreateConsultation() {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["triage"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["queue"] });
     },
   });
 }

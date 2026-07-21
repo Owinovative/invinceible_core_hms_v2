@@ -14,6 +14,7 @@ at startup by
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `PORT` | `3000` | HTTP port |
+| `API_DOCS_ENABLED` | `true` outside production; `false` in production | Exposes Swagger UI at `/api/docs` and OpenAPI JSON at `/api/docs/openapi.json` |
 | `NODE_ENV` | `development` | `production` activates stricter validation + HSTS |
 | `DATABASE_PROVIDER` | `mysql` | `mysql` or `postgresql` (selects schema + migrations) |
 | `DATABASE_URL` | — **required** | Connection string |
@@ -82,8 +83,12 @@ at startup by
 Full reference in [integrations/configuration.md](integrations/configuration.md).
 Summary: `ETIMS_ENABLED`/`ETIMS_MODE`/`ETIMS_BASE_URL`/`ETIMS_TIN`/
 `ETIMS_BHF_ID`/`ETIMS_CMC_KEY`/`ETIMS_DEVICE_SERIAL`/tax + timeout knobs;
-`DHA_ENABLED`/`DHA_MODE`/`DHA_BASE_URL`/`DHA_TOKEN_URL`/`DHA_CLIENT_ID`/
-`DHA_CLIENT_SECRET`/`DHA_API_VERSION`/`DHA_FACILITY_CODE`;
+`DHA_ENABLED`/`DHA_MODE`/`DHA_BASE_URL`/`DHA_TOKEN_URL`/`DHA_USERNAME`/
+`DHA_PASSWORD`/`DHA_CONSUMER_KEY`/`DHA_AGENT_ID`/callback credentials/
+`DHA_SPEC_VERSION`/`DHA_FACILITY_ID`/
+`DHA_FACILITY_ID_TYPE`/`DATA_ENCRYPTION_KEY`; certified production also
+requires `DHA_PRODUCTION_ACTIVATION_APPROVED` and
+`DHA_CERTIFICATION_REFERENCE`;
 `INTEGRATION_WORKER_*` and `INTEGRATION_RETRY_*` queue tuning. Live modes
 require their credentials at boot.
 

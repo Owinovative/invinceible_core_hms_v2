@@ -1,7 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import type { PrescriptionRecord } from "@/services/prescription-service";
 
-
 export interface ConsultationItem {
   id: number;
   consultationNumber: string;
@@ -12,6 +11,14 @@ export interface ConsultationItem {
   historyOfPresenting?: string | null;
   examinationFindings?: string | null;
   diagnosis?: string | null;
+  primaryDiagnosisId?: number | null;
+  primaryDiagnosis?: {
+    id: number;
+    uuid: string;
+    code: string;
+    display: string;
+    system: string;
+  } | null;
   treatmentPlan?: string | null;
   notes?: string | null;
   statusCode?: string | null;
@@ -59,7 +66,6 @@ export interface ConsultationWorkspaceResponse {
   };
 }
 
-
 export interface CreateConsultationPayload {
   consultationNumber: string;
   appointmentId: number;
@@ -69,11 +75,11 @@ export interface CreateConsultationPayload {
   historyOfPresenting?: string;
   examinationFindings?: string;
   diagnosis?: string;
+  primaryDiagnosisId?: number;
   treatmentPlan?: string;
   notes?: string;
   statusCode?: string;
 }
-
 
 export interface UpdateConsultationPayload {
   appointmentId?: number;
@@ -88,7 +94,6 @@ export interface UpdateConsultationPayload {
   completedAt?: string;
 }
 
-
 export async function createConsultation(payload: CreateConsultationPayload) {
   return apiFetch<ConsultationItem>("/consultations", {
     method: "POST",
@@ -96,13 +101,11 @@ export async function createConsultation(payload: CreateConsultationPayload) {
   });
 }
 
-
 export async function getConsultations() {
   return apiFetch<ConsultationItem[]>("/consultations", {
     method: "GET",
   });
 }
-
 
 export async function getConsultationById(id: number) {
   return apiFetch<ConsultationItem>(`/consultations/${id}`, {
@@ -116,7 +119,6 @@ export async function getConsultationWorkspace(id: number) {
     { method: "GET" },
   );
 }
-
 
 export async function updateConsultation(
   id: number,
@@ -132,7 +134,6 @@ export async function getConsultationsByPatientId(patientId: number) {
     method: "GET",
   });
 }
-
 
 export async function completeConsultation(id: number) {
   return apiFetch<ConsultationItem>(`/consultations/${id}/complete`, {

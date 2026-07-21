@@ -52,9 +52,6 @@ export class FhirValidationService {
     if (bundle.resourceType !== 'Bundle') {
       throw new BadRequestException('Root resource must be a Bundle');
     }
-    if (bundle.type !== 'transaction') {
-      throw new BadRequestException('Bundle type must be transaction');
-    }
     if (!bundle.entry || bundle.entry.length === 0) {
       throw new BadRequestException('Bundle must contain at least one entry');
     }
@@ -66,18 +63,35 @@ export class FhirValidationService {
 
     // DHA requires every transaction bundle for a claim to have a Claim resource
     if (resourceTypes.includes('Claim')) {
-      this.validateClaimTransaction(resources);
+      if (bundle.type !== 'message') {
+        throw new BadRequestException('SHA Claim Bundle type must be message');
+      }
+      this.validateClaimTransaction(bundle, resources);
     }
     if (
       resourceTypes.includes('Encounter') &&
       !resourceTypes.includes('Claim')
     ) {
+      if (bundle.type !== 'transaction' && bundle.type !== 'batch') {
+        throw new BadRequestException(
+          'Encounter Bundle type must be transaction or batch',
+        );
+      }
       this.validateEncounterTransaction(resources);
     }
   }
 
-  private validateClaimTransaction(resources: FhirResource[]): void {
-    const requiredTypes = ['Patient', 'Organization', 'Claim'];
+  private validateClaimTransaction(
+    bundle: FhirBundle,
+    resources: FhirResource[],
+  ): void {
+    const requiredTypes = [
+      'Patient',
+      'Organization',
+      'Coverage',
+      'Practitioner',
+      'Claim',
+    ];
     const types = resources.map((r) => r.resourceType);
 
     for (const req of requiredTypes) {
@@ -88,17 +102,24 @@ export class FhirValidationService {
       }
     }
 
-    interface EncounterResource {
-      resourceType: string;
-      participant?: Array<unknown>;
-    }
-    const encounter = resources.find(
-      (r) => r.resourceType === 'Encounter',
-    ) as unknown as EncounterResource;
-    if (encounter?.participant?.length && !types.includes('Practitioner')) {
+    if (!bundle.id || !bundle.timestamp || !bundle.meta?.profile?.length) {
       throw new BadRequestException(
-        'Missing required resource type for claim submission: Practitioner',
+        'SHA Claim Bundle requires id, timestamp, and meta.profile',
       );
+    }
+    const fullUrls = new Set<string>();
+    for (const [index, entry] of (bundle.entry ?? []).entries()) {
+      if (!entry.fullUrl) {
+        throw new BadRequestException(
+          `SHA Claim Bundle entry[${index}].fullUrl is required`,
+        );
+      }
+      if (fullUrls.has(entry.fullUrl)) {
+        throw new BadRequestException(
+          `SHA Claim Bundle contains duplicate fullUrl ${entry.fullUrl}`,
+        );
+      }
+      fullUrls.add(entry.fullUrl);
     }
 
     interface ClaimDiagnosis {
@@ -110,6 +131,20 @@ export class FhirValidationService {
     interface ClaimResource {
       resourceType: string;
       diagnosis?: ClaimDiagnosis[];
+      patient?: { reference?: string };
+      provider?: { reference?: string };
+      careTeam?: Array<{ provider?: { reference?: string } }>;
+      insurance?: Array<{ coverage?: { reference?: string } }>;
+      billablePeriod?: { start?: string; end?: string };
+      item?: Array<{
+        sequence?: number;
+        servicedPeriod?: { start?: string; end?: string };
+        productOrService?: {
+          coding?: Array<{ system?: string; code?: string; display?: string }>;
+        };
+        net?: { value?: number };
+      }>;
+      total?: { value?: number; currency?: string };
     }
     const claim = resources.find(
       (r) => r.resourceType === 'Claim',
@@ -131,9 +166,91 @@ export class FhirValidationService {
         primaryDiagConcept,
         'Claim.diagnosis[0].diagnosisCodeableConcept',
       );
-    } else if (!primaryDiagConcept.text) {
+      if (
+        !primaryDiagConcept.coding.some((coding) =>
+          String(coding.system ?? '')
+            .toLowerCase()
+            .includes('icd-11'),
+        )
+      ) {
+        throw new BadRequestException(
+          'Claim diagnosis must use the DHA ICD-11 coding system',
+        );
+      }
+    } else {
       throw new BadRequestException(
-        'Claim must have an ICD-11 diagnosis code with display, or at minimum diagnosis text',
+        'Claim must have an ICD-11 diagnosis code with display',
+      );
+    }
+
+    const references = [
+      claim.patient?.reference,
+      claim.provider?.reference,
+      ...(claim.careTeam ?? []).map((team) => team.provider?.reference),
+      ...(claim.insurance ?? []).map(
+        (insurance) => insurance.coverage?.reference,
+      ),
+    ].filter((reference): reference is string => Boolean(reference));
+    for (const reference of references) {
+      if (!fullUrls.has(reference)) {
+        throw new BadRequestException(
+          `Claim reference does not match a Bundle entry fullUrl: ${reference}`,
+        );
+      }
+    }
+
+    if (!claim.billablePeriod?.start || !claim.billablePeriod.end) {
+      throw new BadRequestException(
+        'Claim.billablePeriod.start and end are required',
+      );
+    }
+    if (!claim.item?.length) {
+      throw new BadRequestException(
+        'Claim must contain at least one intervention item',
+      );
+    }
+    const billableStart = claim.billablePeriod.start.slice(0, 10);
+    const billableEnd = claim.billablePeriod.end.slice(0, 10);
+    const sequences = new Set<number>();
+    let netTotal = 0;
+    for (const [index, item] of claim.item.entries()) {
+      if (!item.sequence || sequences.has(item.sequence)) {
+        throw new BadRequestException(
+          `Claim.item[${index}] requires a unique positive sequence`,
+        );
+      }
+      sequences.add(item.sequence);
+      if (!item.servicedPeriod?.start || !item.servicedPeriod.end) {
+        throw new BadRequestException(
+          `Claim.item[${index}].servicedPeriod start and end are required`,
+        );
+      }
+      const serviceStart = item.servicedPeriod.start.slice(0, 10);
+      const serviceEnd = item.servicedPeriod.end.slice(0, 10);
+      if (serviceStart < billableStart || serviceEnd > billableEnd) {
+        throw new BadRequestException(
+          `Claim.item[${index}].servicedPeriod must fall within billablePeriod`,
+        );
+      }
+      this.validateCodeableConcept(
+        item.productOrService ?? {},
+        `Claim.item[${index}].productOrService`,
+      );
+      const net = Number(item.net?.value);
+      if (!Number.isFinite(net) || net < 0) {
+        throw new BadRequestException(
+          `Claim.item[${index}].net.value must be a non-negative number`,
+        );
+      }
+      netTotal += net;
+    }
+    if (
+      !claim.total ||
+      claim.total.currency !== 'KES' ||
+      Math.abs(Number(claim.total.value) - netTotal) > 0.01
+    ) {
+      throw new BadRequestException(
+        'Claim.total in KES must equal the sum of item net amounts',
       );
     }
   }

@@ -69,6 +69,7 @@ const repositoryEnvPath = join(process.cwd(), '..', '.env');
 @Module({
   imports: [
     ConfigModule.forRoot({
+      envFilePath: backendEnvPath,
       isGlobal: true,
       // Resolve environment files from this application instead of the
       // process working directory. This supports both the backend-local

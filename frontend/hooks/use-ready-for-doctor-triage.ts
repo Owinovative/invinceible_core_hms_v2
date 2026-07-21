@@ -7,5 +7,6 @@ export function useReadyForDoctorTriage() {
   return useQuery({
     queryKey: ["triage", "ready-for-doctor"],
     queryFn: getReadyForDoctorTriage,
+    refetchInterval: 10_000,
   });
 }
