@@ -211,6 +211,21 @@ describe('DhaService', () => {
       expect(facility.result.status).toBe('VERIFIED');
     });
 
+    it('persists facility registry verification metadata when verified', async () => {
+      const facility = await service.verifyFacility(
+        { facilityCode: 'KMHFL-001' },
+        { facilityId },
+      );
+
+      expect(facility.result.status).toBe('VERIFIED');
+      const updatedFacility = prisma.facility.rows.find(
+        (row) => row.id === facilityId,
+      );
+      expect(updatedFacility?.dhaFacilityId).toBe('KMHFL-001');
+      expect(updatedFacility?.dhaRegistryStatus).toBe('VERIFIED');
+      expect(updatedFacility?.dhaRegistryVerifiedAt).toBeInstanceOf(Date);
+    });
+
     it('checks SHA eligibility through the documented eligibility query', async () => {
       const { result, transaction } = await service.checkEligibility({
         memberNumber: 'SHA-MEM-001',
