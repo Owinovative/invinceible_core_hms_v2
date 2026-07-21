@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { ScopeService } from '../../auth/scope.service';
 import type { RequestUser } from '../../auth/interfaces/request-user.interface';
 import { Permissions } from '../../auth/permissions.decorator';
 import { PermissionsGuard } from '../../auth/permissions.guard';
@@ -25,7 +27,9 @@ import {
   VerifyFacilityDto,
   VerifyPatientDto,
   VerifyPractitionerDto,
+  ExecuteDhaOperationDto,
 } from './dto/dha-requests.dto';
+import { isDhaApiOperation } from './dha-api-contract';
 
 @Controller('integrations/dha')
 @UseGuards(AuthGuard('jwt'), PermissionsGuard)
@@ -34,6 +38,7 @@ export class DhaController {
     private readonly dhaService: DhaService,
     private readonly queueService: IntegrationQueueService,
     private readonly config: IntegrationConfigService,
+    private readonly scope: ScopeService,
   ) {}
 
   private options(user: RequestUser, req: RequestWithContext) {
@@ -86,6 +91,21 @@ export class DhaController {
     return this.dhaService.verifyFacility(dto, this.options(user, req));
   }
 
+  @Post('facilities/:facilityId/verify')
+  @Permissions('billing.write')
+  verifySelectedFacility(
+    @Param('facilityId', ParseIntPipe) facilityId: number,
+    @Body() dto: VerifyFacilityDto,
+    @CurrentUser() user: RequestUser,
+    @Req() req: RequestWithContext,
+  ) {
+    this.scope.assertFacilityAccess(user, facilityId);
+    return this.dhaService.verifyFacility(dto, {
+      ...this.options(user, req),
+      facilityId,
+    });
+  }
+
   @Post('eligibility')
   @Permissions('billing.read')
   checkEligibility(
@@ -94,6 +114,24 @@ export class DhaController {
     @Req() req: RequestWithContext,
   ) {
     return this.dhaService.checkEligibility(dto, this.options(user, req));
+  }
+
+  @Post('operations/:operation')
+  @Permissions('billing.write')
+  executeApiOperation(
+    @Param('operation') operationValue: string,
+    @Body() dto: ExecuteDhaOperationDto,
+    @CurrentUser() user: RequestUser,
+    @Req() req: RequestWithContext,
+  ) {
+    if (!isDhaApiOperation(operationValue)) {
+      throw new BadRequestException('Unsupported DHA API operation');
+    }
+    return this.dhaService.executeApiOperation(operationValue, dto.payload, {
+      ...this.options(user, req),
+      patientId: dto.patientId,
+      consentAuthorizationId: dto.consentAuthorizationId,
+    });
   }
 
   @Post('consent')
@@ -148,7 +186,13 @@ export class DhaController {
   /** Poll DHA for the current status of a specific SHA claim. */
   @Get('claims/:claimId/status')
   @Permissions('billing.read')
-  pollClaimStatus(@Param('claimId', ParseIntPipe) claimId: number) {
-    return this.dhaService.pollClaimStatus(claimId);
+  pollClaimStatus(
+    @Param('claimId', ParseIntPipe) claimId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.dhaService.pollClaimStatus(
+      claimId,
+      user.homeFacilityId ?? undefined,
+    );
   }
 }

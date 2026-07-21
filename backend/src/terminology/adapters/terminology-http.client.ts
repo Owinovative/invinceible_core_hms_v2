@@ -4,8 +4,8 @@ import { IntegrationHttpError } from '../../integration/http/retry-policy';
 import { IntegrationConfigService } from '../../integration/integration-config.service';
 import { INTEGRATION_NAMES } from '../../integration/integration.constants';
 import { IntegrationLoggerService } from '../../integration/integration-logger.service';
-import { TokenManager } from '../../integration/token/token-manager';
 import { DhaApiError } from '../../integration/dha/dha.types';
+import { DhaAccessTokenService } from '../../integration/dha/dha-access-token.service';
 import type {
   TerminologyConceptQuery,
   TerminologyPaginatedResponse,
@@ -14,54 +14,19 @@ import type {
 
 @Injectable()
 export class TerminologyHttpClient {
-  private tokenManager: TokenManager;
-
   constructor(
     private readonly http: IntegrationHttpClient,
     private readonly config: IntegrationConfigService,
     private readonly logger: IntegrationLoggerService,
-  ) {
-    this.tokenManager = new TokenManager(
-      () => this.fetchToken(),
-      60,
-      this.logger,
-    );
-  }
-
-  private async fetchToken() {
-    const credentials = Buffer.from(
-      `${this.config.dhaUsername}:${this.config.dhaPassword}`,
-      'utf8',
-    ).toString('base64');
-    const response = await this.http.request<{
-      token?: string;
-      access_token?: string;
-      expires_in?: number;
-    }>({
-      integration: INTEGRATION_NAMES.DHA,
-      baseUrl: this.config.dhaTokenUrl,
-      path: '',
-      method: 'GET',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        Accept: 'application/json',
-      },
-      query: { key: this.config.dhaConsumerKey },
-      timeoutMs: this.config.dhaTimeoutMs,
-    });
-
-    return {
-      accessToken: response.data?.token ?? response.data?.access_token ?? '',
-      expiresInSeconds: response.data?.expires_in ?? 300,
-    };
-  }
+    private readonly tokens: DhaAccessTokenService,
+  ) {}
 
   private async call<T>(
     method: 'GET' | 'POST',
     path: string,
     query?: Record<string, string | number | undefined>,
   ): Promise<T> {
-    let token = await this.tokenManager.getToken();
+    let token = await this.tokens.getToken();
 
     for (let attempt = 1; ; attempt += 1) {
       try {
@@ -89,8 +54,8 @@ export class TerminologyHttpClient {
           this.logger.warn(
             'Terminology API returned 401, invalidating token and retrying',
           );
-          this.tokenManager.invalidate();
-          token = await this.tokenManager.getToken();
+          this.tokens.invalidate();
+          token = await this.tokens.getToken();
           continue;
         }
         if (error instanceof IntegrationHttpError) {

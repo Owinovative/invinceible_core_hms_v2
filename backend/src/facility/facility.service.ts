@@ -233,7 +233,6 @@ export class FacilityService {
         shaFidCode: dto.shaFidCode,
         dhaFacilityId: dto.dhaFacilityId,
         dhaFacilityIdType: dto.dhaFacilityIdType ?? 'fr-code',
-        dhaRegistryStatus: dto.dhaRegistryStatus,
         shaClaimStartNumber: dto.shaClaimStartNumber ?? 1,
         shaClaimNextNumber:
           dto.shaClaimNextNumber ?? dto.shaClaimStartNumber ?? 1,
@@ -351,6 +350,9 @@ export class FacilityService {
     }
 
     const complianceUpdate = this.buildComplianceUpdate(existing, dto);
+    const dhaIdentityChanged =
+      dto.dhaFacilityId !== undefined &&
+      dto.dhaFacilityId !== existing.dhaFacilityId;
     const secretData = {
       ...(dto.mpesaConsumerKey
         ? { mpesaConsumerKey: dto.mpesaConsumerKey }
@@ -404,7 +406,8 @@ export class FacilityService {
         shaFidCode: dto.shaFidCode,
         dhaFacilityId: dto.dhaFacilityId,
         dhaFacilityIdType: dto.dhaFacilityIdType,
-        dhaRegistryStatus: dto.dhaRegistryStatus,
+        dhaRegistryStatus: dhaIdentityChanged ? null : undefined,
+        dhaRegistryVerifiedAt: dhaIdentityChanged ? null : undefined,
         shaClaimStartNumber: dto.shaClaimStartNumber,
         shaClaimNextNumber: dto.shaClaimNextNumber,
         ...complianceUpdate,

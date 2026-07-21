@@ -25,23 +25,27 @@ export class ShrEventSubscriber {
   /**
    * Reacts to PatientRegistered to kick off the initial SHR demographic record.
    */
-  @SubscribeClinicalEvent(ClinicalEventTypes.PATIENT_REGISTERED, { isolationLevel: 'NORMAL' })
-  async onPatientRegistered(event: BaseClinicalEvent) {
+  @SubscribeClinicalEvent(ClinicalEventTypes.PATIENT_REGISTERED, {
+    isolationLevel: 'NORMAL',
+  })
+  onPatientRegistered(event: BaseClinicalEvent) {
     this.logger.log(
       `[SHR] PatientRegistered received — patient: ${event.patientId}, facility: ${event.facilityId}`,
     );
 
-    await this.shrTimeline.triggerPublication(
-      ShrPublicationTrigger.PATIENT_REGISTERED,
-      event.patientId,
-      event.encounterId ?? undefined,
+    // Registration occurs before an explicit DHA sharing authorization can
+    // exist. Publishing demographics here would violate consent-by-default.
+    this.logger.debug(
+      '[SHR] Demographic publication deferred until an authorized clinical event',
     );
   }
 
   /**
    * Reacts to TriageCompleted to publish vitals/encounter data to SHR.
    */
-  @SubscribeClinicalEvent(ClinicalEventTypes.TRIAGE_COMPLETED, { isolationLevel: 'NORMAL' })
+  @SubscribeClinicalEvent(ClinicalEventTypes.TRIAGE_COMPLETED, {
+    isolationLevel: 'NORMAL',
+  })
   async onTriageCompleted(event: BaseClinicalEvent) {
     this.logger.log(
       `[SHR] TriageCompleted received — patient: ${event.patientId}, triage: ${(event.payload as any)?.triageId}`,
@@ -57,7 +61,9 @@ export class ShrEventSubscriber {
   /**
    * Reacts to ConsultationCompleted to publish a full clinical record.
    */
-  @SubscribeClinicalEvent(ClinicalEventTypes.CONSULTATION_COMPLETED, { isolationLevel: 'NORMAL' })
+  @SubscribeClinicalEvent(ClinicalEventTypes.CONSULTATION_COMPLETED, {
+    isolationLevel: 'NORMAL',
+  })
   async onConsultationCompleted(event: BaseClinicalEvent) {
     this.logger.log(
       `[SHR] ConsultationCompleted received — patient: ${event.patientId}, encounter: ${event.encounterId}`,
@@ -74,23 +80,23 @@ export class ShrEventSubscriber {
    * Reacts to ConsentRevoked to immediately suppress/void SHR records.
    * Isolation: CRITICAL — a consent revocation must never be skipped.
    */
-  @SubscribeClinicalEvent(ClinicalEventTypes.CONSENT_REVOKED, { isolationLevel: 'CRITICAL' })
+  @SubscribeClinicalEvent(ClinicalEventTypes.CONSENT_REVOKED, {
+    isolationLevel: 'CRITICAL',
+  })
   async onConsentRevoked(event: BaseClinicalEvent) {
     this.logger.warn(
       `[SHR] ConsentRevoked received — patient: ${event.patientId}. Triggering SHR record correction.`,
     );
 
-    await this.shrTimeline.triggerPublication(
-      ShrPublicationTrigger.RECORD_VOIDED,
-      event.patientId,
-      event.encounterId ?? undefined,
-    );
+    await this.shrTimeline.suppressPatientPublications(event.patientId);
   }
 
   /**
    * Reacts to ClaimSubmitted to publish claim + encounter to SHR.
    */
-  @SubscribeClinicalEvent(ClinicalEventTypes.CLAIM_SUBMITTED, { isolationLevel: 'NORMAL' })
+  @SubscribeClinicalEvent(ClinicalEventTypes.CLAIM_SUBMITTED, {
+    isolationLevel: 'NORMAL',
+  })
   async onClaimSubmitted(event: BaseClinicalEvent) {
     this.logger.log(
       `[SHR] ClaimSubmitted received — patient: ${event.patientId}, encounter: ${event.encounterId}`,

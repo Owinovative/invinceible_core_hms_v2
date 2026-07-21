@@ -69,4 +69,32 @@ describe('QueueService active workflow statuses', () => {
       }),
     );
   });
+
+  it('loads unresolved appointments across dates in the selected branch', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = { appointment: { findMany } };
+    const scope = {
+      buildReadScope: jest
+        .fn()
+        .mockReturnValue({ facilityId: 7, branchId: { in: [3] } }),
+      assertBranchAccess: jest.fn(),
+    };
+    const service = new QueueService(prisma as never, scope as never);
+
+    await service.getFullQueueScoped(user, 3);
+
+    expect(scope.assertBranchAccess).toHaveBeenCalledWith(user, 7, 3);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          facilityId: 7,
+          branchId: 3,
+          statusCode: {
+            in: ['BOOKED', 'CHECKED_IN', 'READY_FOR_DOCTOR', 'IN_CONSULTATION'],
+          },
+        },
+      }),
+    );
+    expect(findMany.mock.calls[0][0].where.appointmentDate).toBeUndefined();
+  });
 });

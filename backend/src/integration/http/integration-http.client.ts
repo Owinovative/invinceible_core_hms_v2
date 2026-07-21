@@ -67,10 +67,20 @@ export class IntegrationHttpClient {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         let response: Response;
         try {
+          const isMultipart =
+            typeof FormData !== 'undefined' && request.body instanceof FormData;
+          const requestBody: BodyInit | undefined =
+            request.body === undefined
+              ? undefined
+              : typeof request.body === 'string'
+                ? request.body
+                : request.body instanceof FormData
+                  ? request.body
+                  : JSON.stringify(request.body);
           response = await fetch(url, {
             method: request.method,
             headers: {
-              'Content-Type': 'application/json',
+              ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
               Accept: 'application/json',
               'X-Request-Id': requestId,
               ...(request.correlationId
@@ -78,12 +88,7 @@ export class IntegrationHttpClient {
                 : {}),
               ...request.headers,
             },
-            body:
-              request.body === undefined
-                ? undefined
-                : typeof request.body === 'string'
-                  ? request.body
-                  : JSON.stringify(request.body),
+            body: requestBody,
             signal: controller.signal,
           });
         } finally {

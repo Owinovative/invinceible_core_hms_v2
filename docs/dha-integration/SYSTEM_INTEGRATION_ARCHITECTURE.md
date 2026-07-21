@@ -14,20 +14,23 @@ The Invinceible Core HMS V2 utilizes a highly resilient, offline-first integrati
 - `DhaService` routes requests to the appropriate DHA registry (Client, Facility, Practitioner) or pushes events to the `IntegrationQueueService`.
 - The queue ensures zero data loss during network outages and handles token rotation safely via the `IntegrationHttpClient`.
 
-### 2. SyncJobsModule
-A background scheduled process (using NestJS `@nestjs/schedule`) responsible for polling the DHA endpoints for asynchronous updates.
-- **Claim Polling:** Regularly checks `/ClaimResponse` for claims in the `PENDING` state and updates the local invoice status to `ACCEPTED` or `REJECTED`.
+### 2. Current eClaims contract
+Visits, preauthorization, claim lines, diagnoses, preview, submission,
+discharge and emergency workflows use a closed operation allowlist. Retired or
+undocumented routes are rejected before any network request is made.
 
 ### 3. Authentication Layer
-- Uses `DhaAuthService` to obtain an AfyaLink JWT from the configured
-  `/v1/hie-auth` endpoint using Basic credentials and a consumer key.
+- Uses the single `DhaHttpClient` adapter to obtain a token from
+  `/api/v1/tenants/token` using DHA-issued OAuth client credentials.
 - Implements an in-memory Promise mutex to prevent stampeding herd issues when refreshing tokens.
 - Tokens are aggressively cached and proactively refreshed 5 minutes before expiration.
 
-## Sequence Diagram: Claim Submission
-1. **Billing Module:** Emits `claim.submitted` event.
-2. **DhaService:** Transforms invoice to FHIR `Claim` bundle.
-3. **IntegrationQueueService:** Enqueues request to `POST /Claim`.
-4. **IntegrationWorker:** Picks up job, acquires DHA token, and sends HTTP request.
-5. **SyncJobsModule:** Periodically polls `/ClaimResponse/{id}`.
-6. **DhaController:** Listens for active webhooks on `/api/v1/dha/callbacks/claim-status`.
+## Sequence: governed DHA operation
+1. An authenticated, facility-scoped user selects a local patient and active
+   encrypted consent authorization.
+2. `DhaService` verifies patient/facility ownership and decrypts the token only
+   in memory.
+3. The allowlisted operation validates required fields and sends the request
+   through the OAuth adapter.
+4. Redacted transaction evidence is stored; OTPs and consent tokens are never
+   persisted in request/response audit payloads.

@@ -8,6 +8,8 @@ import type {
   PractitionerVerificationQuery,
 } from '../dha.types';
 import type { FhirCoverageEligibilityRequest } from '../fhir.types';
+import type { DhaApiOperation, DhaApiPayload } from '../dha-api-contract';
+import { validateDhaApiPayload } from '../dha-api-contract';
 
 /**
  * Deterministic DHA adapter used until production DHA endpoints and
@@ -27,11 +29,26 @@ export class DhaMockClient implements DhaClientPort {
     return (value ?? '').toUpperCase().includes(DhaMockClient.UNKNOWN_MARKER);
   }
 
+  executeApiOperation<T = unknown>(
+    operation: DhaApiOperation,
+    payload: DhaApiPayload,
+  ): Promise<DhaResult<T>> {
+    validateDhaApiPayload(operation, payload);
+    return Promise.resolve({
+      status: 'SUCCESS',
+      externalRef: this.ref(operation.slice(0, 8)),
+      data: {
+        mock: true,
+        operation,
+        accepted: true,
+      } as T,
+      raw: { mock: true, operation },
+    });
+  }
+
   verifyPatient(query: PatientVerificationQuery): Promise<DhaResult> {
     const unknown =
-      this.isUnknown(query.nationalId) ||
-      this.isUnknown(query.shaNumber) ||
-      this.isUnknown(query.patientNumber);
+      this.isUnknown(query.nationalId) || this.isUnknown(query.shaNumber);
     return Promise.resolve(
       unknown
         ? { status: 'NOT_FOUND', raw: { mock: true } }

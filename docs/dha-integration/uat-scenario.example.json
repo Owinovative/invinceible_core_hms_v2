@@ -1,0 +1,47 @@
+{
+  "facilityLocalId": 0,
+  "facilityCode": "REPLACE_DHA_FACILITY_FR_CODE",
+  "practitioner": { "registrationNumber": "REPLACE_UAT_WORKER_NUMBER", "board": "KMPDC" },
+  "patient": {
+    "localPatientId": 0,
+    "consentAuthorizationId": 0,
+    "registryId": "REPLACE_DHA_CLIENT_REGISTRY_ID",
+    "identificationNumber": "REPLACE_UAT_PATIENT_ID",
+    "identificationType": "National ID"
+  },
+  "phc": {
+    "interventionCode": "REPLACE_PHC_INTERVENTION",
+    "switchInterventionCode": "REPLACE_SECOND_PHC_INTERVENTION",
+    "subBenefitCode": "REPLACE_PHC_SUB_BENEFIT",
+    "visitOtp": "REPLACE_DHA_OTP",
+    "claimId": 0
+  },
+  "shif": {
+    "interventionCode": "REPLACE_SHIF_INTERVENTION",
+    "visitOtp": "REPLACE_DHA_OTP",
+    "dischargeOtp": "REPLACE_DHA_OTP",
+    "outpatientClaimId": 0,
+    "inpatientClaimId": 0
+  },
+  "preauthorization": {
+    "diagnosisCode": "REPLACE_DHA_ICD_CODE",
+    "itemCode": "REPLACE_DHA_ITEM_CODE",
+    "unitPrice": "1.00",
+    "expectedServiceStartDate": "2026-08-01",
+    "clinicalIndications": "DHA-issued UAT scenario",
+    "cancelPreauthId": "REPLACE_CREATED_PREAUTH_ID",
+    "doctor": { "identificationNumber": "REPLACE_UAT_WORKER_NUMBER", "identificationType": "registration_number", "regulationBody": "KMPDC" }
+  },
+  "emergency": {
+    "interventionCode": "REPLACE_ECCIF_INTERVENTION",
+    "modeOfArrival": "AMBULANCE",
+    "broughtBy": "PARAMEDICS",
+    "referenceNumber": "REPLACE_UNIQUE_ECCIF_REFERENCE",
+    "otp": "REPLACE_DHA_OTP"
+  },
+  "attachment": {
+    "filePath": "REPLACE_ABSOLUTE_PATH_TO_UAT_DOCUMENT",
+    "mimeType": "application/pdf",
+    "documentType": "REPLACE_DHA_DOCUMENT_TYPE"
+  }
+}

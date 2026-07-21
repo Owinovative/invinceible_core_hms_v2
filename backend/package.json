@@ -36,6 +36,8 @@
     "demo:setup-facility": "node scripts/setup-demo-facility.mjs",
     "demo:setup-staff": "node scripts/setup-demo-staff.mjs",
     "demo:setup-terminology": "node scripts/setup-demo-terminology.mjs",
+    "dha:uat": "node scripts/run-dha-uat-checklist.mjs",
+    "dha:uat:validate": "node scripts/run-dha-uat-checklist.mjs --validate-only",
     "db:backup:notes": "node scripts/render-db-backup-notes.mjs",
     "db:storage:audit": "node scripts/storage-audit.mjs",
     "db:cleanup:dry-run": "node scripts/storage-cleanup.mjs --dry-run",

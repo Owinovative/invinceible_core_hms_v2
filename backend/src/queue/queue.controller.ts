@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Param,
   ParseIntPipe,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -16,8 +18,14 @@ export class QueueController {
   constructor(private readonly queueService: QueueService) {}
 
   @Get()
-  getFullQueue(@CurrentUser() user: RequestUser) {
-    return this.queueService.getFullQueueScoped(user);
+  getFullQueue(
+    @CurrentUser() user: RequestUser,
+    @Query('branchId') branchIdValue?: string,
+  ) {
+    return this.queueService.getFullQueueScoped(
+      user,
+      this.parseBranchId(branchIdValue),
+    );
   }
 
   @Get('today')
@@ -39,7 +47,22 @@ export class QueueController {
   }
 
   @Get('stats')
-  getQueueStats(@CurrentUser() user: RequestUser) {
-    return this.queueService.getQueueStatsScoped(user);
+  getQueueStats(
+    @CurrentUser() user: RequestUser,
+    @Query('branchId') branchIdValue?: string,
+  ) {
+    return this.queueService.getQueueStatsScoped(
+      user,
+      this.parseBranchId(branchIdValue),
+    );
+  }
+
+  private parseBranchId(value?: string): number | undefined {
+    if (value === undefined || value === '') return undefined;
+    const branchId = Number(value);
+    if (!Number.isInteger(branchId) || branchId <= 0) {
+      throw new BadRequestException('branchId must be a positive integer');
+    }
+    return branchId;
   }
 }

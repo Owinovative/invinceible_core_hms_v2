@@ -9,8 +9,8 @@ import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { BillingService } from '../billing/billing.service';
-import { DhaService } from '../integration/dha/dha.service';
-import { IntegrationLoggerService } from '../integration/integration-logger.service';
+import { DhaEclaimsService } from '../integration/dha/dha-eclaims.service';
+import type { SubmitLocalShaClaimDto } from '../integration/dha/dto/eclaims-requests.dto';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import {
@@ -42,36 +42,8 @@ export class ShaClaimsService {
     private readonly scopeService: ScopeService,
     private readonly auditLogService: AuditLogService,
     private readonly billingService: BillingService,
-    private readonly dhaService: DhaService,
-    private readonly integrationLoggerService: IntegrationLoggerService,
+    private readonly dhaEclaimsService: DhaEclaimsService,
   ) {}
-
-  /**
-   * Single submission pathway: the durable outbound queue owned by
-   * DhaService. The former synchronous ClaimsIntegrationService call was
-   * removed — running both paths submitted every claim to the SHA
-   * platform twice (audit finding: CRITICAL duplicate-claim risk).
-   * Delivery, retries with backoff, and dead-lettering are handled by the
-   * integration queue; failures here must never break local claim work.
-   */
-  private async triggerDhaClaimSubmission(claimId: number, user?: RequestUser) {
-    try {
-      await this.dhaService.onShaClaimSubmitted(claimId, {
-        actorUserId: user?.userId,
-        actorStaffId: user?.staffId ?? undefined,
-      });
-    } catch (error) {
-      this.integrationLoggerService.error(
-        'Failed to queue SHA claim for DHA submission',
-        {
-          error,
-          claimId,
-          actorUserId: user?.userId,
-        },
-      );
-      // DhaService records the failure in its own transaction/audit trail.
-    }
-  }
 
   private resolveCoverageAmount(claim: {
     claimedAmount: number | Prisma.Decimal;
@@ -282,24 +254,6 @@ export class ShaClaimsService {
     return claim;
   }
 
-  private appendResubmissionMetadata(
-    claim: { statusCode: string; metadata: any },
-    userId: number,
-  ) {
-    let metadata = claim.metadata as Record<string, unknown> | null;
-    metadata = metadata || {};
-    const resubmissions = (metadata.resubmissions as unknown[]) || [];
-    metadata.resubmissions = [
-      ...resubmissions,
-      {
-        timestamp: new Date().toISOString(),
-        previousStatus: claim.statusCode,
-        actorUserId: userId,
-      },
-    ];
-    return metadata;
-  }
-
   async update(id: number, dto: UpdateShaClaimDto, user: RequestUser) {
     const claim = await this.prisma.shaClaim.findUnique({
       where: { id },
@@ -316,18 +270,15 @@ export class ShaClaimsService {
 
     const now = new Date();
     const nextStatus = dto.statusCode ?? claim.statusCode;
+    if (nextStatus === 'SUBMITTED' && claim.statusCode !== 'SUBMITTED') {
+      throw new BadRequestException(
+        'Use the DHA eClaims submission workflow to mark a claim as submitted',
+      );
+    }
     const rejectedAmount =
       nextStatus === 'REJECTED'
         ? (dto.rejectedAmount ?? dto.claimedAmount ?? claim.claimedAmount)
         : dto.rejectedAmount;
-
-    let metadata = claim.metadata as Record<string, unknown> | null;
-    if (
-      nextStatus === 'SUBMITTED' &&
-      (claim.submittedAt || claim.statusCode === 'REJECTED')
-    ) {
-      metadata = this.appendResubmissionMetadata(claim, user.userId);
-    }
 
     const finalDiagnosisId =
       dto.diagnosisConceptId !== undefined
@@ -341,7 +292,6 @@ export class ShaClaimsService {
 
     const data: Prisma.ShaClaimUpdateInput = {
       statusCode: nextStatus,
-      metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       branch:
         dto.branchId === undefined
           ? undefined
@@ -393,10 +343,6 @@ export class ShaClaimsService {
 
     await this.syncClaimPayment(updated, user);
 
-    if (nextStatus === 'SUBMITTED' && !claim.submittedAt) {
-      await this.triggerDhaClaimSubmission(updated.id, user);
-    }
-
     await this.auditLogService.create({
       moduleName: 'SHA',
       actionName: 'UPDATE_SHA_CLAIM',
@@ -414,12 +360,12 @@ export class ShaClaimsService {
     return updated;
   }
 
-  /**
-   * Manually triggers DHA submission for an existing claim.
-   * Used when a claim was created as DRAFT or when a previous submission
-   * failed and needs to be retried without changing status through the UI.
-   */
-  async submitToDha(id: number, user: RequestUser) {
+  /** Runs the current DHA visit → lines → diagnosis → preview → dispatch flow. */
+  async submitToDha(
+    id: number,
+    dto: SubmitLocalShaClaimDto,
+    user: RequestUser,
+  ) {
     const claim = await this.prisma.shaClaim.findUnique({
       where: { id },
       include: SHA_CLAIM_INCLUDE,
@@ -432,36 +378,26 @@ export class ShaClaimsService {
       claim.branchId,
     );
 
-    // Advance to SUBMITTED if still in DRAFT or REJECTED
-    let updated = claim;
-    if (claim.statusCode === 'DRAFT' || claim.statusCode === 'REJECTED') {
-      const isResubmission =
-        claim.statusCode === 'REJECTED' || !!claim.submittedAt;
-      let metadata = claim.metadata as Record<string, unknown> | null;
-
-      if (isResubmission) {
-        metadata = this.appendResubmissionMetadata(claim, user.userId);
-      }
-
-      updated = await this.prisma.shaClaim.update({
-        where: { id },
-        data: {
-          statusCode: 'SUBMITTED',
-          submittedAt: new Date(),
-          metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
-        },
-        include: SHA_CLAIM_INCLUDE,
-      });
+    if (
+      ['ACCEPTED', 'APPROVED', 'PAID', 'CANCELLED'].includes(claim.statusCode)
+    ) {
+      throw new BadRequestException(
+        `Claim ${claim.claimNumber} cannot be submitted from ${claim.statusCode}`,
+      );
     }
 
-    await this.triggerDhaClaimSubmission(updated.id, user);
+    const updated = await this.dhaEclaimsService.submitLocalClaim(
+      id,
+      dto,
+      user,
+    );
 
     await this.auditLogService.create({
       moduleName: 'SHA',
       actionName: 'SUBMIT_SHA_CLAIM_TO_DHA',
       entityType: 'SHA_CLAIM',
       entityId: String(updated.id),
-      description: `Manually triggered DHA submission for claim ${updated.claimNumber}`,
+      description: `Submitted DHA eClaim ${updated.claimNumber} through the typed workflow`,
       facilityId: updated.facilityId,
       branchId: updated.branchId ?? undefined,
       actorUserId: user.userId,

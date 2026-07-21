@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirMapperService } from '../../../integration/dha/fhir-mapper';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,9 +11,10 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class EncounterBuilder implements FhirBuilder {
   readonly resourceType = 'Encounter';
-  private readonly prisma = new PrismaClient();
-
-  constructor(private readonly fhirMapper: FhirMapperService) {}
+  constructor(
+    private readonly fhirMapper: FhirMapperService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     if (!context.encounterId) return [];
@@ -23,18 +24,24 @@ export class EncounterBuilder implements FhirBuilder {
       include: {
         doctor: true,
         primaryDiagnosis: true,
-      }
+      },
     });
 
     if (!consultation) return [];
 
-    const patientRef = context.resolvedReferences.get(`Patient/${context.patientId}`) || `Patient/${context.patientId}`;
-    const facilityRef = context.resolvedReferences.get(`Organization/${context.facilityId}`) || `Organization/${context.facilityId}`;
+    const patientRef =
+      context.resolvedReferences.get(`Patient/${context.patientId}`) ||
+      `Patient/${context.patientId}`;
+    const facilityRef =
+      context.resolvedReferences.get(`Organization/${context.facilityId}`) ||
+      `Organization/${context.facilityId}`;
 
     // Build practitioner reference if available
     let practitionerRef: string | undefined;
     if (consultation.doctorId) {
-      practitionerRef = context.resolvedReferences.get(`Practitioner/${consultation.doctorId}`);
+      practitionerRef = context.resolvedReferences.get(
+        `Practitioner/${consultation.doctorId}`,
+      );
     }
 
     const hmsEncounter = {
@@ -44,15 +51,21 @@ export class EncounterBuilder implements FhirBuilder {
       endedAt: consultation.completedAt,
       encounterClass: 'AMB' as const,
       practitionerRef,
-      primaryDiagnosis: consultation.primaryDiagnosis ? {
-        system: consultation.primaryDiagnosis.system,
-        code: consultation.primaryDiagnosis.code,
-        display: consultation.primaryDiagnosis.display,
-        version: consultation.primaryDiagnosis.version,
-      } : null,
+      primaryDiagnosis: consultation.primaryDiagnosis
+        ? {
+            system: consultation.primaryDiagnosis.system,
+            code: consultation.primaryDiagnosis.code,
+            display: consultation.primaryDiagnosis.display,
+            version: consultation.primaryDiagnosis.version,
+          }
+        : null,
     };
 
-    const fhirEncounter = this.fhirMapper.toFhirEncounter(hmsEncounter, patientRef, facilityRef);
+    const fhirEncounter = this.fhirMapper.toFhirEncounter(
+      hmsEncounter,
+      patientRef,
+      facilityRef,
+    );
     const fullUrl = `urn:uuid:${uuidv4()}`;
 
     context.resolvedReferences.set(`Encounter/${consultation.id}`, fullUrl);

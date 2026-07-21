@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class MedicationRequestBuilder implements FhirBuilder {
   readonly resourceType = 'MedicationRequest';
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     if (!context.encounterId) return [];
@@ -20,18 +20,24 @@ export class MedicationRequestBuilder implements FhirBuilder {
         prescriptions: {
           include: {
             items: {
-              include: { medicine: true }
-            }
-          }
-        }
-      }
+              include: {
+                medicine: { include: { terminologyConcept: true } },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!consultation) return [];
 
     const requests: any[] = [];
-    const patientRef = context.resolvedReferences.get(`Patient/${context.patientId}`) || `Patient/${context.patientId}`;
-    const encounterRef = context.resolvedReferences.get(`Encounter/${context.encounterId}`) || `Encounter/${context.encounterId}`;
+    const patientRef =
+      context.resolvedReferences.get(`Patient/${context.patientId}`) ||
+      `Patient/${context.patientId}`;
+    const encounterRef =
+      context.resolvedReferences.get(`Encounter/${context.encounterId}`) ||
+      `Encounter/${context.encounterId}`;
     const practitionerRef = consultation.doctorId
       ? context.resolvedReferences.get(`Practitioner/${consultation.doctorId}`)
       : undefined;
@@ -46,16 +52,33 @@ export class MedicationRequestBuilder implements FhirBuilder {
           status: 'active',
           intent: 'order',
           medicationCodeableConcept: {
+            coding: item.medicine?.terminologyConcept
+              ? [
+                  {
+                    system: item.medicine.terminologyConcept.system,
+                    code: item.medicine.terminologyConcept.code,
+                    display: item.medicine.terminologyConcept.display,
+                  },
+                ]
+              : undefined,
             text: item.medicine?.name || item.medicineNameSnapshot || 'Unknown',
           },
           subject: { reference: patientRef },
           encounter: { reference: encounterRef },
-          requester: practitionerRef ? { reference: practitionerRef } : undefined,
-          dosageInstruction: item.dosage ? [{
-            text: item.dosage,
-            timing: item.frequency ? { code: { text: item.frequency } } : undefined,
-            route: item.route ? { text: item.route } : undefined,
-          }] : undefined,
+          requester: practitionerRef
+            ? { reference: practitionerRef }
+            : undefined,
+          dosageInstruction: item.dosage
+            ? [
+                {
+                  text: item.dosage,
+                  timing: item.frequency
+                    ? { code: { text: item.frequency } }
+                    : undefined,
+                  route: item.route ? { text: item.route } : undefined,
+                },
+              ]
+            : undefined,
           dispenseRequest: {
             quantity: { value: item.quantity || 1 },
             numberOfRepeatsAllowed: 0,

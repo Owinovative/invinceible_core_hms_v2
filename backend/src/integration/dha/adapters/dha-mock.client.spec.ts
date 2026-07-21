@@ -61,4 +61,38 @@ describe('DhaMockClient', () => {
     expect((await client.submitClaim()).externalRef).toMatch(/^CLM-/);
     expect((await client.submitAuditEvent()).externalRef).toMatch(/^AUD-/);
   });
+
+  it('supports the closed DHA API operation catalogue in mock mode', async () => {
+    const result = await client.executeApiOperation('BENEFITS', {
+      patient_id: 'CR-123',
+    });
+
+    expect(result).toMatchObject({
+      status: 'SUCCESS',
+      data: {
+        mock: true,
+        operation: 'BENEFITS',
+        accepted: true,
+      },
+    });
+    expect(result.externalRef).toMatch(/^BENEFITS-MOCK-/);
+  });
+
+  it('returns deterministic mock responses for visit authorization helpers', async () => {
+    expect((await client.getPatientContacts()).data).toEqual([
+      expect.objectContaining({ relationship: 'SELF' }),
+    ]);
+    expect((await client.sendVisitOtp()).externalRef).toMatch(/^OTP-/);
+
+    const authorization = await client.createAuthorization();
+    expect(authorization.externalRef).toMatch(/^AUTH-/);
+    expect(authorization.data).toEqual(
+      expect.objectContaining({ consentToken: 'mock-token' }),
+    );
+
+    expect((await client.sendDischargeOtp()).externalRef).toMatch(/^OTP-/);
+    expect((await client.pollClaimResponse('SHA-1')).externalRef).toMatch(
+      /^CLR-/,
+    );
+  });
 });

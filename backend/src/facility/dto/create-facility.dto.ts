@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsEmail,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -201,13 +202,9 @@ export class CreateFacilityDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(['fr-code'])
   @MaxLength(40)
   dhaFacilityIdType?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(40)
-  dhaRegistryStatus?: string;
 
   @IsOptional()
   @IsNumber()

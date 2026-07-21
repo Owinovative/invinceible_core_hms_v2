@@ -20,6 +20,7 @@ import { PermissionsGuard } from '../auth/permissions.guard';
 import { CreateShaClaimDto } from './dto/create-sha-claim.dto';
 import { UpdateShaClaimDto } from './dto/update-sha-claim.dto';
 import { ShaClaimsService } from './sha-claims.service';
+import { SubmitLocalShaClaimDto } from '../integration/dha/dto/eclaims-requests.dto';
 
 @Controller('sha-claims')
 @UseGuards(AuthGuard('jwt'))
@@ -93,17 +94,17 @@ export class ShaClaimsController {
   }
 
   /**
-   * Manually trigger DHA submission for a claim that is in DRAFT or
-   * has previously failed. Idempotent — the outbound queue deduplicates
-   * via idempotency keys so re-triggering is safe.
+   * Execute the typed DHA visit, billing, diagnosis, preview and dispatch
+   * lifecycle. The service persists resumable checkpoints between steps.
    */
   @Post(':id/submit-to-dha')
   @UseGuards(PermissionsGuard)
   @Permissions('billing.read')
   submitToDha(
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SubmitLocalShaClaimDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.shaClaimsService.submitToDha(id, user);
+    return this.shaClaimsService.submitToDha(id, dto, user);
   }
 }

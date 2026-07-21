@@ -1,12 +1,10 @@
 import {
   Injectable,
-  Inject,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DHA_CLIENT } from '../integration/integration.constants';
-import type { DhaClientPort } from '../integration/dha/dha.types';
+import { DhaService } from '../integration/dha/dha.service';
 import {
   SendOtpDto,
   VerifyOtpDto,
@@ -21,7 +19,7 @@ import { Prisma } from '@prisma/client';
 export class ConsentService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(DHA_CLIENT) private readonly dhaClient: DhaClientPort,
+    private readonly dhaService: DhaService,
     private readonly scope: ScopeService,
     private readonly cipher: SensitiveDataCipherService,
   ) {}
@@ -52,10 +50,12 @@ export class ConsentService {
   async getContacts(patientId: string, user: RequestUser) {
     const patient = await this.getScopedPatient(patientId, user);
 
-    const response = await this.dhaClient.getPatientContacts(
+    const response = await this.dhaService.getPatientContacts(
       patient.shaMemberNumber,
       {
         facilityId: user.homeFacilityId || undefined,
+        patientId: patient.id,
+        actorUserId: user.userId,
       },
     );
 
@@ -75,13 +75,17 @@ export class ConsentService {
   async sendVisitOtp(dto: SendOtpDto, user: RequestUser) {
     const patient = await this.getScopedPatient(dto.patientId, user);
 
-    const response = await this.dhaClient.sendVisitOtp(
+    const response = await this.dhaService.sendVisitOtp(
       {
         patient_id: patient.shaMemberNumber,
         intervention_codes: dto.interventionCodes,
         contact_id: dto.contactId,
       },
-      { facilityId: user.homeFacilityId || undefined },
+      {
+        facilityId: user.homeFacilityId || undefined,
+        patientId: patient.id,
+        actorUserId: user.userId,
+      },
     );
 
     if (!response.data || !response.data.consent_request_id) {
@@ -129,7 +133,7 @@ export class ConsentService {
     }
 
     try {
-      const response = await this.dhaClient.createAuthorization(
+      const response = await this.dhaService.authorizeVisit(
         {
           patient_id: patient.shaMemberNumber,
           consent_request_id: pendingRequest.dhaConsentRequestId,
@@ -137,7 +141,11 @@ export class ConsentService {
           intervention_codes: dto.interventionCodes,
           service_type: dto.serviceType,
         },
-        { facilityId: user.homeFacilityId || undefined },
+        {
+          facilityId: user.homeFacilityId || undefined,
+          patientId: patient.id,
+          actorUserId: user.userId,
+        },
       );
 
       if (!response.data || !response.data.consent_token) {
@@ -205,7 +213,7 @@ export class ConsentService {
   async sendDischargeOtp(dto: SendDischargeOtpDto, user: RequestUser) {
     const patient = await this.getScopedPatient(dto.patientId, user);
 
-    const response = await this.dhaClient.sendDischargeOtp(
+    const response = await this.dhaService.sendDischargeOtp(
       {
         patient_id: patient.shaMemberNumber,
         contact_id: dto.contactId,
@@ -213,7 +221,11 @@ export class ConsentService {
         encounter_id: dto.encounterId,
         service_type: dto.serviceType,
       },
-      { facilityId: user.homeFacilityId || undefined },
+      {
+        facilityId: user.homeFacilityId || undefined,
+        patientId: patient.id,
+        actorUserId: user.userId,
+      },
     );
 
     return response.data;

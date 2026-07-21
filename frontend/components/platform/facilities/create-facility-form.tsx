@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { verifyDhaFacilityIdentity } from "@/services/facility-service";
 
 const facilitySchema = z.object({
   name: z.string().min(1, "Facility name is required"),
@@ -184,7 +185,20 @@ export function CreateFacilityForm() {
         isActive: true,
       });
 
-      setSuccessMessage("Facility created successfully.");
+      if (values.dhaFacilityId) {
+        try {
+          await verifyDhaFacilityIdentity(created.id, values.dhaFacilityId);
+          setSuccessMessage(
+            "Facility created and its DHA Facility Registry identity was verified.",
+          );
+        } catch (error) {
+          setSuccessMessage(
+            `Facility created, but DHA verification is still pending: ${error instanceof Error ? error.message : "verification failed"}`,
+          );
+        }
+      } else {
+        setSuccessMessage("Facility created successfully.");
+      }
       setCreatedCode(created.code);
 
       form.reset({

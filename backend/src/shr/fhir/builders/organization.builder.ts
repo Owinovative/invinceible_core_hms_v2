@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirMapperService } from '../../../integration/dha/fhir-mapper';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,13 +11,14 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class OrganizationBuilder implements FhirBuilder {
   readonly resourceType = 'Organization';
-  private readonly prisma = new PrismaClient();
-
-  constructor(private readonly fhirMapper: FhirMapperService) {}
+  constructor(
+    private readonly fhirMapper: FhirMapperService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     const facility = await this.prisma.facility.findUnique({
-      where: { id: context.facilityId }
+      where: { id: context.facilityId },
     });
 
     if (!facility) {

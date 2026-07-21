@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,22 +9,26 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class ProcedureBuilder implements FhirBuilder {
   readonly resourceType = 'Procedure';
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     if (!context.encounterId) return [];
 
     const procedures = await this.prisma.consultationProcedure.findMany({
       where: { consultationId: context.encounterId },
-      include: { terminologyConcept: true }
+      include: { terminologyConcept: true },
     });
 
     if (procedures.length === 0) return [];
 
-    const patientRef = context.resolvedReferences.get(`Patient/${context.patientId}`) || `Patient/${context.patientId}`;
-    const encounterRef = context.resolvedReferences.get(`Encounter/${context.encounterId}`) || `Encounter/${context.encounterId}`;
+    const patientRef =
+      context.resolvedReferences.get(`Patient/${context.patientId}`) ||
+      `Patient/${context.patientId}`;
+    const encounterRef =
+      context.resolvedReferences.get(`Encounter/${context.encounterId}`) ||
+      `Encounter/${context.encounterId}`;
 
-    return procedures.map(proc => {
+    return procedures.map((proc) => {
       const fullUrl = `urn:uuid:${uuidv4()}`;
       context.resolvedReferences.set(`Procedure/${proc.id}`, fullUrl);
 
@@ -32,14 +36,18 @@ export class ProcedureBuilder implements FhirBuilder {
         resourceType: 'Procedure',
         id: fullUrl.replace('urn:uuid:', ''),
         status: 'completed',
-        code: proc.terminologyConcept ? {
-          coding: [{
-            system: proc.terminologyConcept.system,
-            code: proc.terminologyConcept.code,
-            display: proc.terminologyConcept.display,
-          }],
-          text: proc.terminologyConcept.display,
-        } : { text: 'Unknown Procedure' },
+        code: proc.terminologyConcept
+          ? {
+              coding: [
+                {
+                  system: proc.terminologyConcept.system,
+                  code: proc.terminologyConcept.code,
+                  display: proc.terminologyConcept.display,
+                },
+              ],
+              text: proc.terminologyConcept.display,
+            }
+          : { text: 'Unknown Procedure' },
         subject: { reference: patientRef },
         encounter: { reference: encounterRef },
         performedDateTime: proc.performedAt?.toISOString(),

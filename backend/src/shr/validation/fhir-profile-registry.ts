@@ -18,46 +18,53 @@ export class FhirProfileRegistry {
 
   private registerKenyaProfiles() {
     this.register({
-      name: 'Kenya_Patient_Profile',
-      url: 'http://dha.go.ke/fhir/StructureDefinition/kenya-patient',
+      name: 'HMS_Minimum_Patient',
+      url: 'urn:invinceible:hms:fhir:minimum-patient',
       version: '1.0.0',
       validate: (resource: any) => {
         const errors: string[] = [];
         if (resource.resourceType !== 'Patient') return errors;
-        
-        // Ensure National ID extension exists
-        const hasNationalId = resource.identifier?.some((id: any) => 
-          id.system === 'http://dha.go.ke/identifiers/national-id'
+
+        const hasApprovedIdentifier = resource.identifier?.some(
+          (identifier: any) => identifier?.system && identifier?.value,
         );
-        if (!hasNationalId) {
-          errors.push('Kenya_Patient_Profile requires a National ID identifier.');
+        if (!hasApprovedIdentifier) {
+          errors.push(
+            'Patient requires at least one system-qualified identifier.',
+          );
         }
+        if (!resource.name?.some((name: any) => name?.family || name?.text)) {
+          errors.push('Patient requires a name.');
+        }
+        if (!resource.birthDate) errors.push('Patient requires birthDate.');
 
         return errors;
-      }
+      },
     });
 
     this.register({
-      name: 'Kenya_Encounter_Profile',
-      url: 'http://dha.go.ke/fhir/StructureDefinition/kenya-encounter',
+      name: 'HMS_Minimum_Encounter',
+      url: 'urn:invinceible:hms:fhir:minimum-encounter',
       version: '1.0.0',
       validate: (resource: any) => {
         const errors: string[] = [];
         if (resource.resourceType !== 'Encounter') return errors;
-        
+
         if (!resource.class || !resource.class.code) {
-          errors.push('Kenya_Encounter_Profile requires a class code.');
+          errors.push('Encounter requires a class code.');
         }
 
         return errors;
-      }
+      },
     });
     // Additional profiles...
   }
 
   register(profile: FhirProfile) {
     this.profiles.set(profile.name, profile);
-    this.logger.debug(`Registered FHIR Profile: ${profile.name} (v${profile.version})`);
+    this.logger.debug(
+      `Registered FHIR Profile: ${profile.name} (v${profile.version})`,
+    );
   }
 
   getProfile(name: string): FhirProfile | undefined {
@@ -66,11 +73,9 @@ export class FhirProfileRegistry {
 
   validateResourceAgainstProfiles(resource: any): string[] {
     const allErrors: string[] = [];
-    
-    // In a real FHIR validator, this would look at resource.meta.profile
-    // and invoke the corresponding profile validators.
-    
-    // For now, run all registered profiles that match the resourceType
+
+    // These checks enforce the locally supported minimum. Formal DHA profile
+    // validation remains an external certification/UAT gate.
     for (const profile of this.profiles.values()) {
       const errors = profile.validate(resource);
       allErrors.push(...errors);

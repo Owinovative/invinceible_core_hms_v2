@@ -1,7 +1,7 @@
 "use client";
 
 import { Activity, AlertCircle, Clock3, RefreshCw, Users } from "lucide-react";
-import { useQueueStats, useTodayQueue } from "@/hooks/use-queue";
+import { useActiveQueue, useQueueStats } from "@/hooks/use-queue";
 import { QueueTable } from "@/components/queue/queue-table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,9 +39,11 @@ function StatCard({
 }
 
 export default function QueuePage() {
-  const { data, isLoading, isError, error, refetch } = useTodayQueue();
-  const { data: stats, isLoading: statsLoading } = useQueueStats();
-  const { facilityName, selectedBranchName } = useScope();
+  const { facilityName, selectedBranchId, selectedBranchName } = useScope();
+  const { data, isLoading, isError, error, refetch } =
+    useActiveQueue(selectedBranchId);
+  const { data: stats, isLoading: statsLoading } =
+    useQueueStats(selectedBranchId);
 
   const queueItems = data ?? [];
 

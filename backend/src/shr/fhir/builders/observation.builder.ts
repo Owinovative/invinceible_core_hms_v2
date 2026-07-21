@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { FhirBuilder, BuilderContext } from './fhir-builder.interface';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class ObservationBuilder implements FhirBuilder {
   readonly resourceType = 'Observation';
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async build(context: BuilderContext): Promise<any[]> {
     // Fetch the triage associated with the patient's most recent visit
@@ -28,23 +28,38 @@ export class ObservationBuilder implements FhirBuilder {
     if (triages.length === 0) return [];
     const triage = triages[0];
 
-    const patientRef = context.resolvedReferences.get(`Patient/${context.patientId}`) || `Patient/${context.patientId}`;
+    const patientRef =
+      context.resolvedReferences.get(`Patient/${context.patientId}`) ||
+      `Patient/${context.patientId}`;
     const encounterRef = context.encounterId
       ? context.resolvedReferences.get(`Encounter/${context.encounterId}`)
       : undefined;
 
     const observations: any[] = [];
 
-    const addVital = (code: string, display: string, value: number | null | undefined, unit: string) => {
+    const addVital = (
+      code: string,
+      display: string,
+      value: number | null | undefined,
+      unit: string,
+    ) => {
       if (value == null) return;
       const fullUrl = `urn:uuid:${uuidv4()}`;
       observations.push({
         resourceType: 'Observation',
         id: fullUrl.replace('urn:uuid:', ''),
         status: 'final',
-        category: [{
-          coding: [{ system: 'http://terminology.hl7.org/CodeSystem/observation-category', code: 'vital-signs' }]
-        }],
+        category: [
+          {
+            coding: [
+              {
+                system:
+                  'http://terminology.hl7.org/CodeSystem/observation-category',
+                code: 'vital-signs',
+              },
+            ],
+          },
+        ],
         code: {
           coding: [{ system: 'http://loinc.org', code, display }],
           text: display,
@@ -54,7 +69,10 @@ export class ObservationBuilder implements FhirBuilder {
         effectiveDateTime: triage.arrivedAt?.toISOString(),
         valueQuantity: { value, unit, system: 'http://unitsofmeasure.org' },
       });
-      context.resolvedReferences.set(`Observation/${code}-${triage.id}`, fullUrl);
+      context.resolvedReferences.set(
+        `Observation/${code}-${triage.id}`,
+        fullUrl,
+      );
     };
 
     addVital('8310-5', 'Body Temperature', triage.temperatureC, 'Cel');

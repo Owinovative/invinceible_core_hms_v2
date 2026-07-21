@@ -17,13 +17,7 @@ import {
   type PaginationQuery,
 } from '../common/pagination/pagination';
 import { CacheService } from '../resilience/cache.service';
-import { ClientRegistryService } from '../integrations/client-registry/client-registry.service';
-import { IntegrationQueueService } from '../integration/queue/integration-queue.service';
 import { DhaService } from '../integration/dha/dha.service';
-import {
-  INTEGRATION_NAMES,
-  DHA_OPERATIONS,
-} from '../integration/integration.constants';
 import { IntegrationLoggerService } from '../integration/integration-logger.service';
 import { EventPublisher } from '../events/event-publisher';
 import { ClinicalEventTypes } from '../events/registry/event-registry';
@@ -35,8 +29,6 @@ export class PatientService {
     private readonly facilityService: FacilityService,
     private readonly scopeService: ScopeService,
     private readonly cacheService: CacheService,
-    private readonly clientRegistryService: ClientRegistryService,
-    private readonly integrationQueueService: IntegrationQueueService,
     private readonly dhaService: DhaService,
     private readonly integrationLoggerService: IntegrationLoggerService,
     private readonly configService: ConfigService,
@@ -168,32 +160,6 @@ export class PatientService {
 
       return patient;
     });
-
-    // Attempt to register in HIE CR asynchronously (outbound DHA transport — unchanged)
-    this.integrationQueueService
-      .enqueue({
-        integration: INTEGRATION_NAMES.DHA,
-        operation: DHA_OPERATIONS.REGISTER_PATIENT,
-        entityType: 'Patient',
-        entityId: String(createdPatient.id),
-        idempotencyKey: `dha:patient-register:${createdPatient.id}`,
-        facilityId: createdPatient.facilityId,
-        payload: {
-          id: String(createdPatient.id),
-          firstName: createdPatient.firstName,
-          middleName: createdPatient.middleName || undefined,
-          lastName: createdPatient.lastName,
-          gender: createdPatient.gender || 'unknown',
-          dateOfBirth: createdPatient.dateOfBirth || undefined,
-          phone: createdPatient.phonePrimary || undefined,
-        },
-      })
-      .catch((err) =>
-        this.integrationLoggerService.error(
-          'Failed to queue patient for HIE CR',
-          { error: err, patientId: createdPatient.id },
-        ),
-      );
 
     return createdPatient;
   }

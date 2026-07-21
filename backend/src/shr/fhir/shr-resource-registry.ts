@@ -28,7 +28,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: []
+      dependencies: [],
     });
 
     this.register({
@@ -37,7 +37,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: ['Organization']
+      dependencies: ['Organization'],
     });
 
     this.register({
@@ -46,7 +46,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: []
+      dependencies: [],
     });
 
     this.register({
@@ -55,7 +55,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: ['Practitioner', 'Organization', 'Location']
+      dependencies: ['Practitioner', 'Organization', 'Location'],
     });
 
     this.register({
@@ -64,7 +64,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: ['Organization']
+      dependencies: ['Organization'],
     });
 
     // Context
@@ -74,7 +74,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: false,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: ['Patient', 'Organization']
+      dependencies: ['Patient', 'Organization'],
     });
 
     this.register({
@@ -83,7 +83,7 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: false,
       requiresTerminologyValidation: true,
-      dependencies: ['Patient', 'Organization']
+      dependencies: ['Patient', 'Organization'],
     });
 
     this.register({
@@ -92,17 +92,21 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: true,
       requiresTerminologyValidation: true,
-      dependencies: ['Patient', 'Organization', 'Location', 'PractitionerRole']
+      dependencies: ['Patient', 'Organization', 'Location', 'PractitionerRole'],
     });
 
     // Core Clinical
     this.register({
       resourceType: 'Condition',
-      supportedOperations: [FhirOperation.CREATE, FhirOperation.UPDATE, FhirOperation.DELETE],
+      supportedOperations: [
+        FhirOperation.CREATE,
+        FhirOperation.UPDATE,
+        FhirOperation.DELETE,
+      ],
       supportsVersioning: true,
       supportsIncrementalPublish: true,
       requiresTerminologyValidation: true,
-      dependencies: ['Patient', 'Encounter']
+      dependencies: ['Patient', 'Encounter'],
     });
 
     this.register({
@@ -111,11 +115,11 @@ export class ShrResourceCapabilityRegistry {
       supportsVersioning: true,
       supportsIncrementalPublish: true,
       requiresTerminologyValidation: true,
-      dependencies: ['Patient', 'Encounter']
+      dependencies: ['Patient', 'Encounter'],
     });
-    
+
     // Additional resources would be registered similarly:
-    // Procedure, ServiceRequest, DiagnosticReport, Specimen, MedicationRequest, 
+    // Procedure, ServiceRequest, DiagnosticReport, Specimen, MedicationRequest,
     // MedicationDispense, AllergyIntolerance, CarePlan, Immunization, Claim
   }
 
@@ -155,7 +159,7 @@ export class ShrResourceCapabilityRegistry {
           }
         }
       }
-      
+
       visiting.delete(type);
       visited.add(type);
       sorted.push(type);
