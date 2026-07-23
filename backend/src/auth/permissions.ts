@@ -23,6 +23,7 @@ export const HMS_PERMISSIONS = [
   'patient.portal.read',
   'consent.read',
   'consent.manage',
+  'communication.send',
 ] as const;
 
 export type HmsPermission = (typeof HMS_PERMISSIONS)[number];
@@ -53,6 +54,7 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'facility.manage',
     'consent.read',
     'consent.manage',
+    'communication.send',
   ],
   BRANCH_ADMIN: [
     'patient.read',
@@ -73,6 +75,7 @@ export const ROLE_PERMISSIONS: Record<string, HmsPermission[]> = {
     'reports.read',
     'audit.read',
     'users.manage',
+    'communication.send',
   ],
   RECEPTIONIST: [
     'patient.read',

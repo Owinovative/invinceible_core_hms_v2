@@ -191,12 +191,14 @@ export class JobQueueService implements OnModuleInit, OnModuleDestroy {
 
   private async handleJob(job: HmsJob) {
     switch (job.type) {
+      case 'NOTIFICATION_DELIVERY':
+        await this.deliverNotification(job);
+        return;
       case 'MPESA_RECONCILIATION':
       case 'PDF_GENERATION':
       case 'BULK_REPORT':
       case 'SHA_CLAIM_BATCH':
       case 'CSV_IMPORT':
-      case 'NOTIFICATION_DELIVERY':
       case 'STOCK_RECONCILIATION':
       case 'AUDIT_ANALYSIS':
       case 'LARGE_EXPORT':
@@ -206,6 +208,55 @@ export class JobQueueService implements OnModuleInit, OnModuleDestroy {
         });
         return;
     }
+  }
+
+  private async deliverNotification(job: HmsJob) {
+    const channel = String(job.payload.channel ?? '').toLowerCase();
+    if (!['sms', 'whatsapp', 'email'].includes(channel)) {
+      throw new Error('Unsupported notification channel');
+    }
+    const prefix = channel.toUpperCase();
+    const providerUrl = this.configService.get<string>(
+      `${prefix}_PROVIDER_URL`,
+    );
+    if (!providerUrl) {
+      throw new Error(`${prefix}_PROVIDER_URL is not configured`);
+    }
+    const recipient = String(job.payload.recipient ?? '').trim();
+    const templateKey = String(job.payload.templateKey ?? '').trim();
+    if (!recipient || !templateKey) {
+      throw new Error('Notification recipient and template are required');
+    }
+
+    const apiKey = this.configService.get<string>(`${prefix}_API_KEY`);
+    const senderId = this.configService.get<string>(`${prefix}_SENDER_ID`);
+    const response = await fetch(providerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        channel,
+        recipient,
+        senderId: senderId || undefined,
+        templateKey,
+        variables: job.payload.variables ?? {},
+      }),
+      signal: AbortSignal.timeout(
+        Number(
+          this.configService.get<string>('NOTIFICATION_TIMEOUT_MS') ?? 15000,
+        ),
+      ),
+    });
+    if (!response.ok) {
+      throw new Error(`Notification provider returned HTTP ${response.status}`);
+    }
+    this.logger.info('Notification delivered', {
+      jobId: job.id,
+      channel,
+      templateKey,
+    });
   }
 
   private async handleFailure(job: HmsJob, error: unknown) {

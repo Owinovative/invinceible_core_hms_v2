@@ -104,6 +104,9 @@ export interface LowStockResponse {
 
 export interface RestockBranchMedicinePayload {
   quantityToAdd: number;
+  pharmacyLocationId: number;
+  batchNumber: string;
+  expiresAt: string;
   reorderLevel?: number;
   buyingPrice?: number;
   unitPrice?: number;

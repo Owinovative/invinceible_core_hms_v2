@@ -10,6 +10,13 @@ databases:
     postgresMajorVersion: "16"
 
 services:
+  - type: keyvalue
+    name: invinceible-core-hms-queue
+    plan: starter
+    region: frankfurt
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
   - type: web
     name: invinceible-core-hms-api
     runtime: node
@@ -36,6 +43,8 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 1d
+      - key: LAB_SIGNING_KEY
+        generateValue: true
       - key: FRONTEND_URL
         sync: false
       - key: FRONTEND_ORIGINS
@@ -89,6 +98,11 @@ services:
         value: "5"
       - key: QUEUE_PREFIX
         value: inv_hms
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: invinceible-core-hms-queue
+          property: connectionString
       - key: WORKER_MODE
         value: "false"
       - key: MPESA_ENV
@@ -118,7 +132,13 @@ services:
       - key: AI_ENABLED
         value: "false"
       - key: SMS_ENABLED
-        value: "false"
+        sync: false
+      - key: SMS_PROVIDER_URL
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_SENDER_ID
+        sync: false
       - key: WHATSAPP_ENABLED
         value: "false"
       - key: PATIENT_PORTAL_ENABLED
@@ -131,6 +151,63 @@ services:
         value: "true"
       - key: MOBILE_OPTIMIZED_VIEWS_ENABLED
         value: "true"
+
+  - type: worker
+    name: invinceible-core-hms-worker
+    runtime: node
+    rootDir: backend
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci && npm run prisma:generate:postgres && npm run build
+    startCommand: npm run start:prod:worker
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_PROVIDER
+        value: postgresql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invinceible-core-hms-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LAB_SIGNING_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://worker.invalid
+      - key: QUEUE_ENABLED
+        value: "true"
+      - key: WORKER_MODE
+        value: "true"
+      - key: QUEUE_CONCURRENCY
+        value: "5"
+      - key: QUEUE_PREFIX
+        value: inv_hms
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: invinceible-core-hms-queue
+          property: connectionString
+      - key: SMS_ENABLED
+        sync: false
+      - key: SMS_PROVIDER_URL
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_SENDER_ID
+        sync: false
+      - key: WHATSAPP_ENABLED
+        value: "false"
+      - key: PATIENT_PORTAL_ENABLED
+        value: "false"
+      - key: SHA_ENABLED
+        value: "false"
+      - key: AI_ENABLED
+        value: "false"
 
   - type: web
     name: invinceible-core-hms-web

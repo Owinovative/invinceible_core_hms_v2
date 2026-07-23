@@ -1,9 +1,26 @@
-import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class RestockBranchMedicineDto {
   @IsInt()
   @Min(1)
   quantityToAdd: number;
+
+  @IsInt()
+  @Min(1)
+  pharmacyLocationId: number;
+
+  @IsString()
+  batchNumber: string;
+
+  @IsDateString()
+  expiresAt: string;
 
   @IsOptional()
   @IsInt()

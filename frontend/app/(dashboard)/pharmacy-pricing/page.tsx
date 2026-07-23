@@ -23,6 +23,7 @@ import { useImportBranchMedicinePricing } from "@/hooks/use-import-branch-medici
 import { usePharmacyMedicines } from "@/hooks/use-pharmacy-medicines";
 import { useRestockBranchMedicine } from "@/hooks/use-restock-branch-medicine";
 import { useUpdateBranchMedicineStock } from "@/hooks/use-update-branch-medicine-stock";
+import { usePharmacyLocations } from "@/hooks/use-pharmacy-inventory";
 import {
   getBranchMedicinePricingTemplate,
   type BranchMedicineStockItem,
@@ -74,6 +75,7 @@ export default function PharmacyPricingPage() {
   const importPricingMutation = useImportBranchMedicinePricing();
   const updateStockMutation = useUpdateBranchMedicineStock(selectedBranchId);
   const restockMutation = useRestockBranchMedicine();
+  const locations = usePharmacyLocations();
 
   const medicines = Array.isArray(medicinesData) ? medicinesData : [];
   const branchStock = Array.isArray(stockData) ? stockData : (stockData?.data ?? []);
@@ -93,7 +95,6 @@ export default function PharmacyPricingPage() {
   const [defaultUnitPrice, setDefaultUnitPrice] = React.useState("");
 
   const [selectedMedicineId, setSelectedMedicineId] = React.useState("");
-  const [initialStock, setInitialStock] = React.useState("");
   const [branchReorderLevel, setBranchReorderLevel] = React.useState("");
   const [branchBuyingPrice, setBranchBuyingPrice] = React.useState("");
   const [branchUnitPrice, setBranchUnitPrice] = React.useState("");
@@ -110,6 +111,9 @@ export default function PharmacyPricingPage() {
   const [reorderQuantity, setReorderQuantity] = React.useState("");
   const [reorderBuyingPrice, setReorderBuyingPrice] = React.useState("");
   const [reorderUnitPrice, setReorderUnitPrice] = React.useState("");
+  const [reorderLocationId, setReorderLocationId] = React.useState("");
+  const [reorderBatchNumber, setReorderBatchNumber] = React.useState("");
+  const [reorderExpiresAt, setReorderExpiresAt] = React.useState("");
 
   const stockMedicineIds = new Set(branchStock.map((item) => item.medicineId));
   const unmappedMedicines = medicines.filter(
@@ -261,7 +265,7 @@ export default function PharmacyPricingPage() {
         facilityId,
         branchId: selectedBranchId,
         medicineId: Number(selectedMedicineId),
-        stockQuantity: numberOrUndefined(initialStock) ?? 0,
+        stockQuantity: 0,
         reorderLevel: numberOrUndefined(branchReorderLevel) ?? 0,
         buyingPrice: numberOrUndefined(branchBuyingPrice) ?? 0,
         unitPrice: numberOrUndefined(branchUnitPrice) ?? 0,
@@ -269,7 +273,6 @@ export default function PharmacyPricingPage() {
       });
 
       setSelectedMedicineId("");
-      setInitialStock("");
       setBranchReorderLevel("");
       setBranchBuyingPrice("");
       setBranchUnitPrice("");
@@ -331,12 +334,19 @@ export default function PharmacyPricingPage() {
       setMessage("Enter a valid reordered quantity.");
       return;
     }
+    if (!reorderLocationId || !reorderBatchNumber.trim() || !reorderExpiresAt) {
+      setMessage("Select a receiving pharmacy, batch number and expiry date.");
+      return;
+    }
 
     try {
       await restockMutation.mutateAsync({
         stockId: activeReorderStock.id,
         payload: {
           quantityToAdd: quantity,
+          pharmacyLocationId: Number(reorderLocationId),
+          batchNumber: reorderBatchNumber.trim(),
+          expiresAt: reorderExpiresAt,
           buyingPrice: numberOrUndefined(reorderBuyingPrice),
           unitPrice: numberOrUndefined(reorderUnitPrice),
         },
@@ -347,6 +357,9 @@ export default function PharmacyPricingPage() {
       setReorderQuantity("");
       setReorderBuyingPrice("");
       setReorderUnitPrice("");
+      setReorderLocationId("");
+      setReorderBatchNumber("");
+      setReorderExpiresAt("");
       setMessage("Drug reorder received and branch stock updated.");
     } catch (error) {
       setMessage(
@@ -757,6 +770,23 @@ export default function PharmacyPricingPage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
+                  <label className="mb-2 block text-sm font-medium">Receiving pharmacy</label>
+                  <select className={appSelectClass} value={reorderLocationId} onChange={(event) => setReorderLocationId(event.target.value)} disabled={!activeReorderStock}>
+                    <option value="">Select location</option>
+                    {(locations.data ?? []).filter((location) => location.branchId === selectedBranchId).map((location) => (
+                      <option key={location.id} value={location.id}>{location.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Batch number</label>
+                  <Input value={reorderBatchNumber} onChange={(event) => setReorderBatchNumber(event.target.value)} disabled={!activeReorderStock} />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Expiry date</label>
+                  <Input type="date" value={reorderExpiresAt} onChange={(event) => setReorderExpiresAt(event.target.value)} disabled={!activeReorderStock} />
+                </div>
+                <div>
                   <label className="mb-2 block text-sm font-medium">
                     Reordered Amount
                   </label>
@@ -852,18 +882,10 @@ export default function PharmacyPricingPage() {
                   ))}
                 </select>
               </div>
+              <p className="text-xs text-muted-foreground">
+                New price records start at zero stock. Receive inventory using a named batch and expiry date above.
+              </p>
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">
-                    Initial Stock
-                  </label>
-                  <Input
-                    type="number"
-                    value={initialStock}
-                    onChange={(event) => setInitialStock(event.target.value)}
-                    className="h-12 rounded-xl"
-                  />
-                </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium">
                     Reorder Level

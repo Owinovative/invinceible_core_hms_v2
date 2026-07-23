@@ -17,6 +17,7 @@ import { useReportsDashboard } from "@/hooks/use-reports-dashboard";
 import { useModuleOperationsReport } from "@/hooks/use-module-operations-report";
 import { useProfitAnalytics } from "@/hooks/use-profit-analytics";
 import { useOtcSalesReport } from "@/hooks/use-otc-sales-report";
+import { usePatientTurnaroundReport } from "@/hooks/use-patient-turnaround-report";
 import { useScope } from "@/providers/scope-provider";
 import {
   getOtcSalesReportExport,
@@ -89,6 +90,10 @@ export default function ReportsPage() {
     appliedDateTo,
   );
   const { data: otcReport } = useOtcSalesReport(
+    appliedDateFrom,
+    appliedDateTo,
+  );
+  const { data: turnaroundReport } = usePatientTurnaroundReport(
     appliedDateFrom,
     appliedDateTo,
   );
@@ -224,6 +229,58 @@ export default function ReportsPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section>
+        <Card className="rounded-[1.8rem] surface-spotlight shadow-md">
+          <CardHeader>
+            <CardTitle>Patient Turnaround Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {(turnaroundReport?.departments ?? []).map((department) => {
+                const delayed =
+                  department.delayedJourneys > 0 &&
+                  department.completedJourneys > 0;
+                return (
+                  <div
+                    key={department.department}
+                    className="rounded-[1.2rem] border border-border bg-card/[0.03] p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold">{department.department}</p>
+                      <Badge
+                        className={
+                          delayed
+                            ? "bg-warning/10 text-warning"
+                            : "bg-success/10 text-success"
+                        }
+                      >
+                        {department.delayedJourneys} delayed
+                      </Badge>
+                    </div>
+                    <p className="mt-4 text-3xl font-bold">
+                      {department.averageMinutes.toFixed(1)}
+                      <span className="ml-1 text-sm font-normal text-muted-foreground">
+                        min avg
+                      </span>
+                    </p>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                      <span>Median {department.medianMinutes.toFixed(1)}</span>
+                      <span>P90 {department.p90Minutes.toFixed(1)}</span>
+                      <span>{department.completedJourneys} journeys</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {(turnaroundReport?.departments ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No completed patient journeys are available for this period.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
       </section>
 
       <section>

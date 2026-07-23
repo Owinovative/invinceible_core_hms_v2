@@ -283,6 +283,9 @@ export class AuditLogService {
         'ipAddress',
         'userAgent',
         'description',
+        'beforeData',
+        'afterData',
+        'integrityHash',
       ],
       ...logs.map((log) => [
         log.createdAt.toISOString(),
@@ -300,6 +303,9 @@ export class AuditLogService {
         log.ipAddress,
         log.userAgent,
         log.description,
+        log.beforeData,
+        log.afterData,
+        log.integrityHash,
       ]),
     ];
 

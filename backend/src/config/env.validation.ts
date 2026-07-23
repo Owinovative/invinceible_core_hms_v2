@@ -56,6 +56,12 @@ export function validateEnvironment(
         'Production JWT_SECRET must be a unique high-entropy secret of at least 48 characters',
       );
     }
+    const labSigningKey = requireString(config, 'LAB_SIGNING_KEY');
+    if (labSigningKey.length < 48) {
+      throw new Error(
+        'Production LAB_SIGNING_KEY must be at least 48 characters long',
+      );
+    }
   }
 
   if (
@@ -167,6 +173,26 @@ export function validateEnvironment(
     }
   }
 
+  for (const channel of ['SMS', 'WHATSAPP'] as const) {
+    const enabled =
+      stringValue(config, `${channel}_ENABLED`, 'false') === 'true';
+    if (enabled && !hasValue(config, `${channel}_PROVIDER_URL`)) {
+      throw new Error(
+        `${channel}_PROVIDER_URL is required when ${channel}_ENABLED=true`,
+      );
+    }
+    if (enabled) {
+      try {
+        const providerUrl = new URL(String(config[`${channel}_PROVIDER_URL`]));
+        if (nodeEnv === production && providerUrl.protocol !== 'https:') {
+          throw new Error('must use HTTPS');
+        }
+      } catch {
+        throw new Error(`${channel}_PROVIDER_URL must be a valid URL`);
+      }
+    }
+  }
+
   return {
     ...config,
     NODE_ENV: nodeEnv,
@@ -202,6 +228,7 @@ export function validateEnvironment(
     AI_ENABLED: config.AI_ENABLED ?? 'false',
     SMS_ENABLED: config.SMS_ENABLED ?? 'false',
     WHATSAPP_ENABLED: config.WHATSAPP_ENABLED ?? 'false',
+    NOTIFICATION_TIMEOUT_MS: config.NOTIFICATION_TIMEOUT_MS ?? '15000',
     SHA_ENABLED: config.SHA_ENABLED ?? 'true',
     DATA_WAREHOUSE_ENABLED: config.DATA_WAREHOUSE_ENABLED ?? 'false',
     CLINICAL_DECISION_SUPPORT_ENABLED:

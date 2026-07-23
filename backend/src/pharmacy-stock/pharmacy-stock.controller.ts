@@ -18,13 +18,16 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { RestockBranchMedicineDto } from './dto/restock-branch-medicine.dto';
 import { ImportBranchPricingCsvDto } from './dto/import-branch-pricing-csv.dto';
 import type { PaginationQuery } from '../common/pagination/pagination';
+import { Permissions } from '../auth/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
 
 @Controller('pharmacy-stock')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 export class PharmacyStockController {
   constructor(private readonly pharmacyStockService: PharmacyStockService) {}
 
   @Post()
+  @Permissions('stock.adjust')
   create(
     @Body() dto: CreateBranchMedicineStockDto,
     @CurrentUser() user: RequestUser,
@@ -51,6 +54,7 @@ export class PharmacyStockController {
   }
 
   @Post('branch/:branchId/pricing-import')
+  @Permissions('stock.adjust')
   importBranchPricing(
     @Param('branchId', ParseIntPipe) branchId: number,
     @Body() dto: ImportBranchPricingCsvDto,
@@ -103,6 +107,7 @@ export class PharmacyStockController {
   }
 
   @Patch(':id')
+  @Permissions('stock.adjust')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateBranchMedicineStockDto,
@@ -112,13 +117,16 @@ export class PharmacyStockController {
   }
 
   @Patch(':id/add-stock/:quantity')
+  @Permissions('stock.adjust')
   addStock(
     @Param('id', ParseIntPipe) id: number,
     @Param('quantity', ParseIntPipe) quantity: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.pharmacyStockService.addStock(id, quantity);
+    return this.pharmacyStockService.addStockScoped(id, quantity, user);
   }
   @Patch(':stockId/restock')
+  @Permissions('stock.adjust')
   restockBranchMedicine(
     @Param('stockId', ParseIntPipe) stockId: number,
     @Body() dto: RestockBranchMedicineDto,
@@ -132,10 +140,12 @@ export class PharmacyStockController {
   }
 
   @Patch(':id/deduct-stock/:quantity')
+  @Permissions('stock.adjust')
   deductStock(
     @Param('id', ParseIntPipe) id: number,
     @Param('quantity', ParseIntPipe) quantity: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.pharmacyStockService.deductStock(id, quantity);
+    return this.pharmacyStockService.deductStockScoped(id, quantity, user);
   }
 }

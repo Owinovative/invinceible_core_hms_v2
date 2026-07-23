@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { JobQueueService } from '../resilience/job-queue.service';
 import { FeatureFlagService } from '../enterprise/feature-flag.service';
 import type {
@@ -31,6 +32,10 @@ export class CommunicationService {
         message.recipient,
         message.templateKey,
         message.patientId ?? 'no-patient',
+        createHash('sha256')
+          .update(JSON.stringify(message.variables ?? {}))
+          .digest('hex')
+          .slice(0, 16),
         new Date().toISOString().slice(0, 10),
       ].join(':'),
       payload: {
@@ -43,6 +48,18 @@ export class CommunicationService {
         patientId: message.patientId ?? null,
       },
     });
+  }
+
+  async queueBulk(messages: NotificationMessage[]) {
+    const results: Array<{ queued: boolean }> = [];
+    for (const message of messages) {
+      results.push(await this.queueMessage(message));
+    }
+    return {
+      requested: messages.length,
+      queued: results.filter((result) => result.queued).length,
+      results,
+    };
   }
 
   private assertChannelEnabled(channel: NotificationChannel) {

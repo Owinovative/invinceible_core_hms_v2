@@ -117,6 +117,16 @@ export class ReportsController {
     );
   }
 
+  @Get('patient-turnaround')
+  getPatientTurnaroundAnalytics(
+    @Query() filter: ReportFilterDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.reportsService.getPatientTurnaroundAnalytics(
+      this.reportsService.applyUserScopeToFilter(user, filter),
+    );
+  }
+
   @Get('billing')
   getBillingAnalytics(
     @Query() filter: ReportFilterDto,

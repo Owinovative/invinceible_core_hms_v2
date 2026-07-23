@@ -14,6 +14,11 @@ import {
 import { useLabQueue } from "@/hooks/use-lab-queue";
 import { useLabResults } from "@/hooks/use-lab-results";
 import { useCreateLabResult } from "@/hooks/use-create-lab-result";
+import {
+  useAmendLabResult,
+  useReleaseLabResult,
+  useValidateLabResult,
+} from "@/hooks/use-review-lab-result";
 import { useScope } from "@/providers/scope-provider";
 import { useAuth } from "@/providers/auth-provider";
 import type { LabOrderRecord, LabOrderItem } from "@/services/lab-service";
@@ -116,6 +121,9 @@ export default function LabPage() {
   const { user } = useAuth();
   const { data, isLoading } = useLabQueue();
   const createLabResultMutation = useCreateLabResult();
+  const validateLabResultMutation = useValidateLabResult();
+  const releaseLabResultMutation = useReleaseLabResult();
+  const amendLabResultMutation = useAmendLabResult();
 
 
   const queue = Array.isArray(data) ? data : [];
@@ -160,6 +168,7 @@ export default function LabPage() {
     attachmentDataUrl: string;
   } | null>(null);
   const [attachmentBusy, setAttachmentBusy] = React.useState(false);
+  const [amendmentReason, setAmendmentReason] = React.useState("");
 
 
   React.useEffect(() => {
@@ -183,6 +192,23 @@ export default function LabPage() {
 
   const activeItem =
     selectedOrder?.items?.find((item) => item.id === activeItemId) ?? null;
+  const activeResult = activeItem
+    ? results.find((result) => result.orderItemId === activeItem.id) ??
+      activeItem.results?.[0] ??
+      null
+    : null;
+
+  const reviewResult = async (
+    action: () => Promise<unknown>,
+    success: string,
+  ) => {
+    try {
+      await action();
+      setMessage(success);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Request failed.");
+    }
+  };
 
   const handleAttachmentUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -611,6 +637,95 @@ export default function LabPage() {
                         Open uploaded result file
                       </a>
                     ) : null}
+                    <div className="space-y-3 border-t border-border pt-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">
+                          {activeResult?.statusCode ?? "DRAFT"}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={
+                            (activeResult?.statusCode ?? "DRAFT") !== "DRAFT" ||
+                            validateLabResultMutation.isPending
+                          }
+                          onClick={() =>
+                            activeResult &&
+                            reviewResult(
+                              () =>
+                                validateLabResultMutation.mutateAsync({
+                                  resultId: activeResult.id,
+                                  validationNotes: remarks || undefined,
+                                }),
+                              "Lab result validated.",
+                            )
+                          }
+                        >
+                          Validate
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={
+                            activeResult?.statusCode !== "VALIDATED" ||
+                            releaseLabResultMutation.isPending
+                          }
+                          onClick={() =>
+                            activeResult &&
+                            reviewResult(
+                              () =>
+                                releaseLabResultMutation.mutateAsync(
+                                  activeResult.id,
+                                ),
+                              "Lab result released to authorized clinical and patient views.",
+                            )
+                          }
+                        >
+                          Release
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={resultValue}
+                        onChange={(event) => setResultValue(event.target.value)}
+                        placeholder="Corrected result value (only required for amendment)"
+                      />
+                      <Textarea
+                        value={remarks}
+                        onChange={(event) => setRemarks(event.target.value)}
+                        placeholder="Validation notes or corrected remarks"
+                      />
+                      <Textarea
+                        value={amendmentReason}
+                        onChange={(event) =>
+                          setAmendmentReason(event.target.value)
+                        }
+                        placeholder="Reason required to amend a released or validated result"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={
+                          !activeResult ||
+                          !resultValue.trim() ||
+                          !amendmentReason.trim() ||
+                          amendLabResultMutation.isPending
+                        }
+                        onClick={() =>
+                          activeResult &&
+                          reviewResult(
+                            () =>
+                              amendLabResultMutation.mutateAsync({
+                                resultId: activeResult.id,
+                                resultValue: resultValue.trim(),
+                                remarks: remarks.trim() || undefined,
+                                amendmentReason: amendmentReason.trim(),
+                              }),
+                            "Amendment recorded as a new draft requiring validation.",
+                          )
+                        }
+                      >
+                        Amend result
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4 rounded-[1.3rem] border border-white/10 bg-card/[0.03] p-4">

@@ -21,6 +21,7 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreateCashPaymentDto } from './dto/create-cash-payment.dto';
 import { CreateMpesaPaymentRequestDto } from './dto/create-mpesa-payment-request.dto';
 import { ConfirmMpesaPaymentDto } from './dto/confirm-mpesa-payment.dto';
+import { CreatePaymentAdjustmentDto } from './dto/create-payment-adjustment.dto';
 import { AddInvoiceItemDto } from './dto/add-invoice-item.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RemoveInvoiceItemDto } from './dto/remove-invoice-item.dto';
@@ -303,6 +304,17 @@ export class BillingController {
       'Content-Length': pdf.length,
     });
     response.end(pdf);
+  }
+
+  @Post('payments/:id/adjustments')
+  @Permissions('payment.manual_confirm')
+  @StepUpRequired()
+  createPaymentAdjustment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreatePaymentAdjustmentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.billingService.createPaymentAdjustment(id, dto, user);
   }
 
   @Post('payments/mpesa/request')

@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ScopeService } from '../auth/scope.service';
 import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { PharmacyInventoryService } from '../pharmacy-inventory/pharmacy-inventory.service';
 import {
   paginatedResponse,
   parsePagination,
@@ -134,6 +135,7 @@ export class OtcSalesService {
     private readonly prisma: PrismaService,
     private readonly scopeService: ScopeService,
     private readonly auditLogService: AuditLogService,
+    private readonly inventoryService: PharmacyInventoryService,
   ) {}
 
   private saleInclude() {
@@ -979,23 +981,20 @@ export class OtcSalesService {
           data: { stockBefore, stockAfter },
         });
 
-        await tx.pharmacyStockMovement.create({
-          data: {
-            facilityId: current.facilityId,
-            branchId: current.branchId,
-            medicineId: item.medicineId,
-            branchStockId: updatedStock.id,
-            sourceType: 'OTC_SALE',
-            sourceEntityId: String(current.id),
-            movementType: 'OUT',
-            quantity: item.quantity,
-            stockBefore,
-            stockAfter,
-            otcSaleId: current.id,
-            otcSaleItemId: item.id,
-            performedByStaffId: staff.id,
-            notes: `OTC sale ${current.saleNumber}`,
-          },
+        await this.inventoryService.allocateForIssue(tx, {
+          facilityId: current.facilityId,
+          branchId: current.branchId,
+          medicineId: item.medicineId,
+          branchStockId: updatedStock.id,
+          sourceType: 'OTC_SALE',
+          sourceEntityId: String(current.id),
+          quantity: item.quantity,
+          aggregateStockBefore: stockBefore,
+          aggregateStockAfter: stockAfter,
+          otcSaleId: current.id,
+          otcSaleItemId: item.id,
+          performedByStaffId: staff.id,
+          notes: `OTC sale ${current.saleNumber}`,
         });
       }
 

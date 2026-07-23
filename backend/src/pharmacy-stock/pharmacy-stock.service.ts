@@ -19,6 +19,7 @@ import {
   type PaginationQuery,
 } from '../common/pagination/pagination';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
+import { PharmacyInventoryService } from '../pharmacy-inventory/pharmacy-inventory.service';
 
 type CsvRow = Record<string, string>;
 
@@ -209,6 +210,7 @@ export class PharmacyStockService {
     private readonly branchService: BranchService,
     private readonly scopeService: ScopeService,
     private readonly safeLogger: SafeLoggerService,
+    private readonly pharmacyInventory: PharmacyInventoryService,
   ) {}
 
   private async resolveRecoveredStockNotifications(stockId: number) {
@@ -449,10 +451,24 @@ export class PharmacyStockService {
         },
       });
 
-      const stockQuantity =
-        readInteger(row, ['stockQuantity', 'stock', 'quantity']) ??
-        existing?.stockQuantity ??
-        0;
+      const importedQuantity = readInteger(row, [
+        'stockQuantity',
+        'stock',
+        'quantity',
+      ]);
+      if (
+        importedQuantity !== undefined &&
+        importedQuantity !== (existing?.stockQuantity ?? 0)
+      ) {
+        skipped += 1;
+        errors.push({
+          row: rowNumber,
+          medicineCode,
+          message:
+            'Stock quantities cannot be changed through pricing import. Receive a named, expiring batch in Pharmacy Inventory.',
+        });
+        continue;
+      }
       const reorderLevel =
         readInteger(row, ['reorderLevel', 'minimumStock']) ??
         existing?.reorderLevel ??
@@ -480,14 +496,13 @@ export class PharmacyStockService {
           facilityId: branch.facilityId,
           branchId,
           medicineId: medicine.id,
-          stockQuantity,
+          stockQuantity: 0,
           reorderLevel,
           buyingPrice,
           unitPrice,
           isActive,
         },
         update: {
-          stockQuantity,
           reorderLevel,
           buyingPrice,
           unitPrice,
@@ -519,7 +534,11 @@ export class PharmacyStockService {
     };
   }
 
-  async restockBranchMedicine(stockId: number, dto: RestockBranchMedicineDto) {
+  private async restockBranchMedicine(
+    stockId: number,
+    dto: RestockBranchMedicineDto,
+    performedByStaffId?: number,
+  ) {
     const stock = await this.prisma.branchMedicineStock.findUnique({
       where: { id: stockId },
       include: {
@@ -535,21 +554,42 @@ export class PharmacyStockService {
       );
     }
 
-    const updated = await this.prisma.branchMedicineStock.update({
-      where: { id: stockId },
-      data: {
-        stockQuantity: {
-          increment: dto.quantityToAdd,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.branchMedicineStock.update({
+        where: { id: stockId },
+        data: {
+          stockQuantity: {
+            increment: dto.quantityToAdd,
+          },
+          reorderLevel: dto.reorderLevel ?? stock.reorderLevel,
+          buyingPrice: dto.buyingPrice ?? stock.buyingPrice,
+          unitPrice: dto.unitPrice ?? stock.unitPrice,
         },
-        reorderLevel: dto.reorderLevel ?? stock.reorderLevel,
-        buyingPrice: dto.buyingPrice ?? stock.buyingPrice,
-        unitPrice: dto.unitPrice ?? stock.unitPrice,
-      },
-      include: {
-        medicine: true,
-        branch: true,
-        facility: true,
-      },
+        include: {
+          medicine: true,
+          branch: true,
+          facility: true,
+        },
+      });
+
+      await tx.pharmacyStockMovement.create({
+        data: {
+          facilityId: result.facilityId,
+          branchId: result.branchId,
+          medicineId: result.medicineId,
+          branchStockId: result.id,
+          sourceType: 'MANUAL_RESTOCK',
+          sourceEntityId: String(result.id),
+          movementType: 'IN',
+          quantity: dto.quantityToAdd,
+          stockBefore: result.stockQuantity - dto.quantityToAdd,
+          stockAfter: result.stockQuantity,
+          performedByStaffId,
+          notes: dto.notes?.trim() || 'Branch stock restocked',
+        },
+      });
+
+      return result;
     });
 
     await this.resolveRecoveredStockNotifications(updated.id);
@@ -562,12 +602,33 @@ export class PharmacyStockService {
     dto: RestockBranchMedicineDto,
     user: RequestUser,
   ) {
-    await this.findOneScoped(stockId, user);
-
-    return this.restockBranchMedicine(stockId, dto);
+    const stock = await this.findOneScoped(stockId, user);
+    await this.pharmacyInventory.receiveBatch(
+      {
+        pharmacyLocationId: dto.pharmacyLocationId,
+        medicineId: stock.medicineId,
+        batchNumber: dto.batchNumber,
+        expiresAt: dto.expiresAt,
+        quantity: dto.quantityToAdd,
+        unitCost: dto.buyingPrice,
+        notes: dto.notes,
+      },
+      user,
+    );
+    const updated = await this.prisma.branchMedicineStock.update({
+      where: { id: stockId },
+      data: {
+        reorderLevel: dto.reorderLevel,
+        buyingPrice: dto.buyingPrice,
+        unitPrice: dto.unitPrice,
+      },
+      include: { medicine: true, branch: true, facility: true },
+    });
+    await this.resolveRecoveredStockNotifications(updated.id);
+    return updated;
   }
 
-  async create(dto: CreateBranchMedicineStockDto) {
+  private async create(dto: CreateBranchMedicineStockDto) {
     await this.facilityService.findOne(dto.facilityId);
     const branch = await this.branchService.findOne(dto.branchId);
 
@@ -625,6 +686,11 @@ export class PharmacyStockService {
 
   async createScoped(dto: CreateBranchMedicineStockDto, user: RequestUser) {
     this.scopeService.assertBranchAccess(user, dto.facilityId, dto.branchId);
+    if (Number(dto.stockQuantity ?? 0) !== 0) {
+      throw new BadRequestException(
+        'New branch stock records must start at zero. Receive stock through a named, expiring pharmacy batch.',
+      );
+    }
 
     return this.create(dto);
   }
@@ -1037,7 +1103,7 @@ export class PharmacyStockService {
     return stock;
   }
 
-  async update(id: number, dto: UpdateBranchMedicineStockDto) {
+  private async update(id: number, dto: UpdateBranchMedicineStockDto) {
     await this.findOne(id);
 
     const updated = await this.prisma.branchMedicineStock.update({
@@ -1066,24 +1132,56 @@ export class PharmacyStockService {
     dto: UpdateBranchMedicineStockDto,
     user: RequestUser,
   ) {
-    await this.findOneScoped(id, user);
+    const existing = await this.findOneScoped(id, user);
+    if (
+      dto.stockQuantity !== undefined &&
+      dto.stockQuantity !== existing.stockQuantity
+    ) {
+      throw new BadRequestException(
+        'Stock quantity cannot be edited directly. Use batch receipt, return review, dispensing, or a controlled stock adjustment.',
+      );
+    }
 
     return this.update(id, dto);
   }
 
-  async addStock(id: number, quantity: number) {
+  private async addStock(id: number, quantity: number) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new BadRequestException(
+        'Stock quantity must be a positive integer',
+      );
+    }
     const stock = await this.findOne(id);
-
-    const updated = await this.prisma.branchMedicineStock.update({
-      where: { id },
-      data: {
-        stockQuantity: stock.stockQuantity + quantity,
-      },
-      include: {
-        facility: true,
-        branch: true,
-        medicine: true,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const reserved = await tx.branchMedicineStock.updateMany({
+        where: { id },
+        data: { stockQuantity: { increment: quantity } },
+      });
+      if (reserved.count !== 1) {
+        throw new NotFoundException(
+          `Branch medicine stock with id ${id} not found`,
+        );
+      }
+      const result = await tx.branchMedicineStock.findUniqueOrThrow({
+        where: { id },
+        include: { facility: true, branch: true, medicine: true },
+      });
+      await tx.pharmacyStockMovement.create({
+        data: {
+          facilityId: stock.facilityId,
+          branchId: stock.branchId,
+          medicineId: stock.medicineId,
+          branchStockId: stock.id,
+          sourceType: 'MANUAL_STOCK_ADJUSTMENT',
+          sourceEntityId: String(stock.id),
+          movementType: 'ADJUSTMENT_IN',
+          quantity,
+          stockBefore: stock.stockQuantity,
+          stockAfter: result.stockQuantity,
+          notes: 'Legacy add-stock endpoint; location allocation required',
+        },
+      });
+      return result;
     });
 
     await this.resolveRecoveredStockNotifications(updated.id);
@@ -1091,24 +1189,63 @@ export class PharmacyStockService {
     return updated;
   }
 
-  async deductStock(id: number, quantity: number) {
-    const stock = await this.findOne(id);
+  async addStockScoped(id: number, quantity: number, user: RequestUser) {
+    await this.findOneScoped(id, user);
+    void quantity;
+    throw new BadRequestException(
+      'Direct aggregate stock changes are disabled. Receive a named, expiring batch through the restock or Pharmacy Inventory workflow.',
+    );
+  }
 
-    if (stock.stockQuantity < quantity) {
+  private async deductStock(id: number, quantity: number) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new BadRequestException(
+        'Stock quantity must be a positive integer',
+      );
+    }
+    const stock = await this.findOne(id);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const reserved = await tx.branchMedicineStock.updateMany({
+        where: { id, stockQuantity: { gte: quantity } },
+        data: { stockQuantity: { decrement: quantity } },
+      });
+      if (reserved.count !== 1) {
+        throw new BadRequestException('Insufficient branch stock');
+      }
+      const result = await tx.branchMedicineStock.findUniqueOrThrow({
+        where: { id },
+        include: { facility: true, branch: true, medicine: true },
+      });
+      await tx.pharmacyStockMovement.create({
+        data: {
+          facilityId: stock.facilityId,
+          branchId: stock.branchId,
+          medicineId: stock.medicineId,
+          branchStockId: stock.id,
+          sourceType: 'MANUAL_STOCK_ADJUSTMENT',
+          sourceEntityId: String(stock.id),
+          movementType: 'ADJUSTMENT_OUT',
+          quantity,
+          stockBefore: stock.stockQuantity,
+          stockAfter: result.stockQuantity,
+          notes: 'Legacy deduct-stock endpoint; location allocation required',
+        },
+      });
+      return result;
+    });
+
+    if (updated.stockQuantity < 0) {
       throw new BadRequestException('Insufficient branch stock');
     }
+    return updated;
+  }
 
-    return this.prisma.branchMedicineStock.update({
-      where: { id },
-      data: {
-        stockQuantity: stock.stockQuantity - quantity,
-      },
-      include: {
-        facility: true,
-        branch: true,
-        medicine: true,
-      },
-    });
+  async deductStockScoped(id: number, quantity: number, user: RequestUser) {
+    await this.findOneScoped(id, user);
+    void quantity;
+    throw new BadRequestException(
+      'Direct aggregate stock changes are disabled. Stock must be issued through dispensing, IPD administration, returns, or a controlled batch adjustment.',
+    );
   }
 
   async getLowStock(facilityId?: number, branchId?: number) {

@@ -410,6 +410,11 @@ export class MasterCatalogService {
           'stockQuantity',
           'defaultStock',
         ]);
+        if (Number(stockQuantity ?? 0) !== 0) {
+          throw new BadRequestException(
+            'Master catalogue imports cannot change stock. Receive inventory into a named pharmacy location and batch.',
+          );
+        }
         const reorderLevel = readInteger(row, ['reorderLevel']);
         const isActive = readBoolean(row, ['isActive', 'active']);
 
@@ -421,7 +426,6 @@ export class MasterCatalogService {
           if (strength !== undefined) data.strength = strength;
           if (manufacturer !== undefined) data.manufacturer = manufacturer;
           if (unitPrice !== undefined) data.unitPrice = unitPrice;
-          if (stockQuantity !== undefined) data.stockQuantity = stockQuantity;
           if (reorderLevel !== undefined) data.reorderLevel = reorderLevel;
           if (isActive !== undefined) data.isActive = isActive;
 
@@ -439,7 +443,7 @@ export class MasterCatalogService {
               strength: strength ?? null,
               manufacturer: manufacturer ?? null,
               unitPrice: unitPrice ?? 0,
-              stockQuantity: stockQuantity ?? 0,
+              stockQuantity: 0,
               reorderLevel: reorderLevel ?? 0,
               isActive: isActive ?? true,
             },
