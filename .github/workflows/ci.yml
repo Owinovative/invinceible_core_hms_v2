@@ -94,12 +94,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
       - name: Install backend dependencies
         working-directory: backend
         run: npm ci
       - name: Dependency audit (production, high severity and above)
         working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Frontend dependency audit (production, high severity and above)
+        working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
@@ -125,3 +133,14 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Broadway browser workflows
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7

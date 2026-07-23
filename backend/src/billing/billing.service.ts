@@ -35,6 +35,8 @@ import {
 import { CacheService } from '../resilience/cache.service';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
 import { serializeMaybeJsonCompact } from '../common/storage/compact-payload';
+import { randomUUID } from 'node:crypto';
+import { CreatePaymentAdjustmentDto } from './dto/create-payment-adjustment.dto';
 import { EtimsService } from '../integration/etims/etims.service';
 import {
   ETIMS_OPERATIONS,
@@ -957,16 +959,20 @@ export class BillingService {
     }
   }
 
-  private async getOrCreateOpenInvoice(params: {
-    patientId: number;
-    facilityId: number;
-    branchId?: number | null;
-    appointmentId?: number | null;
-    consultationId?: number | null;
-    admissionId?: number | null;
-    createdByStaffId?: number | null;
-  }) {
-    const existing = await this.prisma.invoice.findFirst({
+  private async getOrCreateOpenInvoice(
+    params: {
+      patientId: number;
+      facilityId: number;
+      branchId?: number | null;
+      appointmentId?: number | null;
+      consultationId?: number | null;
+      admissionId?: number | null;
+      createdByStaffId?: number | null;
+    },
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+    const existing = await db.invoice.findFirst({
       where: {
         patientId: params.patientId,
         facilityId: params.facilityId,
@@ -987,7 +993,7 @@ export class BillingService {
 
     const invoiceNumber = await this.generateInvoiceNumber();
 
-    return this.prisma.invoice.create({
+    return db.invoice.create({
       data: {
         invoiceNumber,
         patientId: params.patientId,
@@ -1200,7 +1206,14 @@ export class BillingService {
         },
         payments: {
           where: {
-            statusCode: 'COMPLETED',
+            statusCode: {
+              in: ['COMPLETED', 'PARTIALLY_REFUNDED', 'REFUNDED'],
+            },
+          },
+          include: {
+            adjustments: {
+              where: { statusCode: 'COMPLETED' },
+            },
           },
         },
       },
@@ -1217,7 +1230,14 @@ export class BillingService {
     const totalAmount =
       subtotal - Number(invoice.discountAmount) + Number(invoice.taxAmount);
     const paidAmount = invoice.payments.reduce(
-      (sum, payment) => sum + Number(payment.amount),
+      (sum, payment) =>
+        sum +
+        Number(payment.amount) -
+        (payment.adjustments ?? []).reduce(
+          (adjustmentSum, adjustment) =>
+            adjustmentSum + Number(adjustment.amount),
+          0,
+        ),
       0,
     );
     const balanceAmount = totalAmount - paidAmount;
@@ -1286,17 +1306,47 @@ export class BillingService {
     billingServiceId?: number;
     chargedAt?: Date;
   }) {
-    const invoice = await this.getOrCreateOpenInvoice({
-      patientId: params.patientId,
-      facilityId: params.facilityId,
-      branchId: params.branchId ?? null,
-      appointmentId: params.appointmentId ?? null,
-      consultationId: params.consultationId ?? null,
-      admissionId: params.admissionId ?? null,
-      createdByStaffId: params.createdByStaffId ?? null,
+    return this.prisma.$transaction(async (tx) => {
+      const result = await this.addAutoInvoiceItemInTransaction(tx, params);
+      return result.invoice;
     });
+  }
 
-    const existingItem = await this.prisma.invoiceItem.findFirst({
+  async addAutoInvoiceItemInTransaction(
+    tx: Prisma.TransactionClient,
+    params: {
+      patientId: number;
+      facilityId: number;
+      branchId?: number | null;
+      appointmentId?: number | null;
+      consultationId?: number | null;
+      admissionId?: number | null;
+      createdByStaffId?: number | null;
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      notes?: string;
+      sourceModule: string;
+      sourceEntityType: string;
+      sourceEntityId: string;
+      billingServiceId?: number;
+      chargedAt?: Date;
+    },
+  ) {
+    const invoice = await this.getOrCreateOpenInvoice(
+      {
+        patientId: params.patientId,
+        facilityId: params.facilityId,
+        branchId: params.branchId ?? null,
+        appointmentId: params.appointmentId ?? null,
+        consultationId: params.consultationId ?? null,
+        admissionId: params.admissionId ?? null,
+        createdByStaffId: params.createdByStaffId ?? null,
+      },
+      tx,
+    );
+
+    const existingItem = await tx.invoiceItem.findFirst({
       where: {
         invoiceId: invoice.id,
         sourceModule: params.sourceModule,
@@ -1307,7 +1357,11 @@ export class BillingService {
     });
 
     if (existingItem) {
-      return this.getInvoiceById(invoice.id);
+      const existingInvoice = await this.recalculateInvoiceTotalsFromItems(
+        invoice.id,
+        tx,
+      );
+      return { invoice: existingInvoice, item: existingItem };
     }
 
     const autoLine = this.calculateLineTotals(
@@ -1315,7 +1369,7 @@ export class BillingService {
       params.unitPrice,
     );
 
-    await this.prisma.invoiceItem.create({
+    const item = await tx.invoiceItem.create({
       data: {
         invoiceId: invoice.id,
         billingServiceId: params.billingServiceId,
@@ -1336,7 +1390,11 @@ export class BillingService {
       },
     });
 
-    return this.recalculateInvoiceTotalsFromItems(invoice.id);
+    const updatedInvoice = await this.recalculateInvoiceTotalsFromItems(
+      invoice.id,
+      tx,
+    );
+    return { invoice: updatedInvoice, item };
   }
 
   async addInvoiceItem(
@@ -1597,22 +1655,40 @@ export class BillingService {
       Number(dto.discountPercent ?? item.discountPercent),
     );
 
-    await this.prisma.invoiceItem.update({
-      where: { id },
-      data: {
-        description: dto.description ?? item.description,
-        quantity,
-        unitPrice,
-        discountPercent: line.discountPercent,
-        discountAmount: line.discountAmount,
-        lineTotal: line.lineTotal,
-        notes: dto.notes ?? item.notes,
-        statusCode: dto.statusCode ?? item.statusCode,
-        updatedByStaffId: user.staffId ?? undefined,
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.invoiceItem.update({
+        where: { id },
+        data: {
+          description: dto.description ?? item.description,
+          quantity,
+          unitPrice,
+          discountPercent: line.discountPercent,
+          discountAmount: line.discountAmount,
+          lineTotal: line.lineTotal,
+          notes: dto.notes ?? item.notes,
+          statusCode: dto.statusCode ?? item.statusCode,
+          updatedByStaffId: user.staffId ?? undefined,
+        },
+      });
 
-    return this.recalculateInvoiceTotalsFromItems(item.invoiceId);
+      await tx.auditLog.create({
+        data: {
+          moduleName: 'BILLING',
+          actionName: 'UPDATE_INVOICE_ITEM',
+          entityType: 'INVOICE_ITEM',
+          entityId: String(item.id),
+          description: `Updated invoice line on ${item.invoice.invoiceNumber}`,
+          facilityId: item.invoice.facilityId,
+          branchId: item.invoice.branchId ?? undefined,
+          actorUserId: user.userId,
+          actorStaffId: user.staffId ?? undefined,
+          beforeData: JSON.stringify(item),
+          afterData: JSON.stringify(updated),
+        },
+      });
+
+      return this.recalculateInvoiceTotalsFromItems(item.invoiceId, tx);
+    });
   }
 
   async removeInvoiceItem(
@@ -1643,18 +1719,36 @@ export class BillingService {
       throw new BadRequestException('Invoice item already removed');
     }
 
-    await this.prisma.invoiceItem.update({
-      where: { id },
-      data: {
-        isRemoved: true,
-        removedAt: new Date(),
-        removedReason: dto.reason,
-        updatedByStaffId: user?.staffId ?? dto.updatedByStaffId,
-        statusCode: 'REMOVED',
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const removed = await tx.invoiceItem.update({
+        where: { id },
+        data: {
+          isRemoved: true,
+          removedAt: new Date(),
+          removedReason: dto.reason,
+          updatedByStaffId: user?.staffId ?? dto.updatedByStaffId,
+          statusCode: 'REMOVED',
+        },
+      });
 
-    return this.recalculateInvoiceTotalsFromItems(item.invoiceId);
+      await tx.auditLog.create({
+        data: {
+          moduleName: 'BILLING',
+          actionName: 'REMOVE_INVOICE_ITEM',
+          entityType: 'INVOICE_ITEM',
+          entityId: String(item.id),
+          description: `Removed invoice line from ${item.invoice.invoiceNumber}: ${dto.reason}`,
+          facilityId: item.invoice.facilityId,
+          branchId: item.invoice.branchId ?? undefined,
+          actorUserId: user?.userId,
+          actorStaffId: user?.staffId ?? dto.updatedByStaffId,
+          beforeData: JSON.stringify(item),
+          afterData: JSON.stringify(removed),
+        },
+      });
+
+      return this.recalculateInvoiceTotalsFromItems(item.invoiceId, tx);
+    });
   }
 
   async closeInvoice(id: number, user: RequestUser) {
@@ -3159,6 +3253,120 @@ export class BillingService {
       }
       throw error;
     }
+  }
+
+  async createPaymentAdjustment(
+    paymentId: number,
+    dto: CreatePaymentAdjustmentDto,
+    user: RequestUser,
+  ) {
+    const scopedPayment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: { id: true, facilityId: true, branchId: true },
+    });
+    if (!scopedPayment) {
+      throw new NotFoundException(`Payment with id ${paymentId} not found`);
+    }
+    this.scopeService.assertBranchAccess(
+      user,
+      scopedPayment.facilityId,
+      scopedPayment.branchId,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      // Lock the payment row before calculating the remaining refundable
+      // balance. PostgreSQL and MySQL both support this syntax.
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM payments WHERE id = ${paymentId} FOR UPDATE`,
+      );
+      const payment = await tx.payment.findUnique({
+        where: { id: paymentId },
+        include: {
+          invoice: true,
+          adjustments: { where: { statusCode: 'COMPLETED' } },
+        },
+      });
+      if (!payment) {
+        throw new NotFoundException(`Payment with id ${paymentId} not found`);
+      }
+      if (!['COMPLETED', 'PARTIALLY_REFUNDED'].includes(payment.statusCode)) {
+        throw new BadRequestException(
+          'Only completed payments can be refunded or reversed',
+        );
+      }
+      const previouslyAdjusted = payment.adjustments.reduce(
+        (sum, adjustment) => sum + Number(adjustment.amount),
+        0,
+      );
+      const currentRefundable = Number(payment.amount) - previouslyAdjusted;
+      if (dto.amount > currentRefundable) {
+        throw new BadRequestException(
+          'Another adjustment has already reduced the refundable balance',
+        );
+      }
+      if (
+        dto.adjustmentType === 'REVERSAL' &&
+        dto.amount !== currentRefundable
+      ) {
+        throw new BadRequestException(
+          'A reversal must adjust the full remaining payment amount',
+        );
+      }
+
+      const adjustment = await tx.paymentAdjustment.create({
+        data: {
+          adjustmentNumber: `PADJ-${randomUUID().slice(0, 12).toUpperCase()}`,
+          facilityId: payment.facilityId,
+          branchId: payment.branchId,
+          invoiceId: payment.invoiceId,
+          paymentId: payment.id,
+          adjustmentType: dto.adjustmentType,
+          amount: dto.amount,
+          reason: dto.reason.trim(),
+          actorUserId: user.userId,
+          actorStaffId: user.staffId ?? undefined,
+        },
+      });
+
+      const adjustedTotal = previouslyAdjusted + dto.amount;
+      const paymentStatus =
+        adjustedTotal >= Number(payment.amount)
+          ? 'REFUNDED'
+          : 'PARTIALLY_REFUNDED';
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { statusCode: paymentStatus },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          moduleName: 'BILLING',
+          actionName:
+            dto.adjustmentType === 'REVERSAL'
+              ? 'REVERSE_PAYMENT'
+              : 'REFUND_PAYMENT',
+          entityType: 'PAYMENT_ADJUSTMENT',
+          entityId: String(adjustment.id),
+          description: `${dto.adjustmentType} applied to receipt ${payment.receiptNumber}: ${dto.reason.trim()}`,
+          facilityId: payment.facilityId,
+          branchId: payment.branchId,
+          actorUserId: user.userId,
+          actorStaffId: user.staffId ?? undefined,
+          beforeData: JSON.stringify({
+            paymentId: payment.id,
+            paymentStatus: payment.statusCode,
+            refundableAmount: currentRefundable,
+          }),
+          afterData: JSON.stringify(adjustment),
+        },
+      });
+
+      const invoice = await this.recalculateInvoiceTotalsFromItems(
+        payment.invoiceId,
+        tx,
+      );
+      return { adjustment, paymentStatus, invoice };
+    });
   }
 
   async applyShaCoveragePayment(params: {

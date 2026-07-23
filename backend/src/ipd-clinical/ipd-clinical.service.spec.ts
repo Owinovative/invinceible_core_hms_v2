@@ -42,18 +42,22 @@ describe('IpdClinicalService medicine administration integrity', () => {
       getAdmissionByIdScoped: jest.fn().mockResolvedValue(admission),
     };
     const safeLogger = { info: jest.fn() };
+    const pharmacyInventory = {
+      allocateForIssue: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new IpdClinicalService(
       prisma as never,
       ipdService as never,
       {} as never,
       safeLogger as never,
+      pharmacyInventory as never,
     );
 
-    return { service, prisma, tx, ipdService };
+    return { service, prisma, tx, ipdService, pharmacyInventory };
   }
 
   it('scopes the admission and atomically decrements branch stock', async () => {
-    const { service, tx, ipdService } = setup();
+    const { service, tx, ipdService, pharmacyInventory } = setup();
 
     await service.administerAdmissionMedicine(
       10,
@@ -68,6 +72,13 @@ describe('IpdClinicalService medicine administration integrity', () => {
     });
     expect(tx.treatmentChartEntry.create).toHaveBeenCalled();
     expect(tx.auditLog.create).toHaveBeenCalled();
+    expect(pharmacyInventory.allocateForIssue).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        sourceType: 'IPD_MEDICINE_ADMINISTRATION',
+        quantity: 2,
+      }),
+    );
   });
 
   it('does not record administration when another request consumed the stock', async () => {

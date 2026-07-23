@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 import { TimeoutError } from 'rxjs';
 import { SafeLoggerService } from './safe-logger.service';
 import type { RequestWithContext } from './request-context.middleware';
+import { safeRequestPath } from './safe-request-path';
 
 type SafeErrorBody = {
   statusCode: number;
@@ -44,7 +45,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const nodeEnv = this.configService.get<string>('NODE_ENV') ?? 'development';
     const isProduction = nodeEnv === 'production';
     const requestId = request.requestId;
-    const path = request.originalUrl || request.url;
+    const path = safeRequestPath(request.originalUrl || request.url);
 
     const statusCode = this.getStatusCode(exception);
     const errorResponse = this.getErrorResponse(exception, isProduction);

@@ -18,6 +18,7 @@ import type { RequestUser } from '../auth/interfaces/request-user.interface';
 import { BillingService } from '../billing/billing.service';
 import { CacheService } from '../resilience/cache.service';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
+import { PharmacyInventoryService } from '../pharmacy-inventory/pharmacy-inventory.service';
 
 function stockStatus(
   stockQuantity?: number | null,
@@ -43,6 +44,7 @@ export class PharmacyService {
     private readonly billingService: BillingService,
     private readonly cacheService: CacheService,
     private readonly safeLogger: SafeLoggerService,
+    private readonly inventoryService: PharmacyInventoryService,
   ) {}
 
   private async recordPrescriptionAudit(params: {
@@ -81,6 +83,11 @@ export class PharmacyService {
   }
 
   async createMedicine(createMedicineDto: CreateMedicineDto) {
+    if (Number(createMedicineDto.stockQuantity ?? 0) !== 0) {
+      throw new BadRequestException(
+        'Catalogue medicines must start with zero stock. Receive stock into a named pharmacy location and batch.',
+      );
+    }
     const existing = await this.prisma.medicine.findFirst({
       where: {
         OR: [
@@ -109,7 +116,7 @@ export class PharmacyService {
         manufacturer: createMedicineDto.manufacturer,
         terminologyConceptId: createMedicineDto.terminologyConceptId,
         unitPrice: createMedicineDto.unitPrice ?? 0,
-        stockQuantity: createMedicineDto.stockQuantity ?? 0,
+        stockQuantity: 0,
         reorderLevel: createMedicineDto.reorderLevel ?? 0,
         isActive: createMedicineDto.isActive ?? true,
       },
@@ -874,6 +881,21 @@ export class PharmacyService {
           },
         });
 
+        await this.inventoryService.allocateForIssue(tx, {
+          facilityId: prescription.facilityId,
+          branchId: prescription.branchId!,
+          medicineId: item.medicineId,
+          branchStockId: branchStock.id,
+          sourceType: 'PRESCRIPTION_DISPENSE',
+          sourceEntityId: String(createdDispense.id),
+          quantity: item.quantityToDispense,
+          aggregateStockBefore:
+            updatedStock.stockQuantity + item.quantityToDispense,
+          aggregateStockAfter: updatedStock.stockQuantity,
+          performedByStaffId: staff.id,
+          notes: `Dispense ${createdDispense.dispenseNumber}`,
+        });
+
         const itemStatus =
           item.alreadyDispensed + item.quantityToDispense >= item.quantity
             ? 'DISPENSED'
@@ -1193,6 +1215,26 @@ export class PharmacyService {
             dto.quantity,
           notes: dto.instructions ?? dto.notes,
         },
+      });
+
+      const updatedStock = await tx.branchMedicineStock.findUniqueOrThrow({
+        where: { id: stock.id },
+      });
+      await this.inventoryService.allocateForIssue(tx, {
+        facilityId: consultation.facilityId,
+        branchId: consultation.branchId!,
+        medicineId: dto.medicineId,
+        branchStockId: stock.id,
+        sourceType: 'DIRECT_ADMINISTRATION',
+        sourceEntityId: String(dispense.id),
+        quantity: dto.quantity,
+        aggregateStockBefore: updatedStock.stockQuantity + dto.quantity,
+        aggregateStockAfter: updatedStock.stockQuantity,
+        performedByStaffId: staff.id,
+        notes:
+          dto.mode === 'INJECTION'
+            ? 'Administered in consultation room'
+            : 'Directly dispensed in consultation room',
       });
 
       await tx.auditLog.create({

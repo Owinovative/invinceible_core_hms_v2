@@ -93,6 +93,24 @@ export interface CsvExportResponse {
   csvText: string;
 }
 
+export interface PatientTurnaroundReport {
+  filters: {
+    startDate?: string | null;
+    endDate?: string | null;
+    facilityId?: number | null;
+    branchId?: number | null;
+  };
+  departments: Array<{
+    department: string;
+    completedJourneys: number;
+    averageMinutes: number;
+    medianMinutes: number;
+    p90Minutes: number;
+    delayThresholdMinutes: number;
+    delayedJourneys: number;
+  }>;
+}
+
 export interface ModuleOperationsReport {
   filters: {
     startDate?: string | null;
@@ -241,6 +259,17 @@ export async function getReportsDashboard(dateFrom?: string, dateTo?: string) {
   return apiFetch<ReportsDashboardRecord>(path, {
     method: "GET",
   });
+}
+
+export async function getPatientTurnaroundReport(
+  dateFrom?: string,
+  dateTo?: string,
+) {
+  const query = reportParams(dateFrom, dateTo);
+  const path = query
+    ? `/reports/patient-turnaround?${query}`
+    : "/reports/patient-turnaround";
+  return apiFetch<PatientTurnaroundReport>(path);
 }
 
 export async function getReportsDashboardExport(

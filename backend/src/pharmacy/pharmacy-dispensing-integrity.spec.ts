@@ -60,15 +60,16 @@ describe('PharmacyService partial dispensing integrity', () => {
           .fn()
           .mockResolvedValue({ ...branchStock, stockQuantity: 16 }),
       },
+      pharmacyStockMovement: {
+        create: jest.fn().mockResolvedValue({}),
+      },
       dispenseItem: { create: jest.fn().mockResolvedValue({}) },
       prescription: {
         update: jest.fn().mockResolvedValue({}),
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({
-            ...prescription,
-            statusCode: 'PARTIALLY_DISPENSED',
-          }),
+        findUnique: jest.fn().mockResolvedValue({
+          ...prescription,
+          statusCode: 'PARTIALLY_DISPENSED',
+        }),
       },
     };
     const prisma = {
@@ -84,6 +85,9 @@ describe('PharmacyService partial dispensing integrity', () => {
       addAutoInvoiceItem: jest.fn().mockResolvedValue({}),
     };
     const notificationService = { create: jest.fn().mockResolvedValue({}) };
+    const inventoryService = {
+      allocateForIssue: jest.fn().mockResolvedValue(undefined),
+    };
     const service = new PharmacyService(
       prisma as never,
       {} as never,
@@ -94,6 +98,7 @@ describe('PharmacyService partial dispensing integrity', () => {
       billingService as never,
       {} as never,
       {} as never,
+      inventoryService as never,
     );
     jest
       .spyOn(service, 'getPrescriptionById')
@@ -115,6 +120,15 @@ describe('PharmacyService partial dispensing integrity', () => {
       where: { id: 11 },
       data: { statusCode: 'PARTIALLY_DISPENSED' },
     });
+    expect(inventoryService.allocateForIssue).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        sourceType: 'PRESCRIPTION_DISPENSE',
+        quantity: 4,
+        aggregateStockBefore: 20,
+        aggregateStockAfter: 16,
+      }),
+    );
     expect(tx.prescription.update).toHaveBeenCalledWith({
       where: { id: 10 },
       data: { statusCode: 'PARTIALLY_DISPENSED', dispensedAt: null },

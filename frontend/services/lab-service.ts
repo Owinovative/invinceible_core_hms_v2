@@ -57,6 +57,11 @@ export interface LabResultItem {
   attachmentDataUrl?: string | null;
   recordedBy?: number | null;
   recordedAt?: string;
+  statusCode?: string;
+  validatedAt?: string | null;
+  validationNotes?: string | null;
+  releasedAt?: string | null;
+  amendmentReason?: string | null;
 }
 
 
@@ -103,6 +108,125 @@ export interface LabOrderRecord {
     lastName?: string;
   } | null;
   items?: LabOrderItem[];
+}
+
+export interface ExternalLabReferral {
+  id: number;
+  referralNumber: string;
+  referringFacilityName: string;
+  externalPatientName: string;
+  sampleReference: string;
+  statusCode: string;
+  billingStatus: string;
+  invoiceNumber: string;
+  totalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  receivedAt: string;
+  items: Array<{
+    id: number;
+    statusCode: string;
+    priceAmount: number;
+    test: LabTestItem;
+    result?: ExternalLabResult | null;
+  }>;
+  payments?: Array<{
+    id: number;
+    paymentNumber: string;
+    amount: number;
+    paymentMethod: string;
+    paidAt: string;
+  }>;
+}
+
+export function createExternalLabPayment(input: {
+  referralId: number;
+  amount: number;
+  paymentMethod: "CASH" | "MPESA" | "CARD" | "BANK_TRANSFER" | "INSURANCE";
+  transactionReference?: string;
+}) {
+  const { referralId, ...payload } = input;
+  return apiFetch<ExternalLabReferral>(
+    `/lab/external-referrals/${referralId}/payments`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export function createExternalLabReportShare(input: {
+  referralId: number;
+  expiresInHours?: number;
+}) {
+  const { referralId, ...payload } = input;
+  return apiFetch<{ id: number; expiresAt: string; accessPath: string }>(
+    `/lab/external-referrals/${referralId}/report-shares`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export interface ExternalLabResult {
+  id: number;
+  externalLabOrderItemId: number;
+  resultValue: string;
+  remarks?: string | null;
+  statusCode: string;
+  recordedAt: string;
+  validatedAt?: string | null;
+  releasedAt?: string | null;
+}
+
+export function getExternalLabReferrals() {
+  return apiFetch<ExternalLabReferral[]>("/lab/external-referrals");
+}
+
+export function createExternalLabReferral(payload: {
+  facilityId: number;
+  branchId?: number;
+  referringFacilityName: string;
+  referringFacilityContact?: string;
+  referringClinicianName?: string;
+  externalPatientName: string;
+  externalPatientIdentifier?: string;
+  patientPhone?: string;
+  sampleReference: string;
+  specimenType?: string;
+  clinicalNotes?: string;
+  urgency?: string;
+  items: Array<{ testId: number; instructions?: string }>;
+}) {
+  return apiFetch<ExternalLabReferral>("/lab/external-referrals", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createExternalLabResult(input: {
+  itemId: number;
+  resultValue: string;
+  remarks?: string;
+}) {
+  const { itemId, ...payload } = input;
+  return apiFetch<ExternalLabResult>(
+    `/lab/external-referrals/items/${itemId}/result`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export function validateExternalLabResult(input: {
+  resultId: number;
+  validationNotes?: string;
+}) {
+  const { resultId, ...payload } = input;
+  return apiFetch<ExternalLabResult>(
+    `/lab/external-results/${resultId}/validate`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export function releaseExternalLabResult(resultId: number) {
+  return apiFetch<ExternalLabResult>(
+    `/lab/external-results/${resultId}/release`,
+    { method: "POST" },
+  );
 }
 
 export interface CreateLabOrderPayload {
@@ -171,6 +295,36 @@ export async function getLabResultsByOrder(orderId: number) {
 export async function createLabResult(payload: CreateLabResultPayload) {
   return apiFetch<LabResultItem>("/lab/results", {
     method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function validateLabResult(input: {
+  resultId: number;
+  validationNotes?: string;
+}) {
+  const { resultId, ...payload } = input;
+  return apiFetch<LabResultItem>(`/lab/results/${resultId}/validate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function releaseLabResult(resultId: number) {
+  return apiFetch<LabResultItem>(`/lab/results/${resultId}/release`, {
+    method: "POST",
+  });
+}
+
+export function amendLabResult(input: {
+  resultId: number;
+  resultValue: string;
+  remarks?: string;
+  amendmentReason: string;
+}) {
+  const { resultId, ...payload } = input;
+  return apiFetch<LabResultItem>(`/lab/results/${resultId}/amend`, {
+    method: "PATCH",
     body: JSON.stringify(payload),
   });
 }

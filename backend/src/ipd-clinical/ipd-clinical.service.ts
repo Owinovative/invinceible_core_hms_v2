@@ -14,6 +14,7 @@ import { CreateIpdDischargeSummaryDto } from './dto/create-ipd-discharge-summary
 import { AdministerIpdMedicineDto } from './dto/administer-ipd-medicine.dto';
 import { RequestUser } from '../auth/interfaces/request-user.interface';
 import { SafeLoggerService } from '../resilience/safe-logger.service';
+import { PharmacyInventoryService } from '../pharmacy-inventory/pharmacy-inventory.service';
 import {
   addKeyValueGrid,
   addCompactParagraph,
@@ -34,6 +35,7 @@ export class IpdClinicalService {
     private readonly ipdService: IpdService,
     private readonly staffService: StaffService,
     private readonly safeLogger: SafeLoggerService,
+    private readonly pharmacyInventory: PharmacyInventoryService,
   ) {}
 
   async createProgressNote(dto: CreateIpdProgressNoteDto, user: RequestUser) {
@@ -300,6 +302,20 @@ export class IpdClinicalService {
           `Insufficient IPD stock for ${stock.medicine.name}. Another action may have used the stock first.`,
         );
       }
+
+      await this.pharmacyInventory.allocateForIssue(tx, {
+        facilityId: admission.facilityId,
+        branchId: admission.branchId!,
+        medicineId: dto.medicineId,
+        branchStockId: stock.id,
+        quantity: dto.quantity,
+        sourceType: 'IPD_MEDICINE_ADMINISTRATION',
+        sourceEntityId: String(admissionId),
+        performedByStaffId: staff.id,
+        notes: dto.notes,
+        aggregateStockBefore: stock.stockQuantity,
+        aggregateStockAfter: stock.stockQuantity - dto.quantity,
+      });
 
       const entry = await tx.treatmentChartEntry.create({
         data: {

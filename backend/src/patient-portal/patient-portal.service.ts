@@ -115,7 +115,9 @@ export class PatientPortalService {
       where: {
         patientId: patient.id,
         facilityId: patient.facilityId,
-        items: { some: { results: { some: {} } } },
+        items: {
+          some: { results: { some: { statusCode: 'RELEASED' } } },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -126,12 +128,15 @@ export class PatientPortalService {
         status: true,
         createdAt: true,
         items: {
-          where: { results: { some: {} } },
+          where: {
+            results: { some: { statusCode: 'RELEASED' } },
+          },
           select: {
             id: true,
             status: true,
             test: { select: { id: true, testName: true, category: true } },
             results: {
+              where: { statusCode: 'RELEASED' },
               select: {
                 id: true,
                 resultValue: true,
@@ -139,6 +144,9 @@ export class PatientPortalService {
                 attachmentFileName: true,
                 attachmentMimeType: true,
                 recordedAt: true,
+                statusCode: true,
+                validatedAt: true,
+                releasedAt: true,
               },
             },
           },

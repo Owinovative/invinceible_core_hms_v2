@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Response } from 'express';
 import { SafeLoggerService } from './safe-logger.service';
 import type { RequestWithContext } from './request-context.middleware';
+import { safeRequestPath } from './safe-request-path';
 
 @Injectable()
 export class RequestLoggingMiddleware implements NestMiddleware {
@@ -22,7 +23,7 @@ export class RequestLoggingMiddleware implements NestMiddleware {
       const context = {
         requestId: req.requestId,
         method: req.method,
-        path: req.originalUrl || req.url,
+        path: safeRequestPath(req.originalUrl || req.url),
         statusCode: res.statusCode,
         durationMs,
         ip: req.ip,

@@ -10,6 +10,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { AuthModule } from '../auth/auth.module';
 import { BillingModule } from '../billing/billing.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { PharmacyInventoryModule } from '../pharmacy-inventory/pharmacy-inventory.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
     AuthModule,
     BillingModule,
     AuditLogModule,
+    PharmacyInventoryModule,
   ],
   controllers: [PharmacyController, OtcSalesController],
   providers: [PharmacyService, OtcSalesService],

@@ -16,12 +16,14 @@ import { useScope } from "@/providers/scope-provider";
 import { useBranchPharmacyStock } from "@/hooks/use-branch-pharmacy-stock";
 import { useLowPharmacyStock } from "@/hooks/use-low-pharmacy-stock";
 import { useRestockBranchMedicine } from "@/hooks/use-restock-branch-medicine";
+import { usePharmacyLocations } from "@/hooks/use-pharmacy-inventory";
 import type { BranchMedicineStockItem } from "@/services/pharmacy-stock-service";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { appSelectClass } from "@/lib/select-class";
 
 function stockTone(item: BranchMedicineStockItem) {
   if (item.stockQuantity <= 0) {
@@ -63,6 +65,7 @@ export default function PharmacyStockPage() {
   });
   const { data: lowStockData } = useLowPharmacyStock();
   const restockMutation = useRestockBranchMedicine();
+  const locations = usePharmacyLocations();
 
   const stocks = Array.isArray(data) ? data : (data?.data ?? []);
   const stockMeta = Array.isArray(data) ? undefined : data?.meta;
@@ -72,6 +75,9 @@ export default function PharmacyStockPage() {
   const [quantityToAdd, setQuantityToAdd] = React.useState("");
   const [reorderLevel, setReorderLevel] = React.useState("");
   const [unitPrice, setUnitPrice] = React.useState("");
+  const [pharmacyLocationId, setPharmacyLocationId] = React.useState("");
+  const [batchNumber, setBatchNumber] = React.useState("");
+  const [expiresAt, setExpiresAt] = React.useState("");
 
   React.useEffect(() => {
     setPage(1);
@@ -116,6 +122,10 @@ export default function PharmacyStockPage() {
       setMessage("Enter a valid quantity to add.");
       return;
     }
+    if (!pharmacyLocationId || !batchNumber.trim() || !expiresAt) {
+      setMessage("Select a pharmacy location, batch number and expiry date.");
+      return;
+    }
 
     setMessage(null);
 
@@ -123,6 +133,9 @@ export default function PharmacyStockPage() {
       stockId: activeStock.id,
       payload: {
         quantityToAdd: qty,
+        pharmacyLocationId: Number(pharmacyLocationId),
+        batchNumber: batchNumber.trim(),
+        expiresAt,
         reorderLevel: reorderLevel ? Number(reorderLevel) : undefined,
         unitPrice: unitPrice ? Number(unitPrice) : undefined,
       },
@@ -133,6 +146,9 @@ export default function PharmacyStockPage() {
     setMessage("Medicine stock restocked successfully.");
     setReorderLevel("");
     setUnitPrice("");
+    setPharmacyLocationId("");
+    setBatchNumber("");
+    setExpiresAt("");
   };
 
   return (
@@ -407,6 +423,25 @@ export default function PharmacyStockPage() {
                       className="h-12 rounded-2xl"
                       placeholder="50"
                     />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">Receiving pharmacy</label>
+                    <select className={appSelectClass} value={pharmacyLocationId} onChange={(event) => setPharmacyLocationId(event.target.value)}>
+                      <option value="">Select pharmacy location</option>
+                      {(locations.data ?? []).filter((location) => location.branchId === activeStock.branchId).map((location) => (
+                        <option key={location.id} value={location.id}>{location.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium">Batch number</label>
+                      <Input value={batchNumber} onChange={(event) => setBatchNumber(event.target.value)} />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium">Expiry date</label>
+                      <Input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />
+                    </div>
                   </div>
 
                   <div>

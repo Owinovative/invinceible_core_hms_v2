@@ -14,6 +14,8 @@ import {
   LayoutDashboard,
   Microscope,
   Monitor,
+  MessageSquareText,
+  Package,
   Pill,
   Plus,
   Receipt,
@@ -141,6 +143,12 @@ export const navSections: NavSection[] = [
         keywords: ["tests", "results"],
       },
       {
+        title: "External Lab Samples",
+        href: "/lab-external",
+        icon: FlaskConical,
+        keywords: ["referral", "external", "sample"],
+      },
+      {
         title: "Radiology",
         href: "/radiology",
         icon: Monitor,
@@ -170,6 +178,12 @@ export const navSections: NavSection[] = [
         href: "/pharmacy-stock",
         icon: Warehouse,
         keywords: ["inventory"],
+      },
+      {
+        title: "Batches & Returns",
+        href: "/pharmacy-inventory",
+        icon: Package,
+        keywords: ["expiry", "returns", "dead stock", "locations"],
       },
       {
         title: "Procurement",
@@ -203,6 +217,7 @@ export const navSections: NavSection[] = [
     module: "operations",
     items: [
       { title: "Dental", href: "/dental", icon: Microscope },
+      { title: "Orthopedics", href: "/orthopedics", icon: Activity },
       { title: "Physiotherapy", href: "/physiotherapy", icon: Dumbbell },
       { title: "Oncology", href: "/oncology", icon: Activity },
       { title: "Renal / Dialysis", href: "/renal-dialysis", icon: HeartPulse },
@@ -224,6 +239,18 @@ export const navSections: NavSection[] = [
         href: "/dha-eclaims",
         icon: ShieldCheck,
         keywords: ["preauthorization", "emergency", "attachments"],
+      },
+    ],
+  },
+  {
+    label: "Communication",
+    module: "operations",
+    items: [
+      {
+        title: "Bulk Messaging",
+        href: "/communications",
+        icon: MessageSquareText,
+        keywords: ["sms", "campaign", "reminder"],
       },
     ],
   },

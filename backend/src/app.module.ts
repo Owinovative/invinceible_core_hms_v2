@@ -29,6 +29,7 @@ import { BranchModule } from './branch/branch.module';
 import { DepartmentModule } from './department/department.module';
 import { ClinicModule } from './clinic/clinic.module';
 import { PharmacyStockModule } from './pharmacy-stock/pharmacy-stock.module';
+import { PharmacyInventoryModule } from './pharmacy-inventory/pharmacy-inventory.module';
 import { TriageModule } from './triage/triage.module';
 import { PrescriptionModule } from './prescription/prescription.module';
 import { PrescriptionItemModule } from './prescription-item/prescription-item.module';
@@ -62,6 +63,8 @@ import { TerminologyModule } from './terminology/terminology.module';
 import { ShrModule } from './shr/shr.module';
 import { EventBusModule } from './events/event-bus.module';
 import { WorkflowModule } from './workflows/workflow.module';
+import { ClinicalSpecialtiesModule } from './clinical-specialties/clinical-specialties.module';
+import { PrivateInsuranceModule } from './private-insurance/private-insurance.module';
 
 const backendEnvPath = existsSync(join(process.cwd(), 'backend', '.env'))
   ? join(process.cwd(), 'backend', '.env')
@@ -79,6 +82,8 @@ const backendEnvPath = existsSync(join(process.cwd(), 'backend', '.env'))
     WorkflowModule,
     ResilienceModule,
     ClinicalSafetyModule,
+    ClinicalSpecialtiesModule,
+    PrivateInsuranceModule,
     PatientPortalModule,
     CommunicationModule,
     DataOutboxModule,
@@ -109,6 +114,7 @@ const backendEnvPath = existsSync(join(process.cwd(), 'backend', '.env'))
     DepartmentModule,
     ClinicModule,
     PharmacyStockModule,
+    PharmacyInventoryModule,
     TriageModule,
     PrescriptionModule,
     PrescriptionItemModule,

@@ -77,6 +77,8 @@ describe('validateEnvironment DHA production gates', () => {
         NODE_ENV: 'production',
         JWT_SECRET:
           'production-test-secret-that-is-longer-than-forty-eight-characters',
+        LAB_SIGNING_KEY:
+          'production-lab-signing-key-that-is-longer-than-forty-eight-characters',
         FRONTEND_URL: 'https://hms.example.org',
         DHA_MODE: 'production',
         DHA_PRODUCTION_ACTIVATION_APPROVED: 'true',

@@ -30,6 +30,36 @@ function toCsv(rows: unknown[][]) {
   return rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
 }
 
+function durationSummary(
+  department: string,
+  durationsMs: number[],
+  delayThresholdMinutes: number,
+) {
+  const durations = durationsMs
+    .filter((value) => Number.isFinite(value) && value >= 0)
+    .map((value) => value / 60_000)
+    .sort((left, right) => left - right);
+  const percentile = (ratio: number) =>
+    durations.length
+      ? durations[
+          Math.min(durations.length - 1, Math.floor(durations.length * ratio))
+        ]
+      : 0;
+  const total = durations.reduce((sum, value) => sum + value, 0);
+  return {
+    department,
+    completedJourneys: durations.length,
+    averageMinutes: durations.length
+      ? Number((total / durations.length).toFixed(2))
+      : 0,
+    medianMinutes: Number(percentile(0.5).toFixed(2)),
+    p90Minutes: Number(percentile(0.9).toFixed(2)),
+    delayThresholdMinutes,
+    delayedJourneys: durations.filter((value) => value > delayThresholdMinutes)
+      .length,
+  };
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -234,6 +264,129 @@ export class ReportsService {
 
     if (createdAt) where.createdAt = createdAt;
     return where;
+  }
+
+  async getPatientTurnaroundAnalytics(filter?: ReportFilterDto) {
+    const scope = this.facilityBranchWhere(filter);
+    const dateRange = this.buildDateRange(filter);
+    const createdAt = dateRange ? { createdAt: dateRange } : {};
+    const [
+      appointments,
+      triages,
+      consultations,
+      labOrders,
+      prescriptions,
+      invoices,
+    ] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: { ...scope, ...createdAt, checkedInAt: { not: null } },
+        select: { createdAt: true, checkedInAt: true },
+        take: 10000,
+      }),
+      this.prisma.triage.findMany({
+        where: { ...scope, ...createdAt, completedAt: { not: null } },
+        select: { arrivedAt: true, completedAt: true },
+        take: 10000,
+      }),
+      this.prisma.consultation.findMany({
+        where: { ...scope, ...createdAt, completedAt: { not: null } },
+        select: { startedAt: true, completedAt: true },
+        take: 10000,
+      }),
+      this.prisma.labOrder.findMany({
+        where: { ...scope, ...createdAt, status: 'RESULTED' },
+        select: {
+          createdAt: true,
+          items: {
+            select: {
+              results: {
+                select: { recordedAt: true, releasedAt: true },
+              },
+            },
+          },
+        },
+        take: 10000,
+      }),
+      this.prisma.prescription.findMany({
+        where: { ...scope, ...createdAt, dispensedAt: { not: null } },
+        select: { prescribedAt: true, dispensedAt: true },
+        take: 10000,
+      }),
+      this.prisma.invoice.findMany({
+        where: { ...scope, ...createdAt, settledAt: { not: null } },
+        select: { issuedAt: true, settledAt: true },
+        take: 10000,
+      }),
+    ]);
+
+    const labDurations = labOrders.flatMap((order) => {
+      const completionTimes = order.items.flatMap((item) =>
+        item.results.map((result) => result.releasedAt ?? result.recordedAt),
+      );
+      if (completionTimes.length === 0) return [];
+      const completedAt = new Date(
+        Math.max(...completionTimes.map((value) => value.getTime())),
+      );
+      return [completedAt.getTime() - order.createdAt.getTime()];
+    });
+
+    const departments = [
+      durationSummary(
+        'Registration',
+        appointments.map(
+          (item) => item.checkedInAt!.getTime() - item.createdAt.getTime(),
+        ),
+        15,
+      ),
+      durationSummary(
+        'Triage',
+        triages.map(
+          (item) => item.completedAt!.getTime() - item.arrivedAt.getTime(),
+        ),
+        20,
+      ),
+      durationSummary(
+        'Consultation',
+        consultations.map(
+          (item) => item.completedAt!.getTime() - item.startedAt.getTime(),
+        ),
+        30,
+      ),
+      durationSummary('Laboratory', labDurations, 120),
+      durationSummary(
+        'Pharmacy',
+        prescriptions.map(
+          (item) => item.dispensedAt!.getTime() - item.prescribedAt.getTime(),
+        ),
+        30,
+      ),
+      durationSummary(
+        'Billing',
+        invoices.map(
+          (item) => item.settledAt!.getTime() - item.issuedAt.getTime(),
+        ),
+        20,
+      ),
+    ];
+
+    return {
+      filters: {
+        startDate: filter?.startDate ?? null,
+        endDate: filter?.endDate ?? null,
+        facilityId: filter?.facilityId ?? null,
+        branchId: filter?.branchId ?? null,
+      },
+      departments,
+      overall: durationSummary(
+        'Overall',
+        departments.flatMap((department) =>
+          department.completedJourneys
+            ? [department.averageMinutes * 60_000]
+            : [],
+        ),
+        60,
+      ),
+    };
   }
 
   private withAppointmentDateScope(filter?: ReportFilterDto) {
