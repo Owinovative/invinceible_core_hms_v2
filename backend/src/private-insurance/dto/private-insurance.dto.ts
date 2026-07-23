@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -24,6 +25,7 @@ export class CreateInsurancePayerDto {
 
   @IsOptional()
   @IsUrl({ require_protocol: true })
+  @MaxLength(2048)
   integrationBaseUrl?: string;
 
   @IsOptional()

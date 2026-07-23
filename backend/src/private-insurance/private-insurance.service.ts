@@ -15,6 +15,32 @@ import {
   CreatePrivateInsuranceClaimDto,
 } from './dto/private-insurance.dto';
 
+function removeTrailingSlashes(value: string): string {
+  let end = value.length;
+
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+
+  return value.slice(0, end);
+}
+
+function providerScalarText(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value.trim() || undefined;
+  }
+
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value);
+  }
+
+  return undefined;
+}
+
 @Injectable()
 export class PrivateInsuranceService {
   constructor(
@@ -49,10 +75,12 @@ export class PrivateInsuranceService {
 
   async createPayer(dto: CreateInsurancePayerDto, user: RequestUser) {
     this.scope.assertFacilityAccess(user, dto.facilityId);
+    const integrationBaseUrl = dto.integrationBaseUrl?.trim();
+
     if (
       this.config.get<string>('NODE_ENV') === 'production' &&
-      dto.integrationBaseUrl &&
-      !dto.integrationBaseUrl.startsWith('https://')
+      integrationBaseUrl &&
+      !integrationBaseUrl.startsWith('https://')
     ) {
       throw new BadRequestException(
         'Private insurer integrations must use HTTPS in production',
@@ -64,7 +92,9 @@ export class PrivateInsuranceService {
         code: dto.code.trim().toUpperCase(),
         name: dto.name.trim(),
         payerType: dto.payerType?.trim().toUpperCase() || 'PRIVATE',
-        integrationBaseUrl: dto.integrationBaseUrl?.trim().replace(/\/+$/, ''),
+        integrationBaseUrl: integrationBaseUrl
+          ? removeTrailingSlashes(integrationBaseUrl)
+          : undefined,
         eligibilityPath: dto.eligibilityPath?.trim(),
         claimSubmissionPath: dto.claimSubmissionPath?.trim(),
         authorizationCiphertext: dto.apiToken
@@ -203,8 +233,8 @@ export class PrivateInsuranceService {
         statusCode: response.ok ? 'ACTIVE' : 'VERIFICATION_FAILED',
         lastVerifiedAt: new Date(),
         verificationReference:
-          String(body.reference ?? body.verificationReference ?? '') ||
-          undefined,
+          providerScalarText(body.reference) ??
+          providerScalarText(body.verificationReference),
         verificationResponse: JSON.stringify(body).slice(0, 65000),
       },
       include: { payer: true, patient: true },
@@ -364,13 +394,17 @@ export class PrivateInsuranceService {
         statusCode: response.ok ? 'SUBMITTED' : 'SUBMISSION_FAILED',
         submittedAt: new Date(),
         externalClaimId:
-          String(body.claimId ?? body.externalClaimId ?? '') || undefined,
+          providerScalarText(body.claimId) ??
+          providerScalarText(body.externalClaimId),
         submissionReference:
-          String(body.reference ?? body.submissionReference ?? '') || undefined,
+          providerScalarText(body.reference) ??
+          providerScalarText(body.submissionReference),
         responsePayload: JSON.stringify(body).slice(0, 65000),
         rejectionReason: response.ok
           ? null
-          : String(body.message ?? body.error ?? `HTTP ${response.status}`),
+          : (providerScalarText(body.message) ??
+            providerScalarText(body.error) ??
+            `HTTP ${response.status}`),
       },
       include: { payer: true, policy: true, invoice: true },
     });

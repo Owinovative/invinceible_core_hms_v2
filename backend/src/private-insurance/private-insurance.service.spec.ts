@@ -49,3 +49,52 @@ describe('PrivateInsuranceService claim idempotency', () => {
     });
   });
 });
+
+describe('PrivateInsuranceService payer URL normalization', () => {
+  const user: RequestUser = {
+    userId: 1,
+    username: 'facility-admin',
+    roleId: 2,
+    homeFacilityId: 1,
+  };
+
+  it('removes trailing slashes without evaluating a user-controlled regex', async () => {
+    const prisma = {
+      insurancePayer: {
+        create: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({
+            id: 1,
+            ...data,
+            isActive: true,
+          }),
+        ),
+      },
+    };
+    const scope = { assertFacilityAccess: jest.fn() };
+    const service = new PrivateInsuranceService(
+      prisma as never,
+      scope as never,
+      { encrypt: jest.fn() } as never,
+      { get: jest.fn().mockReturnValue('development') } as never,
+    );
+
+    await service.createPayer(
+      {
+        facilityId: 1,
+        code: ' demo ',
+        name: ' Demo Insurer ',
+        integrationBaseUrl: '  https://payer.example/api////  ',
+      },
+      user,
+    );
+
+    expect(scope.assertFacilityAccess).toHaveBeenCalledWith(user, 1);
+    expect(prisma.insurancePayer.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          integrationBaseUrl: 'https://payer.example/api',
+        }),
+      }),
+    );
+  });
+});
