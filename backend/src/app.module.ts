@@ -66,15 +66,21 @@ import { WorkflowModule } from './workflows/workflow.module';
 import { ClinicalSpecialtiesModule } from './clinical-specialties/clinical-specialties.module';
 import { PrivateInsuranceModule } from './private-insurance/private-insurance.module';
 
-const backendEnvPath = existsSync(join(process.cwd(), 'backend', '.env'))
-  ? join(process.cwd(), 'backend', '.env')
-  : join(process.cwd(), '.env');
+const backendEnvPath = join(process.cwd(), '.env');
+const repositoryEnvPath = join(process.cwd(), '..', '.env');
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       envFilePath: backendEnvPath,
       isGlobal: true,
+      // Resolve environment files from this application instead of the
+      // process working directory. This supports both the backend-local
+      // development convention and the repository-root deployment file.
+      // Existing process environment variables still take precedence.
+      envFilePath: existsSync(backendEnvPath)
+        ? backendEnvPath
+        : repositoryEnvPath,
       validate: validateEnvironment,
     }),
     EnterpriseModule,

@@ -30,6 +30,7 @@ import { IntegrationStatusController } from './integration-status.controller';
 import { DHA_CLIENT, ETIMS_CLIENT } from './integration.constants';
 import { IntegrationQueueService } from './queue/integration-queue.service';
 import { IntegrationQueueWorker } from './queue/integration-queue.worker';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Integration layer isolating all external government systems (KRA eTIMS,

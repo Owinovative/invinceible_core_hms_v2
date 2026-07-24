@@ -223,4 +223,51 @@ describe('IntegrationQueueService', () => {
     expect(deadLetters).toHaveLength(1);
     expect(deadLetters[0].status).toBe('DEAD_LETTER');
   });
+
+  it('scopes dead-letter recovery, statistics, and listing to the user facility', async () => {
+    const scopeService = {
+      buildReadScope: jest.fn().mockReturnValue({ facilityId: 3 }),
+    };
+    const scopedQueue = new IntegrationQueueService(
+      prisma as never,
+      makeConfig(),
+      makeLogger(),
+      scopeService as never,
+    );
+    const user = {
+      userId: 7,
+      username: 'facility-admin',
+      roleId: 2,
+      roleCode: 'FACILITY_ADMIN',
+      homeFacilityId: 3,
+    };
+
+    await scopedQueue.enqueue(enqueueParams());
+    await scopedQueue.enqueue(
+      enqueueParams({
+        integration: 'DHA',
+        idempotencyKey: 'dha:other-facility',
+        facilityId: 4,
+      }),
+    );
+    await scopedQueue.claimBatch(2);
+    await scopedQueue.markFailed(1, { error: 'fatal', permanent: true });
+    await scopedQueue.markFailed(2, { error: 'fatal', permanent: true });
+
+    expect(
+      await scopedQueue.listDeadLettersScoped(user, undefined, 500),
+    ).toEqual([expect.objectContaining({ id: 1, facilityId: 3 })]);
+    expect(await scopedQueue.getStatsScoped(user, 'ETIMS')).toEqual([
+      expect.objectContaining({ integration: 'ETIMS', count: 1 }),
+    ]);
+    expect(await scopedQueue.requeueDeadLetterScoped(2, user)).toBe(false);
+    expect(await scopedQueue.requeueDeadLetterScoped(1, user)).toBe(true);
+    expect(scopeService.buildReadScope).toHaveBeenCalledWith(user);
+  });
+
+  it('fails closed when scoped queue access has no ScopeService', async () => {
+    await expect(
+      queue.listDeadLettersScoped({ userId: 7 } as never),
+    ).rejects.toThrow('ScopeService is required for user-facing queue access');
+  });
 });

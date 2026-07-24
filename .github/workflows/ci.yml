@@ -115,7 +115,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   frontend:
-    name: Frontend build
+    name: Frontend tests and build
     runs-on: ubuntu-latest
     defaults:
       run:

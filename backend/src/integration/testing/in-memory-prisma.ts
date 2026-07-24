@@ -199,9 +199,11 @@ class InMemoryModel {
     );
   }
 
-  groupBy({ by }: any): Promise<Row[]> {
+  groupBy({ by, where }: any): Promise<Row[]> {
     const groups = new Map<string, Row>();
-    for (const row of this.rows) {
+    for (const row of this.rows.filter((candidate) =>
+      matchesWhere(candidate, where),
+    )) {
       const key = (by as string[]).map((field) => row[field]).join('|');
       const existing = groups.get(key);
       if (existing) {
